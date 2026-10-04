@@ -1,0 +1,33 @@
+<?php
+    // The Discord account for the home page (index.html is static, so it asks
+    // here): who is logged in and what they may open. ?login starts the login
+    // and comes back to the home page; a POST with the CSRF token logs out.
+    require __DIR__ . '/inc/auth.php';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (authConfigured() && siteUser() && checkCsrf() && ($_POST['action'] ?? '') === 'logout')
+            logout();
+        header('Location: ./', true, 303);
+        exit;
+    }
+
+    if (isset($_GET['login']) && authConfigured()) {
+        startLogin(siteRoot());
+        exit;
+    }
+
+    // only for this visitor, never kept by a browser or Cloudflare
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+
+    $user = siteUser();
+    echo json_encode($user === null ? [
+        'login' => authConfigured()
+    ] : [
+        'user' => ['name' => $user['name'], 'avatar' => $user['avatar']],
+        'gallery' => canViewGalleryId($user['id']),
+        'api' => canViewApiId($user['id']),
+        'panel' => isPanelAdminId($user['id']),
+        'csrf' => siteCsrf(),
+        'flash' => takeFlash()
+    ], JSON_UNESCAPED_UNICODE);

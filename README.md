@@ -13,7 +13,7 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks, the deployed version and a backup of the data as ZIP |
 | `/status.php` | Bot status as JSON, used by the home page |
 
-Hidden way into the panel: hold the status dot on the home page for 10 seconds. A short click on the dot opens `/state/`.
+The top right corner of the home page logs in with Discord (`account.php`) and then links to the gallery and the panel for the accounts that may open them; the API button unlocks for the accounts that may read it. A short click on the status dot opens `/state/`; held for 3 seconds it fires the beam of the Gravitational Beam Emitter from BLAME!.
 
 ## Repository layout
 

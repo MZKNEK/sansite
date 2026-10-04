@@ -166,13 +166,172 @@ img.logo {
 }
 
 /* while held: a purple glow grows for the 10 seconds */
+/* while held: it charges up for 3 seconds, ever brighter, then fires */
 .bot-status.charging {
-    animation: charge 10s linear forwards;
+    animation: charge 3s ease-in forwards;
 }
 
 @keyframes charge {
-    to {
+    70% {
         box-shadow: 0 0 0 4px rgba(182, 112, 211, 0.9), 0 0 28px 10px rgba(155, 89, 182, 0.7);
+    }
+    to {
+        box-shadow: 0 0 0 5px #fff, 0 0 36px 16px rgba(214, 180, 236, 0.95);
+    }
+}
+
+/* the shot: the dot kicks back */
+.bot-status.recoil {
+    animation: recoil 0.35s ease-out;
+}
+
+@keyframes recoil {
+    20% { transform: translateX(-6px) scale(0.92); }
+}
+
+/* the Gravitational Beam Emitter of BLAME!: a hair-thin white beam to the edge
+   of the screen, a moment of nothing, then the blast swelling along it */
+.gbe-beam {
+    position: absolute;
+    z-index: 1;
+    height: 2px;
+    margin-top: -1px;
+    transform-origin: left center;
+    background: #fff;
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.9), 0 0 18px 6px rgba(182, 112, 211, 0.8);
+    pointer-events: none;
+    animation: gbe 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes gbe {
+    0% { transform: scaleX(0) scaleY(1); opacity: 1; }
+    6% { transform: scaleX(1) scaleY(1); }
+    22% { transform: scaleX(1) scaleY(0.6); }
+    34% { transform: scaleX(1) scaleY(14); background: #fff; }
+    60% { transform: scaleX(1) scaleY(5); background: #d6b4ec; opacity: 0.8; }
+    100% { transform: scaleX(1) scaleY(1); opacity: 0; }
+}
+
+/* the white flash of the blast and the shaking of the page */
+body.gbe-shot::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: #fff;
+    pointer-events: none;
+    animation: gbe-flash 0.9s ease-out forwards;
+}
+
+@keyframes gbe-flash {
+    0%, 30% { opacity: 0; }
+    36% { opacity: 0.55; }
+    100% { opacity: 0; }
+}
+
+body.gbe-shot main.hero {
+    animation: gbe-shake 0.5s 0.5s linear;
+}
+
+@keyframes gbe-shake {
+    10% { transform: translate(-7px, 3px); }
+    25% { transform: translate(6px, -4px); }
+    40% { transform: translate(-4px, 2px); }
+    60% { transform: translate(3px, -2px); }
+    80% { transform: translate(-1px, 1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.gbe-shot::after,
+    body.gbe-shot main.hero,
+    .bot-status.recoil {
+        animation: none;
+    }
+}
+
+/* The Discord account in the top right corner of the home page */
+/* below the Morse line that runs along the top */
+.home-account {
+    position: absolute;
+    top: 46px;
+    right: 16px;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.home-account[hidden] {
+    display: none;
+}
+
+.home-who {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 4px;
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.home-who img {
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
+}
+
+.home-account form {
+    margin: 0;
+}
+
+.home-account a:not(.home-login),
+.home-account button {
+    padding: 6px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: transparent;
+    color: var(--accent-light);
+    font: 13px Lato, sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.home-account a:not(.home-login):hover,
+.home-account button:hover {
+    background: rgba(155, 89, 182, 0.2);
+    color: #fff;
+}
+
+/* the login looks like the HUD buttons of the site (the corners come from .hud-corners) */
+.home-account a.home-login {
+    padding: 6px 13px;
+    color: var(--text);
+    font: 11px/1.5 "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background-size 0.25s, background-color 0.25s, color 0.2s;
+}
+
+.home-flash {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 20;
+    margin: 0;
+    padding: 10px 16px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: rgba(18, 18, 22, 0.96);
+    font-size: 14px;
+    transform: translateX(-50%);
+}
+
+@media only screen and (max-width: 720px) {
+    .home-account {
+        position: static;
+        justify-content: center;
+        margin: 14px 16px 0;
     }
 }
 
@@ -500,8 +659,12 @@ a.hud-corners:hover {
 .links a.restricted {
     --corner: rgba(232, 98, 98, 0.85);
     --fill: rgba(217, 83, 79, 0.06);
-    min-width: 0;
     color: #f0c4c2;
+}
+
+/* a short name (API) needs no full-width button, locked or not */
+.links a.short {
+    min-width: 0;
 }
 
 .links a.restricted:hover {
@@ -513,7 +676,7 @@ a.hud-corners:hover {
     color: #e86262;
 }
 
-.links a.restricted .lock {
+.links a .lock {
     width: 13px;
     height: 13px;
     margin-left: 10px;

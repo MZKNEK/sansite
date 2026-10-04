@@ -12,8 +12,8 @@
     const DISCORD_CLIENT_SECRET = '';
     const DISCORD_REDIRECT_URI = 'https://sanakan.pl/i/';
 
-    // Discord accounts that may open the admin panel (admin/, also: hold the bot
-    // status dot on the home page for 10 seconds). Only here, the panel cannot change it.
+    // Discord accounts that may open the admin panel (admin/, linked from the home
+    // page once logged in). Only here, the panel cannot change it.
     const PANEL_ADMINS = [
         // '123456789012345678',
     ];

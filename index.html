@@ -22,10 +22,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&display=swap" />
-  <link href="css/style.css?v=20" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=21" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
+  <div class="home-account" id="home-account" hidden></div>
   <div class="motto" id="motto" title="Niby nie taki lekki, ale lata">Niby nie taki lekki, ale lata</div>
 
   <main class="hero">
@@ -50,7 +51,7 @@
           <a class="swap-main" href="https://skalpel.sanakan.pl"><i aria-hidden="true">04</i>Skalpelator</a>
           <a class="swap-alt" href="https://uskalpel.sanakan.pl/"><i aria-hidden="true">04B</i>USkalpelator</a>
         </div>
-        <a class="restricted" href="./api/" title="Dokumentacja API, wymaga logowania przez Discorda"><i aria-hidden="true">05</i>API<svg class="lock" viewBox="0 0 24 24" aria-label="wymaga logowania"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></a>
+        <a class="short restricted" id="api-link" href="./api/" title="Dokumentacja API, wymaga logowania przez Discorda"><i aria-hidden="true">05</i>API<svg class="lock" viewBox="0 0 24 24" aria-label="wymaga logowania"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></a>
       </div>
     </div>
   </main>
@@ -135,21 +136,43 @@
         // without an answer nothing is known about the bot, so no dot at all
         .catch(function () { dot.remove(); });
 
-      // a click on the dot opens the public status page; holding it for 10 seconds
-      // is the hidden way to the admin panel, the dot lights up meanwhile
+      // a click on the dot opens the public status page; held for 3 seconds it
+      // charges up and fires like Killy's Gravitational Beam Emitter in BLAME!:
+      // a thin beam straight through everything, then the blast along it
       var timer, pressed = 0;
 
       function hold(e) {
         if (e.button > 0) return;
         pressed = Date.now();
         dot.classList.add('charging');
-        timer = setTimeout(function () { location.href = 'admin/'; }, 10000);
+        timer = setTimeout(fire, 3000);
       }
 
       function release() {
         clearTimeout(timer);
         dot.classList.remove('charging');
         pressed = 0;
+      }
+
+      // the beam goes in next to the dot, a layer below it, so it comes out from
+      // under the dot and runs to the right edge of the window
+      function fire() {
+        release();
+        var wrap = dot.parentNode;
+        var r = dot.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+        var beam = document.createElement('div');
+        beam.className = 'gbe-beam';
+        beam.style.left = (r.left - w.left + r.width / 2) + 'px';
+        beam.style.top = (r.top - w.top + r.height / 2) + 'px';
+        beam.style.width = Math.max(0, document.documentElement.clientWidth - (r.left + r.width / 2)) + 'px';
+        wrap.appendChild(beam);
+        document.body.classList.add('gbe-shot');
+        dot.classList.add('recoil');
+        setTimeout(function () {
+          beam.remove();
+          document.body.classList.remove('gbe-shot');
+          dot.classList.remove('recoil');
+        }, 1700);
       }
 
       dot.addEventListener('pointerdown', hold);
@@ -163,6 +186,83 @@
       });
       // a long touch would open the context menu instead
       dot.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    })();
+
+    // The Discord account in the top right corner (account.php): a login button,
+    // or the account with the gallery and the panel when it may open them. An
+    // account that may read the API gets the API button unlocked.
+    (function () {
+      var box = document.getElementById('home-account');
+      var api = document.getElementById('api-link');
+
+      function link(href, text, className) {
+        var a = document.createElement('a');
+        a.href = href;
+        a.textContent = text;
+        if (className) a.className = className;
+        return a;
+      }
+
+      fetch('./account.php', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (me) {
+          if (!me) return;
+          if (!me.user) {
+            if (!me.login) return;
+            box.appendChild(link('account.php?login', 'Zaloguj przez Discord', 'home-login hud-corners'));
+            box.hidden = false;
+            return;
+          }
+
+          var who = document.createElement('span');
+          who.className = 'home-who';
+          var avatar = new Image(28, 28);
+          avatar.src = me.user.avatar;
+          avatar.alt = '';
+          var name = document.createElement('span');
+          name.textContent = me.user.name;
+          who.append(avatar, name);
+          box.appendChild(who);
+
+          if (me.gallery) box.appendChild(link('i/', 'Galeria'));
+          if (me.panel) box.appendChild(link('admin/', 'Panel'));
+
+          var form = document.createElement('form');
+          form.method = 'post';
+          form.action = 'account.php';
+          [['csrf', me.csrf], ['action', 'logout']].forEach(function (field) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = field[0];
+            input.value = field[1];
+            form.appendChild(input);
+          });
+          var logout = document.createElement('button');
+          logout.type = 'submit';
+          logout.textContent = 'Wyloguj';
+          form.appendChild(logout);
+          box.appendChild(form);
+          box.hidden = false;
+
+          if (me.api) {
+            api.classList.remove('restricted');
+            api.title = 'Dokumentacja API';
+            var lock = api.querySelector('.lock');
+            lock.setAttribute('aria-label', 'masz dostęp');
+            lock.querySelector('path').setAttribute('d', 'M8 11V8a4 4 0 0 1 7.7-1.5');
+          }
+
+          // "Zalogowano jako ..." after coming back from Discord
+          if (me.flash) {
+            var flash = document.createElement('p');
+            flash.className = 'home-flash';
+            flash.setAttribute('role', 'status');
+            flash.textContent = me.flash;
+            document.body.appendChild(flash);
+            setTimeout(function () { flash.remove(); }, 4500);
+          }
+        })
+        .catch(function () {});
     })();
   </script>
 </body>

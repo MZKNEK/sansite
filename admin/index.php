@@ -1,8 +1,8 @@
 <?php
     // Admin panel: who may use the gallery, the bot status, links and server
-    // tools. Hidden entry from the home page: hold the bot status dot for 10
-    // seconds. The Discord login is the gallery's (inc/auth.php, one session for
-    // both); only the accounts in PANEL_ADMINS (inc/config.php) get in.
+    // tools. The home page links here for the accounts that may open it. The
+    // Discord login is the gallery's (inc/auth.php, one session for all); only
+    // the accounts in PANEL_ADMINS (inc/config.php) get in.
     require __DIR__ . '/../inc/bot.php';
     require __DIR__ . '/../inc/services.php';
     require __DIR__ . '/../inc/gallery.php';
@@ -399,7 +399,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=21" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=7" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=6" type="text/css" rel="stylesheet" />
