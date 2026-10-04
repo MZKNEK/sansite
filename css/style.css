@@ -232,8 +232,10 @@ img.logo {
 }
 
 .hud-title {
-    /* letter-spacing also follows the last letter, the negative margin keeps the word centred */
-    margin: 0 -0.38em 0 0;
+    /* letter-spacing also follows the last letter; the same space on the left keeps the
+       word centred (a negative right margin did that too, but pushed the page wider) */
+    margin: 0;
+    padding-left: 0.38em;
     font-size: clamp(30px, 10vw, 56px);
     line-height: 1.1;
     color: #efe2f7;
@@ -245,7 +247,8 @@ img.logo {
 }
 
 .kana {
-    margin: 8px -0.6em 0 0;
+    margin: 8px 0 0;
+    padding-left: 0.6em;
     font: 14px "Share Tech Mono", monospace;
     letter-spacing: 0.6em;
     color: var(--accent);

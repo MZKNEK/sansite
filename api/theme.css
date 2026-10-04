@@ -759,6 +759,11 @@ body {
         font-size: 18px;
     }
 
+    /* wide schemas scroll inside their box instead of widening the page */
+    .swagger-ui section.models .model-container {
+        overflow-x: auto;
+    }
+
     /* justified text gets wide gaps in a narrow column */
     .swagger-ui .info .markdown p,
     .swagger-ui .info .renderedMarkdown p,
