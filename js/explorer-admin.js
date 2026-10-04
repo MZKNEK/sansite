@@ -80,6 +80,25 @@
   // ---- Upload ----
 
   var uploadInput = document.getElementById('upload-input');
+
+  // "change to WebP" (only when the server can write WebP): ticked unless it was
+  // unticked before in this browser
+  var webpBox = document.getElementById('upload-webp');
+  if (webpBox) {
+    webpBox.checked = true;
+    try {
+      webpBox.checked = localStorage.getItem('gallery-webp') !== '0';
+    } catch (err) {
+      // no storage, the box stays ticked
+    }
+    webpBox.addEventListener('change', function () {
+      try {
+        localStorage.setItem('gallery-webp', webpBox.checked ? '1' : '0');
+      } catch (err) {
+        // not remembered then
+      }
+    });
+  }
   var progress = document.getElementById('progress');
   var progressText = document.getElementById('progress-text');
   var progressFill = document.getElementById('progress-fill');
@@ -107,7 +126,7 @@
 
       // what the server would refuse anyway is not sent at all
       if (data.types.indexOf(ext) === -1) {
-        problems.push(file.name + ': to nie jest obrazek (' + data.types.join(', ') + ').');
+        problems.push(file.name + ': można dodawać tylko ' + data.types.join(', ') + '.');
         return next();
       }
       if (data.uploadLimit && file.size > data.uploadLimit) {
@@ -117,7 +136,7 @@
 
       progressText.textContent = label;
       progressFill.style.width = '0';
-      post({ action: 'upload', dir: data.dir }, file, function (part) {
+      post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0' }, file, function (part) {
         progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
         progressFill.style.width = (part * 100) + '%';
       }).then(function (result) {

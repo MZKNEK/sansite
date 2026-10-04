@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=4" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=5" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=2" type="text/css" rel="stylesheet" />
 </head>
 

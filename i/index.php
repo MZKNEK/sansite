@@ -74,6 +74,7 @@
         $size = filesize($full);
         $totalBytes += $size;
         $image = isImage($name);
+        $kind = $image ? 'image' : (isVideo($name) ? 'video' : 'file');
         $dims = $image ? @getimagesize($full) : false;
 
         $files[] = [
@@ -82,7 +83,7 @@
             'ext' => extensionOf($name),
             'size' => $size,
             'mtime' => filemtime($full),
-            'image' => $image,
+            'kind' => $kind,
             'dims' => $dims ? $dims[0] . '×' . $dims[1] : '',
             'thumb' => $image ? thumbUrl($rel, $full) : null
         ];
@@ -128,7 +129,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=4" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=5" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -194,7 +195,12 @@
 <?php if ($admin): ?>
       <div class="admin-bar" id="admin-bar">
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj pliki</button>
-        <input type="file" id="upload-input" multiple accept=".png,.jpg,.jpeg,.gif,.webp" hidden />
+        <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', array_merge(IMAGE_TYPES, VIDEO_TYPES)))?>" hidden />
+<?php if (canConvertToWebp()): ?>
+        <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, GIF-y jako animowane (gdy serwer ma gif2webp). Gdy WebP nie wyjdzie mniejszy, zostaje oryginał. Filmy zostają bez zmian.">
+          <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP
+        </label>
+<?php endif; ?>
         <button type="button" class="admin-btn" id="act-mkdir">Nowy folder</button>
         <button type="button" class="admin-btn" id="act-select" aria-pressed="false">Zaznacz</button>
         <span class="admin-selection" id="admin-selection" hidden>
@@ -247,7 +253,7 @@
 <?php foreach ($files AS $file): ?>
       <a class="tile file hud-corners" href="<?=e(fileUrl($file['rel']))?>" target="_blank" rel="noopener" data-rel="<?=e($file['rel'])?>"
          data-name="<?=e(lower($file['name']))?>" data-date="<?=$file['mtime']?>" data-size="<?=$file['size']?>"
-         data-image="<?=$file['image'] ? '1' : '0'?>" data-title="<?=e($file['name'])?>"
+         data-kind="<?=$file['kind']?>" data-title="<?=e($file['name'])?>"
          data-details="<?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size']), date('d.m.Y', $file['mtime'])])))?>">
         <span class="thumb">
 <?php if ($admin): ?>
@@ -255,11 +261,13 @@
 <?php endif; ?>
 <?php if ($file['thumb']): ?>
           <img src="<?=e($file['thumb'])?>" alt="" loading="lazy" decoding="async" />
+<?php elseif ($file['kind'] === 'video'): ?>
+          <video class="tile-video" data-src="<?=e(fileUrl($file['rel']))?>#t=0.1" muted loop playsinline preload="none"></video>
 <?php else: ?>
           <span class="placeholder"><b><?=e(strtoupper($file['ext']) ?: 'PLIK')?></b><?=e(formatSize($file['size']))?></span>
 <?php endif; ?>
-<?php if ($file['ext'] === 'gif'): ?>
-          <span class="badge">GIF</span>
+<?php if ($file['ext'] === 'gif' || $file['kind'] === 'video'): ?>
+          <span class="badge"><?=e(strtoupper($file['ext']))?></span>
 <?php endif; ?>
         </span>
         <span class="label">
@@ -293,6 +301,7 @@
     <div class="viewer-stage" id="viewer-stage">
       <button type="button" class="viewer-nav prev hud-corners" id="viewer-prev" aria-label="Poprzedni">&larr;</button>
       <img class="viewer-img" id="viewer-img" alt="" />
+      <video class="viewer-img" id="viewer-video" controls loop playsinline hidden></video>
       <span class="viewer-loading" id="viewer-loading">Wczytywanie&hellip;</span>
       <button type="button" class="viewer-nav next hud-corners" id="viewer-next" aria-label="Następny">&rarr;</button>
     </div>
@@ -360,13 +369,13 @@
       'folders' => allFolders($base),
       'uploadLimit' => uploadLimit(),
       'uploadLimitLabel' => formatSize(uploadLimit()),
-      'types' => IMAGE_TYPES
+      'types' => array_merge(IMAGE_TYPES, VIDEO_TYPES)
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=4"></script>
+  <script src="../js/explorer.js?v=6"></script>
 <?php if ($admin): ?>
-  <script src="../js/explorer-admin.js?v=2"></script>
+  <script src="../js/explorer-admin.js?v=4"></script>
 <?php endif; ?>
 </body>
 

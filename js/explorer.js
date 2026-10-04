@@ -131,9 +131,44 @@ window.SanakanGallery = (function () {
     });
   });
 
-  // Viewer: pictures open in place, other files open in a new tab
+  // Video tiles show their first frame, loaded only when the tile comes into
+  // view, and play without sound while the mouse is over them
+  var tileVideos = Array.prototype.slice.call(grid.querySelectorAll('.tile-video'));
+
+  function loadTileVideo(video) {
+    if (video.src) return;
+    video.preload = 'metadata';
+    video.src = video.dataset.src;
+  }
+
+  if ('IntersectionObserver' in window) {
+    var watcher = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        loadTileVideo(entry.target);
+        watcher.unobserve(entry.target);
+      });
+    }, { rootMargin: '200px' });
+    tileVideos.forEach(function (video) { watcher.observe(video); });
+  } else {
+    tileVideos.forEach(loadTileVideo);
+  }
+
+  tileVideos.forEach(function (video) {
+    var tile = video.closest('.tile');
+    tile.addEventListener('mouseenter', function () {
+      loadTileVideo(video);
+      video.play().catch(function () {});
+    });
+    tile.addEventListener('mouseleave', function () {
+      video.pause();
+    });
+  });
+
+  // Viewer: pictures and videos open in place, other files open in a new tab
   var viewer = document.getElementById('viewer');
   var image = document.getElementById('viewer-img');
+  var video = document.getElementById('viewer-video');
   var loading = document.getElementById('viewer-loading');
   var nameEl = document.getElementById('viewer-name');
   var detailsEl = document.getElementById('viewer-details');
@@ -141,11 +176,21 @@ window.SanakanGallery = (function () {
   var copyButton = document.getElementById('viewer-copy');
   var current = null;
 
-  // the pictures in their current order, without the ones the search hides
+  function viewable(tile) {
+    return tile.dataset.kind === 'image' || tile.dataset.kind === 'video';
+  }
+
+  // the pictures and videos in their current order, without the ones the search hides
   function pictures() {
     return tiles.filter(function (tile) {
-      return !tile.hidden && tile.dataset.image === '1';
+      return !tile.hidden && viewable(tile);
     });
+  }
+
+  function stopVideo() {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
   }
 
   function show(tile) {
@@ -156,8 +201,17 @@ window.SanakanGallery = (function () {
 
     loading.hidden = false;
     image.hidden = true;
-    image.src = tile.getAttribute('href');
-    image.alt = tile.dataset.title;
+    video.hidden = true;
+
+    if (tile.dataset.kind === 'video') {
+      image.removeAttribute('src');
+      video.src = tile.getAttribute('href');
+      video.play().catch(function () {});
+    } else {
+      stopVideo();
+      image.src = tile.getAttribute('href');
+      image.alt = tile.dataset.title;
+    }
   }
 
   image.addEventListener('load', function () {
@@ -165,8 +219,19 @@ window.SanakanGallery = (function () {
     image.hidden = false;
   });
 
-  image.addEventListener('error', function () {
-    loading.textContent = 'Nie udało się wczytać obrazka';
+  // the player shows as soon as the size is known, so big videos show their controls while loading
+  video.addEventListener('loadedmetadata', function () {
+    loading.hidden = true;
+    video.hidden = false;
+  });
+
+  function loadFailed() {
+    loading.textContent = 'Nie udało się wczytać pliku';
+  }
+
+  image.addEventListener('error', loadFailed);
+  video.addEventListener('error', function () {
+    if (video.getAttribute('src')) loadFailed();
   });
 
   function open(tile) {
@@ -181,6 +246,7 @@ window.SanakanGallery = (function () {
     viewer.hidden = true;
     document.body.classList.remove('viewer-open');
     image.removeAttribute('src');
+    stopVideo();
     if (current) current.focus();
   }
 
@@ -193,7 +259,7 @@ window.SanakanGallery = (function () {
   }
 
   tiles.forEach(function (tile) {
-    if (tile.dataset.image !== '1') return;
+    if (!viewable(tile)) return;
     tile.addEventListener('click', function (e) {
       // ctrl/cmd/middle click still opens the file in a new tab
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;

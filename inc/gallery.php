@@ -9,6 +9,12 @@
     const THUMB_SIZE = 360;
     const THUMBLESS_MAX_BYTES = 1500000;
     const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+    const VIDEO_TYPES = ['webm'];
+    // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
+    const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
+    const WEBP_QUALITY = 90;
+    const GIF_WEBP_QUALITY = 75;
+    const TOOL_TIMEOUT = 50;
     const MAX_NAME_LENGTH = 150;
 
     require_once __DIR__ . '/auth.php';
@@ -48,6 +54,100 @@
     function isImage($name)
     {
         return in_array(extensionOf($name), IMAGE_TYPES, true);
+    }
+
+    function isVideo($name)
+    {
+        return in_array(extensionOf($name), VIDEO_TYPES, true);
+    }
+
+    // WebM is Matroska: the file starts with the EBML magic number and names its doc type
+    function isWebm($path)
+    {
+        $head = (string)@file_get_contents($path, false, null, 0, 64);
+
+        return strncmp($head, "\x1A\x45\xDF\xA3", 4) === 0 && strpos($head, 'webm') !== false;
+    }
+
+    function canConvertToWebp()
+    {
+        return hasGd() && function_exists('imagewebp');
+    }
+
+    // Path of a command-line tool from libwebp (on Ubuntu: apt-get install webp),
+    // or null. PHP-FPM usually runs without PATH, so the usual folders are tried too.
+    function webpTool($name)
+    {
+        static $found = [];
+        if (array_key_exists($name, $found))
+            return $found[$name];
+
+        $found[$name] = null;
+        if (!function_exists('proc_open'))
+            return null;
+
+        $dirs = array_merge(explode(PATH_SEPARATOR, (string)getenv('PATH')), ['/usr/bin', '/usr/local/bin']);
+        foreach ($dirs as $dir) {
+            foreach ([$name, $name . '.exe'] as $file) {
+                $path = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . $file;
+                if ($dir !== '' && is_file($path) && is_executable($path))
+                    return $found[$name] = $path;
+            }
+        }
+
+        return null;
+    }
+
+    function canConvertGifToWebp()
+    {
+        return webpTool('gif2webp') !== null;
+    }
+
+    // Runs a tool, at most $timeout seconds (a slow conversion must not hang the
+    // upload); true when it finished without an error.
+    function runTool($tool, $args, $timeout)
+    {
+        $command = escapeshellarg($tool);
+        foreach ($args as $arg)
+            $command .= ' ' . escapeshellarg($arg);
+
+        $process = @proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!is_resource($process))
+            return false;
+
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+        $deadline = microtime(true) + $timeout;
+        do {
+            $status = proc_get_status($process);
+            if (!$status['running'])
+                break;
+            // the output is read away, so the tool never waits on a full pipe
+            fread($pipes[1], 65536);
+            fread($pipes[2], 65536);
+            usleep(100000);
+        } while (microtime(true) < $deadline);
+
+        if ($status['running'])
+            proc_terminate($process);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+
+        return !$status['running'] && $status['exitcode'] === 0;
+    }
+
+    // an animated GIF as an animated WebP
+    function gifToWebp($source, $target)
+    {
+        $tmp = $target . '.' . getmypid();
+        // lossy and a light effort: a 22 MB GIF takes seconds instead of most of a minute, and ends up smaller
+        $ok = runTool(webpTool('gif2webp'), ['-lossy', '-q', (string)GIF_WEBP_QUALITY, '-m', '2', '-mt', $source, '-o', $tmp], TOOL_TIMEOUT)
+            && @rename($tmp, $target);
+        if (!$ok)
+            @unlink($tmp);
+
+        return $ok;
     }
 
     function hasGd()
@@ -121,7 +221,18 @@
         return array_values($names);
     }
 
-    function makeThumb($source, $target)
+    // An animated WebP says so in its extended header (VP8X, animation flag).
+    // GD must not get one: it stops the whole script instead of failing.
+    function isAnimatedWebp($path)
+    {
+        $head = (string)@file_get_contents($path, false, null, 0, 21);
+
+        return strlen($head) === 21 && substr($head, 0, 4) === 'RIFF' && substr($head, 8, 4) === 'WEBP'
+            && substr($head, 12, 4) === 'VP8X' && (ord($head[20]) & 0x02);
+    }
+
+    // a picture as a true colour GD image (the first frame of an animated GIF or WebP), or false
+    function loadImage($source)
     {
         $info = @getimagesize($source);
         if (!$info)
@@ -130,16 +241,54 @@
         switch ($info[2]) {
             case IMAGETYPE_PNG: $img = @imagecreatefrompng($source); break;
             case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($source); break;
-            // the first frame of an animated GIF
             case IMAGETYPE_GIF: $img = @imagecreatefromgif($source); break;
-            case IMAGETYPE_WEBP: $img = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($source) : false; break;
+            case IMAGETYPE_WEBP:
+                $img = false;
+                if (!function_exists('imagecreatefromwebp'))
+                    break;
+                if (!isAnimatedWebp($source)) {
+                    $img = @imagecreatefromwebp($source);
+                    break;
+                }
+                // GD cannot read an animated WebP; webpmux takes out its first frame
+                if ($mux = webpTool('webpmux')) {
+                    $frame = sys_get_temp_dir() . '/sanakan-frame-' . getmypid() . '.webp';
+                    if (runTool($mux, ['-get', 'frame', '1', $source, '-o', $frame], 20))
+                        $img = @imagecreatefromwebp($frame);
+                    @unlink($frame);
+                }
+                break;
             default: $img = false;
         }
+        if ($img && !imageistruecolor($img))
+            imagepalettetotruecolor($img);
+
+        return $img;
+    }
+
+    // saves a picture as WebP, keeping transparency
+    function convertToWebp($source, $target)
+    {
+        $img = loadImage($source);
         if (!$img)
             return false;
 
-        if (!imageistruecolor($img))
-            imagepalettetotruecolor($img);
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+        $tmp = $target . '.' . getmypid();
+        $ok = @imagewebp($img, $tmp, WEBP_QUALITY) && @rename($tmp, $target);
+        imagedestroy($img);
+        if (!$ok)
+            @unlink($tmp);
+
+        return $ok;
+    }
+
+    function makeThumb($source, $target)
+    {
+        $img = loadImage($source);
+        if (!$img)
+            return false;
 
         $width = imagesx($img);
         $height = imagesy($img);
@@ -250,8 +399,8 @@
             return 'Nazwa nie może zawierać znaków / \\ : * ? " < > |';
         if (strlen($name) > MAX_NAME_LENGTH)
             return 'Nazwa jest za długa.';
-        if ($isFile && !isImage($name))
-            return 'Można dodawać tylko obrazki: ' . implode(', ', IMAGE_TYPES) . '.';
+        if ($isFile && !isImage($name) && !isVideo($name))
+            return 'Można dodawać tylko obrazki i filmy: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES)) . '.';
 
         return null;
     }
@@ -430,14 +579,41 @@
         if ($error = nameError($name, true))
             reply(false, $name . ': ' . $error, 400);
 
-        // the extension alone is not enough, the content has to be a picture too
-        if (!@getimagesize($file['tmp_name']))
-            reply(false, $name . ': to nie jest obrazek.', 400);
+        // the extension alone is not enough, the content has to match it
+        if (isVideo($name) ? !isWebm($file['tmp_name']) : !@getimagesize($file['tmp_name']))
+            reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
+
+        // "change to WebP" ticked in the page; the original stays when that is not
+        // possible or when the WebP would not be smaller
+        $note = '';
+        if (($_POST['webp'] ?? '') === '1' && in_array(extensionOf($name), WEBP_SOURCE_TYPES, true)) {
+            $isGif = extensionOf($name) === 'gif';
+            if (!($isGif ? canConvertGifToWebp() : canConvertToWebp())) {
+                $note = $isGif
+                    ? ' Serwer nie umie zamieniać GIF-ów na animowane WebP (brak gif2webp), zostawiono GIF.'
+                    : ' Serwer nie umie zapisać WebP, zostawiono oryginał.';
+            } else {
+                $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
+                $path = $dir[0] . '/' . $target;
+                $converted = $isGif ? gifToWebp($file['tmp_name'], $path) : convertToWebp($file['tmp_name'], $path);
+                clearstatcache();
+
+                if (!$converted) {
+                    $note = ' Nie udało się zamienić na WebP, zostawiono oryginał.';
+                } else if (filesize($path) >= $file['size']) {
+                    $note = ' WebP wyszedłby większy (' . formatSize(filesize($path)) . '), zostawiono oryginał.';
+                    @unlink($path);
+                } else {
+                    @chmod($path, 0644);
+                    reply(true, 'Dodano ' . $name . ' jako ' . $target . ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ').');
+                }
+            }
+        }
 
         $target = freeName($dir[0], $name);
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
 
-        reply(true, $target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).');
+        reply(true, ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).') . $note);
     }

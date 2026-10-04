@@ -196,7 +196,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=4" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=5" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=2" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=2" type="text/css" rel="stylesheet" />
 </head>
@@ -248,7 +248,6 @@
           <a class="hud-corners" href="<?=e($root)?>api/">API <small>dokumentacja</small></a>
           <a class="hud-corners" href="<?=e($root)?>cmd/">Polecenia <small>cmd/</small></a>
           <a class="hud-corners" href="<?=e($root)?>state/">Status <small>publiczny podgląd</small></a>
-          <a class="hud-corners" href="<?=e($root)?>status.php">Status <small>JSON</small></a>
           <a class="hud-corners" href="<?=e($root)?>">Start <small>strona główna</small></a>
         </nav>
       </section>
@@ -348,6 +347,9 @@
           <dt>Miniatury (GD)</dt>
           <dd><?=hasGd() ? 'włączone' . (function_exists('imagewebp') ? ', WebP' : ', PNG') : '<b class="warn">GD wyłączone</b>: duże pliki nie mają podglądów'?></dd>
 
+          <dt>GIF → WebP</dt>
+          <dd><?=canConvertGifToWebp() ? 'gif2webp: ' . e(webpTool('gif2webp')) . (webpTool('webpmux') ? '' : ' <b class="warn">(bez webpmux miniatury animowanych WebP się nie zrobią)</b>') : '<b class="warn">brak gif2webp</b>: GIF-y zostają GIF-ami. Instalacja: <code>apt-get install -y webp</code>'?></dd>
+
           <dt>Limit wysyłania</dt>
           <dd><?=e(formatSize(uploadLimit()))?> <span class="muted">(PHP; nginx ma osobny client_max_body_size)</span></dd>
 
@@ -387,7 +389,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=4"></script>
+  <script src="../js/explorer.js?v=6"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=1"></script>
 <?php endif; ?>
