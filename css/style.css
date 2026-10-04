@@ -1,0 +1,277 @@
+:root {
+    --accent: #9b59b6;
+    --accent-light: #b670d3;
+    --accent-dark: #713b87;
+    --bg-dark: #080909;
+    --bg-mid: #202225;
+    --text: #dcddde;
+}
+
+html, body {
+    min-height: 100%;
+}
+
+html {
+    background: var(--bg-dark);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top right, rgba(155, 89, 182, 0.18), transparent 55%),
+                linear-gradient(to top right, var(--bg-dark), var(--bg-mid));
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    color: var(--text);
+    font-family: Lato, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Navigation */
+nav {
+    background: rgba(16, 17, 18, 0.9) !important;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.35);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-text a {
+    color: var(--accent) !important;
+    font-size: 18px;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.nav-text li:hover > a {
+    color: #fff !important;
+    background-color: rgba(155, 89, 182, 0.25);
+}
+
+.nav-text li.active {
+    background-color: rgba(155, 89, 182, 0.15);
+    box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+nav .button-collapse i {
+    color: var(--accent);
+}
+
+.side-nav {
+    background: #18191b;
+}
+
+.side-nav li > a {
+    color: var(--accent-light);
+    font-size: 18px;
+}
+
+.side-nav li.active,
+.side-nav li > a:hover {
+    background-color: rgba(155, 89, 182, 0.2);
+}
+
+.scaps {
+    font-variant: small-caps !important;
+}
+
+/* Landing page */
+main.hero {
+    flex: 1 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+}
+
+.hero-inner {
+    text-align: center;
+    width: 100%;
+}
+
+img.logo {
+    width: 240px;
+    max-width: 60vw;
+    background: linear-gradient(to bottom right, var(--accent), var(--accent-dark));
+    padding: 8px;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 40px rgba(155, 89, 182, 0.45);
+}
+
+.name {
+    margin-top: 24px;
+    font-size: 56px;
+    line-height: 1.1;
+    color: var(--accent);
+    font-family: Lato, sans-serif;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-shadow: 0 0 24px rgba(155, 89, 182, 0.5);
+}
+
+.desc {
+    margin-top: 8px;
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--accent-light);
+    opacity: 0.8;
+    font-family: Lato, sans-serif;
+    font-weight: 400;
+    font-style: italic;
+}
+
+.links {
+    margin-top: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+}
+
+.links a {
+    min-width: 160px;
+    padding: 12px 24px;
+    border: 1px solid rgba(155, 89, 182, 0.5);
+    border-radius: 999px;
+    background: rgba(155, 89, 182, 0.08);
+    color: var(--accent-light);
+    font-size: 18px;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.links a:hover {
+    background: var(--accent);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(155, 89, 182, 0.4);
+}
+
+/* Waifu slides down on hover and Alter takes its place */
+.link-swap {
+    position: relative;
+}
+
+.links a.swap-main {
+    position: relative;
+    z-index: 1;
+    display: block;
+    transition: background-color 0.2s, color 0.2s, transform 0.3s ease, box-shadow 0.2s;
+}
+
+/* hint that a second link hides under the button */
+.links .below a.swap-main::after {
+    content: "\25BE";
+    margin-left: 8px;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.links a.swap-alt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border-color: #5c2d78;
+    background: #3a1850;
+    color: #d6b4ec;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-14px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s linear 0.3s,
+                background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.links a.swap-alt:hover {
+    background: #5c2d78;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(92, 45, 120, 0.6);
+}
+
+.link-swap:hover a.swap-main {
+    transform: translateY(calc(100% + 14px));
+}
+
+.link-swap:hover a.swap-alt {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
+}
+
+/* keyboard focus only, so a clicked link does not keep the state after going back */
+.link-swap:has(a:focus-visible) a.swap-main {
+    transform: translateY(calc(100% + 14px));
+}
+
+.link-swap:has(a:focus-visible) a.swap-alt {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
+}
+
+/* variant: the second button appears below, the first one stays in place */
+.links .below a.swap-alt {
+    top: calc(100% + 14px);
+    z-index: 1;
+    border-color: rgba(155, 89, 182, 0.5);
+    background: rgba(155, 89, 182, 0.08);
+    color: var(--accent-light);
+}
+
+.links .below a.swap-alt:hover {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(155, 89, 182, 0.4);
+}
+
+.link-swap.below:hover a.swap-main {
+    transform: none;
+}
+
+.link-swap.below:has(a:focus-visible) a.swap-main {
+    transform: none;
+}
+
+/* keeps the hover active across the gap between the two buttons */
+.link-swap:hover::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 0;
+    width: 100%;
+    height: calc(100% + 14px);
+}
+
+/* no hover on touch screens: show both buttons */
+@media (hover: none) {
+    .links .below a.swap-main::after {
+        content: none;
+    }
+
+    .link-swap {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .links a.swap-alt {
+        position: static;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .name {
+        font-size: 40px;
+    }
+
+    .links a,
+    .link-swap {
+        width: 100%;
+    }
+}

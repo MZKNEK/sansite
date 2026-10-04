@@ -1,0 +1,638 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0",
+        "title": "Sanakan API",
+        "description": "Autentykacja następuje poprzez dopasowanie tokenu przesłanego w nagłówku `x-api-key`.\n\nDocelowa wersja api powinna zostać przesłana pod nagówkiem `x-api-version`, w przypadku jej nie podania zapytania są interpretowane jako wysłane do wersji `1.0`."
+    },
+	"host": "http://api.sanakan.pl/",
+    "paths": {
+        "/api/Msg/user/{id}": {
+            "post": {
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Wysyła wiadomość do uzytkownika o podanym id",
+                "description": "Użytkownik musi znajdować się na serwerze, inaczej operacja się nie powiedzie",
+                "operationId": "ApiMsgUserByIdPost",
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "produces": [],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Id użytkownika discorda",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "value",
+                        "in": "body",
+                        "description": "Treść wiadomość",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "deprecated": true
+            }
+        },
+        "/api/Msg/{id}": {
+            "post": {
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Wysyła wiadomość na kanał o podanym id",
+                "description": "Użytkownik musi znajdować się na serwerze, inaczej operacja się nie powiedzie",
+                "operationId": "ApiMsgByIdPost",
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "produces": [],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Id kanału discorda",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "value",
+                        "in": "body",
+                        "description": "Treść wiadomość",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "deprecated": true
+            }
+        },
+        "/api/RichMessage": {
+            "get": {
+                "tags": [
+                    "RichMessage"
+                ],
+                "summary": "Zwraca przykładową wiadomość typu RichMessage",
+                "operationId": "ApiRichMessageGet",
+                "consumes": [],
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "text/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/RichMessage"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "RichMessage"
+                ],
+                "summary": "Wysyła wiadomość typu RichMessage",
+                "description": "Do utworzenia wiadomości wystarczy ustawić jej typ oraz, podać opis.\r\nJeśli chcemy aby link z pola Url zadziałał to należy również sprecyzować tytuł wiadomości.",
+                "operationId": "ApiRichMessagePost",
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "produces": [],
+                "parameters": [
+                    {
+                        "name": "message",
+                        "in": "body",
+                        "description": "wiadomość",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/RichMessage"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/User/all": {
+            "get": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Pobieranie wszystkich użytkowników bota",
+                "operationId": "ApiUserAllGet",
+                "consumes": [],
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "text/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/BotUser"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/User/discord/{id}": {
+            "get": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Pobieranie użytkownika bota",
+                "operationId": "ApiUserDiscordByIdGet",
+                "consumes": [],
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "text/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "id użytkownika discorda",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/BotUser"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/User/shinden/{id}": {
+            "get": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Pobieranie użytkownika bota",
+                "operationId": "ApiUserShindenByIdGet",
+                "consumes": [],
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "text/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "id użytkownika shindena",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/BotUser"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/User/connect": {
+            "put": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Łączenie użytkownika",
+                "operationId": "ApiUserConnectPut",
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "produces": [],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "body",
+                        "description": "relacja id",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/UserID"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/User/shinden/{id}/sc": {
+            "put": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Zmiana ilości punktów SC użytkownika",
+                "operationId": "ApiUserShindenByIdScPut",
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "produces": [],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "id użytkownika shindena",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "value",
+                        "in": "body",
+                        "description": "liczba SC",
+                        "required": false,
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/User/discord/{id}/sc": {
+            "put": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Zmiana ilości punktów SC użytkownika",
+                "operationId": "ApiUserDiscordByIdScPut",
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "produces": [],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "id użytkownika discorda",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "name": "value",
+                        "in": "body",
+                        "description": "liczba SC",
+                        "required": false,
+                        "schema": {
+                            "format": "int64",
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "RichMessage": {
+            "description": "Wiadomośc Embed generowane przez discorda, jedno z pól opcjonalnych musi zostać sprecyzowane",
+            "type": "object",
+            "properties": {
+                "url": {
+                    "description": "Adres do kótego prowadzi tytuł wiadomości, opcjonalne",
+                    "type": "string"
+                },
+                "title": {
+                    "description": "Tytuł wiadomości, opcjonalne",
+                    "type": "string"
+                },
+                "imageUrl": {
+                    "description": "Adres obrazka wyświetlanego na końcu wiadomości, opcjonalne",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Główna treść wiadomości, opcjonalne",
+                    "type": "string"
+                },
+                "author": {
+                    "$ref": "#/definitions/RichMessageAuthor",
+                    "description": "Autor wiadomości - pierwsza linia, opcjonalne"
+                },
+                "footer": {
+                    "$ref": "#/definitions/RichMessageFooter",
+                    "description": "Stopka wiadomości - ostatnia linia, opcjonalne"
+                },
+                "fields": {
+                    "$ref": "#/definitions/RichMessageFields",
+                    "description": "Dodatkowe pola, opcjonalne"
+                },
+                "messageType": {
+                    "description": "Typ wiadomości, musi zostać podany (int od 0)",
+                    "enum": [
+                        "NEWS",
+                        "NEW_EPISODE",
+                        "LAUD_NOTIFY",
+                        "MODERATOR_NOTIFY",
+                        "NEW_SEASONAL_EPISODE",
+                        "ADMINISTRATOR_NOTIFY"
+                    ],
+                    "type": "string"
+                }
+            }
+        },
+        "RichMessageAuthor": {
+            "description": "Autor wiadomości - pierwsza linia, opcjonalne",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Tekst pierwszej lini",
+                    "type": "string"
+                },
+                "isAuthor": {
+                    "description": "Czy wyświetlić autora",
+                    "type": "boolean"
+                },
+                "imageUrl": {
+                    "description": "Obrazek przy pierwszej lini",
+                    "type": "string"
+                }
+            }
+        },
+        "RichMessageFooter": {
+            "description": "Stopka wiadomości - ostatnia linia, opcjonalne",
+            "type": "object",
+            "properties": {
+                "text": {
+                    "description": "Tesks ostatniej lini",
+                    "type": "string"
+                },
+                "isFooter": {
+                    "description": "Czy wyświetlić stopke",
+                    "type": "boolean"
+                },
+                "imageUrl": {
+                    "description": "Obrazek ostatniej lini",
+                    "type": "string"
+                }
+            }
+        },
+        "RichMessageFields": {
+            "description": "Dodatkowe pola, opcjonalne",
+            "type": "object",
+            "properties": {
+                "hasFields": {
+                    "description": "Czy wyświetlić dodatkowe pola wiadomości",
+                    "type": "boolean"
+                },
+                "fields": {
+                    "description": "Lista dodatkowych pól wiadomości",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/RichMessageField"
+                    }
+                }
+            }
+        },
+        "RichMessageField": {
+            "description": "Dodatkowe pole wiadomości",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Nagłówek dodatkowego pola",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "Tekst dodatkowego pola",
+                    "type": "string"
+                },
+                "isInline": {
+                    "description": "Czy pole może zostać wyświetlne w jednej lini z innymi",
+                    "type": "boolean"
+                }
+            }
+        },
+        "BotUser": {
+            "type": "object",
+            "properties": {
+                "user_id": {
+                    "$ref": "#/definitions/UserID"
+                },
+                "discord_user_attributes": {
+                    "$ref": "#/definitions/DiscordUserAttributes"
+                },
+                "discord_user_achievements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/AchievementBase"
+                    }
+                },
+                "custom_bg": {
+                    "type": "boolean"
+                },
+                "bg_image": {
+                    "type": "string"
+                },
+                "inside_type": {
+                    "enum": [
+                        "STATS",
+                        "IMG"
+                    ],
+                    "type": "string"
+                },
+                "custom_in_img": {
+                    "type": "boolean"
+                },
+                "in_image": {
+                    "type": "string"
+                },
+                "used_wheel": {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "used_hourly": {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "can_gamble": {
+                    "type": "boolean"
+                },
+                "broken": {
+                    "type": "boolean"
+                },
+                "premium": {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "rep_giv": {
+                    "format": "int32",
+                    "type": "integer"
+                },
+                "bankrupt_to": {
+                    "format": "date-time",
+                    "type": "string"
+                }
+            }
+        },
+        "UserID": {
+            "type": "object",
+            "properties": {
+                "discord_id": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "shinden_id": {
+                    "format": "int64",
+                    "type": "integer"
+                }
+            }
+        },
+        "DiscordUserAttributes": {
+            "type": "object",
+            "properties": {
+                "user_exp_points": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "user_level": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "user_messeges": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "user_reputation": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "user_reputation_last_time_granted": {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "user_wallet": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "wallet_daily_used": {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "money_lost_on_lottery": {
+                    "format": "int64",
+                    "type": "integer"
+                }
+            }
+        },
+        "AchievementBase": {
+            "type": "object",
+            "properties": {
+                "ach_type": {
+                    "enum": [
+                        "MONEY_LOST",
+                        "MONEY",
+                        "LOSES_MASTER",
+                        "MONEY_MASTER",
+                        "MESSEGES",
+                        "LOAN",
+                        "LIKED",
+                        "JACKPOT"
+                    ],
+                    "type": "string"
+                },
+                "ach_value": {
+                    "format": "int64",
+                    "type": "integer"
+                },
+                "ach_event": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "api-key": {
+            "name": "x-api-key",
+            "in": "header",
+            "type": "apiKey"
+        }
+    },
+    "security": [
+        {
+            "api-key": [
+                "readAccess",
+                "writeAccess"
+            ]
+        }
+    ]
+}
