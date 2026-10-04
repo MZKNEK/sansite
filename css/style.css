@@ -245,9 +245,10 @@ img.logo {
     height: calc(100% + 14px);
 }
 
-/* no hover on touch screens: show both buttons */
-@media (hover: none) {
-    .links .below a.swap-main::after {
+/* touch screens and narrow windows: show both buttons, no animations */
+@media (hover: none), only screen and (max-width: 600px) {
+    .links .below a.swap-main::after,
+    .link-swap:hover::after {
         content: none;
     }
 
@@ -261,6 +262,19 @@ img.logo {
         position: static;
         opacity: 1;
         visibility: visible;
+    }
+
+    /* a tap triggers sticky :hover on phones, so hover must not move anything */
+    .links a,
+    .links a.swap-main,
+    .links a.swap-alt,
+    .links a:hover,
+    .link-swap:hover a.swap-main {
+        transform: none;
+        transition: none;
+    }
+
+    .link-swap:has(a:focus-visible) a.swap-main {
         transform: none;
     }
 }
