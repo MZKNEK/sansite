@@ -1,0 +1,6 @@
+# The pictures in i/ live only on the server; the explorer that shows them is part of the site
+/i/*
+!/i/index.php
+
+# Discord application secret and the gallery admins, only on the server
+/inc/config.php

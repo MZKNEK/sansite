@@ -1,0 +1,774 @@
+/* Picture explorer in i/, in the Safeguard scanner style of the other pages */
+
+main.content {
+    flex: 1 0 auto;
+    width: 100%;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
+}
+
+/* Header */
+.ex-header {
+    text-align: center;
+}
+
+.ex-top {
+    text-align: left;
+}
+
+.ex-header .tag {
+    margin-top: 18px;
+}
+
+.ex-header .hud-title {
+    font-size: clamp(26px, 8vw, 48px);
+}
+
+.crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 4px 6px;
+    margin-top: 14px;
+    font: 16px "JetBrains Mono", Consolas, monospace;
+    color: rgba(155, 89, 182, 0.6);
+}
+
+/* every part of the path is a link back to that folder */
+.crumbs a {
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    color: var(--accent-light);
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.crumbs a:hover {
+    border-color: rgba(155, 89, 182, 0.45);
+    background: rgba(155, 89, 182, 0.15);
+    color: #fff;
+}
+
+.crumbs a:last-child {
+    color: #efe2f7;
+}
+
+.ex-meta {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.notice {
+    max-width: 640px;
+    margin: 24px auto 0;
+    padding: 12px 18px;
+    border: 1px solid rgba(240, 178, 50, 0.35);
+    background: rgba(240, 178, 50, 0.06);
+    color: #e8d5a8;
+    text-align: center;
+}
+
+/* Search and sorting, kept at the top while scrolling */
+.toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin: 28px -16px 0;
+    padding: 12px 16px;
+    background: rgba(14, 14, 17, 0.88);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(155, 89, 182, 0.2);
+}
+
+.toolbar .search {
+    flex: 1 1 320px;
+}
+
+.sort {
+    display: flex;
+}
+
+.sort button {
+    padding: 8px 14px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: transparent;
+    color: rgba(220, 221, 222, 0.6);
+    font: 13px/1.5 "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sort button + button {
+    border-left: 0;
+}
+
+.sort button:hover {
+    color: #fff;
+}
+
+.sort button[aria-pressed="true"] {
+    background: rgba(155, 89, 182, 0.22);
+    color: #fff;
+}
+
+.toolbar .search-info {
+    flex-basis: 100%;
+    margin-top: 0;
+}
+
+/* Grid of folders and pictures */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.tile {
+    --corner: rgba(182, 112, 211, 0.35);
+    --fill: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 8px;
+    color: var(--text);
+}
+
+.tile:hover,
+.tile:focus-visible {
+    --corner: var(--accent-light);
+    --fill: rgba(155, 89, 182, 0.12);
+    outline: 0;
+}
+
+.thumb {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: #0b0b0d;
+}
+
+.thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.placeholder {
+    display: grid;
+    gap: 4px;
+    text-align: center;
+    font: 12px "Share Tech Mono", monospace;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.placeholder b {
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: var(--accent-light);
+}
+
+.badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 1px 6px;
+    background: rgba(14, 14, 17, 0.85);
+    border: 1px solid rgba(155, 89, 182, 0.5);
+    color: var(--accent-light);
+    font: 11px/16px "Share Tech Mono", monospace;
+    letter-spacing: 0.1em;
+}
+
+/* ".." tile, one folder up */
+.up .thumb {
+    background: rgba(155, 89, 182, 0.06);
+}
+
+.up-icon {
+    width: 34%;
+    fill: none;
+    stroke: var(--accent-light);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s;
+}
+
+.up:hover .up-icon {
+    transform: translateY(-4px);
+}
+
+.up .name {
+    font-weight: 700;
+}
+
+/* a folder shows up to three pictures from inside, or a folder icon */
+.mosaic {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    height: 100%;
+}
+
+.mosaic.n2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.mosaic.n3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.mosaic.n3 img:first-child {
+    grid-row: span 2;
+}
+
+.mosaic img {
+    min-height: 0;
+    object-fit: cover;
+}
+
+.folder-icon {
+    width: 40%;
+    fill: rgba(155, 89, 182, 0.35);
+}
+
+.label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 2px 2px;
+    min-width: 0;
+}
+
+.name {
+    overflow: hidden;
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.name-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+    vertical-align: -2px;
+    fill: var(--accent-light);
+}
+
+.folder .name {
+    font-weight: 700;
+}
+
+.info {
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.empty {
+    margin-top: 48px;
+    text-align: center;
+    color: rgba(220, 221, 222, 0.5);
+    font-size: 18px;
+}
+
+/* Viewer */
+.viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    background: rgba(6, 6, 8, 0.94);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+.viewer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.25);
+}
+
+.viewer-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.viewer-name {
+    overflow: hidden;
+    font: 15px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.viewer-details {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.viewer-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.viewer-btn {
+    padding: 6px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: transparent;
+    color: var(--accent-light);
+    font: 13px/1.5 "Share Tech Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.viewer-btn:hover {
+    background: rgba(155, 89, 182, 0.2);
+    color: #fff;
+}
+
+.viewer-btn.done {
+    border-color: rgba(35, 165, 90, 0.6);
+    color: #3fca7a;
+}
+
+.viewer-close {
+    font: 22px/1 Lato, sans-serif;
+    padding: 2px 12px 6px;
+}
+
+.viewer-stage {
+    position: relative;
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: 16px 72px;
+}
+
+.viewer-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    box-shadow: 0 0 40px rgba(155, 89, 182, 0.25);
+}
+
+.viewer-loading {
+    position: absolute;
+    font: 14px "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.viewer-nav {
+    position: absolute;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin-top: -24px;
+    border: 0;
+    color: var(--text);
+    font: 22px/1 Lato, sans-serif;
+    cursor: pointer;
+}
+
+.viewer-nav:hover {
+    --arm: 18px;
+    --fill: rgba(155, 89, 182, 0.18);
+    color: #fff;
+}
+
+.viewer-nav.prev {
+    left: 12px;
+}
+
+.viewer-nav.next {
+    right: 12px;
+}
+
+body.viewer-open {
+    overflow: hidden;
+}
+
+@media only screen and (max-width: 600px) {
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+    }
+
+    .viewer-stage {
+        padding: 12px 8px 72px;
+    }
+
+    .viewer-nav {
+        top: auto;
+        bottom: 12px;
+        margin-top: 0;
+    }
+}
+
+/* Account: Discord login and the logged-in admin */
+.ex-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.account img {
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
+}
+
+.account-btn {
+    padding: 6px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: transparent;
+    color: var(--accent-light);
+    font: 13px Lato, sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.account-btn:hover {
+    background: rgba(155, 89, 182, 0.2);
+    color: #fff;
+}
+
+/* Managing files */
+.admin-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    flex-basis: 100%;
+}
+
+.admin-btn {
+    padding: 7px 14px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: transparent;
+    color: var(--accent-light);
+    font: 13px Lato, sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.admin-btn:hover {
+    background: rgba(155, 89, 182, 0.2);
+    color: #fff;
+}
+
+.admin-btn.primary {
+    border-color: var(--accent);
+    background: rgba(155, 89, 182, 0.35);
+    color: #fff;
+}
+
+.admin-btn.primary:hover {
+    background: var(--accent);
+}
+
+.admin-btn.danger {
+    border-color: rgba(217, 83, 79, 0.6);
+    color: #e57373;
+}
+
+.admin-btn.danger:hover {
+    background: rgba(217, 83, 79, 0.25);
+    color: #fff;
+}
+
+.admin-btn[aria-pressed="true"] {
+    background: rgba(155, 89, 182, 0.25);
+    color: #fff;
+}
+
+.admin-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+.admin-selection {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-count {
+    margin: 0 4px;
+    font-size: 13px;
+    color: #efe2f7;
+}
+
+.admin-hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+/* picking tiles to move or delete */
+.check {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    display: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #efe2f7;
+    background: rgba(14, 14, 17, 0.75);
+}
+
+body.selecting .check {
+    display: block;
+}
+
+.tile.selected {
+    --corner: #f0d4ff;
+    --fill: rgba(155, 89, 182, 0.28);
+    --arm: 18px;
+}
+
+.tile.selected .check {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+
+.tile.selected .check::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 1px;
+    width: 6px;
+    height: 12px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+body.selecting .tile.up {
+    opacity: 0.35;
+}
+
+/* files dragged onto the page */
+.drop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    background: rgba(8, 8, 10, 0.8);
+    pointer-events: none;
+}
+
+.drop-box {
+    --arm: 30px;
+    --corner: var(--accent-light);
+    --fill: rgba(155, 89, 182, 0.15);
+    padding: 48px 64px;
+    color: #efe2f7;
+    font-size: 20px;
+    text-align: center;
+}
+
+.progress,
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 120;
+    width: min(520px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    padding: 12px 16px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: rgba(18, 18, 22, 0.96);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+}
+
+.toast {
+    cursor: pointer;
+}
+
+.toast.error {
+    border-color: rgba(217, 83, 79, 0.6);
+    color: #f0b4b2;
+}
+
+.progress-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.progress-bar {
+    display: block;
+    height: 4px;
+    margin-top: 8px;
+    background: rgba(155, 89, 182, 0.2);
+}
+
+.progress-bar span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--accent-light);
+    transition: width 0.2s;
+}
+
+/* dialogs for a new folder, moving and deleting */
+.ex-dialog {
+    width: min(460px, calc(100vw - 32px));
+    padding: 22px 24px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: #121216;
+    color: var(--text);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+.ex-dialog::backdrop {
+    background: rgba(4, 4, 6, 0.7);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.ex-dialog h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #efe2f7;
+}
+
+.ex-dialog p {
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.75);
+    overflow-wrap: anywhere;
+}
+
+.ex-dialog input[type="text"],
+.ex-dialog select {
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 16px Lato, sans-serif;
+    outline: 0;
+}
+
+.ex-dialog input[type="text"]:focus,
+.ex-dialog select:focus {
+    border-color: var(--accent-light);
+}
+
+.ex-dialog select {
+    padding: 6px;
+    font: 14px "JetBrains Mono", Consolas, monospace;
+}
+
+.ex-dialog option {
+    padding: 4px 6px;
+}
+
+.ex-dialog option:disabled {
+    color: rgba(220, 221, 222, 0.3);
+}
+
+.ex-dialog option:checked {
+    background: rgba(155, 89, 182, 0.45);
+    color: #fff;
+}
+
+.dialog-warning {
+    color: #e8d5a8 !important;
+}
+
+.dialog-error {
+    color: #f0b4b2 !important;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* login screen, shown instead of the gallery without access */
+.locked {
+    --corner: rgba(182, 112, 211, 0.6);
+    --fill: rgba(155, 89, 182, 0.06);
+    max-width: 480px;
+    margin: 48px auto 0;
+    padding: 36px 32px 32px;
+    text-align: center;
+}
+
+.lock-icon {
+    width: 44px;
+    height: 44px;
+    fill: none;
+    stroke: var(--accent-light);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+}
+
+.locked h2 {
+    margin: 14px 0 8px;
+    font-size: 20px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #efe2f7;
+}
+
+.locked p {
+    margin: 0 0 22px;
+    color: rgba(220, 221, 222, 0.7);
+}
+
+.locked p:last-child {
+    margin-bottom: 0;
+}
+
+.locked .admin-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 15px;
+}
