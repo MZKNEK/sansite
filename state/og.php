@@ -1,6 +1,6 @@
 <?php
     // Link preview picture of state/ (og:image): the bot status, availability
-    // and the 30 day bar, so a link pasted on Discord shows the state of the
+    // and the 90 day bar, so a link pasted on Discord shows the state of the
     // moment. Drawn with GD at twice the size and scaled down for smooth edges,
     // then kept for a minute. Without GD's FreeType the logo has to do.
     require __DIR__ . '/../inc/bot.php';
@@ -92,8 +92,7 @@
     {
         $state = botState();
         $status = shownStatus($state);
-        $days = botDailyParts(30);
-        $months = botMonthlyParts(12);
+        $days = botDailyParts(DAYS_SHOWN);
 
         $img = imagecreatetruecolor(OG_WIDTH * OG_SCALE, OG_HEIGHT * OG_SCALE);
         $background = color($img, '#141517');
@@ -121,8 +120,7 @@
 
         $uptimes = [
             '24 h' => str_replace('.', ',', $state['uptime']) . '%',
-            '30 dni' => partsUptime($days),
-            '12 mies.' => partsUptime($months)
+            DAYS_SHOWN . ' dni' => partsUptime($days)
         ];
         $x = 80;
         foreach ($uptimes as $label => $value) {
@@ -131,15 +129,15 @@
             $x += 300;
         }
 
-        // the last 30 days, a block per day
+        // the last days, a block per day
         $partColors = ['ok' => color($img, '#23a55a', 30), 'warn' => color($img, '#f0b232', 25), 'fail' => color($img, '#d9534f', 20), 'none' => color($img, '#dcddde', 117)];
-        $gap = 6;
-        $width = (OG_WIDTH - 160 - 29 * $gap) / 30;
+        $gap = 2;
+        $width = (OG_WIDTH - 160 - (count($days) - 1) * $gap) / count($days);
         foreach ($days as $i => $part) {
             $left = 80 + $i * ($width + $gap);
             imagefilledrectangle($img, (int)($left * OG_SCALE), 446 * OG_SCALE, (int)(($left + $width) * OG_SCALE), 496 * OG_SCALE, $partColors[partClass($part)]);
         }
-        text($img, $regular, 18, 80, 526, color($img, '#dcddde', 70), 'ostatnie 30 dni');
+        text($img, $regular, 18, 80, 526, color($img, '#dcddde', 70), 'ostatnie ' . DAYS_SHOWN . ' dni');
         text($img, $regular, 18, OG_WIDTH - 80, 526, color($img, '#dcddde', 70), 'dziś', 0, 'right');
 
         text($img, $mono, 22, 80, 584, color($img, '#9b59b6'), 'sanakan.pl/state', 2);

@@ -2,7 +2,7 @@
     // The other Sanakan sites, checked every 5 minutes by inc/check-bot.php (which
     // cron runs every minute for the bot): whether they answer, how fast, since
     // when they are up or down,
-    // and per day how many checks they passed, for the 30 day bars on state/.
+    // and per day how many checks they passed, for the 90 day bars on state/.
     // Kept in inc/data/services.json as
     // [key => ['up', 'since', 'ms', 'checked', 'days' => ['Y-m-d' => [checks, up]]]].
     require_once __DIR__ . '/bot.php';
@@ -16,7 +16,7 @@
     ];
     const SERVICE_TIMEOUT = 8;
     const SERVICE_INTERVAL = 300;
-    const SERVICE_DAYS_KEEP = 60;
+    const SERVICE_DAYS_KEEP = 100;
 
     // [answered with a page (2xx/3xx), milliseconds]
     function serviceCheck($url)

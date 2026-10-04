@@ -230,7 +230,7 @@
     background: var(--accent-light);
 }
 
-/* outages of the last 30 days */
+/* outages of the last 90 days */
 .incidents {
     margin-top: 24px;
 }
@@ -311,7 +311,7 @@
     color: rgba(220, 221, 222, 0.45);
 }
 
-/* the other Sanakan sites on state/: dot, name, state, 30 days and their bar */
+/* the other Sanakan sites on state/: dot, name, state, 90 days and their bar */
 .services {
     margin: 0;
     padding: 0;
@@ -354,6 +354,11 @@
     font: 13px "JetBrains Mono", Consolas, monospace;
     color: #efe2f7;
     text-align: right;
+}
+
+/* 90 days in one bar: thinner gaps */
+.timeline.days {
+    gap: 1px;
 }
 
 .timeline.service-bar {

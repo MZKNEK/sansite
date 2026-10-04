@@ -29,7 +29,7 @@
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=6" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=7" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">

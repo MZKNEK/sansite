@@ -7,7 +7,7 @@
     // the bot is down. A bot that is up now but answered less than 99% of the
     // checks is idle. inc/check-bot.php run by cron every minute fills the
     // history also when nobody visits. Besides the 24 h history every check is
-    // counted per day, which gives the 30 day and 12 month availability, and
+    // counted per day, which gives the 90 day availability, and
     // every outage is kept with its start and end. Each check also notes how
     // long the API took to answer. The panel can set a notice for the home page
     // and state/, and mark a planned maintenance break. Changes in the command
@@ -50,21 +50,24 @@
             @rename($tmp, $file);
     }
 
-    // one history line, "time state" or "time state milliseconds", as
-    // [time, online, milliseconds or null]; null for a broken line
+    // one history line, "time state [ping [shinden]]" with "-" for a missing
+    // time, as [time, online, ping ms or null, Shinden ms or null]; null for a broken line
     function botParseCheck($line)
     {
         $parts = explode(' ', trim($line));
-        if (count($parts) < 2 || count($parts) > 3)
+        if (count($parts) < 2 || count($parts) > 4)
             return null;
 
-        return [(int)$parts[0], $parts[1] === '1', isset($parts[2]) ? (int)$parts[2] : null];
+        $ms = function ($i) use ($parts) { return isset($parts[$i]) && $parts[$i] !== '-' ? (int)$parts[$i] : null; };
+
+        return [(int)$parts[0], $parts[1] === '1', $ms(2), $ms(3)];
     }
 
     // Adds the check to the history (one line per check, older than 24 h
-    // dropped) and returns the percent of online checks in it. $ms is how long
-    // the API took to answer, null when it did not.
-    function botRecordCheck($online, $now, $ms = null)
+    // dropped) and returns the percent of online checks in it. $ms is the
+    // Discord ping (the API answer time without api/health) and $shinden the
+    // answer time of Shinden, null when unknown.
+    function botRecordCheck($online, $now, $ms = null, $shinden = null)
     {
         $history = [];
         $fp = @fopen(botFile('status-history.txt'), 'c+');
@@ -78,13 +81,19 @@
             }
         }
 
-        $history[] = [$now, $online, $ms];
+        $history[] = [$now, $online, $ms, $shinden];
 
         if ($locked) {
             ftruncate($fp, 0);
             rewind($fp);
-            foreach ($history as $entry)
-                fwrite($fp, $entry[0] . ' ' . ($entry[1] ? '1' : '0') . ($entry[2] === null ? '' : ' ' . $entry[2]) . "\n");
+            foreach ($history as $entry) {
+                $line = $entry[0] . ' ' . ($entry[1] ? '1' : '0');
+                if ($entry[2] !== null || $entry[3] !== null)
+                    $line .= ' ' . ($entry[2] ?? '-');
+                if ($entry[3] !== null)
+                    $line .= ' ' . $entry[3];
+                fwrite($fp, $line . "\n");
+            }
             flock($fp, LOCK_UN);
         }
         if ($fp !== false)
@@ -170,26 +179,6 @@
         return $parts;
     }
 
-    // The last $count months, this one included, oldest first; same shape as the days
-    function botMonthlyParts($count)
-    {
-        $months = [];
-        for ($i = $count - 1; $i >= 0; $i--) {
-            $from = strtotime(date('Y-m-01') . ' -' . $i . ' months');
-            $months[date('Y-m', $from)] = ['from' => $from, 'checks' => 0, 'up' => 0];
-        }
-
-        foreach (botDays() as $day => $counts) {
-            $month = substr($day, 0, 7);
-            if (isset($months[$month])) {
-                $months[$month]['checks'] += $counts[0];
-                $months[$month]['up'] += $counts[1];
-            }
-        }
-
-        return array_values($months);
-    }
-
     // Outages as [start, end]: start is the first check without an answer, end
     // the first check answered again, null while the outage lasts. The first
     // time, they are read from the 24 h history instead.
@@ -259,17 +248,17 @@
     }
 
     // The last 24 h in 96 parts of 15 minutes, oldest first, with the average and
-    // the longest answer time of the answered checks: ['from', 'avg', 'max'],
-    // both null when nothing answered
-    function botResponseTimes($history)
+    // the longest time of the answered checks: ['from', 'avg', 'max'], both null
+    // when nothing answered. $field 2 is the Discord ping, 3 Shinden's time.
+    function botResponseTimes($history, $field = 2)
     {
         $start = time() - BOT_HISTORY_SPAN;
         $sums = array_fill(0, 96, [0, 0, null]);
         foreach ($history as $check) {
-            if (!$check[1] || $check[2] === null)
+            if (!$check[1] || ($check[$field] ?? null) === null)
                 continue;
             $i = min(95, max(0, (int)floor(($check[0] - $start) / 900)));
-            $sums[$i] = [$sums[$i][0] + $check[2], $sums[$i][1] + 1, max($sums[$i][2] ?? 0, $check[2])];
+            $sums[$i] = [$sums[$i][0] + $check[$field], $sums[$i][1] + 1, max($sums[$i][2] ?? 0, $check[$field])];
         }
 
         $parts = [];
@@ -625,7 +614,8 @@
                     botFetchCommands($now);
             }
 
-            $uptime = botRecordCheck($online, $now, $online ? $ms : null);
+            $shinden = $online && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
+            $uptime = botRecordCheck($online, $now, $online ? $ms : null, $shinden);
             botRecordDay($online, $now);
             botRecordIncident($online, $now);
 

@@ -1,7 +1,7 @@
 <?php
-    // The bot status card of the public page state/: state, availability bars
-    // of the last 24 hours, 30 days and 12 months, answer times and the outages
-    // of the last 30 days. The admin panel shows only statusSummary(). Needs
+    // The bot status card of the public page state/: state, the bot's own
+    // report, availability bars of the last 24 hours and 90 days, the Discord
+    // ping and Shinden's answer time, and the outages of the last 90 days. The admin panel shows only statusSummary(). Needs
     // inc/bot.php, inc/services.php and the helpers in inc/gallery.php.
 
     const STATUS_LABELS = [
@@ -91,13 +91,13 @@
         return $ms < 1000 ? $ms . ' ms' : str_replace('.', ',', (string)round($ms / 1000, 1)) . ' s';
     }
 
-    // average answer time over the answered checks, or null
-    function averageResponse($history)
+    // average time over the answered checks (field 2 the ping, 3 Shinden), or null
+    function averageResponse($history, $field = 2)
     {
         $times = [];
         foreach ($history as $check)
-            if ($check[1] && $check[2] !== null)
-                $times[] = $check[2];
+            if ($check[1] && ($check[$field] ?? null) !== null)
+                $times[] = $check[$field];
 
         return $times ? (int)round(array_sum($times) / count($times)) : null;
     }
@@ -137,15 +137,14 @@
         return $count;
     }
 
-    const MONTH_NAMES = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec',
-        'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+    const DAYS_SHOWN = 90;
 
     function percent($up, $checks)
     {
         return str_replace('.', ',', (string)(floor(1000 * $up / $checks) / 10)) . '%';
     }
 
-    // colour of a day or a month: fine, partly down, mostly down, or not checked
+    // colour of a day: fine, partly down, mostly down, or not checked
     function partClass($part)
     {
         if (!$part['checks'])
@@ -185,10 +184,32 @@
         return $text . date(date('Y-m-d', $start) === date('Y-m-d', $end) ? 'H:i' : 'j.m H:i', $end);
     }
 
-    // the other Sanakan sites: state, since when, answer time, 30 day availability and bar
+    // a column chart of times over the last 24 h (botResponseTimes()), its title
+    // with the average and the longest
+    function timesChart($title, $times, $average)
+    {
+        $slowest = max(array_column($times, 'max') ?: [0]);
+        $scale = max(array_column($times, 'avg') ?: [0]);
+
+        ob_start();
+?>
+        <div class="bar">
+          <div class="bar-head"><span><?=e($title)?>, 24 godziny</span><b><?=$average === null ? '–' : 'średnio ' . e(milliseconds($average)) . ' &middot; najdłużej ' . e(milliseconds($slowest))?></b></div>
+          <div class="response-chart" aria-label="<?=e($title)?> w ostatnich 24 godzinach, średnio po 15 minut">
+<?php foreach ($times as $part): ?>
+            <span title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . ($part['avg'] === null ? 'brak pomiaru' : 'średnio ' . milliseconds($part['avg']) . ', najdłużej ' . milliseconds($part['max'])))?>"><?php if ($part['avg'] !== null): ?><i style="height: <?=max(4, round(100 * $part['avg'] / max(1, $scale)))?>%"></i><?php endif; ?></span>
+<?php endforeach; ?>
+          </div>
+          <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
+        </div>
+<?php
+        return ob_get_clean();
+    }
+
+    // the other Sanakan sites: state, since when, answer time, 90 day availability and bar
     function servicesCard()
     {
-        $services = servicesState(30);
+        $services = servicesState(DAYS_SHOWN);
 
         ob_start();
 ?>
@@ -206,8 +227,8 @@
             <span class="status-dot <?=$class?>"></span>
             <a class="service-name" href="<?=e($service['url'])?>"><?=e($service['name'])?></a>
             <span class="service-state<?=$service['up'] === false ? ' down' : ''?>"><?=e($text)?></span>
-            <b class="service-uptime" title="Dostępność w ostatnich 30 dniach"><?=e(partsUptime($service['days']))?></b>
-            <span class="timeline service-bar" aria-label="Dostępność <?=e($service['name'])?> w ostatnich 30 dniach, po dniu">
+            <b class="service-uptime" title="Dostępność w ostatnich <?=DAYS_SHOWN?> dniach"><?=e(partsUptime($service['days']))?></b>
+            <span class="timeline service-bar" aria-label="Dostępność <?=e($service['name'])?> w ostatnich <?=DAYS_SHOWN?> dniach, po dniu">
 <?php foreach ($service['days'] as $part): ?>
               <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
 <?php endforeach; ?>
@@ -246,14 +267,11 @@
         $state = botState();
         $status = shownStatus($state);
         $history = botHistory();
-        $days = botDailyParts(30);
-        $months = botMonthlyParts(12);
-        $times = botResponseTimes($history);
+        $days = botDailyParts(DAYS_SHOWN);
         $health = botHealth();
-        $average = averageResponse($history);
-        $slowest = max(array_column($times, 'max') ?: [0]);
-        $scale = max(array_column($times, 'avg') ?: [0]);
-        // the same 30 days as the bar; planned breaks are listed but not counted
+        $shindenTimes = botResponseTimes($history, 3);
+        $shindenAverage = averageResponse($history, 3);
+        // the same days as the bar; planned breaks are listed but not counted
         $incidents = [];
         $unplanned = 0;
         $downtime = 0;
@@ -293,19 +311,14 @@
           <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
         </div>
 
-        <div class="bar">
-          <div class="bar-head"><span><?=$health ? 'Ping do Discorda' : 'Czas odpowiedzi API'?>, 24 godziny</span><b><?=$average === null ? '–' : 'średnio ' . e(milliseconds($average)) . ' &middot; najdłużej ' . e(milliseconds($slowest))?></b></div>
-          <div class="response-chart" aria-label="<?=$health ? 'Średni ping do Discorda' : 'Średni czas odpowiedzi API'?> w ostatnich 24 godzinach, po 15 minut">
-<?php foreach ($times as $part): ?>
-            <span title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . ($part['avg'] === null ? 'brak odpowiedzi' : 'średnio ' . milliseconds($part['avg']) . ', najdłużej ' . milliseconds($part['max'])))?>"><?php if ($part['avg'] !== null): ?><i style="height: <?=max(4, round(100 * $part['avg'] / max(1, $scale)))?>%"></i><?php endif; ?></span>
-<?php endforeach; ?>
-          </div>
-          <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
-        </div>
+<?=timesChart($health ? 'Ping do Discorda' : 'Czas odpowiedzi API', botResponseTimes($history), averageResponse($history))?>
+<?php if ($shindenAverage !== null): ?>
+<?=timesChart('Czas odpowiedzi Shindena', $shindenTimes, $shindenAverage)?>
+<?php endif; ?>
 
         <div class="bar">
-          <div class="bar-head"><span>Ostatnie 30 dni</span><b><?=e(partsUptime($days))?></b></div>
-          <div class="timeline" aria-label="Dostępność w ostatnich 30 dniach, po dniu">
+          <div class="bar-head"><span>Ostatnie <?=DAYS_SHOWN?> dni</span><b><?=e(partsUptime($days))?></b></div>
+          <div class="timeline days" aria-label="Dostępność w ostatnich <?=DAYS_SHOWN?> dniach, po dniu">
 <?php foreach ($days as $part): ?>
             <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
 <?php endforeach; ?>
@@ -313,22 +326,12 @@
           <div class="bar-ends"><span><?=e(date('d.m', $days[0]['from']))?></span><span>dziś</span></div>
         </div>
 
-        <div class="bar">
-          <div class="bar-head"><span>Ostatnie 12 miesięcy</span><b><?=e(partsUptime($months))?></b></div>
-          <div class="timeline" aria-label="Dostępność w ostatnich 12 miesiącach, po miesiącu">
-<?php foreach ($months as $part): ?>
-            <span class="<?=partClass($part)?>" title="<?=e(partTitle(MONTH_NAMES[date('n', $part['from']) - 1] . ' ' . date('Y', $part['from']), $part))?>"></span>
-<?php endforeach; ?>
-          </div>
-          <div class="bar-ends"><span><?=e(MONTH_NAMES[date('n', $months[0]['from']) - 1] . ' ' . date('Y', $months[0]['from']))?></span><span>ten miesiąc</span></div>
-        </div>
-
         <div class="timeline-legend">
           <span><i class="ok"></i>działał <i class="warn"></i>częściowo <i class="fail"></i>nie działał <i class="none"></i>brak sprawdzeń</span>
         </div>
 
         <div class="bar incidents">
-          <div class="bar-head"><span>Awarie w ostatnich 30 dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; razem ' . e(duration($downtime)) : ''?></b></div>
+          <div class="bar-head"><span>Awarie w ostatnich <?=DAYS_SHOWN?> dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; razem ' . e(duration($downtime)) : ''?></b></div>
 <?php if (!$incidents): ?>
           <p class="incidents-none">Bez awarii.</p>
 <?php else: ?>
