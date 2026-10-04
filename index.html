@@ -11,11 +11,13 @@
   <link rel="shortcut icon" href="ico.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700&display=swap" />
-  <link href="css/style.css?v=12" type="text/css" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&display=swap" />
+  <link href="css/style.css?v=14" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
+  <div class="motto" id="motto" title="Niby nie taki lekki, ale lata">Niby nie taki lekki, ale lata</div>
+
   <main class="hero">
     <div class="hero-inner">
       <div class="logo-wrap">
@@ -24,24 +26,74 @@
         <span class="logo-slice s2" aria-hidden="true"></span>
         <span class="bot-status" id="bot-status" role="img" aria-label="Sprawdzanie statusu bota"></span>
       </div>
-      <h1 class="name scaps">Sanakan</h1>
-      <div class="desc">Niby nie taki lekki, ale lata</div>
-      <div class="links scaps">
-        <a href="./cmd/">Polecenia</a>
-        <a href="https://wiki.sanakan.pl">PocketWaifu</a>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="name">Sanakan</h1>
+      <div class="kana" aria-hidden="true">サナカン</div>
+      <div class="links">
+        <a href="./cmd/"><i aria-hidden="true">01</i>Polecenia</a>
+        <a href="https://wiki.sanakan.pl"><i aria-hidden="true">02</i>Wiki</a>
         <div class="link-swap">
-          <a class="swap-main" href="https://waifu.sanakan.pl">Waifu</a>
-          <a class="swap-alt" href="https://alter.sanakan.pl/">Alter</a>
+          <a class="swap-main" href="https://waifu.sanakan.pl"><i aria-hidden="true">03</i>Waifu</a>
+          <a class="swap-alt" href="https://alter.sanakan.pl/"><i aria-hidden="true">03B</i>Alter</a>
         </div>
         <div class="link-swap below">
-          <a class="swap-main" href="https://skalpel.sanakan.pl">Skalpelator</a>
-          <a class="swap-alt" href="https://uskalpel.sanakan.pl/">USkalpelator</a>
+          <a class="swap-main" href="https://skalpel.sanakan.pl"><i aria-hidden="true">04</i>Skalpelator</a>
+          <a class="swap-alt" href="https://uskalpel.sanakan.pl/"><i aria-hidden="true">04B</i>USkalpelator</a>
         </div>
       </div>
     </div>
   </main>
 
   <script>
+    // shows the motto in Morse code; every symbol lights up in real Morse timing,
+    // like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7)
+    (function () {
+      var CODE = {
+        A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....', I: '..',
+        J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.', Q: '--.-', R: '.-.',
+        S: '...', T: '-', U: '..-', V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..', ',': '--..--'
+      };
+      var UNIT = 60;      // ms
+      var START = 1200;   // ms, after the entrance animation
+      var PAUSE = 21;     // units of silence before the signal repeats
+
+      var motto = document.getElementById('motto');
+      var text = motto.textContent.trim();
+      var signal = document.createElement('span');
+      signal.setAttribute('aria-hidden', 'true');
+
+      var t = 0;
+      text.toUpperCase().split(/\s+/).forEach(function (word, w) {
+        var wordEl = document.createElement('span');
+        wordEl.className = 'morse-word';
+
+        word.split('').forEach(function (ch, c) {
+          var code = CODE[ch];
+          if (!code) return;
+
+          var letterEl = document.createElement('span');
+          letterEl.className = 'morse-letter';
+          code.split('').forEach(function (sym, i) {
+            t += i ? 1 : (c ? 3 : (w ? 7 : 0));
+            var el = document.createElement('i');
+            el.className = sym === '.' ? 'dot' : 'dash';
+            el.style.animationDelay = (START + t * UNIT) + 'ms';
+            letterEl.appendChild(el);
+            t += sym === '.' ? 1 : 3;
+          });
+          wordEl.appendChild(letterEl);
+        });
+        signal.appendChild(wordEl);
+      });
+
+      var plain = document.createElement('span');
+      plain.className = 'sr-only';
+      plain.textContent = text;
+
+      motto.style.setProperty('--cycle', (t + PAUSE) * UNIT + 'ms');
+      motto.replaceChildren(signal, plain);
+    })();
+
     // status.php asks the bot API at most once a minute and says online, idle or offline
     (function () {
       var dot = document.getElementById('bot-status');
