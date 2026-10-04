@@ -5,10 +5,11 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | Address | What it is |
 |---|---|
 | `/` | Home page: the logo with the bot status, links to the commands, wiki, Waifu and Skalpelator |
-| `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`) |
+| `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`), marks on commands new or changed in the last 14 days |
+| `/cmd/zmiany/` | History of the changes in the commands, noticed by comparing every command list with the one before |
 | `/api/` | API documentation (Swagger UI) with an endpoint search |
 | `/state/` | Public bot status: availability over the last 24 hours, 30 days and 12 months, API answer times, the outages of the last 30 days and the notice from the panel |
-| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V). Folders and picked items download as ZIP, admins can turn pictures by 90° |
+| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90° |
 | `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks |
 | `/status.php` | Bot status as JSON, used by the home page |
 
@@ -21,10 +22,10 @@ Hidden way into the panel: hold the status dot on the home page for 10 seconds. 
 | `index.html`, `404.html` | Home page and the 404 page |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/` | Subpages |
 | `status.php` | Bot status for the home page |
-| `inc/bot.php` | Bot API access: one-minute cache, 24 h check history with answer times, per day counts, outages, notice and maintenance breaks, last known command list |
+| `inc/bot.php` | Bot API access: one-minute cache, 24 h check history with answer times, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
 | `inc/check-bot.php` | One bot check, run by cron every minute |
 | `inc/auth.php` | Discord login (OAuth2), session, access lists, change history |
-| `inc/gallery.php` | Gallery: thumbnails, uploads, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
+| `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
@@ -42,11 +43,12 @@ Kept out of git:
 The site runs on nginx with PHP-FPM, currently Ubuntu with PHP 8.1. Required packages:
 
 ```bash
-apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip webp
+apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip webp ffmpeg
 ```
 
 - `php8.1-gd` makes thumbnails and converts PNG and JPG to WebP.
 - `webp` (`gif2webp`, `webpmux`) converts GIFs to animated WebP and makes their thumbnails.
+- `ffmpeg` takes a frame of every WebM video for its thumbnail; without it the tile loads the video itself.
 - `php8.1-zip` packs folders for download; without it the ZIP buttons are not shown.
 - `php8.1-cli` runs the bot check from cron.
 

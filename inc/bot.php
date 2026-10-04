@@ -10,7 +10,8 @@
     // counted per day, which gives the 30 day and 12 month availability, and
     // every outage is kept with its start and end. Each check also notes how
     // long the API took to answer. The panel can set a notice for the home page
-    // and state/, and mark a planned maintenance break.
+    // and state/, and mark a planned maintenance break. Changes in the command
+    // list (new, removed, changed commands) are logged for cmd/ and cmd/zmiany/.
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
     const BOT_CACHE_TTL = 60;
     const BOT_HISTORY_SPAN = 86400;
@@ -18,6 +19,7 @@
     const BOT_DAYS_KEEP = 400;
     const BOT_INCIDENTS_KEEP = 200;
     const BOT_MAINTENANCE_KEEP = 100;
+    const BOT_CHANGES_KEEP = 300;
 
     // days, months and the times on the pages follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');
@@ -271,6 +273,117 @@
         return $parts;
     }
 
+    // ---- Changes in the commands -----------------------------------------------------
+    // The command list of every answer is compared with the one before. What
+    // changed goes to a log, newest last: ['time', 'added' => [key...],
+    // 'removed' => [key...], 'changed' => [key => [field => [before, after]]]],
+    // and the commands themselves to an index, so a removed one keeps its module
+    // and description. A key is the module prefix and the name, e.g. "pw daily".
+
+    const COMMAND_FIELDS = ['description' => 'opis', 'aliases' => 'aliasy', 'parameters' => 'parametry', 'example' => 'przykład'];
+
+    // the address of a command on cmd/, e.g. "pw-daily"
+    function commandSlug($key)
+    {
+        $key = function_exists('mb_strtolower') ? mb_strtolower($key, 'UTF-8') : strtolower($key);
+        $slug = trim(preg_replace('/[^\p{L}\p{N}]+/u', '-', $key), '-');
+
+        return $slug === '' || strpos($slug, 'module-') === 0 ? 'cmd-' . $slug : $slug;
+    }
+
+    // every command of an API answer as key => [module, name, description, aliases, parameters, example]
+    function botCommandIndex($data)
+    {
+        $index = [];
+        foreach ($data['modules'] ?? [] as $module) {
+            foreach ($module['subModules'] ?? [] as $submodule) {
+                $prefix = trim((string)($submodule['prefix'] ?? ''));
+                foreach ($submodule['commands'] ?? [] as $command) {
+                    $name = (string)($command['name'] ?? '');
+                    $aliases = array_values(array_diff(array_map('strval', $command['aliases'] ?? []), [$name]));
+                    $parameters = [];
+                    foreach ($command['attributes'] ?? [] as $attr)
+                        $parameters[] = (string)($attr['description'] ?? $attr['name'] ?? '');
+                    $index[trim($prefix . ' ' . $name)] = [
+                        'module' => (string)($module['name'] ?? ''),
+                        'name' => $name,
+                        'description' => (string)($command['description'] ?? ''),
+                        'aliases' => implode(', ', $aliases),
+                        'parameters' => implode(', ', $parameters),
+                        'example' => trim($name . ' ' . ($command['example'] ?? ''))
+                    ];
+                }
+            }
+        }
+
+        return $index;
+    }
+
+    function botTrackCommands($data, $now)
+    {
+        $fp = @fopen(botFile('commands-index.json'), 'c+');
+        if ($fp === false || !flock($fp, LOCK_EX)) {
+            if ($fp !== false)
+                fclose($fp);
+            return;
+        }
+
+        $stored = json_decode((string)stream_get_contents($fp), true);
+        $index = botCommandIndex($data);
+        $old = $stored['commands'] ?? null;
+
+        $change = ['time' => $now, 'added' => [], 'removed' => [], 'changed' => []];
+        if (is_array($old)) {
+            $change['added'] = array_values(array_diff(array_keys($index), array_keys($old)));
+            $change['removed'] = array_values(array_diff(array_keys($old), array_keys($index)));
+            foreach ($index as $key => $command) {
+                if (!isset($old[$key]))
+                    continue;
+                foreach (array_keys(COMMAND_FIELDS) as $field)
+                    if (($old[$key][$field] ?? '') !== $command[$field])
+                        $change['changed'][$key][$field] = [$old[$key][$field] ?? '', $command[$field]];
+            }
+        }
+        $changed = $change['added'] || $change['removed'] || $change['changed'];
+
+        // an answer missing most commands at once looks like a broken one, not a change
+        $broken = is_array($old) && count($old) > 10 && count($change['removed']) > count($old) / 2;
+
+        if (!$broken && (!is_array($old) || $changed)) {
+            if ($changed) {
+                $log = json_decode((string)@file_get_contents(botFile('commands-changes.json')), true);
+                $log = is_array($log) ? $log : [];
+                // a removed command is described from the old index
+                foreach ($change['removed'] as $key)
+                    $change['gone'][$key] = $old[$key];
+                $log[] = $change;
+                botWriteFile(botFile('commands-changes.json'), json_encode(array_slice($log, -BOT_CHANGES_KEEP), JSON_UNESCAPED_UNICODE));
+            }
+
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode(['since' => $stored['since'] ?? $now, 'commands' => $index], JSON_UNESCAPED_UNICODE));
+        }
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+
+    // the logged changes, newest first
+    function botCommandChanges()
+    {
+        $log = json_decode((string)@file_get_contents(botFile('commands-changes.json')), true);
+
+        return is_array($log) ? array_reverse($log) : [];
+    }
+
+    // since when changes are watched, or null
+    function botCommandsWatchedSince()
+    {
+        $stored = json_decode((string)@file_get_contents(botFile('commands-index.json')), true);
+
+        return $stored['since'] ?? null;
+    }
+
     // ---- Notice and maintenance ----------------------------------------------------
     // The panel sets one notice: ['text', 'to' => when it disappears or null,
     // 'maintenance' => ['from', 'to'] or null, 'by', 'set']. A maintenance break
@@ -393,8 +506,10 @@
             $data = $json === false ? null : @json_decode($json, true);
 
             $online = !empty($data['modules']);
-            if ($online)
+            if ($online) {
                 botWriteFile(botFile('commands.json'), $json);
+                botTrackCommands($data, $now);
+            }
 
             $uptime = botRecordCheck($online, $now, $online ? $ms : null);
             botRecordDay($online, $now);

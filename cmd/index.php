@@ -45,17 +45,12 @@
         $total += moduleCount($module);
 
     // Address of a command on the page, e.g. #daily or #pw-daily with the module
-    // prefix; the same name twice gets -2, -3 and so on.
+    // prefix (commandSlug() in inc/bot.php); the same name twice gets -2, -3 and so on.
     $usedIds = [];
     function commandId($smprefix, $name)
     {
         global $usedIds;
-        $text = trim($smprefix . ' ' . $name);
-        // mbstring is not always installed; the names are lower case anyway
-        $text = function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
-        $id = trim(preg_replace('/[^\p{L}\p{N}]+/u', '-', $text), '-');
-        if ($id === '' || strpos($id, 'module-') === 0)
-            $id = 'cmd-' . $id;
+        $id = commandSlug(trim($smprefix . ' ' . $name));
 
         $unique = $id;
         for ($i = 2; isset($usedIds[$unique]); $i++)
@@ -72,6 +67,29 @@
         'maintenance' => 'Bot ma przerwę techniczną'
     ];
     $status = botInMaintenance(time()) ? 'maintenance' : $state['status'];
+
+    // commands new or changed in the last two weeks get a mark, the latest change a line
+    const MARK_DAYS = 14;
+    $changes = botCommandChanges();
+    $marks = [];
+    foreach ($changes as $change) {
+        if ($change['time'] < time() - MARK_DAYS * 86400)
+            break;
+        foreach (array_keys($change['changed']) as $key)
+            $marks[$key] = $marks[$key] ?? 'changed';
+        foreach ($change['added'] as $key)
+            $marks[$key] = 'new';
+    }
+    $latest = $changes[0] ?? null;
+    $latestParts = [];
+    if ($latest) {
+        if ($count = count($latest['added']))
+            $latestParts[] = $count . ' ' . plural($count, 'nowe', 'nowe', 'nowych');
+        if ($count = count($latest['changed']))
+            $latestParts[] = $count . ' ' . plural($count, 'zmienione', 'zmienione', 'zmienionych');
+        if ($count = count($latest['removed']))
+            $latestParts[] = $count . ' ' . plural($count, 'usunięte', 'usunięte', 'usuniętych');
+    }
 
 include 'sanakan.head.html';
 
@@ -96,6 +114,9 @@ include 'sanakan.head.html';
 <?php if (empty($modules)): ?>
     <p class="notice">Nie udało się pobrać listy poleceń. Spróbuj ponownie później.</p>
 <?php else: ?>
+<?php if ($latest): ?>
+    <p class="changes-line"><span>Ostatnia zmiana w poleceniach <?=e(date('j.m.Y', $latest['time']))?>: <?=e(implode(', ', $latestParts))?></span><a href="zmiany/">Historia zmian &rarr;</a></p>
+<?php endif; ?>
 <?php if ($state['status'] == 'offline'): ?>
     <p class="notice"><?=$status === 'maintenance' ? 'Bot ma przerwę techniczną' : 'Bot teraz nie odpowiada'?>, poniżej jest ostatnia zapisana lista poleceń.</p>
 <?php endif; ?>
@@ -138,10 +159,14 @@ include 'sanakan.head.html';
         }));
         $usage = trim($command['name'] . ' ' . $command['example']);
         $id = commandId($smprefix, $command['name']);
+        $mark = $marks[trim($smprefix . $command['name'])] ?? null;
 ?>
         <article class="cmd" id="<?=e($id)?>">
           <div class="cmd-name">
             <a class="cmd-anchor" href="#<?=e($id)?>" title="Link do tego polecenia"><code class="cmd-main"><?=e($command['name'])?></code></a>
+<?php if ($mark): ?>
+            <a class="cmd-mark <?=$mark?>" href="zmiany/" title="<?=$mark === 'new' ? 'Nowe' : 'Zmienione'?> w ostatnich <?=MARK_DAYS?> dniach"><?=$mark === 'new' ? 'nowe' : 'zmienione'?></a>
+<?php endif; ?>
             <button class="copy copy-link" type="button" data-anchor="<?=e($id)?>" hidden>Link</button>
 <?php if ($aliases): ?>
             <div class="cmd-aliases"><?php foreach ($aliases AS $alias): ?><code><?=e($alias)?></code><?php endforeach; ?></div>

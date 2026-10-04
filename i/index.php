@@ -210,7 +210,7 @@
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching): ?>
-        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>

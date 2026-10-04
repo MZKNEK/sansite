@@ -78,9 +78,10 @@
         return hasGd() && function_exists('imagewebp');
     }
 
-    // Path of a command-line tool from libwebp (on Ubuntu: apt-get install webp),
-    // or null. PHP-FPM usually runs without PATH, so the usual folders are tried too.
-    function webpTool($name)
+    // Path of a command-line tool (gif2webp and webpmux from apt-get install webp,
+    // ffmpeg), or null. PHP-FPM usually runs without PATH, so the usual folders
+    // are tried too.
+    function findTool($name)
     {
         static $found = [];
         if (array_key_exists($name, $found))
@@ -104,7 +105,7 @@
 
     function canConvertGifToWebp()
     {
-        return webpTool('gif2webp') !== null;
+        return findTool('gif2webp') !== null;
     }
 
     // Runs a tool, at most $timeout seconds (a slow conversion must not hang the
@@ -146,7 +147,7 @@
     {
         $tmp = $target . '.' . getmypid();
         // lossy and a light effort: a 22 MB GIF takes seconds instead of most of a minute, and ends up smaller
-        $ok = runTool(webpTool('gif2webp'), ['-lossy', '-q', (string)GIF_WEBP_QUALITY, '-m', '2', '-mt', $source, '-o', $tmp], TOOL_TIMEOUT)
+        $ok = runTool(findTool('gif2webp'), ['-lossy', '-q', (string)GIF_WEBP_QUALITY, '-m', '2', '-mt', $source, '-o', $tmp], TOOL_TIMEOUT)
             && @rename($tmp, $target);
         if (!$ok)
             @unlink($tmp);
@@ -170,9 +171,17 @@
         return $rel === '' ? './' : '?p=' . rawurlencode($rel);
     }
 
-    // thumbnail URL of a picture, or null when it should get a placeholder
+    // a frame of a video can be a thumbnail
+    function canThumbVideo()
+    {
+        return hasGd() && findTool('ffmpeg') !== null;
+    }
+
+    // thumbnail URL of a picture or a video, or null when it should get a placeholder
     function thumbUrl($rel, $full)
     {
+        if (isVideo($rel))
+            return canThumbVideo() ? '?thumb=' . rawurlencode($rel) . '&v=' . filemtime($full) : null;
         if (hasGd())
             return '?thumb=' . rawurlencode($rel) . '&v=' . filemtime($full);
 
@@ -258,7 +267,7 @@
                     break;
                 }
                 // GD cannot read an animated WebP; webpmux takes out its first frame
-                if ($mux = webpTool('webpmux')) {
+                if ($mux = findTool('webpmux')) {
                     $frame = sys_get_temp_dir() . '/sanakan-frame-' . getmypid() . '.webp';
                     if (runTool($mux, ['-get', 'frame', '1', $source, '-o', $frame], 20))
                         $img = @imagecreatefromwebp($frame);
@@ -269,6 +278,8 @@
         }
         if ($img && !imageistruecolor($img))
             imagepalettetotruecolor($img);
+        if ($img && $info[2] === IMAGETYPE_JPEG)
+            $img = applyOrientation($img, jpegOrientation($source));
 
         return $img;
     }
@@ -300,7 +311,7 @@
             if (count($previews) == 3)
                 break;
             $innerFull = $full . '/' . $innerName;
-            if (is_file($innerFull) && isImage($innerName) && ($url = thumbUrl($rel . '/' . $innerName, $innerFull)))
+            if (is_file($innerFull) && (isImage($innerName) || isVideo($innerName)) && ($url = thumbUrl($rel . '/' . $innerName, $innerFull)))
                 $previews[] = $url;
         }
 
@@ -319,6 +330,9 @@
         $name = basename($rel);
         $image = isImage($name);
         $dims = $image ? @getimagesize($full) : false;
+        // a photo turned by its EXIF orientation is shown the other way round
+        if ($dims && $dims[2] === IMAGETYPE_JPEG && jpegOrientation($full) >= 5)
+            $dims = [$dims[1], $dims[0]];
 
         return [
             'name' => $name,
@@ -328,7 +342,7 @@
             'mtime' => filemtime($full),
             'kind' => $image ? 'image' : (isVideo($name) ? 'video' : 'file'),
             'dims' => $dims ? $dims[0] . '×' . $dims[1] : '',
-            'thumb' => $image ? thumbUrl($rel, $full) : null
+            'thumb' => $image || isVideo($name) ? thumbUrl($rel, $full) : null
         ];
     }
 
@@ -374,9 +388,29 @@
         }
     }
 
+    // a frame from about the first second of a video as a GD image, or false
+    function videoFrame($source)
+    {
+        $ffmpeg = findTool('ffmpeg');
+        if (!$ffmpeg)
+            return false;
+
+        $frame = sys_get_temp_dir() . '/sanakan-frame-' . getmypid() . '.png';
+        // a video shorter than a second has no frame there, then the first one
+        foreach (['1', '0'] as $at) {
+            @unlink($frame);
+            if (runTool($ffmpeg, ['-v', 'error', '-ss', $at, '-i', $source, '-frames:v', '1', '-y', $frame], 20) && @filesize($frame) > 0)
+                break;
+        }
+        $img = @filesize($frame) > 0 ? loadImage($frame) : false;
+        @unlink($frame);
+
+        return $img;
+    }
+
     function makeThumb($source, $target)
     {
-        $img = loadImage($source);
+        $img = isVideo($source) ? videoFrame($source) : loadImage($source);
         if (!$img)
             return false;
 
@@ -410,7 +444,8 @@
     function sendThumb($base, $rel)
     {
         $file = resolvePath($base, $rel, false);
-        if (!$file || !isImage($file[1])) {
+        $video = $file && isVideo($file[1]);
+        if (!$file || (!isImage($file[1]) && !($video && canThumbVideo()))) {
             http_response_code(404);
             return;
         }
@@ -420,8 +455,11 @@
         $cache = sys_get_temp_dir() . '/sanakan-thumbs/' . $key . ($webp ? '.webp' : '.png');
 
         if (!is_file($cache) && (!hasGd() || !makeThumb($file[0], $cache))) {
-            // no thumbnail possible, the picture itself has to do
-            header('Location: ' . fileUrl($file[1]));
+            // no thumbnail possible: the picture itself has to do, a video gets none
+            if ($video)
+                http_response_code(404);
+            else
+                header('Location: ' . fileUrl($file[1]));
             return;
         }
 
@@ -547,6 +585,198 @@
                 $bytes += treeSize($path . '/' . $name);
 
         return $bytes;
+    }
+
+    // ---- Metadata --------------------------------------------------------------------
+    // Photos carry EXIF and similar data: where and when they were taken, with
+    // what. An upload loses it without the picture being encoded again; a JPEG
+    // keeps only its orientation, so a photo from a phone is not turned over.
+
+    // the JPEG segments before the picture data as [marker, whole segment], and
+    // the rest of the file from the picture data on; null when it is no JPEG
+    function jpegSegments($data)
+    {
+        if (substr($data, 0, 2) !== "\xFF\xD8")
+            return null;
+
+        $segments = [];
+        $pos = 2;
+        $length = strlen($data);
+        while ($pos + 4 <= $length && $data[$pos] === "\xFF") {
+            $marker = ord($data[$pos + 1]);
+            // start of scan: the picture data runs to the end
+            if ($marker === 0xDA)
+                return [$segments, substr($data, $pos)];
+            $size = unpack('n', substr($data, $pos + 2, 2))[1];
+            $segments[] = [$marker, substr($data, $pos, $size + 2)];
+            $pos += $size + 2;
+        }
+
+        return null;
+    }
+
+    // the orientation tag (1-8) of an EXIF block ("Exif\0\0" and a TIFF header), 1 when none
+    function exifOrientation($exif)
+    {
+        $tiff = substr($exif, 6);
+        if (strlen($tiff) < 14)
+            return 1;
+        $format = substr($tiff, 0, 2) === 'II' ? 'v' : 'n';
+        $long = $format === 'v' ? 'V' : 'N';
+        $ifd = unpack($long, substr($tiff, 4, 4))[1];
+        if ($ifd + 2 > strlen($tiff))
+            return 1;
+
+        $count = unpack($format, substr($tiff, $ifd, 2))[1];
+        for ($i = 0; $i < $count; $i++) {
+            $entry = substr($tiff, $ifd + 2 + 12 * $i, 12);
+            if (strlen($entry) < 12)
+                break;
+            if (unpack($format, substr($entry, 0, 2))[1] === 0x0112) {
+                $value = unpack($format, substr($entry, 8, 2))[1];
+                return $value >= 1 && $value <= 8 ? $value : 1;
+            }
+        }
+
+        return 1;
+    }
+
+    // EXIF orientation of a JPEG file, 1 when it has none
+    function jpegOrientation($path)
+    {
+        $parts = jpegSegments((string)@file_get_contents($path, false, null, 0, 262144) . "\xFF\xDA");
+        foreach ($parts[0] ?? [] as $segment)
+            if ($segment[0] === 0xE1 && substr($segment[1], 4, 6) === "Exif\0\0")
+                return exifOrientation(substr($segment[1], 4));
+
+        return 1;
+    }
+
+    // turns and mirrors a GD image the way an EXIF orientation says
+    function applyOrientation($img, $orientation)
+    {
+        // GD turns counter-clockwise; 5 and 7 are turned and then mirrored
+        $turn = [3 => 180, 5 => -90, 6 => -90, 7 => 90, 8 => 90][$orientation] ?? 0;
+        if ($turn) {
+            $turned = imagerotate($img, $turn, 0);
+            if ($turned) {
+                imagedestroy($img);
+                $img = $turned;
+            }
+        }
+        if (in_array($orientation, [2, 5, 7], true))
+            imageflip($img, IMG_FLIP_HORIZONTAL);
+        else if ($orientation === 4)
+            imageflip($img, IMG_FLIP_VERTICAL);
+
+        return $img;
+    }
+
+    // EXIF (APP1, also XMP there), IPTC (APP13) and comments go; only the
+    // orientation comes back, as a small EXIF block of its own
+    function stripJpeg($data)
+    {
+        $parts = jpegSegments($data);
+        if (!$parts)
+            return null;
+
+        $orientation = 1;
+        $kept = [];
+        foreach ($parts[0] as $segment) {
+            if ($segment[0] === 0xE1 && substr($segment[1], 4, 6) === "Exif\0\0")
+                $orientation = exifOrientation(substr($segment[1], 4));
+            if (!in_array($segment[0], [0xE1, 0xED, 0xFE], true))
+                $kept[] = $segment;
+        }
+        if (count($kept) === count($parts[0]))
+            return null;
+
+        if ($orientation !== 1) {
+            $exif = "Exif\0\0" . "MM\0\x2A\0\0\0\x08" . "\0\x01" . "\x01\x12\0\x03\0\0\0\x01" . pack('n', $orientation) . "\0\0" . "\0\0\0\0";
+            // after the JFIF header when there is one
+            $at = $kept && $kept[0][0] === 0xE0 ? 1 : 0;
+            array_splice($kept, $at, 0, [[0xE1, "\xFF\xE1" . pack('n', strlen($exif) + 2) . $exif]]);
+        }
+
+        return "\xFF\xD8" . implode('', array_column($kept, 1)) . $parts[1];
+    }
+
+    // PNG text chunks (often XMP), EXIF and the time go
+    function stripPng($data)
+    {
+        if (substr($data, 0, 8) !== "\x89PNG\r\n\x1A\n")
+            return null;
+
+        $out = substr($data, 0, 8);
+        $pos = 8;
+        $dropped = false;
+        while ($pos + 12 <= strlen($data)) {
+            $size = unpack('N', substr($data, $pos, 4))[1];
+            $type = substr($data, $pos + 4, 4);
+            $chunk = substr($data, $pos, $size + 12);
+            if (in_array($type, ['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME'], true))
+                $dropped = true;
+            else
+                $out .= $chunk;
+            $pos += $size + 12;
+            if ($type === 'IEND')
+                break;
+        }
+
+        return $dropped ? $out : null;
+    }
+
+    // the EXIF and XMP chunks of an extended WebP go, and its header stops naming them
+    function stripWebp($data)
+    {
+        if (substr($data, 0, 4) !== 'RIFF' || substr($data, 8, 4) !== 'WEBP')
+            return null;
+
+        $chunks = '';
+        $pos = 12;
+        $dropped = false;
+        while ($pos + 8 <= strlen($data)) {
+            $type = substr($data, $pos, 4);
+            $size = unpack('V', substr($data, $pos + 4, 4))[1];
+            $chunk = substr($data, $pos, 8 + $size + ($size & 1));
+            if ($type === 'EXIF' || $type === 'XMP ') {
+                $dropped = true;
+            } else {
+                // VP8X flags: 0x08 EXIF, 0x04 XMP
+                if ($type === 'VP8X')
+                    $chunk[8] = chr(ord($chunk[8]) & ~0x0C);
+                $chunks .= $chunk;
+            }
+            $pos += 8 + $size + ($size & 1);
+        }
+        if (!$dropped)
+            return null;
+
+        return 'RIFF' . pack('V', strlen($chunks) + 4) . 'WEBP' . $chunks;
+    }
+
+    // removes the metadata of a saved JPEG, PNG or WebP; true when the file changed
+    function stripMetadata($path)
+    {
+        $info = @getimagesize($path);
+        $data = (string)@file_get_contents($path);
+        switch ($info[2] ?? 0) {
+            case IMAGETYPE_JPEG: $clean = stripJpeg($data); break;
+            case IMAGETYPE_PNG: $clean = stripPng($data); break;
+            case IMAGETYPE_WEBP: $clean = stripWebp($data); break;
+            default: $clean = null;
+        }
+        if ($clean === null || $clean === '')
+            return false;
+
+        $tmp = dirname($path) . '/.strip-' . getmypid();
+        if (@file_put_contents($tmp, $clean) === false || !@rename($tmp, $path)) {
+            @unlink($tmp);
+            return false;
+        }
+        clearstatcache();
+
+        return true;
     }
 
     // ---- Rotating -------------------------------------------------------------------
@@ -1103,11 +1333,14 @@
         }
 
         $target = freeName($dir[0], $name);
+        $sentHash = hash_file('sha256', $file['tmp_name']);
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
-        recordHash($dir[0] . '/' . $target, ltrim($dir[1] . '/' . $target, '/'), null);
+        $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
+        recordHash($dir[0] . '/' . $target, ltrim($dir[1] . '/' . $target, '/'), $stripped ? $sentHash : null);
 
         done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . '.',
-            ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).') . $note);
+            ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).')
+            . ($stripped ? ' Usunięto metadane (np. miejsce i czas zrobienia).' : '') . $note);
     }
