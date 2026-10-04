@@ -44,11 +44,34 @@
     foreach ($modules AS $module)
         $total += moduleCount($module);
 
+    // Address of a command on the page, e.g. #daily or #pw-daily with the module
+    // prefix; the same name twice gets -2, -3 and so on.
+    $usedIds = [];
+    function commandId($smprefix, $name)
+    {
+        global $usedIds;
+        $text = trim($smprefix . ' ' . $name);
+        // mbstring is not always installed; the names are lower case anyway
+        $text = function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
+        $id = trim(preg_replace('/[^\p{L}\p{N}]+/u', '-', $text), '-');
+        if ($id === '' || strpos($id, 'module-') === 0)
+            $id = 'cmd-' . $id;
+
+        $unique = $id;
+        for ($i = 2; isset($usedIds[$unique]); $i++)
+            $unique = $id . '-' . $i;
+        $usedIds[$unique] = true;
+
+        return $unique;
+    }
+
     $statusText = [
         'online' => 'Bot działa',
         'idle' => 'Bot działa, ale w ciągu ostatnich 24 h odpowiadał tylko w ' . str_replace('.', ',', $state['uptime']) . '% sprawdzeń',
-        'offline' => 'Bot teraz nie odpowiada'
+        'offline' => 'Bot teraz nie odpowiada',
+        'maintenance' => 'Bot ma przerwę techniczną'
     ];
+    $status = botInMaintenance(time()) ? 'maintenance' : $state['status'];
 
 include 'sanakan.head.html';
 
@@ -66,7 +89,7 @@ include 'sanakan.head.html';
 <?php if ($total): ?>
         <span><?=$total?> <?=plural($total, 'polecenie', 'polecenia', 'poleceń')?></span>
 <?php endif; ?>
-        <span class="state <?=e($state['status'])?>"><?=e($statusText[$state['status']])?></span>
+        <span class="state <?=e($status)?>"><?=e($statusText[$status])?></span>
       </div>
     </header>
 
@@ -74,7 +97,7 @@ include 'sanakan.head.html';
     <p class="notice">Nie udało się pobrać listy poleceń. Spróbuj ponownie później.</p>
 <?php else: ?>
 <?php if ($state['status'] == 'offline'): ?>
-    <p class="notice">Bot teraz nie odpowiada, poniżej jest ostatnia zapisana lista poleceń.</p>
+    <p class="notice"><?=$status === 'maintenance' ? 'Bot ma przerwę techniczną' : 'Bot teraz nie odpowiada'?>, poniżej jest ostatnia zapisana lista poleceń.</p>
 <?php endif; ?>
     <div class="toolbar" id="toolbar">
       <label class="search hud-corners">
@@ -114,10 +137,12 @@ include 'sanakan.head.html';
             return $alias !== $command['name'];
         }));
         $usage = trim($command['name'] . ' ' . $command['example']);
+        $id = commandId($smprefix, $command['name']);
 ?>
-        <article class="cmd">
+        <article class="cmd" id="<?=e($id)?>">
           <div class="cmd-name">
-            <code class="cmd-main"><?=e($command['name'])?></code>
+            <a class="cmd-anchor" href="#<?=e($id)?>" title="Link do tego polecenia"><code class="cmd-main"><?=e($command['name'])?></code></a>
+            <button class="copy copy-link" type="button" data-anchor="<?=e($id)?>" hidden>Link</button>
 <?php if ($aliases): ?>
             <div class="cmd-aliases"><?php foreach ($aliases AS $alias): ?><code><?=e($alias)?></code><?php endforeach; ?></div>
 <?php endif; ?>

@@ -1,16 +1,21 @@
-// copy buttons next to the examples; the clipboard API needs https
+// copy buttons: the example, or the link to a command (data-anchor); the
+// clipboard API needs https
 (function () {
   if (!navigator.clipboard || !window.isSecureContext) return;
 
   document.querySelectorAll('.copy').forEach(function (button) {
+    var label = button.textContent;
     button.hidden = false;
     button.addEventListener('click', function () {
-      navigator.clipboard.writeText(button.dataset.copy).then(function () {
+      var text = button.dataset.anchor
+        ? location.href.split('#')[0] + '#' + button.dataset.anchor
+        : button.dataset.copy;
+      navigator.clipboard.writeText(text).then(function () {
         button.textContent = 'Skopiowano';
         button.classList.add('done');
         clearTimeout(button.resetTimer);
         button.resetTimer = setTimeout(function () {
-          button.textContent = 'Kopiuj';
+          button.textContent = label;
           button.classList.remove('done');
         }, 1500);
       });
@@ -100,6 +105,20 @@
     }
   });
 
+  // a link to a command (#daily): the search must not hide it, and the jump is
+  // made again once the toolbar height is known, so it does not end up under it
+  function showLinked() {
+    var target = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!target || !target.classList.contains('cmd')) return;
+    if (target.hidden) {
+      input.value = '';
+      filter();
+    }
+    target.scrollIntoView();
+  }
+
   window.addEventListener('resize', updateToolbarHeight);
+  window.addEventListener('hashchange', showLinked);
   updateToolbarHeight();
+  showLinked();
 })();

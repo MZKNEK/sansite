@@ -30,6 +30,82 @@
     font-weight: 400;
 }
 
+/* the bot status line and the notice form */
+.status-more {
+    margin: 12px 0 0;
+}
+
+.status-more a,
+.notice-now a {
+    color: var(--accent-light);
+}
+
+.notice-form {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(155, 89, 182, 0.15);
+}
+
+.notice-form h3 {
+    margin: 0 0 12px;
+    font: 13px "Share Tech Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.notice-now {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
+
+.notice-form textarea,
+.notice-fields input[type="datetime-local"] {
+    padding: 7px 10px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px Lato, sans-serif;
+    outline: 0;
+    color-scheme: dark;
+}
+
+.notice-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+}
+
+.notice-form textarea:focus,
+.notice-fields input:focus {
+    border-color: var(--accent);
+}
+
+.notice-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    margin: 10px 0 8px;
+    font-size: 14px;
+}
+
+.notice-fields label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notice-form > .hint:last-of-type {
+    margin: 0 0 12px;
+}
+
+.notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 /* cron has stopped checking the bot */
 .card.alarm {
     border-color: rgba(240, 178, 50, 0.6);

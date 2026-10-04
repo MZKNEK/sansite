@@ -17,6 +17,8 @@
     const TOOL_TIMEOUT = 50;
     const TRASH_DAYS = 30;
     const SEARCH_LIMIT = 300;
+    const ZIP_MAX_BYTES = 1073741824;
+    const ROTATE_TYPES = ['png', 'jpg', 'jpeg', 'webp'];
     const MAX_NAME_LENGTH = 150;
 
     require_once __DIR__ . '/auth.php';
@@ -547,6 +549,134 @@
         return $bytes;
     }
 
+    // ---- Rotating -------------------------------------------------------------------
+
+    // Turns a picture by 90 degrees ($angle 90 to the left, -90 to the right, as
+    // GD counts) and saves it in its own format. Not for GIFs and animated WebP,
+    // which GD would flatten to one frame.
+    function rotateImage($path, $angle)
+    {
+        $ext = extensionOf($path);
+        if (!hasGd() || !in_array($ext, ROTATE_TYPES, true))
+            return false;
+        if ($ext === 'webp' && (!function_exists('imagewebp') || isAnimatedWebp($path)))
+            return false;
+
+        $img = loadImage($path);
+        if (!$img)
+            return false;
+        $rotated = imagerotate($img, $angle, imagecolorallocatealpha($img, 0, 0, 0, 127));
+        imagedestroy($img);
+        if (!$rotated)
+            return false;
+        imagealphablending($rotated, false);
+        imagesavealpha($rotated, true);
+
+        // written next to it under a hidden name, then put in its place
+        $tmp = dirname($path) . '/.rotate-' . getmypid() . '.' . $ext;
+        if ($ext === 'png')
+            $ok = @imagepng($rotated, $tmp, 6);
+        else if ($ext === 'webp')
+            $ok = @imagewebp($rotated, $tmp, WEBP_QUALITY);
+        else
+            $ok = @imagejpeg($rotated, $tmp, 92);
+        imagedestroy($rotated);
+
+        $mtime = filemtime($path);
+        if (!$ok || !@rename($tmp, $path)) {
+            @unlink($tmp);
+            return false;
+        }
+        // a newer time also when turned twice in a second, so no old thumbnail is shown
+        @chmod($path, 0644);
+        @touch($path, max(time(), $mtime + 1));
+        clearstatcache();
+
+        return true;
+    }
+
+    // ---- ZIP downloads ----------------------------------------------------------------
+
+    function canZip()
+    {
+        return class_exists('ZipArchive');
+    }
+
+    // files under a gallery path for the ZIP as [full path or null for an empty
+    // folder, path in the ZIP]; hidden files and the gallery script stay out
+    function zipCollect($full, $local, $isTop, &$files, &$bytes, $depth = 0)
+    {
+        if (is_file($full)) {
+            $files[] = [$full, $local];
+            $bytes += filesize($full);
+            return;
+        }
+        if (!is_dir($full) || is_link($full) || $depth > 10)
+            return;
+
+        $names = [];
+        foreach (scandir($full) ?: [] as $name)
+            if ($name[0] !== '.' && !($isTop && $name === 'index.php'))
+                $names[] = $name;
+        if (!$names)
+            $files[] = [null, $local . '/'];
+        foreach ($names as $name)
+            zipCollect($full . '/' . $name, $local . '/' . $name, false, $files, $bytes, $depth + 1);
+    }
+
+    // Sends gallery items ([full path, rel] each) as one ZIP, stored without
+    // compression, since pictures and videos are compressed already. A problem
+    // goes back to $backUrl as a message.
+    function sendZip($items, $zipName, $backUrl)
+    {
+        $fail = function ($message) use ($backUrl) {
+            setFlash($message);
+            header('Location: ' . $backUrl, true, 303);
+            exit;
+        };
+        if (!canZip())
+            $fail('Serwer nie ma modułu ZIP (pakiet php-zip), pobieranie jest wyłączone.');
+
+        $files = [];
+        $bytes = 0;
+        foreach ($items as $item)
+            zipCollect($item[0], $item[1] === '' ? 'i' : basename($item[1]), $item[1] === '', $files, $bytes);
+        if (!array_filter(array_column($files, 0)))
+            $fail('Nie ma tu żadnych plików do pobrania.');
+        if ($bytes > ZIP_MAX_BYTES)
+            $fail('To za dużo naraz (' . formatSize($bytes) . ', limit ' . formatSize(ZIP_MAX_BYTES) . '). Pobierz mniejsze foldery osobno.');
+
+        @set_time_limit(0);
+        $tmp = @tempnam(sys_get_temp_dir(), 'sanakan-zip-');
+        $zip = new ZipArchive();
+        if ($tmp === false || $zip->open($tmp, ZipArchive::OVERWRITE) !== true)
+            $fail('Nie udało się utworzyć pliku ZIP.');
+        foreach ($files as $file) {
+            if ($file[0] === null) {
+                $zip->addEmptyDir($file[1]);
+            } else {
+                $zip->addFile($file[0], $file[1]);
+                $zip->setCompressionName($file[1], ZipArchive::CM_STORE);
+            }
+        }
+        if (!$zip->close()) {
+            @unlink($tmp);
+            $fail('Nie udało się utworzyć pliku ZIP.');
+        }
+
+        // the visitor's other pages need not wait for the download
+        if (session_status() === PHP_SESSION_ACTIVE)
+            session_write_close();
+        $ascii = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $zipName);
+        header('Content-Type: application/zip');
+        header('Content-Length: ' . filesize($tmp));
+        header('Content-Disposition: attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode($zipName));
+        header('Cache-Control: no-store');
+        readfile($tmp);
+        @unlink($tmp);
+        exit;
+    }
+
     // ---- Duplicates ---------------------------------------------------------------
     // SHA-256 of gallery files, cached in inc/data/hashes.json as
     // [rel => ['size', 'mtime', 'hash', 'source' => hash of the uploaded original]].
@@ -785,6 +915,15 @@
             reply(true, 'Wylogowano.');
         }
 
+        if ($action === 'zip') {
+            if (!galleryCanView())
+                reply(false, 'To konto nie ma dostępu do galerii.', 403);
+            $back = (string)($_POST['back'] ?? '');
+            $dir = trim((string)($_POST['dir'] ?? ''), '/');
+            sendZip(postedItems($base), ($dir === '' ? 'galeria' : basename($dir)) . ' - wybrane.zip',
+                preg_match('/^(\?|\.\/)/', $back) ? $back : './');
+        }
+
         if (!galleryIsAdmin())
             reply(false, 'To konto nie może zarządzać galerią.', 403);
 
@@ -825,6 +964,25 @@
                 $message = 'Przeniesiono do kosza ' . countLabel(count($trashed)) . ' (na ' . TRASH_DAYS . ' dni, przywracanie w panelu).';
                 if ($failed)
                     reply(false, $message . ' Nie udało się: ' . implode(', ', $failed) . '.', 500);
+                reply(true, $message);
+
+            case 'rotate':
+                // GD turns counter-clockwise
+                $left = ($_POST['direction'] ?? '') === 'left';
+                $rotated = [];
+                $skipped = [];
+                foreach (postedItems($base) as $item) {
+                    if (is_file($item[0]) && rotateImage($item[0], $left ? 90 : -90))
+                        $rotated[] = galleryPath($item[1]);
+                    else
+                        $skipped[] = basename($item[1]);
+                }
+
+                if ($rotated)
+                    addHistory('rotate', 'Obrócono w ' . ($left ? 'lewo' : 'prawo') . ': ' . implode(', ', $rotated) . '.');
+                $message = 'Obrócono ' . countLabel(count($rotated)) . '.';
+                if ($skipped)
+                    reply(count($rotated) > 0, $message . ' Pominięto (obracać można obrazki PNG, JPG i WebP bez animacji): ' . implode(', ', $skipped) . '.', 400);
                 reply(true, $message);
 
             case 'duplicates':

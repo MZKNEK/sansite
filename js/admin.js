@@ -44,12 +44,14 @@
   });
 
   // forms: the action is in data-action, the fields are the inputs
+  // (a checkbox sends 1 or 0)
   document.querySelectorAll('form[data-action]').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var fields = { action: form.dataset.action };
       Array.prototype.forEach.call(form.elements, function (field) {
-        if (field.name) fields[field.name] = field.value.trim();
+        if (!field.name) return;
+        fields[field.name] = field.type === 'checkbox' ? (field.checked ? '1' : '0') : field.value.trim();
       });
       send(fields, Array.prototype.slice.call(form.querySelectorAll('button')));
     });

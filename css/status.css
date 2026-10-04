@@ -59,6 +59,11 @@
     background: #f0b232;
 }
 
+/* do not disturb, during a planned break: red with a bar across */
+.status-dot.maintenance {
+    background: linear-gradient(#141517, #141517) center / 8px 3px no-repeat, #f23f43;
+}
+
 .status-text {
     display: flex;
     flex: 1;
@@ -154,6 +159,32 @@
     vertical-align: -1px;
 }
 
+/* answer times: a column per 15 minutes, as high as its average */
+.response-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 48px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.25);
+}
+
+.response-chart span {
+    display: flex;
+    flex: 1;
+    align-items: flex-end;
+    min-width: 1px;
+    height: 100%;
+}
+
+.response-chart i {
+    width: 100%;
+    background: rgba(155, 89, 182, 0.65);
+}
+
+.response-chart span:hover i {
+    background: var(--accent-light);
+}
+
 /* outages of the last 30 days */
 .incidents {
     margin-top: 24px;
@@ -191,6 +222,44 @@
     color: #f08a87;
 }
 
+/* during a planned maintenance break */
+.incident-list .planned {
+    border-left-color: #5865f2;
+}
+
+.incident-list .planned.ongoing {
+    background: rgba(88, 101, 242, 0.1);
+}
+
+.incident-list .planned.ongoing span {
+    color: #aab1ff;
+}
+
+.incident-list small {
+    margin-left: 8px;
+    font: 11px "Share Tech Mono", monospace;
+    letter-spacing: 0.08em;
+    color: #8f98ff;
+}
+
+/* the notice set in the admin panel, on state/ */
+.notice-bar {
+    margin: 28px 0 0;
+    padding: 12px 16px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    border-left-width: 3px;
+    background: rgba(155, 89, 182, 0.08);
+    color: #efe2f7;
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.notice-bar.maintenance {
+    border-color: rgba(88, 101, 242, 0.6);
+    background: rgba(88, 101, 242, 0.08);
+}
+
 .incidents-none {
     margin: 4px 0 0;
     font-size: 13px;
@@ -214,7 +283,8 @@
 }
 
 @media only screen and (max-width: 600px) {
-    .timeline {
+    .timeline,
+    .response-chart {
         gap: 1px;
     }
 }

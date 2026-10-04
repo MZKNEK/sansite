@@ -1,14 +1,15 @@
 <?php
-    // Public bot status for anyone: the same card as in the admin panel, without
-    // "check now". The page reloads itself every minute.
+    // Public bot status for anyone: availability, answer times, outages and the
+    // notice set in the admin panel. The page reloads itself every minute.
     require __DIR__ . '/../inc/bot.php';
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
     require __DIR__ . '/../inc/meta.php';
 
-    $card = statusCard(false);
+    $card = statusCard();
     $state = botState();
-    $summary = 'Bot ' . STATUS_LABELS[$state['status']] . ' · dostępność z 24 h: ' . str_replace('.', ',', $state['uptime']) . '%';
+    $notice = botNotice();
+    $summary = 'Bot ' . STATUS_LABELS[shownStatus($state)] . ' · dostępność z 24 h: ' . str_replace('.', ',', $state['uptime']) . '%';
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -25,9 +26,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=6" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=4" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=5" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
@@ -40,6 +41,9 @@
       <h1 class="hud-title">Status</h1>
     </header>
 
+<?php if ($notice): ?>
+    <p class="notice-bar<?=empty($notice['maintenance']) ? '' : ' maintenance'?>" role="status"><?=e(noticeText($notice))?></p>
+<?php endif; ?>
     <section class="card state-card">
 <?=$card?>
     </section>

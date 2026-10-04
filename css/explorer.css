@@ -801,3 +801,11 @@ body.selecting .tile.up {
     accent-color: var(--accent);
     cursor: pointer;
 }
+
+/* the whole folder as a ZIP, next to the sorting */
+.toolbar .zip-btn {
+    padding: 8px 14px;
+    font: 13px/1.5 "Share Tech Mono", monospace;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+}

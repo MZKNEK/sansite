@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&display=swap" />
-  <link href="css/style.css?v=19" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=20" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
@@ -107,13 +107,15 @@
       motto.replaceChildren(signal, plain);
     })();
 
-    // status.php asks the bot API at most once a minute and says online, idle or offline
+    // status.php asks the bot API at most once a minute and says online, idle,
+    // offline or maintenance (a planned break set in the admin panel)
     (function () {
       var dot = document.getElementById('bot-status');
       var labels = {
         online: 'Dostępny: bot działa',
         idle: 'Zaraz wracam: bot działa, ale w ciągu ostatnich 24 h odpowiadał tylko w {uptime}% sprawdzeń',
-        offline: 'Niedostępny: bot teraz nie odpowiada'
+        offline: 'Niedostępny: bot teraz nie odpowiada',
+        maintenance: 'Nie przeszkadzać: przerwa techniczna, bot może nie odpowiadać'
       };
 
       var opts = {};

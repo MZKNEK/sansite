@@ -12,6 +12,16 @@
     if ($_SERVER['REQUEST_METHOD'] === 'POST')
         handlePost($base);
 
+    // ?zip&p=folder: the whole folder as one ZIP
+    if (isset($_GET['zip'])) {
+        $zipDir = resolvePath($base, $_GET['p'] ?? '', true);
+        if (!galleryCanView() || !$zipDir) {
+            http_response_code(galleryCanView() ? 404 : 403);
+            exit;
+        }
+        sendZip([$zipDir], ($zipDir[1] === '' ? 'galeria' : basename($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
+    }
+
     if (isset($_GET['thumb'])) {
         if (galleryCanView())
             sendThumb($base, $_GET['thumb']);
@@ -106,8 +116,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=6" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=7" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -171,6 +181,9 @@
         <button type="button" data-sort="date" aria-pressed="false">Data</button>
         <button type="button" data-sort="size" aria-pressed="false">Rozmiar</button>
       </div>
+<?php if (!$searching && ($folders || $files) && canZip()): ?>
+      <a class="admin-btn zip-btn" href="?zip&amp;p=<?=e(rawurlencode($dirRel))?>" title="Cały folder <?=e(galleryPath($dirRel))?> razem z podfolderami, do <?=e(formatSize(ZIP_MAX_BYTES))?>">Pobierz folder (ZIP)</a>
+<?php endif; ?>
 <?php if ($admin): ?>
       <div class="admin-bar" id="admin-bar">
 <?php if (!$searching): ?>
@@ -189,6 +202,11 @@
           <button type="button" class="admin-btn" id="act-select-all">Wszystkie</button>
           <button type="button" class="admin-btn" id="act-rename">Zmień nazwę</button>
           <button type="button" class="admin-btn" id="act-move">Przenieś</button>
+          <button type="button" class="admin-btn" id="act-rotate-left" title="Obróć w lewo (PNG, JPG, WebP)">&#8634; Obróć</button>
+          <button type="button" class="admin-btn" id="act-rotate-right" title="Obróć w prawo (PNG, JPG, WebP)">Obróć &#8635;</button>
+<?php if (canZip()): ?>
+          <button type="button" class="admin-btn" id="act-zip">Pobierz ZIP</button>
+<?php endif; ?>
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching): ?>
@@ -379,7 +397,7 @@
 
   <script src="../js/explorer.js?v=7"></script>
 <?php if ($admin): ?>
-  <script src="../js/explorer-admin.js?v=7"></script>
+  <script src="../js/explorer-admin.js?v=8"></script>
 <?php endif; ?>
 </body>
 

@@ -33,6 +33,22 @@
     }
 
     const LARGEST_SHOWN = 10;
+    const NOTICE_LENGTH = 300;
+
+    // a time from a datetime-local field ("2026-10-04T22:00", Polish time), or null
+    function noticeTime($value)
+    {
+        $value = trim((string)$value);
+        $time = $value === '' ? false : strtotime($value);
+
+        return $time === false ? null : $time;
+    }
+
+    // a time for a datetime-local field
+    function fieldTime($time)
+    {
+        return $time ? date('Y-m-d\TH:i', $time) : '';
+    }
     const CRON_LATE = 300;
 
     // The gallery in numbers: files and bytes in all, per top folder ('' for the
@@ -164,9 +180,32 @@
                 $_SESSION['login_time'] = $now;
                 done('sessions', 'Wylogowano wszystkich z galerii i panelu (poza sobą).');
 
-            case 'refresh-status':
-                $state = botState(true);
-                reply(true, 'Sprawdzono: bot ' . STATUS_LABELS[$state['status']] . '.');
+            case 'notice':
+                $text = cut(trim(str_replace("\r", '', (string)($_POST['text'] ?? ''))), NOTICE_LENGTH);
+                if ($text === '')
+                    reply(false, 'Wpisz treść ogłoszenia.', 400);
+
+                $from = noticeTime($_POST['from'] ?? '');
+                $to = noticeTime($_POST['to'] ?? '');
+                $maintenance = null;
+                if (($_POST['maintenance'] ?? '') === '1') {
+                    $from = $from ?? time();
+                    if ($to === null)
+                        reply(false, 'Przerwa techniczna potrzebuje godziny końca.', 400);
+                    if ($to <= $from)
+                        reply(false, 'Koniec przerwy musi być po jej początku.', 400);
+                    $maintenance = ['from' => $from, 'to' => $to];
+                } else if ($to !== null && $to <= time()) {
+                    reply(false, 'Czas zniknięcia ogłoszenia już minął.', 400);
+                }
+
+                $notice = ['text' => $text, 'to' => $to, 'maintenance' => $maintenance, 'by' => $user['id'], 'set' => time()];
+                botSaveNotice($notice);
+                done('notice', 'Ustawiono ogłoszenie: ' . noticeText($notice));
+
+            case 'notice-clear':
+                botSaveNotice(null);
+                done('notice', 'Usunięto ogłoszenie.');
 
             case 'clear-thumbs':
                 $removed = 0;
@@ -233,6 +272,7 @@
         }
 
         $panelAdmins = configList('PANEL_ADMINS');
+        $notice = botNotice();
         $stats = galleryStats($galleryDir);
         $diskFree = @disk_free_space($galleryDir);
         $diskTotal = @disk_total_space($galleryDir);
@@ -278,10 +318,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=6" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=4" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=4" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=5" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=5" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -332,7 +372,29 @@
 
       <section class="card wide">
         <h2><i>01</i>Status bota</h2>
-<?=statusCard(true)?>
+<?=statusSummary()?>
+        <p class="hint status-more">Bota sprawdza cron co minutę. Wykresy, czasy odpowiedzi i awarie: <a href="<?=e($root)?>state/">strona statusu</a>.</p>
+
+        <form class="notice-form" data-action="notice">
+          <h3>Ogłoszenie</h3>
+          <p class="hint">Widać je na stronie statusu. W czasie przerwy technicznej status bota (także kropka na stronie głównej) pokazuje „nie przeszkadzać”, a awarie są oznaczane jako planowane.</p>
+<?php if ($notice): ?>
+          <p class="notice-now">Teraz widać: <b><?=e(noticeText($notice))?></b><?=!empty($notice['to']) ? ' <span class="muted">(do ' . e(date('j.m H:i', $notice['to'])) . ')</span>' : ''?></p>
+<?php endif; ?>
+          <textarea name="text" rows="2" maxlength="<?=NOTICE_LENGTH?>" placeholder="Np. Dziś wieczorem aktualizacja bota, przez chwilę może nie odpowiadać." aria-label="Treść ogłoszenia"><?=e($notice['text'] ?? '')?></textarea>
+          <div class="notice-fields">
+            <label class="admin-check"><input type="checkbox" name="maintenance" value="1"<?=!empty($notice['maintenance']) ? ' checked' : ''?> /> Przerwa techniczna</label>
+            <label>Od <input type="datetime-local" name="from" value="<?=e(fieldTime($notice['maintenance']['from'] ?? null))?>" /></label>
+            <label>Do <input type="datetime-local" name="to" value="<?=e(fieldTime($notice['to'] ?? null))?>" /></label>
+          </div>
+          <p class="hint">„Od” liczy się tylko dla przerwy (puste: od teraz). „Do” to koniec przerwy, a bez przerwy czas, kiedy ogłoszenie zniknie (puste: zostaje, aż się je usunie).</p>
+          <div class="notice-actions">
+            <button type="submit" class="admin-btn primary">Zapisz ogłoszenie</button>
+<?php if ($notice): ?>
+            <button type="button" class="admin-btn danger" data-action="notice-clear" data-confirm="Usunąć ogłoszenie?">Usuń</button>
+<?php endif; ?>
+          </div>
+        </form>
       </section>
 
       <section class="card">
@@ -578,7 +640,7 @@
 
   <script src="../js/explorer.js?v=7"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=2"></script>
+  <script src="../js/admin.js?v=3"></script>
 <?php endif; ?>
 </body>
 

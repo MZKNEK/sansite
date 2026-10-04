@@ -290,6 +290,10 @@
     document.getElementById('act-move').disabled = n === 0;
     document.getElementById('act-rename').disabled = n !== 1;
     document.getElementById('act-delete').disabled = n === 0;
+    var images = picked().filter(rotatable).length;
+    document.getElementById('act-rotate-left').disabled = images === 0;
+    document.getElementById('act-rotate-right').disabled = images === 0;
+    if (zipButton) zipButton.disabled = n === 0;
   }
 
   function setSelecting(on) {
@@ -332,6 +336,54 @@
       return tile.dataset.title || tile.querySelector('.name').textContent.trim();
     });
     return names.join(', ') + (tiles.length > 5 ? ' i ' + (tiles.length - 5) + ' innych' : '');
+  }
+
+  // ---- Rotate ----
+
+  // what GD can turn: PNG, JPG and WebP pictures (an animated WebP the server skips)
+  function rotatable(tile) {
+    return tile.classList.contains('file') && /\.(png|jpe?g|webp)$/i.test(tile.dataset.rel);
+  }
+
+  function rotate(direction) {
+    var tiles = picked().filter(rotatable);
+    if (!tiles.length) return;
+    post({ action: 'rotate', direction: direction, items: tiles.map(function (tile) { return tile.dataset.rel; }) }).then(function (result) {
+      if (result.ok) reloadWith(result.message, result.message.indexOf('Pominięto') !== -1);
+      else gallery.toast(result.message, true);
+    });
+  }
+
+  document.getElementById('act-rotate-left').addEventListener('click', function () { rotate('left'); });
+  document.getElementById('act-rotate-right').addEventListener('click', function () { rotate('right'); });
+
+  // ---- ZIP of the picked items ----
+
+  // a real form, so the browser saves the answer as a file
+  var zipButton = document.getElementById('act-zip');
+  if (zipButton) {
+    zipButton.addEventListener('click', function () {
+      var tiles = picked();
+      if (!tiles.length) return;
+
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'index.php';
+      form.hidden = true;
+      var fields = [['csrf', data.csrf], ['action', 'zip'], ['dir', data.dir || ''], ['back', location.search || './']];
+      tiles.forEach(function (tile) { fields.push(['items[]', tile.dataset.rel]); });
+      fields.forEach(function (field) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = field[0];
+        input.value = field[1];
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
+      gallery.toast('Pakowanie ' + countLabel(tiles.length) + ', pobieranie zaraz się zacznie.');
+    });
   }
 
   // ---- Rename ----

@@ -8,13 +8,16 @@
     // checks is idle. inc/check-bot.php run by cron every minute fills the
     // history also when nobody visits. Besides the 24 h history every check is
     // counted per day, which gives the 30 day and 12 month availability, and
-    // every outage is kept with its start and end.
+    // every outage is kept with its start and end. Each check also notes how
+    // long the API took to answer. The panel can set a notice for the home page
+    // and state/, and mark a planned maintenance break.
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
     const BOT_CACHE_TTL = 60;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
     const BOT_DAYS_KEEP = 400;
     const BOT_INCIDENTS_KEEP = 200;
+    const BOT_MAINTENANCE_KEEP = 100;
 
     // days, months and the times on the pages follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');
@@ -39,9 +42,21 @@
             @rename($tmp, $file);
     }
 
-    // Adds the check to the history (one "time state" line per check, older
-    // than 24 h dropped) and returns the percent of online checks in it.
-    function botRecordCheck($online, $now)
+    // one history line, "time state" or "time state milliseconds", as
+    // [time, online, milliseconds or null]; null for a broken line
+    function botParseCheck($line)
+    {
+        $parts = explode(' ', trim($line));
+        if (count($parts) < 2 || count($parts) > 3)
+            return null;
+
+        return [(int)$parts[0], $parts[1] === '1', isset($parts[2]) ? (int)$parts[2] : null];
+    }
+
+    // Adds the check to the history (one line per check, older than 24 h
+    // dropped) and returns the percent of online checks in it. $ms is how long
+    // the API took to answer, null when it did not.
+    function botRecordCheck($online, $now, $ms = null)
     {
         $history = [];
         $fp = @fopen(botFile('status-history.txt'), 'c+');
@@ -49,19 +64,19 @@
 
         if ($locked) {
             while (($line = fgets($fp)) !== false) {
-                $parts = explode(' ', trim($line));
-                if (count($parts) == 2 && (int)$parts[0] > $now - BOT_HISTORY_SPAN)
-                    $history[] = [(int)$parts[0], $parts[1] === '1'];
+                $check = botParseCheck($line);
+                if ($check && $check[0] > $now - BOT_HISTORY_SPAN)
+                    $history[] = $check;
             }
         }
 
-        $history[] = [$now, $online];
+        $history[] = [$now, $online, $ms];
 
         if ($locked) {
             ftruncate($fp, 0);
             rewind($fp);
             foreach ($history as $entry)
-                fwrite($fp, $entry[0] . ' ' . ($entry[1] ? '1' : '0') . "\n");
+                fwrite($fp, $entry[0] . ' ' . ($entry[1] ? '1' : '0') . ($entry[2] === null ? '' : ' ' . $entry[2]) . "\n");
             flock($fp, LOCK_UN);
         }
         if ($fp !== false)
@@ -235,15 +250,116 @@
         return $time > 0 ? $time : null;
     }
 
-    // the checks of the last 24 h as [time, online], oldest first
+    // The last 24 h in 96 parts of 15 minutes, oldest first, with the average and
+    // the longest answer time of the answered checks: ['from', 'avg', 'max'],
+    // both null when nothing answered
+    function botResponseTimes($history)
+    {
+        $start = time() - BOT_HISTORY_SPAN;
+        $sums = array_fill(0, 96, [0, 0, null]);
+        foreach ($history as $check) {
+            if (!$check[1] || $check[2] === null)
+                continue;
+            $i = min(95, max(0, (int)floor(($check[0] - $start) / 900)));
+            $sums[$i] = [$sums[$i][0] + $check[2], $sums[$i][1] + 1, max($sums[$i][2] ?? 0, $check[2])];
+        }
+
+        $parts = [];
+        foreach ($sums as $i => $sum)
+            $parts[] = ['from' => $start + $i * 900, 'avg' => $sum[1] ? (int)round($sum[0] / $sum[1]) : null, 'max' => $sum[2]];
+
+        return $parts;
+    }
+
+    // ---- Notice and maintenance ----------------------------------------------------
+    // The panel sets one notice: ['text', 'to' => when it disappears or null,
+    // 'maintenance' => ['from', 'to'] or null, 'by', 'set']. A maintenance break
+    // is also kept in a list of its own, so the outages during it stay marked as
+    // planned after the notice is gone.
+
+    // the notice to show now, or null
+    function botNotice()
+    {
+        $notice = json_decode((string)@file_get_contents(botFile('notice.json')), true);
+        if (!is_array($notice) || ($notice['text'] ?? '') === '')
+            return null;
+        if (!empty($notice['to']) && $notice['to'] <= time())
+            return null;
+
+        return $notice;
+    }
+
+    // $notice null removes it; a break that has not started yet goes away with it,
+    // one that is going on ends now
+    function botSaveNotice($notice)
+    {
+        $old = json_decode((string)@file_get_contents(botFile('notice.json')), true);
+        $windows = botMaintenanceWindows();
+        $now = time();
+
+        if (is_array($old) && !empty($old['maintenance'])) {
+            $id = $old['set'];
+            foreach ($windows as $i => $window) {
+                if (($window['id'] ?? null) !== $id)
+                    continue;
+                if ($window['from'] > $now)
+                    unset($windows[$i]);
+                else if ($window['to'] > $now)
+                    $windows[$i]['to'] = $now;
+            }
+        }
+        if ($notice !== null && !empty($notice['maintenance']))
+            $windows[] = ['id' => $notice['set'], 'from' => $notice['maintenance']['from'], 'to' => $notice['maintenance']['to']];
+
+        botWriteFile(botFile('maintenance.json'), json_encode(array_slice(array_values($windows), -BOT_MAINTENANCE_KEEP)));
+        if ($notice === null)
+            @unlink(botFile('notice.json'));
+        else
+            botWriteFile(botFile('notice.json'), json_encode($notice, JSON_UNESCAPED_UNICODE));
+    }
+
+    // planned breaks as ['id', 'from', 'to'], oldest first
+    function botMaintenanceWindows()
+    {
+        $windows = json_decode((string)@file_get_contents(botFile('maintenance.json')), true);
+
+        return is_array($windows) ? $windows : [];
+    }
+
+    // whether the time falls in a planned break
+    function botInMaintenance($time)
+    {
+        foreach (botMaintenanceWindows() as $window)
+            if ($time >= $window['from'] && $time < $window['to'])
+                return true;
+
+        return false;
+    }
+
+    // "4.10 22:00–23:00", the date again when it ends on another day
+    function botTimeRange($from, $to)
+    {
+        return date('j.m H:i', $from) . (date('Y-m-d', $from) === date('Y-m-d', $to) ? '–' . date('H:i', $to) : ' – ' . date('j.m H:i', $to));
+    }
+
+    // the notice as visitors see it, a planned break's time first
+    function noticeText($notice)
+    {
+        if (empty($notice['maintenance']))
+            return $notice['text'];
+
+        return 'Przerwa techniczna ' . botTimeRange($notice['maintenance']['from'], $notice['maintenance']['to']) . '. ' . $notice['text'];
+    }
+
+    // the checks of the last 24 h as [time, online, milliseconds], oldest first
     function botHistory()
     {
         $history = [];
         $lines = @file(botFile('status-history.txt'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
         foreach ($lines as $line) {
-            $parts = explode(' ', trim($line));
-            if (count($parts) == 2 && (int)$parts[0] > time() - BOT_HISTORY_SPAN)
-                $history[] = [(int)$parts[0], $parts[1] === '1'];
+            $check = botParseCheck($line);
+            if ($check && $check[0] > time() - BOT_HISTORY_SPAN)
+                $history[] = $check;
         }
 
         return $history;
@@ -271,14 +387,16 @@
                 ]
             ];
             $context = stream_context_create($opts);
+            $started = microtime(true);
             $json = @file_get_contents(BOT_API_URL, false, $context);
+            $ms = (int)round((microtime(true) - $started) * 1000);
             $data = $json === false ? null : @json_decode($json, true);
 
             $online = !empty($data['modules']);
             if ($online)
                 botWriteFile(botFile('commands.json'), $json);
 
-            $uptime = botRecordCheck($online, $now);
+            $uptime = botRecordCheck($online, $now, $online ? $ms : null);
             botRecordDay($online, $now);
             botRecordIncident($online, $now);
 
@@ -293,7 +411,8 @@
                 'status' => $status,
                 // rounded down, so 98.96 is not shown as 99 next to the idle status
                 'uptime' => floor($uptime * 10) / 10,
-                'checked' => $now
+                'checked' => $now,
+                'ms' => $online ? $ms : null
             ];
             botWriteFile($file, json_encode($state));
         }

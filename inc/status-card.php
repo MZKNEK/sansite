@@ -1,14 +1,49 @@
 <?php
-    // The bot status card: state, availability bars of the last 24 hours, 30
-    // days and 12 months, and the outages of the last 30 days. Shown in the
-    // admin panel (with "check now") and on the public page state/. Needs
+    // The bot status card of the public page state/: state, availability bars
+    // of the last 24 hours, 30 days and 12 months, answer times and the outages
+    // of the last 30 days. The admin panel shows only statusSummary(). Needs
     // inc/bot.php and the helpers in inc/gallery.php.
 
     const STATUS_LABELS = [
         'online' => 'działa',
         'idle' => 'działa, ale bywał niedostępny',
-        'offline' => 'nie odpowiada'
+        'offline' => 'nie odpowiada',
+        'maintenance' => 'ma przerwę techniczną'
     ];
+
+    // the state to show: during a planned break it is maintenance, answering or not
+    function shownStatus($state)
+    {
+        return botInMaintenance(time()) ? 'maintenance' : $state['status'];
+    }
+
+    // "230 ms", "1,4 s"
+    function milliseconds($ms)
+    {
+        return $ms < 1000 ? $ms . ' ms' : str_replace('.', ',', (string)round($ms / 1000, 1)) . ' s';
+    }
+
+    // average answer time over the answered checks, or null
+    function averageResponse($history)
+    {
+        $times = [];
+        foreach ($history as $check)
+            if ($check[1] && $check[2] !== null)
+                $times[] = $check[2];
+
+        return $times ? (int)round(array_sum($times) / count($times)) : null;
+    }
+
+    // the outage overlaps a planned break
+    function plannedIncident($incident)
+    {
+        $end = $incident[1] ?? time();
+        foreach (botMaintenanceWindows() as $window)
+            if ($incident[0] < $window['to'] && $end >= $window['from'])
+                return true;
+
+        return false;
+    }
 
     function ago($time)
     {
@@ -97,29 +132,58 @@
         return $text . date(date('Y-m-d', $start) === date('Y-m-d', $end) ? 'H:i' : 'j.m H:i', $end);
     }
 
-    function statusCard($withButton)
+    // one line for the admin panel: state, last check, 24 h availability, answer time
+    function statusSummary()
     {
         $state = botState();
-        $history = botHistory();
-        $days = botDailyParts(30);
-        $months = botMonthlyParts(12);
-        // the same 30 days as the bar
-        $incidents = botIncidents($days[0]['from']);
-        $downtime = 0;
-        foreach ($incidents as $incident)
-            $downtime += ($incident[1] ?? time()) - max($incident[0], $days[0]['from']);
+        $status = shownStatus($state);
+        $average = averageResponse(botHistory());
 
         ob_start();
 ?>
         <div class="status-row">
-          <span class="status-dot <?=e($state['status'])?>"></span>
+          <span class="status-dot <?=e($status)?>"></span>
           <div class="status-text">
-            <b>Bot <?=e(STATUS_LABELS[$state['status']])?></b>
+            <b>Bot <?=e(STATUS_LABELS[$status])?></b>
+            <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; dostępność z 24 h: <?=e(str_replace('.', ',', $state['uptime']))?>%<?=$average === null ? '' : ' &middot; odpowiada średnio w ' . e(milliseconds($average))?></span>
+          </div>
+        </div>
+<?php
+        return ob_get_clean();
+    }
+
+    function statusCard()
+    {
+        $state = botState();
+        $status = shownStatus($state);
+        $history = botHistory();
+        $days = botDailyParts(30);
+        $months = botMonthlyParts(12);
+        $times = botResponseTimes($history);
+        $average = averageResponse($history);
+        $slowest = max(array_column($times, 'max') ?: [0]);
+        $scale = max(array_column($times, 'avg') ?: [0]);
+        // the same 30 days as the bar; planned breaks are listed but not counted
+        $incidents = [];
+        $unplanned = 0;
+        $downtime = 0;
+        foreach (botIncidents($days[0]['from']) as $incident) {
+            $planned = plannedIncident($incident);
+            $incidents[] = [$incident[0], $incident[1], $planned];
+            if (!$planned) {
+                $unplanned++;
+                $downtime += ($incident[1] ?? time()) - max($incident[0], $days[0]['from']);
+            }
+        }
+
+        ob_start();
+?>
+        <div class="status-row">
+          <span class="status-dot <?=e($status)?>"></span>
+          <div class="status-text">
+            <b>Bot <?=e(STATUS_LABELS[$status])?></b>
             <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; <?=count($history)?> <?=plural(count($history), 'sprawdzenie', 'sprawdzenia', 'sprawdzeń')?> w 24 h</span>
           </div>
-<?php if ($withButton): ?>
-          <button type="button" class="admin-btn" data-action="refresh-status">Sprawdź teraz</button>
-<?php endif; ?>
         </div>
 
         <div class="bar">
@@ -130,6 +194,16 @@
         $label = $part['state'] === null ? 'brak sprawdzeń' : ($part['state'] ? 'działał' : 'nie odpowiadał');
 ?>
             <span class="<?=$class?>" title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . $label)?>"></span>
+<?php endforeach; ?>
+          </div>
+          <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
+        </div>
+
+        <div class="bar">
+          <div class="bar-head"><span>Czas odpowiedzi API, 24 godziny</span><b><?=$average === null ? '–' : 'średnio ' . e(milliseconds($average)) . ' &middot; najdłużej ' . e(milliseconds($slowest))?></b></div>
+          <div class="response-chart" aria-label="Średni czas odpowiedzi API w ostatnich 24 godzinach, po 15 minut">
+<?php foreach ($times as $part): ?>
+            <span title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . ($part['avg'] === null ? 'brak odpowiedzi' : 'średnio ' . milliseconds($part['avg']) . ', najdłużej ' . milliseconds($part['max'])))?>"><?php if ($part['avg'] !== null): ?><i style="height: <?=max(4, round(100 * $part['avg'] / max(1, $scale)))?>%"></i><?php endif; ?></span>
 <?php endforeach; ?>
           </div>
           <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
@@ -160,13 +234,13 @@
         </div>
 
         <div class="bar incidents">
-          <div class="bar-head"><span>Awarie w ostatnich 30 dniach</span><b><?=count($incidents)?><?=$incidents ? ' &middot; razem ' . e(duration($downtime)) : ''?></b></div>
+          <div class="bar-head"><span>Awarie w ostatnich 30 dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; razem ' . e(duration($downtime)) : ''?></b></div>
 <?php if (!$incidents): ?>
           <p class="incidents-none">Bez awarii.</p>
 <?php else: ?>
           <ul class="incident-list">
 <?php foreach (array_slice($incidents, 0, INCIDENTS_SHOWN) as $incident): ?>
-            <li<?=$incident[1] === null ? ' class="ongoing"' : ''?>><span><?=e(incidentTime($incident))?></span><b><?=e(duration(($incident[1] ?? time()) - $incident[0]))?></b></li>
+            <li class="<?=$incident[2] ? 'planned' : ''?><?=$incident[1] === null ? ' ongoing' : ''?>"><span><?=e(incidentTime($incident))?><?=$incident[2] ? ' <small>przerwa techniczna</small>' : ''?></span><b><?=e(duration(($incident[1] ?? time()) - $incident[0]))?></b></li>
 <?php endforeach; ?>
           </ul>
 <?php if (count($incidents) > INCIDENTS_SHOWN): ?>

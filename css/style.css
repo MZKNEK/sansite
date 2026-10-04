@@ -142,7 +142,8 @@ img.logo {
 }
 
 /* status dot like on Discord, set by the script in index.html from status.php:
-   online (green), idle (moon, up now but under 99% in the last 24 h) or offline (grey ring) */
+   online (green), idle (moon, up now but under 99% in the last 24 h), offline (grey ring)
+   or maintenance (do not disturb, during a planned break) */
 .bot-status {
     position: absolute;
     right: 4.5%;
@@ -177,7 +178,8 @@ img.logo {
 
 .bot-status.online,
 .bot-status.idle,
-.bot-status.offline {
+.bot-status.offline,
+.bot-status.maintenance {
     opacity: 1;
     transform: none;
 }
@@ -216,6 +218,22 @@ img.logo {
     width: 40%;
     height: 40%;
     border-radius: 50%;
+    background: #141517;
+}
+
+/* a planned break: Discord's "do not disturb", red with a bar across */
+.bot-status.maintenance {
+    background: #f23f43;
+}
+
+.bot-status.maintenance::before {
+    content: "";
+    position: absolute;
+    top: 40%;
+    left: 20%;
+    width: 60%;
+    height: 20%;
+    border-radius: 999px;
     background: #141517;
 }
 

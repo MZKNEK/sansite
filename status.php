@@ -1,5 +1,6 @@
 <?php
-    // Bot status for the home page: online, idle or offline, see inc/bot.php.
+    // Bot status for the home page: online, idle, offline, or maintenance during
+    // a planned break set in the admin panel; see inc/bot.php.
     require __DIR__ . '/inc/bot.php';
 
     $state = botState();
@@ -10,6 +11,6 @@
     header('Cache-Control: public, max-age=' . $maxAge);
 
     echo json_encode([
-        'status' => $state['status'],
+        'status' => botInMaintenance(time()) ? 'maintenance' : $state['status'],
         'uptime' => $state['uptime']
     ]);
