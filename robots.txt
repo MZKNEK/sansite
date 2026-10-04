@@ -1,0 +1,7 @@
+# The gallery and the admin panel need a login, inc/ is not reachable at all,
+# the API documentation is not meant for search results
+User-agent: *
+Disallow: /i/
+Disallow: /admin/
+Disallow: /inc/
+Disallow: /api/

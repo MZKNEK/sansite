@@ -6,11 +6,16 @@
     // list the bot returned is kept, so the commands page still works while
     // the bot is down. A bot that is up now but answered less than 99% of the
     // checks is idle. inc/check-bot.php run by cron every minute fills the
-    // history also when nobody visits.
+    // history also when nobody visits. Besides the 24 h history every check is
+    // counted per day, which gives the 30 day and 12 month availability.
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
     const BOT_CACHE_TTL = 60;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
+    const BOT_DAYS_KEEP = 400;
+
+    // days, months and the times on the pages follow Polish time, not the server's
+    date_default_timezone_set('Europe/Warsaw');
 
     // Kept in inc/data, which the web server and cron share (PHP-FPM often has
     // its own private /tmp) and which outlives a restart; /tmp only when the
@@ -85,6 +90,81 @@
         return $parts;
     }
 
+    // Counts the check for its day: ['Y-m-d' => [checks, online checks]]. The
+    // first time, the days are filled from the 24 h history instead.
+    function botRecordDay($online, $now)
+    {
+        $fp = @fopen(botFile('days.json'), 'c+');
+        if ($fp === false || !flock($fp, LOCK_EX)) {
+            if ($fp !== false)
+                fclose($fp);
+            return;
+        }
+
+        $days = json_decode((string)stream_get_contents($fp), true);
+        if (!is_array($days)) {
+            // the history already has this check in it
+            $days = [];
+            foreach (botHistory() as $check) {
+                $day = date('Y-m-d', $check[0]);
+                $days[$day] = [($days[$day][0] ?? 0) + 1, ($days[$day][1] ?? 0) + ($check[1] ? 1 : 0)];
+            }
+        } else {
+            $day = date('Y-m-d', $now);
+            $days[$day] = [($days[$day][0] ?? 0) + 1, ($days[$day][1] ?? 0) + ($online ? 1 : 0)];
+        }
+
+        ksort($days);
+        $days = array_slice($days, -BOT_DAYS_KEEP, null, true);
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode($days));
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+
+    function botDays()
+    {
+        $days = json_decode((string)@file_get_contents(botFile('days.json')), true);
+
+        return is_array($days) ? $days : [];
+    }
+
+    // The last $count days, oldest first; each is ['from' => time, 'checks', 'up']
+    function botDailyParts($count)
+    {
+        $days = botDays();
+        $parts = [];
+        for ($i = $count - 1; $i >= 0; $i--) {
+            $from = strtotime('today -' . $i . ' days');
+            $day = $days[date('Y-m-d', $from)] ?? [0, 0];
+            $parts[] = ['from' => $from, 'checks' => $day[0], 'up' => $day[1]];
+        }
+
+        return $parts;
+    }
+
+    // The last $count months, this one included, oldest first; same shape as the days
+    function botMonthlyParts($count)
+    {
+        $months = [];
+        for ($i = $count - 1; $i >= 0; $i--) {
+            $from = strtotime(date('Y-m-01') . ' -' . $i . ' months');
+            $months[date('Y-m', $from)] = ['from' => $from, 'checks' => 0, 'up' => 0];
+        }
+
+        foreach (botDays() as $day => $counts) {
+            $month = substr($day, 0, 7);
+            if (isset($months[$month])) {
+                $months[$month]['checks'] += $counts[0];
+                $months[$month]['up'] += $counts[1];
+            }
+        }
+
+        return array_values($months);
+    }
+
     // the checks of the last 24 h as [time, online], oldest first
     function botHistory()
     {
@@ -129,6 +209,7 @@
                 botWriteFile(botFile('commands.json'), $json);
 
             $uptime = botRecordCheck($online, $now);
+            botRecordDay($online, $now);
 
             if (!$online)
                 $status = 'offline';

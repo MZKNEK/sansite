@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link rel="stylesheet" type="text/css" href="./swagger-ui.css" >
+  <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=19" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=14" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
@@ -104,8 +104,8 @@
 
 <p class="api-no-results" id="api-no-results" hidden>Brak pasujących endpointów.</p>
 
-<script src="./swagger-ui-bundle.js"> </script>
-<script src="./swagger-ui-standalone-preset.js"> </script>
+<script src="./swagger-ui-bundle.js?v=1"> </script>
+<script src="./swagger-ui-standalone-preset.js?v=1"> </script>
 <script src="./search.js?v=2"> </script>
 <script>
 window.onload = function() {
@@ -113,6 +113,8 @@ window.onload = function() {
   // Build a system
   const ui = SwaggerUIBundle({
     url: "./read_swagger.php",
+    // no badge from online.swagger.io, which would also get the spec address
+    validatorUrl: null,
     dom_id: '#swagger-ui',
     deepLinking: true,
     presets: [

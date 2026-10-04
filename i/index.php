@@ -42,53 +42,26 @@
     }
     list($dirPath, $dirRel) = $dir;
 
+    // ?q= searches the whole gallery; ?p= then is the folder the search started from
+    $query = trim((string)($_GET['q'] ?? ''));
+    $searching = !$locked && $query !== '';
+    $moreFound = false;
+
     $folders = [];
     $files = [];
-    $totalBytes = 0;
-
-    foreach ($locked ? [] : listNames($dirPath, $dirRel) as $name) {
-        $full = $dirPath . '/' . $name;
-        $rel = ltrim($dirRel . '/' . $name, '/');
-
-        if (is_dir($full)) {
-            $inside = listNames($full, $rel);
-            // up to three pictures from inside as the folder preview
-            $previews = [];
-            foreach ($inside as $innerName) {
-                if (count($previews) == 3)
-                    break;
-                $innerFull = $full . '/' . $innerName;
-                if (is_file($innerFull) && isImage($innerName) && ($url = thumbUrl($rel . '/' . $innerName, $innerFull)))
-                    $previews[] = $url;
-            }
-
-            $folders[] = [
-                'name' => $name,
-                'rel' => $rel,
-                'count' => count($inside),
-                'mtime' => filemtime($full),
-                'previews' => $previews
-            ];
-            continue;
+    if ($searching) {
+        list($folders, $files, $moreFound) = searchGallery($base, $query);
+    } else {
+        foreach ($locked ? [] : listNames($dirPath, $dirRel) as $name) {
+            $full = $dirPath . '/' . $name;
+            $rel = ltrim($dirRel . '/' . $name, '/');
+            if (is_dir($full))
+                $folders[] = folderEntry($full, $rel);
+            else
+                $files[] = fileEntry($full, $rel);
         }
-
-        $size = filesize($full);
-        $totalBytes += $size;
-        $image = isImage($name);
-        $kind = $image ? 'image' : (isVideo($name) ? 'video' : 'file');
-        $dims = $image ? @getimagesize($full) : false;
-
-        $files[] = [
-            'name' => $name,
-            'rel' => $rel,
-            'ext' => extensionOf($name),
-            'size' => $size,
-            'mtime' => filemtime($full),
-            'kind' => $kind,
-            'dims' => $dims ? $dims[0] . '×' . $dims[1] : '',
-            'thumb' => $image ? thumbUrl($rel, $full) : null
-        ];
     }
+    $totalBytes = array_sum(array_column($files, 'size'));
 
     $crumbs = [];
     $path = '';
@@ -97,22 +70,25 @@
         $crumbs[] = ['name' => $part, 'rel' => $path];
     }
 
-    // the folder one level up, null in the top folder
+    // the first tile: one folder up, or back from the search results; null in the top folder
     $parent = null;
-    if ($dirRel !== '') {
+    if ($searching) {
+        $parent = ['url' => folderUrl($dirRel), 'label' => 'Wróć do: ' . galleryPath($dirRel)];
+    } else if ($dirRel !== '') {
         $parentRel = strpos($dirRel, '/') === false ? '' : substr($dirRel, 0, strrpos($dirRel, '/'));
-        $parent = [
-            'url' => folderUrl($parentRel),
-            'name' => $parentRel === '' ? 'i' : 'i/' . $parentRel
-        ];
+        $parent = ['url' => folderUrl($parentRel), 'label' => 'Wyżej: ' . galleryPath($parentRel)];
     }
 
     $summary = [];
+    if ($searching)
+        $summary[] = 'Wyniki dla „' . $query . '” w całej galerii';
     if ($folders)
         $summary[] = count($folders) . ' ' . plural(count($folders), 'folder', 'foldery', 'folderów');
     $summary[] = count($files) . ' ' . plural(count($files), 'plik', 'pliki', 'plików');
     if ($totalBytes)
         $summary[] = formatSize($totalBytes);
+    if ($moreFound)
+        $summary[] = 'pokazano pierwsze ' . SEARCH_LIMIT;
 
 ?>
 <!DOCTYPE html>
@@ -123,7 +99,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="author" content="Sniku" />
 <?=metaTags('Galeria · Sanakan', 'Galeria obrazków bota Sanakan, dostęp po zalogowaniu przez Discord.', '/i/')?>
-  <title><?=e($dirRel === '' ? 'Galeria' : 'i/' . $dirRel)?> &middot; Sanakan</title>
+  <title><?=e($searching ? 'Szukaj: ' . $query : ($dirRel === '' ? 'Galeria' : 'i/' . $dirRel))?> &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -131,7 +107,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=5" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=6" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -186,7 +162,8 @@
     <div class="toolbar" id="toolbar">
       <label class="search hud-corners">
         <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
-        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie" aria-label="Szukaj po nazwie" />
+        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie, Enter: w całej galerii" aria-label="Szukaj po nazwie"
+               value="<?=e($query)?>" data-dir="<?=e($dirRel)?>" data-searching="<?=$searching ? '1' : '0'?>" />
         <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
       </label>
       <div class="sort" role="group" aria-label="Sortowanie">
@@ -196,6 +173,7 @@
       </div>
 <?php if ($admin): ?>
       <div class="admin-bar" id="admin-bar">
+<?php if (!$searching): ?>
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj pliki</button>
         <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', array_merge(IMAGE_TYPES, VIDEO_TYPES)))?>" hidden />
 <?php if (canConvertToWebp()): ?>
@@ -204,6 +182,7 @@
         </label>
 <?php endif; ?>
         <button type="button" class="admin-btn" id="act-mkdir">Nowy folder</button>
+<?php endif; ?>
         <button type="button" class="admin-btn" id="act-select" aria-pressed="false">Zaznacz</button>
         <span class="admin-selection" id="admin-selection" hidden>
           <span class="admin-count" id="admin-count"></span>
@@ -212,7 +191,9 @@
           <button type="button" class="admin-btn" id="act-move">Przenieś</button>
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
+<?php if (!$searching): ?>
         <span class="admin-hint">Możesz też przeciągnąć pliki na stronę. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+<?php endif; ?>
       </div>
 <?php endif; ?>
       <div class="search-info" id="ex-search-info" aria-live="polite"></div>
@@ -221,13 +202,13 @@
 
     <div class="grid" id="grid">
 <?php if ($parent): ?>
-      <a class="tile up hud-corners" href="<?=e($parent['url'])?>" id="ex-up" title="Folder wyżej (Backspace)">
+      <a class="tile up hud-corners" href="<?=e($parent['url'])?>" id="ex-up" title="<?=e($parent['label'])?> (Backspace)">
         <span class="thumb">
           <svg class="up-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" /></svg>
         </span>
         <span class="label">
           <span class="name">..</span>
-          <span class="info">Wyżej: <?=e($parent['name'])?></span>
+          <span class="info"><?=e($parent['label'])?></span>
         </span>
       </a>
 <?php endif; ?>
@@ -250,6 +231,9 @@
         <span class="label">
           <span class="name"><svg class="name-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5V18a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18V9a1.5 1.5 0 0 0-1.5-1.5h-8L9.5 5h-5A1.5 1.5 0 0 0 3 6.5z" /></svg><?=e($folder['name'])?></span>
           <span class="info"><?=$folder['count']?> <?=plural($folder['count'], 'element', 'elementy', 'elementów')?></span>
+<?php if ($searching): ?>
+          <span class="where" title="<?=e(galleryPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?>"><?=e(galleryPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?></span>
+<?php endif; ?>
         </span>
       </a>
 <?php endforeach; ?>
@@ -276,13 +260,16 @@
         <span class="label">
           <span class="name" title="<?=e($file['name'])?>"><?=e($file['name'])?></span>
           <span class="info"><?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size'])])))?></span>
+<?php if ($searching): ?>
+          <span class="where" title="<?=e(galleryPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?>"><?=e(galleryPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?></span>
+<?php endif; ?>
         </span>
       </a>
 <?php endforeach; ?>
     </div>
 
 <?php if (!$folders && !$files): ?>
-    <p class="empty">Ten folder jest pusty.<?=$admin ? ' Przeciągnij tu pliki albo użyj „Dodaj pliki”.' : ''?></p>
+    <p class="empty"><?=$searching ? 'Nic nie znaleziono w całej galerii.' : 'Ten folder jest pusty.' . ($admin ? ' Przeciągnij tu pliki albo użyj „Dodaj pliki”.' : '')?></p>
 <?php endif; ?>
     <p class="empty" id="ex-no-results" hidden>Brak pasujących plików.</p>
 <?php endif; ?>
@@ -380,7 +367,8 @@
   </dialog>
 
   <script type="application/json" id="gallery-data"><?=json_encode([
-      'dir' => $dirRel,
+      // no single folder to upload to in the search results
+      'dir' => $searching ? null : $dirRel,
       'csrf' => siteCsrf(),
       'folders' => allFolders($base),
       'uploadLimit' => uploadLimit(),
@@ -389,9 +377,9 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=6"></script>
+  <script src="../js/explorer.js?v=7"></script>
 <?php if ($admin): ?>
-  <script src="../js/explorer-admin.js?v=5"></script>
+  <script src="../js/explorer-admin.js?v=6"></script>
 <?php endif; ?>
 </body>
 

@@ -11,6 +11,9 @@
     // inc/data/access.json, next to a list of recent logins; inc/ is not
     // reachable from the web.
     const SITE_SESSION = 'sanakan_gallery';  // the gallery's old cookie name, so logins stay valid
+
+    // the times in the history and the panel follow Polish time, not the server's
+    date_default_timezone_set('Europe/Warsaw');
     const LOGIN_LOG_SIZE = 50;
     const HISTORY_KEEP = 1000;
 

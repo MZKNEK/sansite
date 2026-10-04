@@ -91,13 +91,31 @@ window.SanakanGallery = (function () {
     });
 
     noResults.hidden = found > 0;
-    info.textContent = words.length ? 'Znaleziono ' + found + ' ' + plural(found, 'element', 'elementy', 'elementów') : '';
+    info.textContent = words.length
+      ? 'Znaleziono ' + found + ' ' + plural(found, 'element', 'elementy', 'elementów')
+        + (input.dataset.searching === '1' ? ' wśród wyników' : ' w tym folderze') + ' · Enter: szukaj w całej galerii'
+      : '';
+  }
+
+  // typing filters what is shown; Enter searches the whole gallery on the server,
+  // and Enter on an empty box goes back from the results to the folder
+  function searchEverywhere() {
+    var query = input.value.trim();
+    var dir = input.dataset.dir;
+    if (!query && input.dataset.searching !== '1') return;
+
+    location.href = query
+      ? '?q=' + encodeURIComponent(query) + (dir ? '&p=' + encodeURIComponent(dir) : '')
+      : (dir ? '?p=' + encodeURIComponent(dir) : './');
   }
 
   if (input) {
     input.addEventListener('input', filter);
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        searchEverywhere();
+      } else if (e.key === 'Escape') {
         input.value = '';
         filter();
       }

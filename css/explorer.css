@@ -280,6 +280,15 @@ main.content {
     color: rgba(220, 221, 222, 0.5);
 }
 
+/* in the search results: the folder a tile is in */
+.where {
+    overflow: hidden;
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: rgba(182, 112, 211, 0.75);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .empty {
     margin-top: 48px;
     text-align: center;

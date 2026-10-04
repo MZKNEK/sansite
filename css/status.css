@@ -76,11 +76,39 @@
 }
 
 /* 24 h in 15 minute parts */
+/* the 24 h, 30 day and 12 month bars */
+.bar {
+    margin-top: 18px;
+}
+
+.bar-head,
+.bar-ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.bar-head {
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.7);
+}
+
+.bar-head b {
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.bar-ends {
+    margin-top: 4px;
+}
+
 .timeline {
     display: flex;
     gap: 2px;
     height: 28px;
-    margin-top: 16px;
 }
 
 .timeline span {
@@ -92,6 +120,11 @@
 .timeline .ok,
 .timeline-legend .ok {
     background: rgba(35, 165, 90, 0.75);
+}
+
+.timeline .warn,
+.timeline-legend .warn {
+    background: rgba(240, 178, 50, 0.8);
 }
 
 .timeline .fail,
@@ -106,9 +139,9 @@
 .timeline-legend {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: center;
     gap: 6px 14px;
-    margin-top: 6px;
+    margin-top: 16px;
     font-size: 12px;
     color: rgba(220, 221, 222, 0.45);
 }
@@ -140,12 +173,5 @@
 @media only screen and (max-width: 600px) {
     .timeline {
         gap: 1px;
-    }
-
-    /* "24 h ago" and "now" stay under the ends of the bar, the colours go below them */
-    .timeline-legend span:nth-child(2) {
-        order: 3;
-        flex-basis: 100%;
-        text-align: center;
     }
 }

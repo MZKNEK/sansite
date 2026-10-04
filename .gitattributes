@@ -1,6 +1,7 @@
 # Not part of the site on the server; deploy.sh sends what git archive gives
 deploy.sh export-ignore
 README.md export-ignore
+server/ export-ignore
 .gitignore export-ignore
 .gitattributes export-ignore
 

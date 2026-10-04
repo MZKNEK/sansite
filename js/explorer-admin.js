@@ -104,6 +104,25 @@
   var progressFill = document.getElementById('progress-fill');
   var uploading = false;
 
+  // places in the gallery with the same content, by SHA-256; none when the browser
+  // cannot hash (crypto.subtle needs https) or the check fails, the upload goes on then
+  function findDuplicates(file) {
+    if (!window.crypto || !crypto.subtle || !file.arrayBuffer) return Promise.resolve([]);
+
+    return file.arrayBuffer().then(function (buffer) {
+      return crypto.subtle.digest('SHA-256', buffer);
+    }).then(function (digest) {
+      var hash = Array.prototype.map.call(new Uint8Array(digest), function (byte) {
+        return ('0' + byte.toString(16)).slice(-2);
+      }).join('');
+      return post({ action: 'duplicates', size: String(file.size), hash: hash });
+    }).then(function (result) {
+      return result.ok && result.matches ? result.matches : [];
+    }).catch(function () {
+      return [];
+    });
+  }
+
   function uploadFiles(fileList) {
     var files = Array.prototype.slice.call(fileList);
     if (!files.length || uploading) return;
@@ -134,83 +153,95 @@
         return next();
       }
 
-      progressText.textContent = label;
+      progressText.textContent = label + ' (sprawdzanie, czy już jest w galerii)';
       progressFill.style.width = '0';
-      post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0' }, file, function (part) {
-        progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
-        progressFill.style.width = (part * 100) + '%';
-      }).then(function (result) {
-        if (result.ok) added++;
-        else problems.push(result.message);
-        next();
+
+      // the same content already in the gallery? asked before sending, so a big file is not sent twice
+      findDuplicates(file).then(function (matches) {
+        if (matches.length && !window.confirm(file.name + ' już jest w galerii:\n' + matches.join('\n') + '\n\nDodać mimo to?')) {
+          problems.push(file.name + ': pominięto, już jest w galerii (' + matches[0] + ').');
+          return next();
+        }
+
+        post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0' }, file, function (part) {
+          progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
+          progressFill.style.width = (part * 100) + '%';
+        }).then(function (result) {
+          if (result.ok) added++;
+          else problems.push(result.message);
+          next();
+        });
       });
     }
 
     next();
   }
 
-  document.getElementById('act-upload').addEventListener('click', function () {
-    uploadInput.click();
-  });
+  // the search results have no single folder to add to
+  if (data.dir !== null) {
+    document.getElementById('act-upload').addEventListener('click', function () {
+      uploadInput.click();
+    });
 
-  uploadInput.addEventListener('change', function () {
-    uploadFiles(uploadInput.files);
-  });
+    uploadInput.addEventListener('change', function () {
+      uploadFiles(uploadInput.files);
+    });
 
-  // files dragged from the computer onto the page
-  var drop = document.getElementById('drop');
-  var dragDepth = 0;
+    // files dragged from the computer onto the page
+    var drop = document.getElementById('drop');
+    var dragDepth = 0;
 
-  function draggingFiles(e) {
-    return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') !== -1;
-  }
+    function draggingFiles(e) {
+      return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') !== -1;
+    }
 
-  document.addEventListener('dragenter', function (e) {
-    if (!draggingFiles(e)) return;
-    dragDepth++;
-    drop.hidden = false;
-  });
+    document.addEventListener('dragenter', function (e) {
+      if (!draggingFiles(e)) return;
+      dragDepth++;
+      drop.hidden = false;
+    });
 
-  document.addEventListener('dragleave', function (e) {
-    if (!draggingFiles(e)) return;
-    if (--dragDepth <= 0) {
+    document.addEventListener('dragleave', function (e) {
+      if (!draggingFiles(e)) return;
+      if (--dragDepth <= 0) {
+        dragDepth = 0;
+        drop.hidden = true;
+      }
+    });
+
+    document.addEventListener('dragover', function (e) {
+      if (draggingFiles(e)) e.preventDefault();
+    });
+
+    document.addEventListener('drop', function (e) {
+      if (!draggingFiles(e)) return;
+      e.preventDefault();
       dragDepth = 0;
       drop.hidden = true;
-    }
-  });
-
-  document.addEventListener('dragover', function (e) {
-    if (draggingFiles(e)) e.preventDefault();
-  });
-
-  document.addEventListener('drop', function (e) {
-    if (!draggingFiles(e)) return;
-    e.preventDefault();
-    dragDepth = 0;
-    drop.hidden = true;
-    uploadFiles(e.dataTransfer.files);
-  });
-
-  // ---- New folder ----
-
-  var mkdirDialog = document.getElementById('dlg-mkdir');
-  var mkdirForm = document.getElementById('form-mkdir');
-
-  document.getElementById('act-mkdir').addEventListener('click', function () {
-    mkdirForm.reset();
-    dialogError(mkdirDialog, '');
-    mkdirDialog.showModal();
-  });
-
-  mkdirForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    busy(mkdirDialog, true);
-    post({ action: 'mkdir', dir: data.dir, name: mkdirForm.elements.name.value.trim() }).then(function (result) {
-      busy(mkdirDialog, false);
-      if (result.ok) reloadWith(result.message);
-      else dialogError(mkdirDialog, result.message);
+      uploadFiles(e.dataTransfer.files);
     });
-  });
+
+    // ---- New folder ----
+
+    var mkdirDialog = document.getElementById('dlg-mkdir');
+    var mkdirForm = document.getElementById('form-mkdir');
+
+    document.getElementById('act-mkdir').addEventListener('click', function () {
+      mkdirForm.reset();
+      dialogError(mkdirDialog, '');
+      mkdirDialog.showModal();
+    });
+
+    mkdirForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      busy(mkdirDialog, true);
+      post({ action: 'mkdir', dir: data.dir, name: mkdirForm.elements.name.value.trim() }).then(function (result) {
+        busy(mkdirDialog, false);
+        if (result.ok) reloadWith(result.message);
+        else dialogError(mkdirDialog, result.message);
+      });
+    });
+  }
 
   // ---- Picking items ----
 

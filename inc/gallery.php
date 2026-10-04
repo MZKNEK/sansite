@@ -16,6 +16,7 @@
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
     const TRASH_DAYS = 30;
+    const SEARCH_LIMIT = 300;
     const MAX_NAME_LENGTH = 150;
 
     require_once __DIR__ . '/auth.php';
@@ -285,6 +286,89 @@
         return $ok;
     }
 
+    // What a folder tile shows: name, number of items and up to three pictures from inside
+    function folderEntry($full, $rel)
+    {
+        $inside = listNames($full, $rel);
+        $previews = [];
+        foreach ($inside as $innerName) {
+            if (count($previews) == 3)
+                break;
+            $innerFull = $full . '/' . $innerName;
+            if (is_file($innerFull) && isImage($innerName) && ($url = thumbUrl($rel . '/' . $innerName, $innerFull)))
+                $previews[] = $url;
+        }
+
+        return [
+            'name' => basename($rel),
+            'rel' => $rel,
+            'count' => count($inside),
+            'mtime' => filemtime($full),
+            'previews' => $previews
+        ];
+    }
+
+    // What a file tile shows
+    function fileEntry($full, $rel)
+    {
+        $name = basename($rel);
+        $image = isImage($name);
+        $dims = $image ? @getimagesize($full) : false;
+
+        return [
+            'name' => $name,
+            'rel' => $rel,
+            'ext' => extensionOf($name),
+            'size' => filesize($full),
+            'mtime' => filemtime($full),
+            'kind' => $image ? 'image' : (isVideo($name) ? 'video' : 'file'),
+            'dims' => $dims ? $dims[0] . '×' . $dims[1] : '',
+            'thumb' => $image ? thumbUrl($rel, $full) : null
+        ];
+    }
+
+    // Folders and files anywhere in the gallery with every word of the query in
+    // their name, as [folders, files, whether there were more than SEARCH_LIMIT]
+    function searchGallery($base, $query)
+    {
+        $words = preg_split('/\s+/', lower(trim($query)), -1, PREG_SPLIT_NO_EMPTY);
+        $found = ['folders' => [], 'files' => [], 'more' => false];
+        if ($words)
+            searchFolder($base, '', $words, $found, 0);
+
+        return [$found['folders'], $found['files'], $found['more']];
+    }
+
+    function searchFolder($dirPath, $dirRel, $words, &$found, $depth)
+    {
+        foreach (listNames($dirPath, $dirRel) as $name) {
+            $full = $dirPath . '/' . $name;
+            $rel = ltrim($dirRel . '/' . $name, '/');
+            $folder = is_dir($full) && !is_link($full);
+
+            $matches = true;
+            foreach ($words as $word)
+                if (strpos(lower($name), $word) === false)
+                    $matches = false;
+
+            if ($matches) {
+                if (count($found['folders']) + count($found['files']) >= SEARCH_LIMIT) {
+                    $found['more'] = true;
+                    return;
+                }
+                if ($folder)
+                    $found['folders'][] = folderEntry($full, $rel);
+                else if (is_file($full))
+                    $found['files'][] = fileEntry($full, $rel);
+            }
+
+            if ($folder && $depth < 10)
+                searchFolder($full, $rel, $words, $found, $depth + 1);
+            if ($found['more'])
+                return;
+        }
+    }
+
     function makeThumb($source, $target)
     {
         $img = loadImage($source);
@@ -393,12 +477,12 @@
         reply(true, $message ?? $history);
     }
 
-    function reply($ok, $message, $status = 200)
+    function reply($ok, $message, $status = 200, $extra = [])
     {
         http_response_code($ok ? 200 : $status);
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
-        echo json_encode(['ok' => $ok, 'message' => $message]);
+        echo json_encode(['ok' => $ok, 'message' => $message] + $extra);
         exit;
     }
 
@@ -458,6 +542,85 @@
                 $bytes += treeSize($path . '/' . $name);
 
         return $bytes;
+    }
+
+    // ---- Duplicates ---------------------------------------------------------------
+    // SHA-256 of gallery files, cached in inc/data/hashes.json as
+    // [rel => ['size', 'mtime', 'hash', 'source' => hash of the uploaded original]].
+    // A file turned into WebP differs from what was uploaded, so the original's
+    // hash is kept too, and sending the same PNG again is still recognised.
+
+    function fileHash($full, $rel, &$cache)
+    {
+        $size = filesize($full);
+        $mtime = filemtime($full);
+        $entry = $cache[$rel] ?? null;
+        if (!$entry || $entry['size'] !== $size || $entry['mtime'] !== $mtime)
+            $cache[$rel] = ['size' => $size, 'mtime' => $mtime, 'hash' => hash_file('sha256', $full)];
+
+        return $cache[$rel]['hash'];
+    }
+
+    // where in the gallery a file with this content already is; only files of the
+    // same size get hashed, so this stays quick
+    function findDuplicates($base, $size, $hash)
+    {
+        $cache = readData('hashes');
+        $before = $cache;
+        $matches = [];
+
+        $walk = function ($dirPath, $dirRel, $depth) use (&$walk, &$cache, &$matches, $size, $hash) {
+            foreach (listNames($dirPath, $dirRel) as $name) {
+                $full = $dirPath . '/' . $name;
+                $rel = ltrim($dirRel . '/' . $name, '/');
+                if (is_dir($full) && !is_link($full)) {
+                    if ($depth < 10)
+                        $walk($full, $rel, $depth + 1);
+                    continue;
+                }
+
+                $source = $cache[$rel]['source'] ?? null;
+                if ($source === $hash || (filesize($full) === $size && fileHash($full, $rel, $cache) === $hash))
+                    $matches[] = galleryPath($rel);
+            }
+        };
+        $walk($base, '', 0);
+
+        if ($cache !== $before)
+            writeData('hashes', $cache);
+
+        return $matches;
+    }
+
+    function recordHash($full, $rel, $source)
+    {
+        $cache = readData('hashes');
+        fileHash($full, $rel, $cache);
+        $cache[$rel]['source'] = $source;
+        writeData('hashes', $cache);
+    }
+
+    // after a move or rename the cached hashes follow the file, or everything in the folder
+    function moveHashes($fromRel, $toRel)
+    {
+        $cache = readData('hashes');
+        $moved = [];
+        foreach ($cache as $rel => $entry) {
+            $rel = (string)$rel;
+            if ($rel === $fromRel || strpos($rel, $fromRel . '/') === 0)
+                $rel = $toRel . substr($rel, strlen($fromRel));
+            $moved[$rel] = $entry;
+        }
+        writeData('hashes', $moved);
+    }
+
+    function dropHashes($fromRel)
+    {
+        $cache = readData('hashes');
+        foreach (array_keys($cache) as $rel)
+            if ((string)$rel === $fromRel || strpos((string)$rel, $fromRel . '/') === 0)
+                unset($cache[$rel]);
+        writeData('hashes', $cache);
     }
 
     // ---- Trash ------------------------------------------------------------------
@@ -646,10 +809,12 @@
                 $trashed = [];
                 $failed = [];
                 foreach ($items as $item) {
-                    if (moveToTrash($item[0], $item[1]))
+                    if (moveToTrash($item[0], $item[1])) {
                         $trashed[] = galleryPath($item[1]);
-                    else
+                        dropHashes($item[1]);
+                    } else {
                         $failed[] = basename($item[1]);
+                    }
                 }
 
                 if ($trashed)
@@ -658,6 +823,12 @@
                 if ($failed)
                     reply(false, $message . ' Nie udało się: ' . implode(', ', $failed) . '.', 500);
                 reply(true, $message);
+
+            case 'duplicates':
+                $hash = strtolower((string)($_POST['hash'] ?? ''));
+                if (!preg_match('/^[0-9a-f]{64}$/', $hash))
+                    reply(false, 'Zły skrót pliku.', 400);
+                reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash)]);
 
             case 'rename':
                 $items = postedItems($base);
@@ -679,6 +850,7 @@
                     reply(false, 'Coś o nazwie ' . $name . ' już tu jest.', 409);
                 if (!@rename($full, dirname($full) . '/' . $name))
                     reply(false, 'Nie udało się zmienić nazwy.', 500);
+                moveHashes($rel, ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/'));
 
                 done('rename', 'Zmieniono nazwę ' . galleryPath($rel) . ' na ' . $name . '.');
 
@@ -701,6 +873,7 @@
                         $problems[] = $name . ' (nie udało się)';
                     } else {
                         $moved[] = galleryPath($item[1]);
+                        moveHashes($item[1], ltrim($target[1] . '/' . $name, '/'));
                     }
                 }
 
@@ -760,6 +933,7 @@
                     @unlink($path);
                 } else {
                     @chmod($path, 0644);
+                    recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
                     $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
                     done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
                         'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
@@ -771,6 +945,7 @@
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
+        recordHash($dir[0] . '/' . $target, ltrim($dir[1] . '/' . $target, '/'), null);
 
         done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . '.',
             ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).') . $note);
