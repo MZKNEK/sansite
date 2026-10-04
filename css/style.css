@@ -75,7 +75,25 @@ nav .button-collapse i {
     font-variant: small-caps !important;
 }
 
-/* Landing page */
+/* Landing page, loaded without Materialize, so it brings its own base styles */
+body.home {
+    margin: 0;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+.home *,
+.home *::before,
+.home *::after {
+    box-sizing: border-box;
+}
+
+.home a {
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 main.hero {
     flex: 1 0 auto;
     display: flex;
@@ -87,19 +105,150 @@ main.hero {
 .hero-inner {
     text-align: center;
     width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* Discord-like avatar: solid ring, a status dot and a short Netsphere glitch now and then */
+.logo-wrap {
+    position: relative;
+    width: fit-content;
+    max-width: 60vw;
+    margin: 0 auto;
+    border-radius: 50%;
+    box-shadow: 0 0 34px rgba(155, 89, 182, 0.4);
+    animation: rise-in 0.6s ease-out backwards, glitch-ring 7s steps(1) infinite;
+}
+
+/* the pulse animates opacity of a separate layer, which is cheaper than animating box-shadow */
+.logo-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 70px 12px rgba(155, 89, 182, 0.5);
+    opacity: 0.2;
+    animation: logo-glow 4s ease-in-out infinite alternate;
+}
+
+img.logo,
+.logo-slice {
+    border-radius: 50%;
+    border: 4px solid var(--accent);
 }
 
 img.logo {
+    position: relative;
+    display: block;
     width: 240px;
-    max-width: 60vw;
-    background: linear-gradient(to bottom right, var(--accent), var(--accent-dark));
-    padding: 8px;
-    border: 2px solid var(--accent);
-    box-shadow: 0 0 40px rgba(155, 89, 182, 0.45);
+    max-width: 100%;
+    height: auto;
+    background: var(--bg-dark);
+}
+
+/* copies of the logo, shown as shifted strips during the glitch */
+.logo-slice {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: url("../sanakan.jpg") center / cover;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.logo-slice.s1 {
+    animation: glitch-a 7s steps(1) infinite;
+}
+
+.logo-slice.s2 {
+    animation: glitch-b 7s steps(1) infinite;
+}
+
+@keyframes glitch-a {
+    0%, 92%, 100% { opacity: 0; }
+    93% { opacity: 1; clip-path: inset(18% 0 62% 0); transform: translateX(-9px); filter: drop-shadow(3px 0 #05d9e8); }
+    94% { opacity: 1; clip-path: inset(55% 0 28% 0); transform: translateX(7px); filter: drop-shadow(-3px 0 #ff2a6d); }
+    95% { opacity: 0; }
+    97% { opacity: 1; clip-path: inset(40% 0 50% 0); transform: translateX(-5px); filter: drop-shadow(3px 0 #05d9e8); }
+    98% { opacity: 0; }
+}
+
+@keyframes glitch-b {
+    0%, 93%, 100% { opacity: 0; }
+    93.5% { opacity: 1; clip-path: inset(70% 0 12% 0); transform: translateX(6px); filter: drop-shadow(-3px 0 #ff2a6d); }
+    94.5% { opacity: 1; clip-path: inset(8% 0 80% 0); transform: translateX(-8px); filter: drop-shadow(3px 0 #05d9e8); }
+    95.5% { opacity: 0; }
+}
+
+@keyframes glitch-ring {
+    0%, 92%, 95%, 100% { box-shadow: 0 0 34px rgba(155, 89, 182, 0.4); }
+    93%, 94% { box-shadow: -4px 0 0 #ff2a6d, 4px 0 0 #05d9e8, 0 0 34px rgba(155, 89, 182, 0.4); }
+}
+
+/* status dot like on Discord, set by the script in index.html from status.php:
+   online (green), idle (moon, up now but under 99% in the last 24 h) or offline (grey ring) */
+.bot-status {
+    position: absolute;
+    right: 4.5%;
+    bottom: 4.5%;
+    z-index: 2;
+    width: 20%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 7px solid #141517;
+    background: #80848e;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.3s, transform 0.3s ease-out, background-color 0.3s;
+}
+
+.bot-status.online,
+.bot-status.idle,
+.bot-status.offline {
+    opacity: 1;
+    transform: none;
+}
+
+.bot-status.online {
+    background: #23a55a;
+}
+
+.bot-status.idle {
+    background: #f0b232;
+    overflow: hidden;
+}
+
+/* the bite that turns the dot into a crescent moon */
+.bot-status.idle::before {
+    content: "";
+    position: absolute;
+    top: -18%;
+    left: -18%;
+    width: 72%;
+    height: 72%;
+    border-radius: 50%;
+    background: #141517;
+}
+
+.bot-status.offline {
+    background: #80848e;
+}
+
+/* the hole that turns the dot into a ring */
+.bot-status.offline::before {
+    content: "";
+    position: absolute;
+    top: 30%;
+    left: 30%;
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    background: #141517;
 }
 
 .name {
-    margin-top: 24px;
+    margin: 24px 0;
     font-size: 56px;
     line-height: 1.1;
     color: var(--accent);
@@ -276,6 +425,67 @@ img.logo {
 
     .link-swap:has(a:focus-visible) a.swap-main {
         transform: none;
+    }
+}
+
+/* entrance: backwards fill keeps the elements hidden during the delay
+   and leaves no transform behind, so the hover effects still work */
+.name,
+.desc,
+.links {
+    animation: rise-in 0.6s ease-out backwards;
+}
+
+.name {
+    animation-delay: 0.1s;
+}
+
+.desc {
+    animation-delay: 0.2s;
+}
+
+.links {
+    animation-delay: 0.3s;
+}
+
+@keyframes rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
+
+@keyframes logo-glow {
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .logo-wrap,
+    .name,
+    .desc,
+    .links {
+        animation: none;
+    }
+
+    .logo-wrap::before {
+        animation: none;
+        opacity: 0.6;
+    }
+
+    .logo-slice {
+        animation: none;
+    }
+
+    .bot-status {
+        transition: none;
+    }
+
+    .links a,
+    .links a.swap-main,
+    .links a.swap-alt {
+        transition: none;
     }
 }
 

@@ -9,33 +9,65 @@
   <meta name="author" content="Sniku" />
   <title>Sanakan</title>
   <link rel="shortcut icon" href="ico.png">
-  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Lato:400,400i,700" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="css/materialize.min.css" type="text/css" rel="stylesheet" media="screen,projection" />
-  <link href="css/style.css?v=9" type="text/css" rel="stylesheet" media="screen,projection" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700&display=swap" />
+  <link href="css/style.css?v=12" type="text/css" rel="stylesheet" />
 </head>
 
-<body>
+<body class="home">
   <main class="hero">
-    <div class="container hero-inner">
-      <img class="logo circle responsive-img" src="./sanakan.jpg" alt="Sanakan">
+    <div class="hero-inner">
+      <div class="logo-wrap">
+        <img class="logo" src="./sanakan.jpg" alt="Sanakan" width="500" height="500">
+        <span class="logo-slice s1" aria-hidden="true"></span>
+        <span class="logo-slice s2" aria-hidden="true"></span>
+        <span class="bot-status" id="bot-status" role="img" aria-label="Sprawdzanie statusu bota"></span>
+      </div>
       <h1 class="name scaps">Sanakan</h1>
       <div class="desc">Niby nie taki lekki, ale lata</div>
       <div class="links scaps">
         <a href="./cmd/">Polecenia</a>
-        <a href="http://wiki.sanakan.pl">PocketWaifu</a>
+        <a href="https://wiki.sanakan.pl">PocketWaifu</a>
         <div class="link-swap">
-          <a class="swap-main" href="http://waifu.sanakan.pl">Waifu</a>
+          <a class="swap-main" href="https://waifu.sanakan.pl">Waifu</a>
           <a class="swap-alt" href="https://alter.sanakan.pl/">Alter</a>
         </div>
         <div class="link-swap below">
-          <a class="swap-main" href="http://skalpel.sanakan.pl">Skalpelator</a>
+          <a class="swap-main" href="https://skalpel.sanakan.pl">Skalpelator</a>
           <a class="swap-alt" href="https://uskalpel.sanakan.pl/">USkalpelator</a>
         </div>
       </div>
     </div>
   </main>
 
+  <script>
+    // status.php asks the bot API at most once a minute and says online, idle or offline
+    (function () {
+      var dot = document.getElementById('bot-status');
+      var labels = {
+        online: 'Dostępny: bot działa',
+        idle: 'Zaraz wracam: bot działa, ale w ciągu ostatnich 24 h odpowiadał tylko w {uptime}% sprawdzeń',
+        offline: 'Niedostępny: bot teraz nie odpowiada'
+      };
+
+      var opts = {};
+      if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
+
+      fetch('./status.php', opts)
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data || !labels[data.status]) throw new Error('unknown status');
+
+          var label = labels[data.status].replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'));
+          dot.className = 'bot-status ' + data.status;
+          dot.title = label;
+          dot.setAttribute('aria-label', label);
+        })
+        // without an answer nothing is known about the bot, so no dot at all
+        .catch(function () { dot.remove(); });
+    })();
+  </script>
 </body>
 
 </html>
