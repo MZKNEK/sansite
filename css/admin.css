@@ -1,0 +1,353 @@
+/* Admin panel; the header, buttons, login screen and messages come from explorer.css */
+
+.panel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 32px;
+}
+
+.card {
+    min-width: 0;
+    padding: 20px 22px;
+    border: 1px solid rgba(155, 89, 182, 0.22);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.card.wide {
+    grid-column: 1 / -1;
+}
+
+.card h2 {
+    display: flex;
+    align-items: center;
+    margin: 0 0 14px;
+    font-size: 16px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #efe2f7;
+}
+
+.card h2 i {
+    margin-right: 10px;
+    font: normal 0.9em "Share Tech Mono", monospace;
+    color: var(--accent);
+}
+
+.card h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    margin-left: 14px;
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.5), transparent);
+}
+
+.hint {
+    margin: -6px 0 14px;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.hint code,
+.everyone code,
+.server code {
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: var(--accent-light);
+}
+
+.muted {
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.warn {
+    color: #f0b232;
+    font-weight: 400;
+}
+
+.admin-btn.small {
+    padding: 3px 10px;
+    font-size: 12px;
+}
+
+/* Bot status */
+.status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+}
+
+.status-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #80848e;
+}
+
+.status-dot.online {
+    background: #23a55a;
+    box-shadow: 0 0 8px rgba(35, 165, 90, 0.7);
+}
+
+.status-dot.idle {
+    background: #f0b232;
+}
+
+.status-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.status-text b {
+    color: #efe2f7;
+}
+
+.status-text span {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+/* 24 h in 15 minute parts */
+.timeline {
+    display: flex;
+    gap: 2px;
+    height: 28px;
+    margin-top: 16px;
+}
+
+.timeline span {
+    flex: 1;
+    min-width: 1px;
+    background: rgba(220, 221, 222, 0.08);
+}
+
+.timeline .ok,
+.timeline-legend .ok {
+    background: rgba(35, 165, 90, 0.75);
+}
+
+.timeline .fail,
+.timeline-legend .fail {
+    background: rgba(217, 83, 79, 0.85);
+}
+
+.timeline-legend .none {
+    background: rgba(220, 221, 222, 0.08);
+}
+
+.timeline-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 14px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.timeline-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0 5px 0 10px;
+    vertical-align: -1px;
+}
+
+/* Shortcuts */
+.shortcuts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.shortcuts a {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    color: var(--text);
+    font: 14px "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.shortcuts small {
+    margin-top: 2px;
+    font: 12px Lato, sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+/* Accounts */
+.people {
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+}
+
+.people li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+}
+
+.people li img,
+.login-who img {
+    flex: none;
+    border-radius: 50%;
+}
+
+.who {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 140px;
+}
+
+.who-name {
+    color: #efe2f7;
+    font-size: 14px;
+}
+
+.who code {
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: rgba(182, 112, 211, 0.75);
+}
+
+.note {
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.badge-config,
+.role {
+    padding: 1px 8px;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+    color: var(--accent-light);
+    font: 11px/18px "Share Tech Mono", monospace;
+    letter-spacing: 0.08em;
+}
+
+.role.none {
+    border-color: rgba(220, 221, 222, 0.2);
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.nobody,
+.everyone {
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.people .nobody {
+    border-bottom: 0;
+}
+
+.grant {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.grant input[type="text"] {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 7px 10px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px Lato, sans-serif;
+    outline: 0;
+}
+
+.grant input[name="id"] {
+    font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+.grant input[type="text"]:focus {
+    border-color: var(--accent-light);
+}
+
+/* Recent logins */
+.login-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+}
+
+.login-who {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.login-when {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.login-roles,
+.login-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.login-actions {
+    justify-content: flex-end;
+}
+
+/* Server */
+.server {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 24px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.server dt {
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.server dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+@media only screen and (max-width: 760px) {
+    .panel-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .login-row {
+        grid-template-columns: 1fr;
+    }
+
+    .login-actions {
+        justify-content: flex-start;
+    }
+
+    .server {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .server dd {
+        margin-bottom: 10px;
+    }
+}

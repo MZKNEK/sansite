@@ -4,3 +4,6 @@
 
 # Discord application secret and the gallery admins, only on the server
 /inc/config.php
+
+# Gallery access added in the admin panel and recent logins, written by PHP
+/inc/data/

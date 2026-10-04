@@ -59,6 +59,20 @@
         return 100 * $up / count($history);
     }
 
+    // the checks of the last 24 h as [time, online], oldest first
+    function botHistory()
+    {
+        $history = [];
+        $lines = @file(botFile('status-history.txt'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        foreach ($lines as $line) {
+            $parts = explode(' ', trim($line));
+            if (count($parts) == 2 && (int)$parts[0] > time() - BOT_HISTORY_SPAN)
+                $history[] = [(int)$parts[0], $parts[1] === '1'];
+        }
+
+        return $history;
+    }
+
     // ['status' => online|idle|offline, 'uptime' => percent, 'checked' => time],
     // asks the API only when the cached state is older than a minute
     function botState()

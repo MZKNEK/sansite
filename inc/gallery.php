@@ -1,6 +1,7 @@
 <?php
     // Picture gallery in i/ (used by i/index.php): safe paths inside the folder,
-    // thumbnails, the Discord login and adding, moving and deleting files.
+    // thumbnails, who may view and manage it, and adding, moving and deleting
+    // files. The Discord login is in inc/auth.php, shared with the admin panel.
     //
     // Thumbnails are made with GD and cached. Without GD small pictures are
     // shown as they are, and big ones (some GIFs have tens of MB) get a
@@ -9,7 +10,8 @@
     const THUMBLESS_MAX_BYTES = 1500000;
     const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
     const MAX_NAME_LENGTH = 150;
-    const GALLERY_SESSION = 'sanakan_gallery';
+
+    require_once __DIR__ . '/auth.php';
 
     $base = str_replace('\\', '/', __DIR__);
 
@@ -210,209 +212,20 @@
         return $list;
     }
 
-    // ---- Login ---------------------------------------------------------------
-    // The gallery needs a Discord login (OAuth2), for viewing and for managing
-    // files. The application keys and the account IDs allowed to do that are
-    // in inc/config.php, which is only on the server; without it the gallery
-    // stays closed. The pictures themselves are still served by their direct
-    // links, which the bot and Discord messages may use.
+    // ---- Access -------------------------------------------------------------
+    // checked against the config and the panel's lists on every request,
+    // so taking an account out works at once
 
-    function galleryConfigured()
-    {
-        static $loaded = false;
-        if (!$loaded) {
-            $loaded = true;
-            $file = __DIR__ . '/config.php';
-            if (is_file($file))
-                require $file;
-        }
-
-        return defined('DISCORD_CLIENT_ID') && DISCORD_CLIENT_ID !== ''
-            && defined('DISCORD_CLIENT_SECRET') && defined('DISCORD_REDIRECT_URI') && defined('GALLERY_ADMINS');
-    }
-
-    function gallerySession()
-    {
-        if (session_status() === PHP_SESSION_ACTIVE)
-            return;
-
-        $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-        session_name(GALLERY_SESSION);
-        // Lax, not Strict: the cookie has to come along when Discord sends the visitor back
-        if (PHP_VERSION_ID >= 70300)
-            session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
-        else
-            session_set_cookie_params(0, '/; samesite=Lax', '', $secure, true);
-        session_start();
-    }
-
-    // visitors get no session; one is started only when its cookie is there
-    function gallerySessionExists()
-    {
-        return !empty($_COOKIE[GALLERY_SESSION]);
-    }
-
-    function isAdminId($id)
-    {
-        return in_array((string)$id, array_map('strval', GALLERY_ADMINS), true);
-    }
-
-    // admins always; others when listed in GALLERY_VIEWERS, or anyone with a
-    // Discord account when GALLERY_VIEWERS is true
-    function canViewId($id)
-    {
-        if (isAdminId($id))
-            return true;
-        if (!defined('GALLERY_VIEWERS'))
-            return false;
-
-        return GALLERY_VIEWERS === true || in_array((string)$id, array_map('strval', (array)GALLERY_VIEWERS), true);
-    }
-
-    // ['id' => ..., 'name' => ..., 'avatar' => URL] of the logged-in account, or null
-    function galleryUser()
-    {
-        if (!galleryConfigured() || !gallerySessionExists())
-            return null;
-
-        gallerySession();
-        $user = $_SESSION['gallery_user'] ?? null;
-
-        return isset($user['id']) ? $user : null;
-    }
-
-    // checked against the config on every request, so taking an ID out of it works at once
     function galleryCanView()
     {
-        $user = galleryUser();
-        return $user !== null && canViewId($user['id']);
+        $user = siteUser();
+        return $user !== null && canViewGalleryId($user['id']);
     }
 
     function galleryIsAdmin()
     {
-        $user = galleryUser();
-        return $user !== null && isAdminId($user['id']);
-    }
-
-    // token sent with every change, so another site cannot make the browser do one
-    function galleryCsrf()
-    {
-        gallerySession();
-        if (empty($_SESSION['gallery_csrf']))
-            $_SESSION['gallery_csrf'] = bin2hex(random_bytes(32));
-
-        return $_SESSION['gallery_csrf'];
-    }
-
-    // a message for the next page view, e.g. after the login
-    function setFlash($message)
-    {
-        gallerySession();
-        $_SESSION['gallery_flash'] = $message;
-    }
-
-    function takeFlash()
-    {
-        if (!gallerySessionExists())
-            return null;
-
-        gallerySession();
-        $message = $_SESSION['gallery_flash'] ?? null;
-        unset($_SESSION['gallery_flash']);
-
-        return $message;
-    }
-
-    // DISCORD_API_URL in the config can point the login at a test server
-    function discordApi()
-    {
-        return defined('DISCORD_API_URL') ? DISCORD_API_URL : 'https://discord.com/api';
-    }
-
-    function discordRequest($path, $form = null, $token = null)
-    {
-        $headers = ['Accept: application/json', 'User-Agent: SanakanSite (https://sanakan.pl, 1.0)'];
-        if ($token !== null)
-            $headers[] = 'Authorization: Bearer ' . $token;
-
-        $http = ['method' => $form === null ? 'GET' : 'POST', 'timeout' => 10, 'ignore_errors' => true];
-        if ($form !== null) {
-            $headers[] = 'Content-Type: application/x-www-form-urlencoded';
-            $http['content'] = http_build_query($form);
-        }
-        $http['header'] = implode("\r\n", $headers);
-
-        $json = @file_get_contents(discordApi() . $path, false, stream_context_create(['http' => $http]));
-        $data = $json === false ? null : json_decode($json, true);
-
-        return is_array($data) ? $data : [];
-    }
-
-    // Step 1: the visitor goes to Discord; "state" ties the way back to this session
-    function startLogin($returnRel)
-    {
-        gallerySession();
-        $_SESSION['oauth_state'] = bin2hex(random_bytes(16));
-        $_SESSION['oauth_return'] = $returnRel;
-
-        header('Location: https://discord.com/oauth2/authorize?' . http_build_query([
-            'response_type' => 'code',
-            'client_id' => DISCORD_CLIENT_ID,
-            'scope' => 'identify',
-            'state' => $_SESSION['oauth_state'],
-            'redirect_uri' => DISCORD_REDIRECT_URI,
-            'prompt' => 'none'
-        ]));
-    }
-
-    // Step 2: Discord sends the visitor back with a code, which is exchanged for
-    // the account ID; only the IDs in GALLERY_ADMINS may manage files.
-    // Returns the folder to go back to; the result is left as a flash message.
-    function finishLogin()
-    {
-        gallerySession();
-        $state = $_SESSION['oauth_state'] ?? '';
-        $returnRel = $_SESSION['oauth_return'] ?? '';
-        unset($_SESSION['oauth_state'], $_SESSION['oauth_return']);
-
-        if (isset($_GET['error'])) {
-            setFlash('Logowanie zostało anulowane.');
-            return $returnRel;
-        }
-        if ($state === '' || !hash_equals($state, (string)($_GET['state'] ?? ''))) {
-            setFlash('Logowanie wygasło, spróbuj jeszcze raz.');
-            return $returnRel;
-        }
-
-        $token = discordRequest('/oauth2/token', [
-            'grant_type' => 'authorization_code',
-            'code' => (string)($_GET['code'] ?? ''),
-            'redirect_uri' => DISCORD_REDIRECT_URI,
-            'client_id' => DISCORD_CLIENT_ID,
-            'client_secret' => DISCORD_CLIENT_SECRET
-        ]);
-        $user = empty($token['access_token']) ? [] : discordRequest('/users/@me', null, $token['access_token']);
-        if (empty($user['id'])) {
-            setFlash('Discord nie potwierdził logowania, spróbuj jeszcze raz.');
-            return $returnRel;
-        }
-
-        $name = !empty($user['global_name']) ? $user['global_name'] : ($user['username'] ?? 'Discord');
-        if (!canViewId($user['id'])) {
-            setFlash('Konto ' . $name . ' nie ma dostępu do galerii.');
-            return $returnRel;
-        }
-
-        $avatar = empty($user['avatar'])
-            ? 'https://cdn.discordapp.com/embed/avatars/' . (((int)$user['id'] >> 22) % 6) . '.png'
-            : 'https://cdn.discordapp.com/avatars/' . rawurlencode($user['id']) . '/' . rawurlencode($user['avatar']) . '.png?size=64';
-
-        session_regenerate_id(true);
-        $_SESSION['gallery_user'] = ['id' => (string)$user['id'], 'name' => $name, 'avatar' => $avatar];
-        galleryCsrf();
-        setFlash('Zalogowano jako ' . $name . '.');
-
-        return $returnRel;
+        $user = siteUser();
+        return $user !== null && isGalleryAdminId($user['id']);
     }
 
     // ---- Changes ------------------------------------------------------------
@@ -519,20 +332,18 @@
         if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0)
             reply(false, 'Plik jest za duży (limit serwera: ' . formatSize(uploadLimit()) . ').', 413);
 
-        if (!galleryConfigured())
-            reply(false, 'Logowanie do galerii nie jest włączone na serwerze.', 403);
+        if (!authConfigured())
+            reply(false, 'Logowanie nie jest włączone na serwerze.', 403);
 
         $action = (string)($_POST['action'] ?? '');
 
-        if (!galleryUser())
+        if (!siteUser())
             reply(false, 'Trzeba się zalogować.', 401);
-        if (!hash_equals(galleryCsrf(), (string)($_POST['csrf'] ?? '')))
+        if (!checkCsrf())
             reply(false, 'Sesja wygasła, odśwież stronę.', 403);
 
         if ($action === 'logout') {
-            $_SESSION = [];
-            session_destroy();
-            setcookie(GALLERY_SESSION, '', time() - 3600, '/');
+            logout();
             reply(true, 'Wylogowano.');
         }
 

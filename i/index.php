@@ -19,29 +19,19 @@
         exit;
     }
 
-    // Discord login: ?login starts it, Discord comes back with ?state and ?code (or ?error)
-    if (galleryConfigured()) {
-        if (isset($_GET['login'])) {
-            $from = resolvePath($base, $_GET['p'] ?? '', true);
-            startLogin($from ? $from[1] : '');
-            exit;
-        }
-        if (isset($_GET['state']) && (isset($_GET['code']) || isset($_GET['error']))) {
-            $back = resolvePath($base, finishLogin(), true);
-            header('Location: ' . folderUrl($back ? $back[1] : ''));
-            exit;
-        }
-    }
+    // Discord login (inc/auth.php); after it the visitor comes back to this folder
+    $from = resolvePath($base, $_GET['p'] ?? '', true);
+    handleLoginRequest(siteRoot() . 'i/' . ($from && $from[1] !== '' ? folderUrl($from[1]) : ''));
 
     // without access the page only offers the login; the folder is not even read
-    $user = galleryUser();
+    $user = siteUser();
     $locked = !galleryCanView();
     $admin = !$locked && galleryIsAdmin();
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
     if ($locked)
-        http_response_code(!galleryConfigured() ? 503 : ($user ? 403 : 401));
+        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
 
     $dir = $locked ? [$base, ''] : resolvePath($base, $requested, true);
     $notFound = $dir === null;
@@ -137,7 +127,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=18" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4" type="text/css" rel="stylesheet" />
 </head>
 
@@ -150,7 +140,7 @@
         <div class="account">
           <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
           <span class="account-name"><?=e($user['name'])?></span>
-          <button type="button" class="account-btn" id="act-logout" data-csrf="<?=e(galleryCsrf())?>">Wyloguj</button>
+          <button type="button" class="account-btn" id="act-logout" data-csrf="<?=e(siteCsrf())?>">Wyloguj</button>
         </div>
 <?php endif; ?>
       </div>
@@ -171,7 +161,7 @@
 <?php if ($locked): ?>
     <section class="locked hud-corners">
       <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-<?php if (!galleryConfigured()): ?>
+<?php if (!authConfigured()): ?>
       <h2>Galeria jest wyłączona</h2>
       <p>Logowanie nie jest jeszcze skonfigurowane na serwerze.</p>
 <?php elseif ($user): ?>
@@ -366,7 +356,7 @@
 
   <script type="application/json" id="gallery-data"><?=json_encode([
       'dir' => $dirRel,
-      'csrf' => galleryCsrf(),
+      'csrf' => siteCsrf(),
       'folders' => allFolders($base),
       'uploadLimit' => uploadLimit(),
       'uploadLimitLabel' => formatSize(uploadLimit()),

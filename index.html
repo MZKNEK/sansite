@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&display=swap" />
-  <link href="css/style.css?v=18" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=19" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
@@ -120,6 +120,27 @@
         })
         // without an answer nothing is known about the bot, so no dot at all
         .catch(function () { dot.remove(); });
+
+      // hidden way to the admin panel: hold the dot for 10 seconds; it lights up meanwhile
+      var timer;
+
+      function hold(e) {
+        if (e.button > 0) return;
+        dot.classList.add('charging');
+        timer = setTimeout(function () { location.href = 'admin/'; }, 10000);
+      }
+
+      function release() {
+        clearTimeout(timer);
+        dot.classList.remove('charging');
+      }
+
+      dot.addEventListener('pointerdown', hold);
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (type) {
+        dot.addEventListener(type, release);
+      });
+      // a long touch would open the context menu instead
+      dot.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     })();
   </script>
 </body>
