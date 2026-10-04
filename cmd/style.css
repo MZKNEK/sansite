@@ -1,183 +1,361 @@
-html, body {
-    height: auto !important;
-}
+/* Commands page, in the Safeguard scanner style of the home page.
+   Fonts: Share Tech Mono for HUD labels (it has no Polish letters),
+   Lato for text, JetBrains Mono for commands. */
 
 main.content {
     flex: 1 0 auto;
-    padding-top: 24px;
-    padding-bottom: 60px;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
 }
 
-.back-link {
+code {
+    font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+/* Header */
+.cmd-header {
+    text-align: center;
+}
+
+.cmd-top {
+    text-align: left;
+}
+
+.back {
     display: inline-block;
-    padding: 6px 18px;
-    border: 1px solid rgba(155, 89, 182, 0.5);
-    border-radius: 999px;
-    background: rgba(155, 89, 182, 0.08);
-    color: #b670d3;
-    font-size: 16px;
-    transition: background-color 0.2s, color 0.2s;
+    padding: 8px 16px;
+    color: var(--text);
+    font: 13px/1.5 "Share Tech Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
 }
 
-.back-link:hover {
-    background: #9b59b6;
-    color: #fff;
+.cmd-header .tag {
+    margin-top: 18px;
 }
 
-blockquote {
-    border-left: 5px solid #9b59b6 !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border-radius: 0 6px 6px 0;
-    margin: 20px 0;
-    padding: 12px 20px;
+.cmd-header .name {
+    font-size: clamp(26px, 8vw, 48px);
 }
 
-/* Search and module navigation */
+.cmd-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 22px;
+    margin-top: 14px;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.cmd-meta code {
+    margin-left: 4px;
+    color: var(--accent-light);
+}
+
+.state::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: #80848e;
+    vertical-align: 1px;
+}
+
+.state.online::before {
+    background: #23a55a;
+    box-shadow: 0 0 6px rgba(35, 165, 90, 0.7);
+}
+
+.state.idle::before {
+    background: #f0b232;
+}
+
+.notice {
+    max-width: 640px;
+    margin: 24px auto 0;
+    padding: 12px 18px;
+    border: 1px solid rgba(240, 178, 50, 0.35);
+    background: rgba(240, 178, 50, 0.06);
+    color: #e8d5a8;
+    text-align: center;
+}
+
+/* Search and modules, kept at the top while scrolling */
 .toolbar {
-    margin: 24px 0 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 28px -16px 0;
+    padding: 14px 16px 10px;
+    background: rgba(14, 14, 17, 0.88);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(155, 89, 182, 0.2);
 }
 
-.toolbar .input-field {
-    margin: 0;
+.search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: text;
 }
 
-.toolbar input[type=text] {
-    color: #dcddde;
-    border-bottom: 1px solid #713b87;
+.search:focus-within {
+    --arm: 18px;
+    --fill: rgba(155, 89, 182, 0.12);
 }
 
-.toolbar input[type=text]:focus {
-    border-bottom: 1px solid #9b59b6 !important;
-    box-shadow: 0 1px 0 0 #9b59b6 !important;
+.search-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--accent-light);
+    stroke-width: 2;
+    stroke-linecap: round;
 }
 
-.toolbar .input-field .prefix,
-.toolbar .input-field .prefix.active {
-    color: #9b59b6;
+.search input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    /* 16px keeps phones from zooming in on focus */
+    font: 16px Lato, sans-serif;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-.toolbar input[type=text]::placeholder {
-    color: #8e9297;
+.search input::placeholder {
+    color: rgba(220, 221, 222, 0.4);
+}
+
+.search kbd {
+    padding: 0 7px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    border-radius: 3px;
+    color: var(--accent-light);
+    font: 13px/20px "Share Tech Mono", monospace;
+    opacity: 0.7;
 }
 
 .module-chips {
-    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-bottom: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
 }
 
 .module-chips a {
-    display: inline-block;
-    margin: 0 6px 8px 0;
-    padding: 0 14px;
-    height: 30px;
-    line-height: 30px;
-    border-radius: 15px;
-    border: 1px solid rgba(155, 89, 182, 0.5);
-    color: #b670d3;
-    font-size: 14px;
+    flex: none;
+    padding: 5px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    color: var(--accent-light);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
     transition: background-color 0.2s, color 0.2s;
 }
 
 .module-chips a:hover {
-    background: #9b59b6;
+    background: rgba(155, 89, 182, 0.2);
     color: #fff;
+}
+
+.module-chips i,
+.module-head i {
+    margin-right: 8px;
+    font: normal 0.9em "Share Tech Mono", monospace;
+    color: var(--accent);
+    opacity: 0.8;
+}
+
+.chip-count {
+    margin-left: 8px;
+    font: 400 0.9em "Share Tech Mono", monospace;
+    opacity: 0.55;
+}
+
+.search-info {
+    margin-top: 6px;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.search-info:empty {
+    display: none;
 }
 
 /* Modules */
 .module {
-    margin-top: 40px;
-    scroll-margin-top: 80px;
+    margin-top: 44px;
+    /* anchors land below the sticky toolbar; its height comes from search.js */
+    scroll-margin-top: calc(var(--toolbar-height, 150px) + 12px);
 }
 
-.module h3 {
+.module-head {
+    display: flex;
+    align-items: center;
     margin: 0 0 8px;
-    font-size: 1.9rem;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #efe2f7;
+}
+
+.module-head::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    margin-left: 18px;
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.6), transparent);
+}
+
+.submodule-prefix {
+    margin: 12px 0;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.submodule-prefix code {
+    color: var(--accent-light);
+}
+
+.submodule-aliases {
+    margin-left: 14px;
+}
+
+/* One command: name and aliases, what it does, example */
+.cmd {
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) 1fr minmax(200px, 300px);
+    gap: 8px 28px;
+    padding: 16px 14px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    transition: background-color 0.15s;
+}
+
+.cmd:hover {
+    background: rgba(155, 89, 182, 0.06);
+}
+
+.cmd-main {
+    color: #efe2f7;
+    font-size: 15px;
     font-weight: 700;
 }
 
-.module .divider {
-    margin-bottom: 8px;
+.cmd-aliases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 6px;
 }
 
-.table-wrap {
-    overflow-x: auto;
-    margin-bottom: 24px;
-    border-radius: 6px;
-    background: rgba(24, 25, 27, 0.7);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+.cmd-aliases code {
+    color: rgba(182, 112, 211, 0.75);
+    font-size: 12px;
+    word-break: break-all;
 }
 
-table {
+.cmd-desc {
     margin: 0;
+    color: rgba(220, 221, 222, 0.85);
 }
 
-thead {
-    border-bottom: 2px solid #9b59b6 !important;
+.cmd-params {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
 }
 
-thead th {
-    font-variant: small-caps;
-    font-size: 1.05rem;
-    letter-spacing: 0.5px;
+.cmd-params li {
+    padding: 1px 10px;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    background: rgba(155, 89, 182, 0.06);
+    color: rgba(220, 221, 222, 0.7);
+    font-size: 13px;
 }
 
-tbody tr td {
-    color: #bdbdbd !important;
-    vertical-align: top;
+.cmd-example {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
 }
 
-tbody tr td:first-child strong {
-    color: #e0c3ee;
-}
-
-tbody tr td:last-child {
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 0.9rem;
-    color: #b670d3 !important;
+.cmd-example code {
+    flex: 1;
+    min-width: 0;
+    color: var(--accent-light);
+    font-size: 13px;
     word-break: break-word;
 }
 
-table.striped > tbody > tr:nth-child(2n+1) {
-    background-color: rgba(255, 255, 255, 0.03) !important;
+.cmd-prefix {
+    color: var(--accent);
+    opacity: 0.7;
 }
 
-table.striped > tbody > tr {
-    border-bottom: none;
+.copy {
+    flex: none;
+    padding: 2px 8px;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+    background: transparent;
+    color: rgba(220, 221, 222, 0.6);
+    font: 11px/18px "Share Tech Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
-tbody tr:hover {
-    background-color: rgba(155, 89, 182, 0.12) !important;
+.copy:hover {
+    background: rgba(155, 89, 182, 0.2);
+    color: #fff;
 }
 
-.alias {
-    display: none !important;
-}
-
-.cmd-name:hover .alias {
-    display: inline !important;
-}
-
-tt.alias {
-    color: #9b59b6 !important;
-}
-
-tt.alias:nth-child(2n) {
-    color: #b670d3 !important;
+.copy.done {
+    border-color: rgba(35, 165, 90, 0.6);
+    color: #3fca7a;
 }
 
 .no-results {
-    display: none;
-    margin-top: 40px;
+    margin-top: 48px;
     text-align: center;
-    color: #8e9297;
-    font-size: 1.2rem;
+    color: rgba(220, 221, 222, 0.5);
+    font-size: 18px;
 }
 
-@media only screen and (max-width: 600px) {
-    .module h3 {
-        font-size: 1.5rem;
+/* touch screens: there is no keyboard shortcut to show */
+@media (hover: none) {
+    .search kbd {
+        display: none;
+    }
+}
+
+@media only screen and (max-width: 760px) {
+    .cmd {
+        grid-template-columns: 1fr;
+        padding: 14px 4px;
     }
 
-    table td, table th {
-        padding: 10px 8px;
+    .module-head {
+        font-size: 18px;
     }
 }
