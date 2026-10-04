@@ -4,6 +4,7 @@
     // moment. Drawn with GD at twice the size and scaled down for smooth edges,
     // then kept for a minute. Without GD's FreeType the logo has to do.
     require __DIR__ . '/../inc/bot.php';
+    require __DIR__ . '/../inc/services.php';
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
 
@@ -116,7 +117,7 @@
         text($img, $bold, 64, 80, 196, color($img, '#efe2f7'), 'SANAKAN', 18);
 
         statusDot($img, 104, 278, 24, $status, $background);
-        text($img, $bold, 38, 148, 293, color($img, '#efe2f7'), 'Bot ' . STATUS_LABELS[$status] . botDownText($state));
+        text($img, $bold, 38, 148, 293, color($img, '#efe2f7'), 'Bot ' . statusLabel($state));
 
         $uptimes = [
             '24 h' => str_replace('.', ',', $state['uptime']) . '%',

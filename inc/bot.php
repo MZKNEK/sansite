@@ -12,7 +12,13 @@
     // long the API took to answer. The panel can set a notice for the home page
     // and state/, and mark a planned maintenance break. Changes in the command
     // list (new, removed, changed commands) are logged for cmd/ and cmd/zmiany/.
+    // The bot's api/health says whether it is connected to Discord, its ping and
+    // the state of its database and of Shinden. While a bot without it answers
+    // 404, the command list is the check, as before.
+    const BOT_HEALTH_URL = 'https://api.sanakan.pl/api/health';
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
+    // with api/health the command list (cmd/ and its changes) is fetched only this often
+    const BOT_COMMANDS_TTL = 600;
     const BOT_CACHE_TTL = 60;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
@@ -511,7 +517,82 @@
         return $history;
     }
 
-    // ['status' => online|idle|offline, 'uptime' => percent, 'checked' => time],
+    // GET with a 5 s limit: [body or false, HTTP status or 0, milliseconds]
+    function botFetch($url)
+    {
+        $context = stream_context_create(['http' => ['method' => 'GET', 'timeout' => 5, 'ignore_errors' => true]]);
+        $started = microtime(true);
+        $body = @file_get_contents($url, false, $context);
+        $ms = (int)round((microtime(true) - $started) * 1000);
+
+        $status = 0;
+        foreach ($http_response_header ?? [] as $line)
+            if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
+                $status = (int)$match[1];
+
+        return [$body, $status, $ms];
+    }
+
+    // The bot's own report: [online, Discord ping, health data], or null when
+    // this bot has no api/health yet. Not answering at all means offline.
+    function botAskHealth()
+    {
+        [$body, $status] = botFetch(BOT_HEALTH_URL);
+        if ($body === false && $status === 0)
+            return [false, null, null];
+
+        $health = @json_decode((string)$body, true);
+        if (!is_array($health) || !isset($health['status']))
+            return $status === 404 ? null : [false, null, null];
+
+        $online = $health['status'] !== 'down' && ($health['discord']['state'] ?? '') === 'Connected';
+
+        return [$online, $online ? (int)($health['discord']['latencyMs'] ?? 0) : null, $health];
+    }
+
+    // the command list from the API: [answered with commands, milliseconds]; kept for cmd/
+    function botFetchCommands($now)
+    {
+        [$json, , $ms] = botFetch(BOT_API_URL);
+        $data = $json === false ? null : @json_decode($json, true);
+        if (empty($data['modules']))
+            return [false, $ms];
+
+        botWriteFile(botFile('commands.json'), $json);
+        botTrackCommands($data, $now);
+
+        return [true, $ms];
+    }
+
+    // the last health report of the bot, or null (no api/health, or not answered)
+    function botHealth()
+    {
+        $health = json_decode((string)@file_get_contents(botFile('health.json')), true);
+
+        return is_array($health) ? $health : null;
+    }
+
+    // what is wrong while the bot is connected, from its health report, in Polish
+    function botIssues($health)
+    {
+        if (!$health || ($health['status'] ?? '') !== 'degraded')
+            return [];
+
+        $issues = [];
+        if (isset($health['database']['ok']) && !$health['database']['ok'])
+            $issues[] = 'baza danych nie odpowiada';
+        if (isset($health['shinden']['ok']) && !$health['shinden']['ok'])
+            $issues[] = 'Shinden nie odpowiada';
+        if (($health['discord']['latencyMs'] ?? 0) > 1000)
+            $issues[] = 'wysoki ping do Discorda (' . str_replace('.', ',', (string)round($health['discord']['latencyMs'] / 1000, 1)) . ' s)';
+        if (($health['commands']['rejected5min'] ?? 0) > 0)
+            $issues[] = 'odrzuca polecenia (pełna kolejka)';
+
+        return $issues ?: ['bot zgłasza problemy'];
+    }
+
+    // ['status' => online|idle|offline, 'uptime' => percent, 'checked' => time,
+    // 'ms' => Discord ping (API answer time without api/health), 'issues' => [...]],
     // asks the API only when the cached state is older than a minute or $force
     function botState($force = false)
     {
@@ -526,31 +607,32 @@
             $state = @json_decode(@file_get_contents($file), true);
 
         if (!is_array($state) || !isset($state['status'], $state['uptime'], $state['checked'])) {
-            $opts = [
-                "http" => [
-                    "method" => "GET",
-                    "timeout" => 5
-                ]
-            ];
-            $context = stream_context_create($opts);
-            $started = microtime(true);
-            $json = @file_get_contents(BOT_API_URL, false, $context);
-            $ms = (int)round((microtime(true) - $started) * 1000);
-            $data = $json === false ? null : @json_decode($json, true);
+            $report = botAskHealth();
+            if ($report === null) {
+                // a bot without api/health: getting the command list means it is up
+                @unlink(botFile('health.json'));
+                $health = null;
+                [$online, $ms] = botFetchCommands($now);
+            } else {
+                [$online, $ms, $health] = $report;
+                if ($health !== null)
+                    botWriteFile(botFile('health.json'), json_encode($health));
+                else
+                    @unlink(botFile('health.json'));
 
-            $online = !empty($data['modules']);
-            if ($online) {
-                botWriteFile(botFile('commands.json'), $json);
-                botTrackCommands($data, $now);
+                $commands = botFile('commands.json');
+                if ($online && (!is_file($commands) || $now - filemtime($commands) >= BOT_COMMANDS_TTL))
+                    botFetchCommands($now);
             }
 
             $uptime = botRecordCheck($online, $now, $online ? $ms : null);
             botRecordDay($online, $now);
             botRecordIncident($online, $now);
 
+            $issues = $online ? botIssues($health) : [];
             if (!$online)
                 $status = 'offline';
-            else if ($uptime < BOT_MIN_UPTIME)
+            else if ($issues || $uptime < BOT_MIN_UPTIME)
                 $status = 'idle';
             else
                 $status = 'online';
@@ -560,7 +642,8 @@
                 // rounded down, so 98.96 is not shown as 99 next to the idle status
                 'uptime' => floor($uptime * 10) / 10,
                 'checked' => $now,
-                'ms' => $online ? $ms : null
+                'ms' => $online ? $ms : null,
+                'issues' => $issues
             ];
             botWriteFile($file, json_encode($state));
         }

@@ -14,5 +14,7 @@
         'status' => botInMaintenance(time()) ? 'maintenance' : $state['status'],
         'uptime' => $state['uptime'],
         // since when it does not answer, e.g. "od 14:05 (23 min)"
-        'down' => trim(botDownText($state))
+        'down' => trim(botDownText($state)),
+        // what is wrong while it is connected, e.g. "Shinden nie odpowiada"
+        'issues' => implode(', ', $state['issues'] ?? [])
     ], JSON_UNESCAPED_UNICODE);

@@ -2,7 +2,7 @@
     // The bot status card of the public page state/: state, availability bars
     // of the last 24 hours, 30 days and 12 months, answer times and the outages
     // of the last 30 days. The admin panel shows only statusSummary(). Needs
-    // inc/bot.php and the helpers in inc/gallery.php.
+    // inc/bot.php, inc/services.php and the helpers in inc/gallery.php.
 
     const STATUS_LABELS = [
         'online' => 'działa',
@@ -15,6 +15,74 @@
     function shownStatus($state)
     {
         return botInMaintenance(time()) ? 'maintenance' : $state['status'];
+    }
+
+    // what follows "Bot": the state, what is wrong when the bot reports problems,
+    // since when it does not answer
+    function statusLabel($state)
+    {
+        $status = shownStatus($state);
+        if ($status === 'idle' && !empty($state['issues']))
+            return 'działa, ale ' . implode(', ', $state['issues']);
+
+        return STATUS_LABELS[$status] . botDownText($state);
+    }
+
+    // "41 234": thousands split by a space, as in Polish
+    function formatCount($n)
+    {
+        return number_format((int)$n, 0, ',', ' ');
+    }
+
+    // The bot's own report (api/health) in four boxes: Discord, database, Shinden, commands
+    function healthDetails($health)
+    {
+        $discord = $health['discord'] ?? [];
+        $database = $health['database'] ?? [];
+        $shinden = $health['shinden'] ?? [];
+        $commands = $health['commands'] ?? [];
+        $connected = ($discord['state'] ?? '') === 'Connected';
+        $states = ['Connecting' => 'łączy się', 'Disconnecting' => 'rozłącza się', 'Disconnected' => 'rozłączony'];
+        $percent = function ($value) { return str_replace('.', ',', (string)(float)$value) . '%'; };
+
+        ob_start();
+?>
+        <div class="health">
+          <div class="health-box <?=$connected ? 'ok' : 'fail'?>">
+            <h3>Discord</h3>
+            <b><?=$connected ? 'połączony' : e($states[$discord['state'] ?? ''] ?? 'rozłączony')?><?=$connected && isset($discord['latencyMs']) ? ' &middot; ping ' . e(milliseconds((int)$discord['latencyMs'])) : ''?></b>
+<?php if (!empty($discord['connectedAt'])): ?>
+            <span>połączony od <?=e(date('j.m H:i', strtotime($discord['connectedAt'])))?></span>
+<?php endif; ?>
+            <span>serwery: <?=e(formatCount($discord['guilds'] ?? 0))?> &middot; członkowie: <?=e(formatCount($discord['members'] ?? 0))?></span>
+          </div>
+<?php if ($database): ?>
+          <div class="health-box <?=!empty($database['ok']) ? 'ok' : 'fail'?>">
+            <h3>Baza danych</h3>
+            <b><?=!empty($database['ok']) ? 'działa' : 'nie odpowiada'?><?=isset($database['latencyMs']) ? ' &middot; ' . e(milliseconds((int)$database['latencyMs'])) : ''?></b>
+            <span>5 min: <?=e(formatCount($database['queries5min'] ?? 0))?> zapytań, średnio <?=e(milliseconds((int)($database['avgMs5min'] ?? 0)))?>, najdłużej <?=e(milliseconds((int)($database['maxMs5min'] ?? 0)))?></span>
+            <span>błędy w 5 min: <?=e(formatCount($database['errors5min'] ?? 0))?></span>
+          </div>
+<?php endif; ?>
+<?php if ($shinden): ?>
+          <div class="health-box <?=!empty($shinden['ok']) ? 'ok' : 'fail'?>">
+            <h3>Shinden</h3>
+            <b><?=!empty($shinden['ok']) ? 'działa' : 'nie odpowiada'?><?=isset($shinden['latencyMs']) ? ' &middot; ' . e(milliseconds((int)$shinden['latencyMs'])) : ''?></b>
+            <span>5 min: <?=e(formatCount($shinden['requests5min'] ?? 0))?> zapytań, błędy <?=e($percent($shinden['errorRate5min'] ?? 0))?><?=!empty($shinden['timeouts5min']) ? ' (' . e(formatCount($shinden['timeouts5min'])) . ' ' . plural((int)$shinden['timeouts5min'], 'timeout', 'timeouty', 'timeoutów') . ')' : ''?></span>
+            <span>godzina: <?=e(formatCount($shinden['requestsHour'] ?? 0))?> zapytań, błędy <?=e($percent($shinden['errorRateHour'] ?? 0))?></span>
+          </div>
+<?php endif; ?>
+<?php if ($commands): ?>
+          <div class="health-box <?=!empty($commands['rejected5min']) ? 'warn' : 'ok'?>">
+            <h3>Polecenia</h3>
+            <b><?=e(formatCount($commands['last5min'] ?? 0))?> w 5 min &middot; <?=e(formatCount($commands['lastHour'] ?? 0))?> w godzinę</b>
+            <span>błędy: <?=e(formatCount($commands['errors5min'] ?? 0))?> w 5 min, <?=e(formatCount($commands['errorsHour'] ?? 0))?> w godzinę</span>
+            <span>odrzucone (pełna kolejka): <?=e(formatCount($commands['rejected5min'] ?? 0))?> w 5 min, <?=e(formatCount($commands['rejectedHour'] ?? 0))?> w godzinę</span>
+          </div>
+<?php endif; ?>
+        </div>
+<?php
+        return ob_get_clean();
     }
 
     // "230 ms", "1,4 s"
@@ -117,20 +185,56 @@
         return $text . date(date('Y-m-d', $start) === date('Y-m-d', $end) ? 'H:i' : 'j.m H:i', $end);
     }
 
+    // the other Sanakan sites: state, since when, answer time, 30 day availability and bar
+    function servicesCard()
+    {
+        $services = servicesState(30);
+
+        ob_start();
+?>
+        <ul class="services">
+<?php foreach ($services as $service):
+        $class = $service['up'] === null ? 'none' : ($service['up'] ? 'online' : 'offline');
+        if ($service['up'] === null)
+            $text = 'jeszcze nie sprawdzano';
+        else if ($service['up'])
+            $text = 'działa' . ($service['ms'] !== null ? ' · ' . milliseconds($service['ms']) : '');
+        else
+            $text = 'nie odpowiada od ' . date(date('Y-m-d', $service['since']) === date('Y-m-d') ? 'H:i' : 'j.m H:i', $service['since']) . ' (' . duration(time() - $service['since']) . ')';
+?>
+          <li>
+            <span class="status-dot <?=$class?>"></span>
+            <a class="service-name" href="<?=e($service['url'])?>"><?=e($service['name'])?></a>
+            <span class="service-state<?=$service['up'] === false ? ' down' : ''?>"><?=e($text)?></span>
+            <b class="service-uptime" title="Dostępność w ostatnich 30 dniach"><?=e(partsUptime($service['days']))?></b>
+            <span class="timeline service-bar" aria-label="Dostępność <?=e($service['name'])?> w ostatnich 30 dniach, po dniu">
+<?php foreach ($service['days'] as $part): ?>
+              <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
+<?php endforeach; ?>
+            </span>
+          </li>
+<?php endforeach; ?>
+        </ul>
+<?php
+        return ob_get_clean();
+    }
+
     // one line for the admin panel: state, last check, 24 h availability, answer time
     function statusSummary()
     {
         $state = botState();
         $status = shownStatus($state);
         $average = averageResponse(botHistory());
+        $health = botHealth();
 
         ob_start();
 ?>
         <div class="status-row">
           <span class="status-dot <?=e($status)?>"></span>
           <div class="status-text">
-            <b>Bot <?=e(STATUS_LABELS[$status] . botDownText($state))?></b>
-            <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; dostępność z 24 h: <?=e(str_replace('.', ',', $state['uptime']))?>%<?=$average === null ? '' : ' &middot; odpowiada średnio w ' . e(milliseconds($average))?></span>
+            <b>Bot <?=e(statusLabel($state))?></b>
+            <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; dostępność z 24 h: <?=e(str_replace('.', ',', $state['uptime']))?>%<?=$average === null ? '' : ($health ? ' &middot; ping do Discorda średnio ' : ' &middot; odpowiada średnio w ') . e(milliseconds($average))?><?=!empty($health['version']) ? ' &middot; wersja ' . e($health['version']) : ''?></span>
+            <span><?=($down = servicesDown()) ? '<b class="warn">Nie odpowiada: ' . e(implode(', ', $down)) . '</b>' : 'Pozostałe serwisy (wiki, Waifu, Alter, Skalpelator, USkalpelator) działają'?></span>
           </div>
         </div>
 <?php
@@ -145,6 +249,7 @@
         $days = botDailyParts(30);
         $months = botMonthlyParts(12);
         $times = botResponseTimes($history);
+        $health = botHealth();
         $average = averageResponse($history);
         $slowest = max(array_column($times, 'max') ?: [0]);
         $scale = max(array_column($times, 'avg') ?: [0]);
@@ -166,10 +271,14 @@
         <div class="status-row">
           <span class="status-dot <?=e($status)?>"></span>
           <div class="status-text">
-            <b>Bot <?=e(STATUS_LABELS[$status] . botDownText($state))?></b>
+            <b>Bot <?=e(statusLabel($state))?></b>
             <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; <?=count($history)?> <?=plural(count($history), 'sprawdzenie', 'sprawdzenia', 'sprawdzeń')?> w 24 h</span>
+<?php if (!empty($health['version']) || !empty($health['startedAt'])): ?>
+            <span><?=!empty($health['version']) ? 'Wersja ' . e($health['version']) : ''?><?=!empty($health['version']) && !empty($health['startedAt']) ? ' &middot; ' : ''?><?=!empty($health['startedAt']) ? 'uruchomiony ' . e(date('j.m H:i', strtotime($health['startedAt']))) . ' (' . e(duration(time() - strtotime($health['startedAt']))) . ' temu)' : ''?></span>
+<?php endif; ?>
           </div>
         </div>
+<?=$health ? healthDetails($health) : ''?>
 
         <div class="bar">
           <div class="bar-head"><span>Ostatnie 24 godziny</span><b><?=e(str_replace('.', ',', $state['uptime']))?>%</b></div>
@@ -185,8 +294,8 @@
         </div>
 
         <div class="bar">
-          <div class="bar-head"><span>Czas odpowiedzi API, 24 godziny</span><b><?=$average === null ? '–' : 'średnio ' . e(milliseconds($average)) . ' &middot; najdłużej ' . e(milliseconds($slowest))?></b></div>
-          <div class="response-chart" aria-label="Średni czas odpowiedzi API w ostatnich 24 godzinach, po 15 minut">
+          <div class="bar-head"><span><?=$health ? 'Ping do Discorda' : 'Czas odpowiedzi API'?>, 24 godziny</span><b><?=$average === null ? '–' : 'średnio ' . e(milliseconds($average)) . ' &middot; najdłużej ' . e(milliseconds($slowest))?></b></div>
+          <div class="response-chart" aria-label="<?=$health ? 'Średni ping do Discorda' : 'Średni czas odpowiedzi API'?> w ostatnich 24 godzinach, po 15 minut">
 <?php foreach ($times as $part): ?>
             <span title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . ($part['avg'] === null ? 'brak odpowiedzi' : 'średnio ' . milliseconds($part['avg']) . ', najdłużej ' . milliseconds($part['max'])))?>"><?php if ($part['avg'] !== null): ?><i style="height: <?=max(4, round(100 * $part['avg'] / max(1, $scale)))?>%"></i><?php endif; ?></span>
 <?php endforeach; ?>

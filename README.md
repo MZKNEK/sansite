@@ -8,7 +8,7 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`, short: `/cmd/daily`, also by an alias), marks on commands new or changed in the last 14 days |
 | `/cmd/zmiany/` | History of the changes in the commands, noticed by comparing every command list with the one before |
 | `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; an account without access can ask for it |
-| `/state/` | Public bot status: availability over the last 24 hours, 30 days and 12 months, API answer times, the outages of the last 30 days and the notice from the panel. Its link preview is a picture of the current state (`/state/og.php`) |
+| `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version), availability over the last 24 hours, 30 days and 12 months, the Discord ping, the outages of the last 30 days and the notice from the panel; below, the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 30 days. Its link preview is a picture of the current state (`/state/og.php`) |
 | `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90°. An account without access can ask for it |
 | `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks, the deployed version and a backup of the data as ZIP |
 | `/status.php` | Bot status as JSON, used by the home page |
@@ -23,8 +23,9 @@ Hidden way into the panel: hold the status dot on the home page for 10 seconds. 
 | `sanakan-og.png` | Link preview picture of the home page |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/` | Subpages |
 | `status.php` | Bot status for the home page |
-| `inc/bot.php` | Bot API access: one-minute cache, 24 h check history with answer times, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
-| `inc/check-bot.php` | One bot check, run by cron every minute |
+| `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
+| `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites |
+| `inc/services.php` | The other Sanakan sites: whether they answer, since when, per day counts |
 | `inc/auth.php` | Discord login (OAuth2), session, access lists, change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |

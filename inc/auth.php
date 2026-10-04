@@ -250,12 +250,26 @@
 
     // ---- Session ------------------------------------------------------------------
 
+    // Whether the visitor's browser talks https. Cloudflare ends https and asks
+    // the server over plain http, saying the visitor's scheme in CF-Visitor
+    // (X-Forwarded-Proto from other proxies). Sent by anyone talking to the
+    // server directly, these only make that one's own cookie https-only.
+    function visitorUsesHttps()
+    {
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            return true;
+        if (strpos((string)($_SERVER['HTTP_CF_VISITOR'] ?? ''), '"https"') !== false)
+            return true;
+
+        return strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+    }
+
     function siteSession()
     {
         if (session_status() === PHP_SESSION_ACTIVE)
             return;
 
-        $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        $secure = visitorUsesHttps();
         session_name(SITE_SESSION);
         // Lax, not Strict: the cookie has to come along when Discord sends the visitor back
         if (PHP_VERSION_ID >= 70300)

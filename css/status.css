@@ -159,6 +159,51 @@
     vertical-align: -1px;
 }
 
+/* the bot's own report (api/health): Discord, database, Shinden, commands */
+.health {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.health-box {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    border-left: 2px solid rgba(35, 165, 90, 0.75);
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.health-box.warn {
+    border-left-color: rgba(240, 178, 50, 0.8);
+}
+
+.health-box.fail {
+    border-left-color: rgba(217, 83, 79, 0.85);
+}
+
+.health-box h3 {
+    margin: 0 0 2px;
+    font: 12px "Share Tech Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.health-box b {
+    font-size: 14px;
+    font-weight: normal;
+    color: #efe2f7;
+}
+
+.health-box.fail b {
+    color: #f08a87;
+}
+
 /* answer times: a column per 15 minutes, as high as its average */
 .response-chart {
     display: flex;
@@ -264,6 +309,75 @@
     margin: 4px 0 0;
     font-size: 13px;
     color: rgba(220, 221, 222, 0.45);
+}
+
+/* the other Sanakan sites on state/: dot, name, state, 30 days and their bar */
+.services {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.services li {
+    display: grid;
+    grid-template-columns: 14px 120px minmax(150px, 1fr) 62px minmax(160px, 1.4fr);
+    align-items: center;
+    gap: 8px 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+}
+
+.services li:last-child {
+    border-bottom: 0;
+}
+
+.service-name {
+    color: #efe2f7;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.service-name:hover {
+    color: var(--accent-light);
+}
+
+.service-state {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.service-state.down {
+    color: #f08a87;
+}
+
+.service-uptime {
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+    text-align: right;
+}
+
+.timeline.service-bar {
+    height: 16px;
+    gap: 1px;
+}
+
+.status-dot.none {
+    background: rgba(220, 221, 222, 0.15);
+}
+
+@media only screen and (max-width: 700px) {
+    .services li {
+        grid-template-columns: 14px 1fr auto;
+    }
+
+    .service-state {
+        grid-column: 2 / 4;
+        grid-row: 2;
+    }
+
+    .timeline.service-bar {
+        grid-column: 1 / 4;
+    }
 }
 
 /* Public status page state/ */

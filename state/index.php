@@ -1,12 +1,15 @@
 <?php
     // Public bot status for anyone: availability, answer times, outages and the
-    // notice set in the admin panel. The page reloads itself every minute.
+    // notice set in the admin panel, and the state of the other Sanakan sites.
+    // The page reloads itself every 10 minutes.
     require __DIR__ . '/../inc/bot.php';
+    require __DIR__ . '/../inc/services.php';
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
     require __DIR__ . '/../inc/meta.php';
 
     $card = statusCard();
+    $services = servicesCard();
     $notice = botNotice();
 ?>
 <!DOCTYPE html>
@@ -16,7 +19,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 <?=metaTags('Status · Sanakan', null, '/state/', [SITE_URL . '/state/og.php?v=' . intdiv(time(), 300), 1200, 630])?>
-  <meta http-equiv="refresh" content="60" />
+  <meta http-equiv="refresh" content="600" />
   <title>Status &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -26,7 +29,7 @@
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=5" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=6" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
@@ -45,7 +48,12 @@
     <section class="card state-card">
 <?=$card?>
     </section>
-    <p class="state-note">Strona odświeża się sama co minutę.</p>
+
+    <section class="card state-card">
+      <h2><i>+</i>Pozostałe serwisy</h2>
+<?=$services?>
+    </section>
+    <p class="state-note">Strona odświeża się sama co 10 minut.</p>
   </main>
 </body>
 

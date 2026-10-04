@@ -127,6 +127,7 @@
           var label = labels[data.status]
             .replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'))
             .replace(' {down}', data.down ? ' ' + data.down : '');
+          if (data.status === 'idle' && data.issues) label = 'Zaraz wracam: bot działa, ale ' + data.issues;
           dot.className = 'bot-status ' + data.status;
           dot.title = label + ' (kliknij, żeby zobaczyć dostępność)';
           dot.setAttribute('aria-label', label);
