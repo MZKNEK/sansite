@@ -7,9 +7,7 @@
     require __DIR__ . '/../inc/meta.php';
 
     $card = statusCard();
-    $state = botState();
     $notice = botNotice();
-    $summary = 'Bot ' . STATUS_LABELS[shownStatus($state)] . ' · dostępność z 24 h: ' . str_replace('.', ',', $state['uptime']) . '%';
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -17,7 +15,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<?=metaTags('Status · Sanakan', $summary, '/state/', [SITE_URL . '/state/og.php?v=' . intdiv(time(), 300), 1200, 630])?>
+<?=metaTags('Status · Sanakan', null, '/state/', [SITE_URL . '/state/og.php?v=' . intdiv(time(), 300), 1200, 630])?>
   <meta http-equiv="refresh" content="60" />
   <title>Status &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
