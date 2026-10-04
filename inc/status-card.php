@@ -1,7 +1,8 @@
 <?php
-    // The bot status card: state, availability in the last 24 h and a bar of
-    // those 24 hours. Shown in the admin panel (with "check now") and on the
-    // public page state/. Needs inc/bot.php and the helpers in inc/gallery.php.
+    // The bot status card: state, availability bars of the last 24 hours, 30
+    // days and 12 months, and the outages of the last 30 days. Shown in the
+    // admin panel (with "check now") and on the public page state/. Needs
+    // inc/bot.php and the helpers in inc/gallery.php.
 
     const STATUS_LABELS = [
         'online' => 'działa',
@@ -68,12 +69,45 @@
         return $checks ? percent(array_sum(array_column($parts, 'up')), $checks) : '–';
     }
 
+    const INCIDENTS_SHOWN = 10;
+
+    // how long an outage took: "27 min", "3 godz. 5 min", "2 dni 4 godz."
+    function duration($seconds)
+    {
+        $minutes = max(1, (int)round($seconds / 60));
+        if ($minutes < 60)
+            return $minutes . ' min';
+
+        $hours = intdiv($minutes, 60);
+        if ($hours < 24)
+            return $hours . ' godz.' . ($minutes % 60 ? ' ' . ($minutes % 60) . ' min' : '');
+
+        $days = intdiv($hours, 24);
+        return $days . ' ' . plural($days, 'dzień', 'dni', 'dni') . ($hours % 24 ? ' ' . ($hours % 24) . ' godz.' : '');
+    }
+
+    // "3.10 14:05 – 14:32", the date again when it ended on another day
+    function incidentTime($incident)
+    {
+        [$start, $end] = $incident;
+        $text = date('j.m H:i', $start) . ' – ';
+        if ($end === null)
+            return $text . 'trwa';
+
+        return $text . date(date('Y-m-d', $start) === date('Y-m-d', $end) ? 'H:i' : 'j.m H:i', $end);
+    }
+
     function statusCard($withButton)
     {
         $state = botState();
         $history = botHistory();
         $days = botDailyParts(30);
         $months = botMonthlyParts(12);
+        // the same 30 days as the bar
+        $incidents = botIncidents($days[0]['from']);
+        $downtime = 0;
+        foreach ($incidents as $incident)
+            $downtime += ($incident[1] ?? time()) - max($incident[0], $days[0]['from']);
 
         ob_start();
 ?>
@@ -123,6 +157,22 @@
 
         <div class="timeline-legend">
           <span><i class="ok"></i>działał <i class="warn"></i>częściowo <i class="fail"></i>nie działał <i class="none"></i>brak sprawdzeń</span>
+        </div>
+
+        <div class="bar incidents">
+          <div class="bar-head"><span>Awarie w ostatnich 30 dniach</span><b><?=count($incidents)?><?=$incidents ? ' &middot; razem ' . e(duration($downtime)) : ''?></b></div>
+<?php if (!$incidents): ?>
+          <p class="incidents-none">Bez awarii.</p>
+<?php else: ?>
+          <ul class="incident-list">
+<?php foreach (array_slice($incidents, 0, INCIDENTS_SHOWN) as $incident): ?>
+            <li<?=$incident[1] === null ? ' class="ongoing"' : ''?>><span><?=e(incidentTime($incident))?></span><b><?=e(duration(($incident[1] ?? time()) - $incident[0]))?></b></li>
+<?php endforeach; ?>
+          </ul>
+<?php if (count($incidents) > INCIDENTS_SHOWN): ?>
+          <p class="incidents-none">i <?=count($incidents) - INCIDENTS_SHOWN?> <?=plural(count($incidents) - INCIDENTS_SHOWN, 'wcześniejsza', 'wcześniejsze', 'wcześniejszych')?></p>
+<?php endif; ?>
+<?php endif; ?>
         </div>
 <?php
         return ob_get_clean();

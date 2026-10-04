@@ -7,12 +7,14 @@
     // the bot is down. A bot that is up now but answered less than 99% of the
     // checks is idle. inc/check-bot.php run by cron every minute fills the
     // history also when nobody visits. Besides the 24 h history every check is
-    // counted per day, which gives the 30 day and 12 month availability.
+    // counted per day, which gives the 30 day and 12 month availability, and
+    // every outage is kept with its start and end.
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
     const BOT_CACHE_TTL = 60;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
     const BOT_DAYS_KEEP = 400;
+    const BOT_INCIDENTS_KEEP = 200;
 
     // days, months and the times on the pages follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');
@@ -165,6 +167,66 @@
         return array_values($months);
     }
 
+    // Outages as [start, end]: start is the first check without an answer, end
+    // the first check answered again, null while the outage lasts. The first
+    // time, they are read from the 24 h history instead.
+    function botRecordIncident($online, $now)
+    {
+        $fp = @fopen(botFile('incidents.json'), 'c+');
+        if ($fp === false || !flock($fp, LOCK_EX)) {
+            if ($fp !== false)
+                fclose($fp);
+            return;
+        }
+
+        $incidents = json_decode((string)stream_get_contents($fp), true);
+        $before = $incidents;
+        if (!is_array($incidents)) {
+            // the history already has this check in it
+            $incidents = [];
+            foreach (botHistory() as $check)
+                botAddToIncidents($incidents, $check[1], $check[0]);
+        } else {
+            botAddToIncidents($incidents, $online, $now);
+        }
+
+        // most checks change nothing, then the file is not rewritten
+        if ($incidents !== $before) {
+            $incidents = array_slice($incidents, -BOT_INCIDENTS_KEEP);
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode($incidents));
+        }
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+
+    function botAddToIncidents(&$incidents, $online, $time)
+    {
+        $last = count($incidents) - 1;
+        $open = $last >= 0 && $incidents[$last][1] === null;
+
+        if (!$online && !$open)
+            $incidents[] = [$time, null];
+        else if ($online && $open)
+            $incidents[$last][1] = $time;
+    }
+
+    // outages that lasted into the time since $since or still last, newest first
+    function botIncidents($since)
+    {
+        $incidents = json_decode((string)@file_get_contents(botFile('incidents.json')), true);
+        if (!is_array($incidents))
+            return [];
+
+        $recent = [];
+        foreach ($incidents as $incident)
+            if ($incident[1] === null || $incident[1] > $since)
+                $recent[] = $incident;
+
+        return array_reverse($recent);
+    }
+
     // the checks of the last 24 h as [time, online], oldest first
     function botHistory()
     {
@@ -210,6 +272,7 @@
 
             $uptime = botRecordCheck($online, $now);
             botRecordDay($online, $now);
+            botRecordIncident($online, $now);
 
             if (!$online)
                 $status = 'offline';

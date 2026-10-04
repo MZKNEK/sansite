@@ -154,6 +154,49 @@
     vertical-align: -1px;
 }
 
+/* outages of the last 30 days */
+.incidents {
+    margin-top: 24px;
+}
+
+.incident-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.incident-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+    padding: 7px 12px;
+    border-left: 2px solid rgba(217, 83, 79, 0.85);
+    background: rgba(255, 255, 255, 0.02);
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.incident-list b {
+    font-weight: normal;
+    color: #efe2f7;
+    white-space: nowrap;
+}
+
+.incident-list .ongoing {
+    background: rgba(217, 83, 79, 0.1);
+}
+
+.incident-list .ongoing span {
+    color: #f08a87;
+}
+
+.incidents-none {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.45);
+}
+
 /* Public status page state/ */
 .state-content {
     max-width: 1000px;

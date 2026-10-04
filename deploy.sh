@@ -3,9 +3,12 @@
 # out, so inc/config.php, inc/data/ and the pictures in i/ are never sent or
 # replaced. Files deleted from the repository since the last deploy are deleted
 # on the server too. Run it from Git Bash or any shell with ssh and tar:
-#   ./deploy.sh root@sanakan.pl                  site in /var/www/html
-#   ./deploy.sh root@sanakan.pl /var/www/other   another folder
-# With an SSH key there is no password prompt; without one ssh asks a few times.
+#   ./deploy.sh sanakan                  site in /var/www/html
+#   ./deploy.sh sanakan /var/www/other   another folder
+# sanakan.pl goes through Cloudflare, which lets no SSH through, so the target
+# is the server's own address, best as a host alias in ~/.ssh/config (see the
+# README). With an SSH key there is no password prompt; without one ssh asks a
+# few times, and a few wrong passwords in a row can get the address banned.
 set -euo pipefail
 
 target=${1:?"Użycie: ./deploy.sh użytkownik@serwer [folder strony, domyślnie /var/www/html]"}

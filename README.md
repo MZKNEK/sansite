@@ -7,8 +7,8 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/` | Home page: the logo with the bot status, links to the commands, wiki, Waifu and Skalpelator |
 | `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples |
 | `/api/` | API documentation (Swagger UI) with an endpoint search |
-| `/state/` | Public bot status and its availability over the last 24 hours |
-| `/i/` | Gallery of pictures and WebM videos, behind a Discord login |
+| `/state/` | Public bot status: availability over the last 24 hours, 30 days and 12 months, and the outages of the last 30 days |
+| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders |
 | `/admin/` | Admin panel, behind a Discord login |
 | `/status.php` | Bot status as JSON, used by the home page |
 
@@ -21,18 +21,20 @@ Hidden way into the panel: hold the status dot on the home page for 10 seconds. 
 | `index.html`, `404.html` | Home page and the 404 page |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/` | Subpages |
 | `status.php` | Bot status for the home page |
-| `inc/bot.php` | Bot API access: one-minute cache, 24 h check history, last known command list |
+| `inc/bot.php` | Bot API access: one-minute cache, 24 h check history, per day counts, outages, last known command list |
 | `inc/check-bot.php` | One bot check, run by cron every minute |
 | `inc/auth.php` | Discord login (OAuth2), session, access lists, change history |
-| `inc/gallery.php` | Gallery: thumbnails, uploads, WebP conversion, trash, renaming |
+| `inc/gallery.php` | Gallery: thumbnails, uploads, WebP conversion, search, duplicate check, trash, renaming |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
+| `robots.txt` | Keeps search engines out of the gallery, the panel, `inc/` and the API documentation |
+| `server/nginx/` | nginx rules: blocked `inc/`, 404 page, security headers, browser cache |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists, status and change history, trash,
+- `inc/data/`, the data the site writes: access lists, status history and outages, change history, trash, file hashes,
 - the pictures in `i/` (only `i/index.php` is tracked).
 
 ## Server
@@ -49,18 +51,20 @@ apt-get install -y php8.1-fpm php8.1-cli php8.1-gd webp
 
 ### nginx
 
-Block `inc/`, which holds the configuration and data, and set up the 404 page:
+The rules are in `server/nginx/`, which `deploy.sh` does not send:
+
+- `sanakan.conf` blocks `inc/`, which holds the configuration and data, sets up the 404 page, and lets browsers keep CSS and JS for a year (every page links them with a `?v=` version, raised on each change) and pictures and videos for a day.
+- `sanakan-headers.conf` adds the security headers: Content-Security-Policy, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy and HSTS. A new outside resource (a script, font or picture from another domain) has to be allowed in the policy first.
+
+Both go to `/etc/nginx/snippets/`, and the server block of the site includes the first one:
 
 ```nginx
-# /etc/nginx/snippets/sanakan.conf, included in the server block: include snippets/sanakan.conf;
-location ^~ /inc/ {
-    deny all;
-}
+include snippets/sanakan.conf;
+```
 
-error_page 404 /404.html;
-location = /404.html {
-    internal;
-}
+```bash
+scp server/nginx/sanakan.conf server/nginx/sanakan-headers.conf sanakan:/etc/nginx/snippets/
+ssh sanakan 'nginx -t && systemctl reload nginx'
 ```
 
 Upload limit for the gallery (nginx accepts only 1 MB by default):
@@ -106,8 +110,18 @@ echo '* * * * * www-data php /var/www/html/inc/check-bot.php > /dev/null 2>&1' >
 
 ## Deployment
 
+sanakan.pl goes through Cloudflare, which passes only web traffic, so SSH needs the server's own address. A host alias in `~/.ssh/config` keeps it in one place:
+
+```
+Host sanakan
+    HostName <server IP>
+    User root
+```
+
+With an SSH key (`ssh-keygen -t ed25519`, the `.pub` line added to `/root/.ssh/authorized_keys` on the server) nothing asks for a password. A few wrong passwords in a row can get the address banned for a while.
+
 ```bash
-./deploy.sh root@sanakan.pl
+./deploy.sh sanakan
 ```
 
 `deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. The site goes to `/var/www/html` unless another folder is given as the second argument.
