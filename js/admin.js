@@ -29,14 +29,16 @@
     });
   }
 
-  // buttons: the action and its fields are in data-action, data-list and data-id
+  // buttons: the action is in data-action, its fields in the other data-* attributes
+  // (data-confirm asks first)
   document.querySelectorAll('button[data-action]').forEach(function (button) {
     button.addEventListener('click', function () {
       if (button.dataset.confirm && !window.confirm(button.dataset.confirm)) return;
 
-      var fields = { action: button.dataset.action };
-      if (button.dataset.list) fields.list = button.dataset.list;
-      if (button.dataset.id) fields.id = button.dataset.id;
+      var fields = {};
+      Object.keys(button.dataset).forEach(function (key) {
+        if (key !== 'confirm') fields[key] = button.dataset[key];
+      });
       send(fields, [button]);
     });
   });

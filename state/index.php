@@ -4,8 +4,11 @@
     require __DIR__ . '/../inc/bot.php';
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
+    require __DIR__ . '/../inc/meta.php';
 
     $card = statusCard(false);
+    $state = botState();
+    $summary = 'Bot ' . STATUS_LABELS[$state['status']] . ' · dostępność z 24 h: ' . str_replace('.', ',', $state['uptime']) . '%';
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -13,7 +16,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Status bota Sanakan i jego dostępność w ostatnich 24 godzinach" />
+<?=metaTags('Status · Sanakan', $summary, '/state/')?>
   <meta http-equiv="refresh" content="60" />
   <title>Status &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />

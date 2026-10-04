@@ -12,6 +12,7 @@
     // reachable from the web.
     const SITE_SESSION = 'sanakan_gallery';  // the gallery's old cookie name, so logins stay valid
     const LOGIN_LOG_SIZE = 50;
+    const HISTORY_KEEP = 1000;
 
     // the lists the panel can add to, and the config constant each one extends
     const ACCESS_LISTS = [
@@ -73,6 +74,54 @@
             return false;
 
         return @rename($tmp, $file);
+    }
+
+    // ---- History of changes ----------------------------------------------------
+    // One JSON line per change in the gallery or the panel: when, who, what.
+    // Only the newest HISTORY_KEEP entries are kept.
+
+    function historyFile()
+    {
+        return dataDir() . '/history.log';
+    }
+
+    function addHistory($action, $text)
+    {
+        if (!is_dir(dataDir()))
+            @mkdir(dataDir(), 0750, true);
+
+        $user = siteUser();
+        $line = json_encode([
+            'time' => time(),
+            'id' => $user['id'] ?? '',
+            'name' => $user['name'] ?? '',
+            'action' => $action,
+            'text' => $text
+        ], JSON_UNESCAPED_UNICODE) . "\n";
+
+        $file = historyFile();
+        @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+
+        // trimmed now and then instead of on every write
+        clearstatcache();
+        if (@filesize($file) > 600000) {
+            $lines = @file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+            @file_put_contents($file, implode("\n", array_slice($lines, -HISTORY_KEEP)) . "\n", LOCK_EX);
+        }
+    }
+
+    // the newest entries first
+    function historyEntries($limit)
+    {
+        $lines = @file(historyFile(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $entries = [];
+        foreach (array_reverse(array_slice($lines, -$limit)) as $line) {
+            $entry = json_decode($line, true);
+            if (is_array($entry))
+                $entries[] = $entry;
+        }
+
+        return $entries;
     }
 
     // ---- Who may do what --------------------------------------------------------

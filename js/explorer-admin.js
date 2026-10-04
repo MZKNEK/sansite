@@ -233,6 +233,7 @@
     var n = picked().length;
     countEl.textContent = 'Zaznaczono: ' + n;
     document.getElementById('act-move').disabled = n === 0;
+    document.getElementById('act-rename').disabled = n !== 1;
     document.getElementById('act-delete').disabled = n === 0;
   }
 
@@ -277,6 +278,40 @@
     });
     return names.join(', ') + (tiles.length > 5 ? ' i ' + (tiles.length - 5) + ' innych' : '');
   }
+
+  // ---- Rename ----
+
+  var renameDialog = document.getElementById('dlg-rename');
+  var renameForm = document.getElementById('form-rename');
+
+  document.getElementById('act-rename').addEventListener('click', function () {
+    var tiles = picked();
+    if (tiles.length !== 1) return;
+    var current = tiles[0].dataset.rel.split('/').pop();
+
+    document.getElementById('rename-what').textContent = folderLabel(tiles[0].dataset.rel);
+    renameForm.elements.name.value = current;
+    dialogError(renameDialog, '');
+    renameDialog.showModal();
+
+    // the name without the extension is selected, ready to type over
+    var dot = tiles[0].classList.contains('folder') ? -1 : current.lastIndexOf('.');
+    renameForm.elements.name.setSelectionRange(0, dot > 0 ? dot : current.length);
+  });
+
+  renameForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    busy(renameDialog, true);
+    post({
+      action: 'rename',
+      items: [picked()[0].dataset.rel],
+      name: renameForm.elements.name.value.trim()
+    }).then(function (result) {
+      busy(renameDialog, false);
+      if (result.ok) reloadWith(result.message);
+      else dialogError(renameDialog, result.message);
+    });
+  });
 
   // ---- Move ----
 
@@ -334,7 +369,7 @@
     var folders = tiles.filter(function (tile) { return tile.classList.contains('folder'); }).length;
 
     document.getElementById('delete-what').textContent = 'Usunąć ' + countLabel(tiles.length) + ': ' + describe(tiles) + '?' +
-      (folders ? ' Foldery zostaną usunięte razem z całą zawartością.' : '');
+      (folders ? ' Foldery razem z całą zawartością.' : '');
     dialogError(deleteDialog, '');
     deleteDialog.showModal();
   }

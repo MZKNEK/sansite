@@ -15,6 +15,7 @@
     const WEBP_QUALITY = 90;
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
+    const TRASH_DAYS = 30;
     const MAX_NAME_LENGTH = 150;
 
     require_once __DIR__ . '/auth.php';
@@ -379,6 +380,19 @@
 
     // ---- Changes ------------------------------------------------------------
 
+    // "i" or "i/folder/file", as paths are written in messages
+    function galleryPath($rel)
+    {
+        return $rel === '' ? 'i' : 'i/' . $rel;
+    }
+
+    // a change went fine: it goes to the history, then the page gets the answer
+    function done($action, $history, $message = null)
+    {
+        addHistory($action, $history);
+        reply(true, $message ?? $history);
+    }
+
     function reply($ok, $message, $status = 200)
     {
         http_response_code($ok ? 200 : $status);
@@ -430,6 +444,115 @@
                 return false;
 
         return @rmdir($path);
+    }
+
+    // bytes in a file or a folder with everything inside
+    function treeSize($path)
+    {
+        if (is_link($path) || is_file($path))
+            return (int)@filesize($path);
+
+        $bytes = 0;
+        foreach (scandir($path) ?: [] as $name)
+            if ($name !== '.' && $name !== '..')
+                $bytes += treeSize($path . '/' . $name);
+
+        return $bytes;
+    }
+
+    // ---- Trash ------------------------------------------------------------------
+    // Deleted files and folders go to inc/data/trash/<id>/ for TRASH_DAYS days;
+    // the admin panel restores them or deletes them for good. inc/ is not
+    // reachable from the web, so trashed pictures stop working by their links.
+
+    function trashDir()
+    {
+        return dataDir() . '/trash';
+    }
+
+    // [id => ['name', 'from' (rel), 'folder' (bool), 'size', 'deleted' (time), 'by']], newest first
+    function trashItems()
+    {
+        $items = readData('trash');
+        uasort($items, function ($a, $b) {
+            return ($b['deleted'] ?? 0) - ($a['deleted'] ?? 0);
+        });
+
+        return $items;
+    }
+
+    function moveToTrash($full, $rel)
+    {
+        $id = date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $dir = trashDir() . '/' . $id;
+        if (!@mkdir($dir, 0750, true))
+            return false;
+
+        $folder = is_dir($full);
+        $size = treeSize($full);
+        if (!@rename($full, $dir . '/' . basename($rel))) {
+            @rmdir($dir);
+            return false;
+        }
+
+        $user = siteUser();
+        $items = readData('trash');
+        $items[$id] = [
+            'name' => basename($rel),
+            'from' => $rel,
+            'folder' => $folder,
+            'size' => $size,
+            'deleted' => time(),
+            'by' => $user['name'] ?? ''
+        ];
+
+        return writeData('trash', $items);
+    }
+
+    // back where it was deleted from (that folder is made again when it is gone);
+    // returns where it ended up, or null
+    function restoreFromTrash($base, $id)
+    {
+        $items = readData('trash');
+        if (!isset($items[$id]))
+            return null;
+
+        $item = $items[$id];
+        $source = trashDir() . '/' . $id . '/' . $item['name'];
+        $folderRel = dirname($item['from']) === '.' ? '' : dirname($item['from']);
+        $folder = $base . ($folderRel === '' ? '' : '/' . $folderRel);
+        if (!is_dir($folder) && !@mkdir($folder, 0755, true))
+            return null;
+
+        $name = freeName($folder, $item['name']);
+        if (!file_exists($source) || !@rename($source, $folder . '/' . $name))
+            return null;
+
+        @rmdir(trashDir() . '/' . $id);
+        unset($items[$id]);
+        writeData('trash', $items);
+
+        return ltrim($folderRel . '/' . $name, '/');
+    }
+
+    function deleteFromTrash($id)
+    {
+        $items = readData('trash');
+        if (!isset($items[$id]))
+            return false;
+
+        removeTree(trashDir() . '/' . $id);
+        unset($items[$id]);
+
+        return writeData('trash', $items);
+    }
+
+    // what has been in the trash longer than TRASH_DAYS goes for good
+    function purgeTrash()
+    {
+        foreach (readData('trash') as $id => $item)
+            if (($item['deleted'] ?? 0) < time() - TRASH_DAYS * 86400)
+                deleteFromTrash($id);
     }
 
     function iniBytes($value)
@@ -515,26 +638,56 @@
                     reply(false, 'Coś o nazwie ' . $name . ' już tu jest.', 409);
                 if (!@mkdir($dir[0] . '/' . $name, 0755))
                     reply(false, 'Nie udało się utworzyć folderu.', 500);
-                reply(true, 'Utworzono folder ' . $name . '.');
+                done('mkdir', 'Utworzono folder ' . galleryPath(ltrim($dir[1] . '/' . $name, '/')) . '.');
 
             case 'delete':
+                purgeTrash();
                 $items = postedItems($base);
+                $trashed = [];
                 $failed = [];
-                foreach ($items as $item)
-                    if (!removeTree($item[0]))
+                foreach ($items as $item) {
+                    if (moveToTrash($item[0], $item[1]))
+                        $trashed[] = galleryPath($item[1]);
+                    else
                         $failed[] = basename($item[1]);
+                }
 
-                $done = count($items) - count($failed);
+                if ($trashed)
+                    addHistory('delete', 'Do kosza: ' . implode(', ', $trashed) . '.');
+                $message = 'Przeniesiono do kosza ' . countLabel(count($trashed)) . ' (na ' . TRASH_DAYS . ' dni, przywracanie w panelu).';
                 if ($failed)
-                    reply(false, 'Usunięto ' . countLabel($done) . ', nie udało się: ' . implode(', ', $failed) . '.', 500);
-                reply(true, 'Usunięto ' . countLabel($done) . '.');
+                    reply(false, $message . ' Nie udało się: ' . implode(', ', $failed) . '.', 500);
+                reply(true, $message);
+
+            case 'rename':
+                $items = postedItems($base);
+                if (count($items) !== 1)
+                    reply(false, 'Zmienić nazwę można tylko jednemu elementowi naraz.', 400);
+
+                list($full, $rel) = $items[0];
+                $isFile = is_file($full);
+                $old = basename($rel);
+                $name = trim((string)($_POST['name'] ?? ''));
+                if ($error = nameError($name, $isFile))
+                    reply(false, $error, 400);
+                // the name does not change what the file is, so the extension stays
+                if ($isFile && extensionOf($name) !== extensionOf($old))
+                    reply(false, 'Rozszerzenie musi zostać .' . extensionOf($old) . ', zmiana nazwy nie zmienia formatu pliku.', 400);
+                if ($name === $old)
+                    reply(true, 'Nazwa się nie zmieniła.');
+                if (file_exists(dirname($full) . '/' . $name) && strcasecmp($name, $old) !== 0)
+                    reply(false, 'Coś o nazwie ' . $name . ' już tu jest.', 409);
+                if (!@rename($full, dirname($full) . '/' . $name))
+                    reply(false, 'Nie udało się zmienić nazwy.', 500);
+
+                done('rename', 'Zmieniono nazwę ' . galleryPath($rel) . ' na ' . $name . '.');
 
             case 'move':
                 $target = resolvePath($base, $_POST['target'] ?? '', true);
                 if (!$target)
                     reply(false, 'Nie ma takiego folderu docelowego.', 404);
 
-                $moved = 0;
+                $moved = [];
                 $problems = [];
                 foreach (postedItems($base) as $item) {
                     $name = basename($item[1]);
@@ -547,14 +700,16 @@
                     } else if (!@rename($item[0], $target[0] . '/' . $name)) {
                         $problems[] = $name . ' (nie udało się)';
                     } else {
-                        $moved++;
+                        $moved[] = galleryPath($item[1]);
                     }
                 }
 
-                $where = $target[1] === '' ? 'i' : 'i/' . $target[1];
+                $where = galleryPath($target[1]);
+                if ($moved)
+                    addHistory('move', 'Przeniesiono do ' . $where . ': ' . implode(', ', $moved) . '.');
                 if ($problems)
-                    reply($moved > 0, 'Przeniesiono ' . countLabel($moved) . ' do ' . $where . '. Pominięto: ' . implode(', ', $problems) . '.', 409);
-                reply(true, 'Przeniesiono ' . countLabel($moved) . ' do ' . $where . '.');
+                    reply(count($moved) > 0, 'Przeniesiono ' . countLabel(count($moved)) . ' do ' . $where . '. Pominięto: ' . implode(', ', $problems) . '.', 409);
+                reply(true, 'Przeniesiono ' . countLabel(count($moved)) . ' do ' . $where . '.');
         }
 
         reply(false, 'Nieznana akcja.', 400);
@@ -605,7 +760,9 @@
                     @unlink($path);
                 } else {
                     @chmod($path, 0644);
-                    reply(true, 'Dodano ' . $name . ' jako ' . $target . ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ').');
+                    $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
+                    done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
+                        'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
                 }
             }
         }
@@ -615,5 +772,6 @@
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
 
-        reply(true, ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).') . $note);
+        done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . '.',
+            ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).') . $note);
     }

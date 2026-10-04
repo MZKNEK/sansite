@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#9b59b6" />
+  <title>Nie ma takiej strony &middot; Sanakan</title>
+  <!-- nginx shows this page for any missing address, so every link starts at the root -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
+  <link href="/css/style.css?v=19" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=5" type="text/css" rel="stylesheet" />
+  <style>
+    .not-found .lost {
+      display: block;
+      margin: -8px 0 22px;
+      font: 13px "JetBrains Mono", Consolas, monospace;
+      color: rgba(182, 112, 211, 0.75);
+      overflow-wrap: anywhere;
+    }
+
+    .not-found .ways {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="content">
+    <header class="ex-header">
+      <div class="ex-top">
+        <a class="back hud-corners" href="/" title="Strona główna">&larr; Sanakan</a>
+      </div>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="hud-title">404</h1>
+    </header>
+
+    <section class="locked hud-corners not-found">
+      <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 14 0M2 9.5a15 15 0 0 1 20 0" /><path d="M3 3l18 18" /></svg>
+      <h2>Nie ma takiej strony</h2>
+      <p>Ten adres prowadzi donikąd. Może link jest stary albo w adresie jest literówka.</p>
+      <code class="lost" id="lost"></code>
+      <nav class="ways">
+        <a class="admin-btn primary" href="/">Strona główna</a>
+        <a class="admin-btn" href="/cmd/">Polecenia</a>
+        <a class="admin-btn" href="/state/">Status bota</a>
+      </nav>
+    </section>
+  </main>
+
+  <script>
+    // the address that was not found
+    var path = location.pathname;
+    try {
+      path = decodeURIComponent(path);
+    } catch (err) {
+      // a broken %-code stays as it is
+    }
+    document.getElementById('lost').textContent = path;
+  </script>
+</body>
+
+</html>

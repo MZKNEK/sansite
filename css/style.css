@@ -156,7 +156,8 @@ img.logo {
     opacity: 0;
     transform: scale(0.6);
     transition: opacity 0.3s, transform 0.3s ease-out, background-color 0.3s;
-    /* held for the hidden admin entry, so a long touch must not select or scroll */
+    /* a click opens state/; held for the hidden admin entry, so a long touch must not select or scroll */
+    cursor: pointer;
     touch-action: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;

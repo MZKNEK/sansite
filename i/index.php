@@ -5,6 +5,7 @@
     // ones in GALLERY_VIEWERS can look. Only this file is in git; the pictures
     // live on the server (see .gitignore). The logic is in inc/gallery.php.
     require __DIR__ . '/../inc/gallery.php';
+    require __DIR__ . '/../inc/meta.php';
 
     $base = str_replace('\\', '/', __DIR__);
 
@@ -121,6 +122,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="author" content="Sniku" />
+<?=metaTags('Galeria · Sanakan', 'Galeria obrazków bota Sanakan, dostęp po zalogowaniu przez Discord.', '/i/')?>
   <title><?=e($dirRel === '' ? 'Galeria' : 'i/' . $dirRel)?> &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -206,6 +208,7 @@
         <span class="admin-selection" id="admin-selection" hidden>
           <span class="admin-count" id="admin-count"></span>
           <button type="button" class="admin-btn" id="act-select-all">Wszystkie</button>
+          <button type="button" class="admin-btn" id="act-rename">Zmień nazwę</button>
           <button type="button" class="admin-btn" id="act-move">Przenieś</button>
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
@@ -337,6 +340,19 @@
     </form>
   </dialog>
 
+  <dialog class="ex-dialog" id="dlg-rename">
+    <form id="form-rename">
+      <h2>Zmień nazwę</h2>
+      <p id="rename-what"></p>
+      <input type="text" name="name" maxlength="150" autocomplete="off" spellcheck="false" required />
+      <p class="dialog-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="admin-btn" data-close>Anuluj</button>
+        <button type="submit" class="admin-btn primary">Zmień</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="ex-dialog" id="dlg-move">
     <form id="form-move">
       <h2>Przenieś</h2>
@@ -354,7 +370,7 @@
     <form id="form-delete">
       <h2>Usuń</h2>
       <p id="delete-what"></p>
-      <p class="dialog-warning">Tego nie da się cofnąć.</p>
+      <p class="dialog-warning">Trafią do kosza na <?=TRASH_DAYS?> dni; przywrócić je można w panelu administratora.</p>
       <p class="dialog-error" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="admin-btn" data-close>Anuluj</button>
@@ -375,7 +391,7 @@
 
   <script src="../js/explorer.js?v=6"></script>
 <?php if ($admin): ?>
-  <script src="../js/explorer-admin.js?v=4"></script>
+  <script src="../js/explorer-admin.js?v=5"></script>
 <?php endif; ?>
 </body>
 

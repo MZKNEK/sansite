@@ -1,0 +1,7 @@
+# Not part of the site on the server; deploy.sh sends what git archive gives
+deploy.sh export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+
+# the deploy script runs in bash, also on Windows
+*.sh text eol=lf

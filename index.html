@@ -4,7 +4,18 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0" />
-  <meta name="description" content="Sanakan - a discord bot written in C#" />
+  <meta name="description" content="Bot na Discorda napisany w C#: polecenia, wiki PocketWaifu, Waifu i status bota." />
+  <meta name="theme-color" content="#9b59b6" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sanakan" />
+  <meta property="og:locale" content="pl_PL" />
+  <meta property="og:title" content="Sanakan" />
+  <meta property="og:description" content="Bot na Discorda napisany w C#: polecenia, wiki PocketWaifu, Waifu i status bota." />
+  <meta property="og:url" content="https://sanakan.pl/" />
+  <meta property="og:image" content="https://sanakan.pl/sanakan.jpg" />
+  <meta property="og:image:width" content="500" />
+  <meta property="og:image:height" content="500" />
+  <meta name="twitter:card" content="summary" />
   <meta name="keywords" content="bot, dotnet, sanakan, sniku, discord" />
   <meta name="author" content="Sniku" />
   <title>Sanakan</title>
@@ -115,17 +126,19 @@
 
           var label = labels[data.status].replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'));
           dot.className = 'bot-status ' + data.status;
-          dot.title = label;
+          dot.title = label + ' (kliknij, żeby zobaczyć dostępność)';
           dot.setAttribute('aria-label', label);
         })
         // without an answer nothing is known about the bot, so no dot at all
         .catch(function () { dot.remove(); });
 
-      // hidden way to the admin panel: hold the dot for 10 seconds; it lights up meanwhile
-      var timer;
+      // a click on the dot opens the public status page; holding it for 10 seconds
+      // is the hidden way to the admin panel, the dot lights up meanwhile
+      var timer, pressed = 0;
 
       function hold(e) {
         if (e.button > 0) return;
+        pressed = Date.now();
         dot.classList.add('charging');
         timer = setTimeout(function () { location.href = 'admin/'; }, 10000);
       }
@@ -133,10 +146,16 @@
       function release() {
         clearTimeout(timer);
         dot.classList.remove('charging');
+        pressed = 0;
       }
 
       dot.addEventListener('pointerdown', hold);
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (type) {
+      dot.addEventListener('pointerup', function () {
+        var click = pressed && Date.now() - pressed < 400;
+        release();
+        if (click) location.href = 'state/';
+      });
+      ['pointerleave', 'pointercancel'].forEach(function (type) {
         dot.addEventListener(type, release);
       });
       // a long touch would open the context menu instead

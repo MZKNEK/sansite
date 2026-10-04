@@ -101,7 +101,7 @@
                 ];
                 if (!writeData('access', $access))
                     reply(false, dataError(), 500);
-                reply(true, 'Dodano ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
+                done('access', 'Dodano ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'revoke':
                 $access = readData('access');
@@ -111,7 +111,7 @@
                 unset($access[$list][$id]);
                 if (!writeData('access', $access))
                     reply(false, dataError(), 500);
-                reply(true, 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
+                done('access', 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'refresh-status':
                 $state = botState(true);
@@ -122,11 +122,33 @@
                 foreach (glob($thumbsDir . '/*') ?: [] as $file)
                     if (is_file($file) && @unlink($file))
                         $removed++;
-                reply(true, 'Usunięto ' . $removed . ' ' . plural($removed, 'miniaturę', 'miniatury', 'miniatur') . '; utworzą się od nowa przy oglądaniu galerii.');
+                done('cache', 'Usunięto ' . $removed . ' ' . plural($removed, 'miniaturę', 'miniatury', 'miniatur') . ' z cache; utworzą się od nowa przy oglądaniu galerii.');
 
             case 'refresh-spec':
                 @unlink(botFile('swagger.json'));
-                reply(true, 'Specyfikacja API zostanie pobrana od nowa przy następnym wejściu do API.');
+                done('cache', 'Odświeżono specyfikację API; zostanie pobrana przy następnym wejściu do API.');
+
+            case 'restore':
+                $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
+                if (!$item)
+                    reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
+                $where = restoreFromTrash($galleryDir, (string)$_POST['item']);
+                if ($where === null)
+                    reply(false, 'Nie udało się przywrócić ' . $item['name'] . '.', 500);
+                done('restore', 'Przywrócono z kosza ' . galleryPath($where) . '.');
+
+            case 'trash-delete':
+                $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
+                if (!$item || !deleteFromTrash((string)$_POST['item']))
+                    reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
+                done('purge', 'Usunięto na zawsze ' . galleryPath($item['from']) . ' (z kosza).');
+
+            case 'trash-empty':
+                $removed = 0;
+                foreach (array_keys(trashItems()) as $item)
+                    if (deleteFromTrash($item))
+                        $removed++;
+                done('purge', 'Opróżniono kosz: ' . countLabel($removed) . ' usunięte na zawsze.');
         }
 
         reply(false, 'Nieznana akcja.', 400);
@@ -143,8 +165,7 @@
         http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
 
     if ($allowed) {
-        $history = botHistory();
-        $autoChecks = checksLastHour($history);
+        $autoChecks = checksLastHour(botHistory());
 
         $logins = readData('logins');
 
@@ -165,6 +186,10 @@
         $thumbFiles = glob($thumbsDir . '/*') ?: [];
         $thumbBytes = array_sum(array_map('filesize', $thumbFiles));
         $specFile = botFile('swagger.json');
+
+        purgeTrash();
+        $trash = trashItems();
+        $history = historyEntries(100);
     }
 
     $csrf = $user ? siteCsrf() : '';
@@ -198,7 +223,7 @@
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=5" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=2" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=2" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=3" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -339,7 +364,52 @@
       </section>
 
       <section class="card wide">
-        <h2><i>07</i>Serwer</h2>
+        <h2><i>07</i>Kosz</h2>
+        <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.</p>
+<?php if (!$trash): ?>
+        <p class="nobody">Kosz jest pusty.</p>
+<?php else: ?>
+        <div class="trash">
+<?php foreach ($trash as $id => $item):
+        $daysLeft = max(0, (int)ceil((($item['deleted'] ?? 0) + TRASH_DAYS * 86400 - time()) / 86400));
+?>
+          <div class="trash-row">
+            <span class="trash-name">
+              <b><?=e($item['name'])?><?=!empty($item['folder']) ? '/' : ''?></b>
+              <code><?=e(galleryPath($item['from']))?></code>
+            </span>
+            <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(ago($item['deleted'] ?? 0))?><?=empty($item['by']) ? '' : ' przez ' . e($item['by'])?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
+            <span class="login-actions">
+              <button type="button" class="admin-btn small" data-action="restore" data-item="<?=e($id)?>">Przywróć</button>
+              <button type="button" class="admin-btn small danger" data-action="trash-delete" data-item="<?=e($id)?>" data-confirm="Usunąć na zawsze <?=e(galleryPath($item['from']))?>? Tego nie da się cofnąć.">Usuń na zawsze</button>
+            </span>
+          </div>
+<?php endforeach; ?>
+        </div>
+        <p class="trash-all"><button type="button" class="admin-btn small danger" data-action="trash-empty" data-confirm="Usunąć na zawsze wszystko z kosza (<?=e(countLabel(count($trash)))?>)? Tego nie da się cofnąć.">Opróżnij kosz</button></p>
+<?php endif; ?>
+      </section>
+
+      <section class="card wide">
+        <h2><i>08</i>Historia zmian</h2>
+        <p class="hint">Ostatnie zmiany w galerii i w panelu: kto, kiedy i co.</p>
+<?php if (!$history): ?>
+        <p class="nobody">Jeszcze nic się nie zmieniło.</p>
+<?php else: ?>
+        <ol class="history">
+<?php foreach ($history as $entry): ?>
+          <li>
+            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('d.m H:i', $entry['time'] ?? 0))?></time>
+            <span class="history-who"><?=e($entry['name'] ?: $entry['id'])?></span>
+            <span class="history-text"><?=e($entry['text'] ?? '')?></span>
+          </li>
+<?php endforeach; ?>
+        </ol>
+<?php endif; ?>
+      </section>
+
+      <section class="card wide">
+        <h2><i>09</i>Serwer</h2>
         <dl class="server">
           <dt>PHP</dt>
           <dd><?=e(PHP_VERSION)?></dd>
@@ -391,7 +461,7 @@
 
   <script src="../js/explorer.js?v=6"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=1"></script>
+  <script src="../js/admin.js?v=2"></script>
 <?php endif; ?>
 </body>
 

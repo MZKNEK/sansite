@@ -1,5 +1,6 @@
 <?php
     require __DIR__ . '/../inc/bot.php';
+    require __DIR__ . '/../inc/meta.php';
 
     $state = botState();
     $data = botCommands();
