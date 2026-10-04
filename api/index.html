@@ -1,13 +1,15 @@
 <!-- HTML for static distribution bundle build -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Sanakan API</title>
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Source+Code+Pro:300,600|Titillium+Web:400,600,700" rel="stylesheet">
+  <title>API &middot; Sanakan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css" >
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Lato:400,400i,700" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=4" >
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=17" />
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=13" >
   <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
   <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
   <style>
@@ -32,7 +34,24 @@
 
 <body>
 
-<a class="back-link" href="../">&larr; Strona główna</a>
+<header class="api-header">
+  <div class="api-top">
+    <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
+  </div>
+  <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+  <h1 class="hud-title">API<span class="api-version" id="api-version" hidden></span></h1>
+</header>
+
+<div class="api-toolbar" id="api-toolbar" hidden>
+  <div class="api-toolbar-inner">
+    <label class="search hud-corners">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
+      <input id="api-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj endpointu: metoda, ścieżka lub opis" aria-label="Szukaj endpointu" />
+      <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
+    </label>
+    <div class="search-info" id="api-search-info" aria-live="polite"></div>
+  </div>
+</div>
 
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="position:absolute;width:0;height:0">
   <defs>
@@ -70,8 +89,11 @@
 
 <div id="swagger-ui"></div>
 
+<p class="api-no-results" id="api-no-results" hidden>Brak pasujących endpointów.</p>
+
 <script src="./swagger-ui-bundle.js"> </script>
 <script src="./swagger-ui-standalone-preset.js"> </script>
+<script src="./search.js?v=2"> </script>
 <script>
 window.onload = function() {
   
@@ -85,12 +107,25 @@ window.onload = function() {
       SwaggerUIStandalonePreset
     ],
     plugins: [
-      SwaggerUIBundle.plugins.DownloadUrl
+      SwaggerUIBundle.plugins.DownloadUrl,
+      SanakanApiSearch.plugin
     ],
-    layout: "StandaloneLayout"
+    layout: "StandaloneLayout",
+    onComplete: function () {
+      // API version from the spec, next to the title
+      var version = window.ui.specSelectors.info().get("version")
+      if (version) {
+        var badge = document.getElementById("api-version")
+        badge.textContent = "v" + version
+        badge.hidden = false
+      }
+
+      SanakanApiSearch.mount()
+    }
   })
 
   window.ui = ui
+  SanakanApiSearch.bind(ui)
 }
 </script>
 </body>

@@ -25,24 +25,106 @@ body {
     color: var(--text);
 }
 
-.back-link {
-    display: inline-block;
-    margin: 24px 0 0 max(20px, calc((100vw - 1460px) / 2 + 20px));
-    padding: 6px 18px;
-    border: 1px solid rgba(155, 89, 182, 0.5);
-    border-radius: 999px;
-    background: rgba(155, 89, 182, 0.08);
-    color: var(--accent-light);
-    font-family: Lato, "Open Sans", sans-serif;
-    font-size: 16px;
-    font-variant: small-caps;
-    text-decoration: none;
-    transition: background-color 0.2s, color 0.2s;
+/* Header like on the other pages; Swagger's own title is hidden */
+.api-header {
+    width: 100%;
+    max-width: 1460px;
+    margin: 0 auto;
+    padding: 20px 20px 0;
+    text-align: center;
 }
 
-.back-link:hover {
-    background: var(--accent);
-    color: #fff;
+.api-top {
+    text-align: left;
+}
+
+.api-header .tag {
+    margin-top: 18px;
+}
+
+.api-header .hud-title {
+    display: inline-block;
+    position: relative;
+    font-size: clamp(26px, 8vw, 48px);
+}
+
+/* the version sits next to the title without moving it off centre */
+.api-version {
+    position: absolute;
+    top: 0.25em;
+    left: 100%;
+    padding: 2px 8px;
+    border: 1px solid rgba(155, 89, 182, 0.5);
+    background: rgba(155, 89, 182, 0.1);
+    color: var(--accent-light);
+    font: 13px/1.4 "Share Tech Mono", monospace;
+    letter-spacing: 0.12em;
+    text-shadow: none;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+.swagger-ui .info .title {
+    display: none;
+}
+
+/* Search below the API description, kept at the top while scrolling;
+   search.js moves it into Swagger's container once the docs are ready */
+.api-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-bottom: 20px;
+    background: rgba(14, 14, 17, 0.88);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(155, 89, 182, 0.2);
+}
+
+/* the field is as wide as Swagger's endpoint blocks (max 1460px with 20px sides) */
+.api-toolbar-inner {
+    width: calc(100% - 40px);
+    max-width: 1420px;
+    margin: 0 auto;
+    padding: 12px 0;
+}
+
+/* inside .swagger-ui the input and the icon would get Swagger's styles */
+.swagger-ui .api-toolbar .search-icon {
+    fill: none;
+}
+
+.swagger-ui .api-toolbar .search input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text);
+    font: 16px Lato, sans-serif;
+}
+
+/* Swagger shows its own filter box while a filter is set; the search bar replaces it */
+.swagger-ui .filter-container {
+    display: none;
+}
+
+/* links to a group or endpoint land below the search bar */
+.swagger-ui .opblock-tag-section,
+.swagger-ui .opblock {
+    scroll-margin-top: 90px;
+}
+
+.api-no-results {
+    margin: 0 0 60px;
+    text-align: center;
+    color: rgba(220, 221, 222, 0.5);
+    font-size: 18px;
 }
 
 /* Text */
@@ -123,15 +205,37 @@ body {
     color: var(--accent-light);
 }
 
-/* Tags and operations */
+/* Tags and operations; tags look like the module headings on the commands page */
+#swagger-ui {
+    counter-reset: api-tag;
+}
+
+.swagger-ui .opblock-tag-section {
+    counter-increment: api-tag;
+}
+
 .swagger-ui .opblock-tag {
-    border-bottom: 1px solid rgba(155, 89, 182, 0.35);
-    color: var(--accent-light);
+    border-bottom: 0;
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.6), transparent) left bottom / 100% 1px no-repeat;
+    color: #efe2f7;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
     transition: background-color 0.2s;
 }
 
+.swagger-ui .opblock-tag::before {
+    content: counter(api-tag, decimal-leading-zero);
+    margin-right: 12px;
+    font: 0.8em "Share Tech Mono", monospace;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    opacity: 0.8;
+}
+
 .swagger-ui .opblock-tag:hover {
-    background: rgba(155, 89, 182, 0.1);
+    background-color: rgba(155, 89, 182, 0.1);
 }
 
 .swagger-ui .opblock-tag small {
@@ -409,15 +513,19 @@ body {
     border-color: #6b6e75;
 }
 
-/* Readability of the description block */
+/* Readability of the description block: a narrower, justified column in the middle */
 .swagger-ui .info .markdown p,
 .swagger-ui .info .renderedMarkdown p,
 .swagger-ui .info li {
-    max-width: 960px;
-    margin: 0 0 14px;
+    max-width: 760px;
+    margin: 0 auto 14px;
     color: #e4e5e7;
     font-size: 16px;
     line-height: 1.7;
+    text-align: justify;
+    text-align-last: center;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 .swagger-ui .markdown code,
@@ -427,7 +535,7 @@ body {
     border-radius: 4px;
     background: rgba(155, 89, 182, 0.16);
     color: #f0dcfa;
-    font-family: "Source Code Pro", Consolas, monospace;
+    font-family: "JetBrains Mono", Consolas, monospace;
     font-size: 14px;
     font-weight: 400;
     white-space: nowrap;
@@ -531,4 +639,131 @@ body {
 
 .swagger-ui .opblock.opblock-patch .opblock-summary-method {
     background: #8a5aa0;
+}
+
+/* Fonts: Lato and JetBrains Mono like the rest of the site, instead of the
+   three fonts Swagger UI asks for (the selectors are the ones in swagger-ui.css) */
+.swagger-ui,
+.swagger-ui .opblock-tag small,
+.swagger-ui .opblock .opblock-summary-description,
+.swagger-ui .opblock-description-wrapper,
+.swagger-ui .opblock-external-docs-wrapper,
+.swagger-ui .opblock-title_normal,
+.swagger-ui .opblock-description-wrapper h4,
+.swagger-ui .opblock-external-docs-wrapper h4,
+.swagger-ui .opblock-title_normal h4,
+.swagger-ui .opblock-description-wrapper p,
+.swagger-ui .opblock-external-docs-wrapper p,
+.swagger-ui .opblock-title_normal p,
+.swagger-ui .responses-inner h4,
+.swagger-ui .responses-inner h5,
+.swagger-ui .response-col_status,
+.swagger-ui .response-col_links,
+.swagger-ui .dialog-ux .modal-ux-content p,
+.swagger-ui table thead tr td,
+.swagger-ui table thead tr th,
+.swagger-ui .info li,
+.swagger-ui .info p,
+.swagger-ui .info table,
+.swagger-ui .info h1,
+.swagger-ui .info h2,
+.swagger-ui .info h3,
+.swagger-ui .info h4,
+.swagger-ui .info h5,
+.swagger-ui .info a,
+.swagger-ui .info .title,
+.swagger-ui .opblock-tag,
+.swagger-ui .opblock .opblock-section-header label,
+.swagger-ui .opblock .opblock-section-header h4,
+.swagger-ui .opblock .opblock-summary-method,
+.swagger-ui .tab li,
+.swagger-ui .scheme-container .schemes>label,
+.swagger-ui .loading-container .loading:after,
+.swagger-ui section h3,
+.swagger-ui .btn,
+.swagger-ui .btn.cancel,
+.swagger-ui select,
+.swagger-ui label,
+.swagger-ui .dialog-ux .modal-ux-content h4,
+.swagger-ui .dialog-ux .modal-ux-header h3,
+.swagger-ui section.models h4,
+.swagger-ui section.models h5,
+.swagger-ui .model-title,
+.swagger-ui .model-deprecated-warning,
+.swagger-ui .servers>label,
+.swagger-ui .parameter__name,
+.swagger-ui .topbar a,
+.swagger-ui .topbar .download-url-wrapper .download-url-button,
+.swagger-ui .info .title small pre,
+.swagger-ui .scopes h2,
+.swagger-ui .errors-wrapper hgroup h4 {
+    font-family: Lato, sans-serif;
+}
+
+.swagger-ui .parameter__type,
+.swagger-ui .opblock .opblock-summary-operation-id,
+.swagger-ui .opblock .opblock-summary-path,
+.swagger-ui .opblock .opblock-summary-path__deprecated,
+.swagger-ui .response-col_status .response-undocumented,
+.swagger-ui .response-col_links .response-undocumented,
+.swagger-ui .response-col_description__inner div.markdown,
+.swagger-ui .response-col_description__inner div.renderedMarkdown,
+.swagger-ui .response-col_description__inner div.markdown p,
+.swagger-ui .response-col_description__inner div.renderedMarkdown p,
+.swagger-ui .response-col_description__inner div.markdown a,
+.swagger-ui .response-col_description__inner div.renderedMarkdown a,
+.swagger-ui .response-col_description__inner div.markdown th,
+.swagger-ui .response-col_description__inner div.renderedMarkdown th,
+.swagger-ui .opblock-body pre,
+.swagger-ui textarea,
+.swagger-ui textarea.curl,
+.swagger-ui .checkbox p,
+.swagger-ui .model,
+.swagger-ui table.headers td,
+.swagger-ui .parameter__extension,
+.swagger-ui .parameter__in,
+.swagger-ui .parameter__deprecated,
+.swagger-ui .info code,
+.swagger-ui .info .base-url,
+.swagger-ui .auth-container .errors,
+.swagger-ui .errors-wrapper .errors h4 {
+    font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+/* phones: the path stays next to the method and the description gets its own line */
+@media only screen and (max-width: 600px) {
+    .swagger-ui .opblock .opblock-summary {
+        flex-wrap: wrap;
+    }
+
+    .swagger-ui .opblock .opblock-summary-method {
+        min-width: 64px;
+        font-size: 12px;
+    }
+
+    .swagger-ui .opblock .opblock-summary-path,
+    .swagger-ui .opblock .opblock-summary-path__deprecated {
+        flex: 1;
+        max-width: none;
+        font-size: 14px;
+        word-break: break-all;
+    }
+
+    .swagger-ui .opblock .opblock-summary-description {
+        flex-basis: 100%;
+        margin-top: 8px;
+        padding: 0 2px;
+    }
+
+    .swagger-ui .opblock-tag {
+        font-size: 18px;
+    }
+
+    /* justified text gets wide gaps in a narrow column */
+    .swagger-ui .info .markdown p,
+    .swagger-ui .info .renderedMarkdown p,
+    .swagger-ui .info li {
+        text-align: left;
+        text-align-last: auto;
+    }
 }

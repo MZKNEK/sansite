@@ -23,20 +23,11 @@ code {
     text-align: left;
 }
 
-.back {
-    display: inline-block;
-    padding: 8px 16px;
-    color: var(--text);
-    font: 13px/1.5 "Share Tech Mono", monospace;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-}
-
 .cmd-header .tag {
     margin-top: 18px;
 }
 
-.cmd-header .name {
+.cmd-header .hud-title {
     font-size: clamp(26px, 8vw, 48px);
 }
 
@@ -98,56 +89,6 @@ code {
     border-bottom: 1px solid rgba(155, 89, 182, 0.2);
 }
 
-.search {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    cursor: text;
-}
-
-.search:focus-within {
-    --arm: 18px;
-    --fill: rgba(155, 89, 182, 0.12);
-}
-
-.search-icon {
-    flex: none;
-    width: 20px;
-    height: 20px;
-    fill: none;
-    stroke: var(--accent-light);
-    stroke-width: 2;
-    stroke-linecap: round;
-}
-
-.search input {
-    flex: 1;
-    min-width: 0;
-    padding: 4px 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--text);
-    /* 16px keeps phones from zooming in on focus */
-    font: 16px Lato, sans-serif;
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.search input::placeholder {
-    color: rgba(220, 221, 222, 0.4);
-}
-
-.search kbd {
-    padding: 0 7px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
-    border-radius: 3px;
-    color: var(--accent-light);
-    font: 13px/20px "Share Tech Mono", monospace;
-    opacity: 0.7;
-}
-
 .module-chips {
     display: flex;
     gap: 8px;
@@ -187,16 +128,6 @@ code {
     margin-left: 8px;
     font: 400 0.9em "Share Tech Mono", monospace;
     opacity: 0.55;
-}
-
-.search-info {
-    margin-top: 6px;
-    font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
-}
-
-.search-info:empty {
-    display: none;
 }
 
 /* Modules */
@@ -340,13 +271,6 @@ code {
     text-align: center;
     color: rgba(220, 221, 222, 0.5);
     font-size: 18px;
-}
-
-/* touch screens: there is no keyboard shortcut to show */
-@media (hover: none) {
-    .search kbd {
-        display: none;
-    }
 }
 
 @media only screen and (max-width: 760px) {

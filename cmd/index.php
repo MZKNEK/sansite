@@ -57,7 +57,7 @@ include 'sanakan.head.html';
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
-      <h1 class="name">Polecenia</h1>
+      <h1 class="hud-title">Polecenia</h1>
       <div class="cmd-meta">
 <?php if ($prefix != ''): ?>
         <span>Przedrostek <code><?=e($prefix)?></code></span>
