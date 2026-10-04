@@ -105,11 +105,45 @@
     }
   });
 
-  // a link to a command (#daily): the search must not hide it, and the jump is
-  // made again once the toolbar height is known, so it does not end up under it
+  // the command with this name as an alias, e.g. "hourly" for "zaskórniaki"
+  function byAlias(name) {
+    var wanted = name.toLowerCase().replace(/-/g, ' ');
+    var found = null;
+    document.querySelectorAll('.cmd').forEach(function (cmd) {
+      if (found) return;
+      cmd.querySelectorAll('.cmd-aliases code').forEach(function (alias) {
+        if (alias.textContent.trim().toLowerCase() === wanted) found = cmd;
+      });
+    });
+    return found;
+  }
+
+  // A link to a command (#daily, also the short /cmd/daily): the search must not
+  // hide it, and the jump is made again once the toolbar height is known, so it
+  // does not end up under it. A name that is no command's id may be an alias;
+  // anything else goes into the search.
   function showLinked() {
-    var target = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    if (!target || !target.classList.contains('cmd')) return;
+    if (location.hash.length < 2) return;
+    var name;
+    try {
+      name = decodeURIComponent(location.hash.slice(1));
+    } catch (err) {
+      return;
+    }
+
+    var target = document.getElementById(name) || document.getElementById(name.toLowerCase()) || byAlias(name);
+    if (!target) {
+      input.value = name.replace(/-/g, ' ');
+      filter();
+      return;
+    }
+    if (!target.classList.contains('cmd')) return;
+    // found by another spelling or an alias: the address gets the real one, which
+    // also lights the command up (:target) and comes back here
+    if (target.id !== name) {
+      location.replace('#' + target.id);
+      return;
+    }
     if (target.hidden) {
       input.value = '';
       filter();

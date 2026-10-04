@@ -1,13 +1,16 @@
 <?php
-    // Discord login (OAuth2) shared by the gallery in i/ and the admin panel in
-    // admin/: one session for both, and the lists of who may do what.
+    // Discord login (OAuth2) shared by the gallery in i/, the API documentation
+    // in api/ and the admin panel in admin/: one session for all, and the lists
+    // of who may do what.
     //
     // inc/config.php (only on the server, see config.example.php) has the
     // Discord application keys and the fixed account lists:
     //   PANEL_ADMINS     may open the admin panel
     //   GALLERY_ADMINS   may view and manage the gallery
     //   GALLERY_VIEWERS  may view the gallery (true lets in anyone with Discord)
-    // The panel adds more gallery admins and viewers. Those are kept in
+    //   API_VIEWERS      may read the API documentation (the panel admins always can)
+    // The panel adds more gallery admins and viewers and API readers. An account
+    // without access can ask for it; the requests wait in inc/data/requests.json. Those are kept in
     // inc/data/access.json, next to a list of recent logins; inc/ is not
     // reachable from the web.
     const SITE_SESSION = 'sanakan_gallery';  // the gallery's old cookie name, so logins stay valid
@@ -20,8 +23,13 @@
     // the lists the panel can add to, and the config constant each one extends
     const ACCESS_LISTS = [
         'galleryAdmins' => 'GALLERY_ADMINS',
-        'galleryViewers' => 'GALLERY_VIEWERS'
+        'galleryViewers' => 'GALLERY_VIEWERS',
+        'apiViewers' => 'API_VIEWERS'
     ];
+
+    // what an account can ask for, as it reads after "dostęp do"
+    const REQUEST_LABELS = ['gallery' => 'galerii', 'api' => 'API'];
+    const REQUEST_NOTE_LENGTH = 200;
 
     function authConfigured()
     {
@@ -43,6 +51,15 @@
         $root = str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/x/index.php')));
 
         return rtrim($root, '/') . '/';
+    }
+
+    // the first $length characters, also without the mbstring extension
+    function cutText($text, $length)
+    {
+        if (function_exists('mb_substr'))
+            return mb_substr($text, 0, $length, 'UTF-8');
+
+        return preg_match('/^.{0,' . (int)$length . '}/us', $text, $match) ? $match[0] : substr($text, 0, $length);
     }
 
     // ---- Stored data ----------------------------------------------------------
@@ -173,6 +190,62 @@
     function canViewGalleryId($id)
     {
         return isGalleryAdminId($id) || inAccessList('galleryViewers', $id, true);
+    }
+
+    function canViewApiId($id)
+    {
+        return isPanelAdminId($id) || inAccessList('apiViewers', $id, true);
+    }
+
+    function apiCanView()
+    {
+        $user = siteUser();
+
+        return $user !== null && canViewApiId($user['id']);
+    }
+
+    // ---- Requests for access ----------------------------------------------------
+    // ['gallery' => [id => ['name', 'note', 'time']], 'api' => [...]]
+
+    // the request of an account still waiting, or null
+    function pendingRequest($for, $id)
+    {
+        return readData('requests')[$for][(string)$id] ?? null;
+    }
+
+    // a place on this site to go back to after a form: "?p=..." or "./"
+    function localBack($back)
+    {
+        $back = (string)$back;
+
+        return preg_match('/^(\?|\.\/)/', $back) ? $back : './';
+    }
+
+    // Saves the request of the logged-in account sent from a locked page and goes
+    // back there with a message; one request at a time, again only after an hour.
+    function handleAccessRequest($for, $allowed, $back)
+    {
+        $user = siteUser();
+        $requests = readData('requests');
+        $pending = $requests[$for][$user['id']] ?? null;
+
+        if ($allowed) {
+            setFlash('To konto ma już dostęp do ' . REQUEST_LABELS[$for] . '.');
+        } else if ($pending && $pending['time'] > time() - 3600) {
+            setFlash('Prośba już czeka na administratora.');
+        } else {
+            $note = cutText(trim((string)($_POST['note'] ?? '')), REQUEST_NOTE_LENGTH);
+            $requests[$for][$user['id']] = ['name' => $user['name'], 'note' => $note, 'time' => time()];
+            if (writeData('requests', $requests)) {
+                addHistory('request', 'Prośba o dostęp do ' . REQUEST_LABELS[$for] . ($note === '' ? '.' : ': „' . $note . '”.'));
+                setFlash('Wysłano prośbę o dostęp. Administrator zobaczy ją w panelu.');
+            } else {
+                setFlash('Nie udało się zapisać prośby, spróbuj później.');
+            }
+        }
+
+        header('Location: ' . localBack($back), true, 303);
+        exit;
     }
 
     // ---- Session ------------------------------------------------------------------

@@ -12,5 +12,7 @@
 
     echo json_encode([
         'status' => botInMaintenance(time()) ? 'maintenance' : $state['status'],
-        'uptime' => $state['uptime']
-    ]);
+        'uptime' => $state['uptime'],
+        // since when it does not answer, e.g. "od 14:05 (23 min)"
+        'down' => trim(botDownText($state))
+    ], JSON_UNESCAPED_UNICODE);

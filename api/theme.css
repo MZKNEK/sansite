@@ -35,7 +35,64 @@ body {
 }
 
 .api-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     text-align: left;
+}
+
+/* the logged-in account, as in the gallery */
+.api-account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font: 14px Lato, sans-serif;
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.api-account img {
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
+}
+
+.api-account button {
+    padding: 6px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: transparent;
+    color: #b670d3;
+    font: 13px Lato, sans-serif;
+    cursor: pointer;
+}
+
+.api-account button:hover {
+    background: rgba(155, 89, 182, 0.2);
+    color: #fff;
+}
+
+/* a message after the login, gone after a few seconds */
+.api-flash {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 120;
+    width: min(520px, calc(100vw - 32px));
+    margin: 0;
+    padding: 12px 16px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: rgba(18, 18, 22, 0.96);
+    color: #dcddde;
+    font: 14px Lato, sans-serif;
+    transform: translateX(-50%);
+    animation: api-flash 5s forwards;
+    pointer-events: none;
+}
+
+@keyframes api-flash {
+    0%, 80% { opacity: 1; }
+    100% { opacity: 0; visibility: hidden; }
 }
 
 .api-header .tag {

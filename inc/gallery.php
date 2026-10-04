@@ -854,10 +854,22 @@
             zipCollect($full . '/' . $name, $local . '/' . $name, false, $files, $bytes, $depth + 1);
     }
 
-    // Sends gallery items ([full path, rel] each) as one ZIP, stored without
-    // compression, since pictures and videos are compressed already. A problem
-    // goes back to $backUrl as a message.
-    function sendZip($items, $zipName, $backUrl)
+    // gallery items ([full path, rel] each) as what sendZip() takes: the top
+    // folder is "i" and loses its index.php, the others keep their own name
+    function galleryZipRoots($items)
+    {
+        $roots = [];
+        foreach ($items as $item)
+            $roots[] = [$item[0], $item[1] === '' ? 'i' : basename($item[1]), $item[1] === ''];
+
+        return $roots;
+    }
+
+    // Sends files and folders ([full path, name in the ZIP, whether it is the
+    // gallery's top folder] each) as one ZIP, stored without compression, since
+    // pictures and videos are compressed already. $maxBytes null means no limit
+    // but the free disk space. A problem goes back to $backUrl as a message.
+    function sendZip($roots, $zipName, $backUrl, $maxBytes = ZIP_MAX_BYTES)
     {
         $fail = function ($message) use ($backUrl) {
             setFlash($message);
@@ -869,12 +881,16 @@
 
         $files = [];
         $bytes = 0;
-        foreach ($items as $item)
-            zipCollect($item[0], $item[1] === '' ? 'i' : basename($item[1]), $item[1] === '', $files, $bytes);
+        foreach ($roots as $root)
+            zipCollect($root[0], $root[1], $root[2], $files, $bytes);
         if (!array_filter(array_column($files, 0)))
             $fail('Nie ma tu żadnych plików do pobrania.');
-        if ($bytes > ZIP_MAX_BYTES)
-            $fail('To za dużo naraz (' . formatSize($bytes) . ', limit ' . formatSize(ZIP_MAX_BYTES) . '). Pobierz mniejsze foldery osobno.');
+        if ($maxBytes !== null && $bytes > $maxBytes)
+            $fail('To za dużo naraz (' . formatSize($bytes) . ', limit ' . formatSize($maxBytes) . '). Pobierz mniejsze foldery osobno.');
+        // the ZIP is put together on the disk first
+        $free = @disk_free_space(sys_get_temp_dir());
+        if ($free !== false && $free < $bytes + 100 * 1024 * 1024)
+            $fail('Za mało wolnego miejsca na dysku serwera na złożenie ZIP (' . formatSize($bytes) . ').');
 
         @set_time_limit(0);
         $tmp = @tempnam(sys_get_temp_dir(), 'sanakan-zip-');
@@ -1145,13 +1161,15 @@
             reply(true, 'Wylogowano.');
         }
 
+        if ($action === 'request-access')
+            handleAccessRequest('gallery', galleryCanView(), $_POST['back'] ?? '');
+
         if ($action === 'zip') {
             if (!galleryCanView())
                 reply(false, 'To konto nie ma dostępu do galerii.', 403);
-            $back = (string)($_POST['back'] ?? '');
             $dir = trim((string)($_POST['dir'] ?? ''), '/');
-            sendZip(postedItems($base), ($dir === '' ? 'galeria' : basename($dir)) . ' - wybrane.zip',
-                preg_match('/^(\?|\.\/)/', $back) ? $back : './');
+            sendZip(galleryZipRoots(postedItems($base)), ($dir === '' ? 'galeria' : basename($dir)) . ' - wybrane.zip',
+                localBack($_POST['back'] ?? ''));
         }
 
         if (!galleryIsAdmin())

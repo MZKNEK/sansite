@@ -3,6 +3,8 @@
     // holds a secret, so it is not in git. Without it the gallery in i/ and the
     // admin panel stay closed (the pictures still work by their direct links).
     //
+    // The same login guards the API documentation in api/.
+    //
     // Discord application: https://discord.com/developers/applications
     // → your application → OAuth2. Copy the Client ID and Client Secret, and
     // add DISCORD_REDIRECT_URI below to the Redirects list there, exactly the same.
@@ -28,5 +30,11 @@
     // true lets in anyone logged in with Discord. Without this line only the
     // admins see it.
     const GALLERY_VIEWERS = [
+        // '234567890123456789',
+    ];
+
+    // Accounts that may read the API documentation in api/ (the panel can add
+    // more, and PANEL_ADMINS always can); true lets in anyone logged in with Discord.
+    const API_VIEWERS = [
         // '234567890123456789',
     ];

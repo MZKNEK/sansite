@@ -496,6 +496,34 @@ a.hud-corners:hover {
     opacity: 0.8;
 }
 
+/* a page behind a login (API): red instead of purple, with a padlock */
+.links a.restricted {
+    --corner: rgba(232, 98, 98, 0.85);
+    --fill: rgba(217, 83, 79, 0.06);
+    min-width: 0;
+    color: #f0c4c2;
+}
+
+.links a.restricted:hover {
+    --fill: rgba(217, 83, 79, 0.2);
+    color: #fff;
+}
+
+.links a.restricted i {
+    color: #e86262;
+}
+
+.links a.restricted .lock {
+    width: 13px;
+    height: 13px;
+    margin-left: 10px;
+    vertical-align: -1px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    opacity: 0.75;
+}
+
 /* Waifu slides down on hover and Alter takes its place */
 .link-swap {
     position: relative;
@@ -594,7 +622,7 @@ a.hud-corners:hover {
 }
 
 /* touch screens and narrow windows: show both buttons, no animations, no Morse */
-@media (hover: none), only screen and (max-width: 600px) {
+@media (hover: none), only screen and (max-width: 720px) {
     .motto {
         display: none;
     }
@@ -698,9 +726,30 @@ a.hud-corners:hover {
     }
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 720px) {
     .links a,
     .link-swap {
         width: 100%;
+    }
+}
+
+/* Medium windows: the buttons get narrower and stay in one row, since a second
+   row would sit right where Alter and USkalpelator slide in on hover */
+@media only screen and (min-width: 721px) and (max-width: 1100px) {
+    .links {
+        flex-wrap: nowrap;
+        gap: 10px;
+    }
+
+    .links a {
+        min-width: 0;
+        padding: 12px 14px;
+        font-size: 14px;
+        letter-spacing: 0.1em;
+        white-space: nowrap;
+    }
+
+    .links a i {
+        margin-right: 7px;
     }
 }

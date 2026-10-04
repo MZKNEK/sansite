@@ -106,21 +106,6 @@
 
     const INCIDENTS_SHOWN = 10;
 
-    // how long an outage took: "27 min", "3 godz. 5 min", "2 dni 4 godz."
-    function duration($seconds)
-    {
-        $minutes = max(1, (int)round($seconds / 60));
-        if ($minutes < 60)
-            return $minutes . ' min';
-
-        $hours = intdiv($minutes, 60);
-        if ($hours < 24)
-            return $hours . ' godz.' . ($minutes % 60 ? ' ' . ($minutes % 60) . ' min' : '');
-
-        $days = intdiv($hours, 24);
-        return $days . ' ' . plural($days, 'dzień', 'dni', 'dni') . ($hours % 24 ? ' ' . ($hours % 24) . ' godz.' : '');
-    }
-
     // "3.10 14:05 – 14:32", the date again when it ended on another day
     function incidentTime($incident)
     {
@@ -144,7 +129,7 @@
         <div class="status-row">
           <span class="status-dot <?=e($status)?>"></span>
           <div class="status-text">
-            <b>Bot <?=e(STATUS_LABELS[$status])?></b>
+            <b>Bot <?=e(STATUS_LABELS[$status] . botDownText($state))?></b>
             <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; dostępność z 24 h: <?=e(str_replace('.', ',', $state['uptime']))?>%<?=$average === null ? '' : ' &middot; odpowiada średnio w ' . e(milliseconds($average))?></span>
           </div>
         </div>
@@ -181,7 +166,7 @@
         <div class="status-row">
           <span class="status-dot <?=e($status)?>"></span>
           <div class="status-text">
-            <b>Bot <?=e(STATUS_LABELS[$status])?></b>
+            <b>Bot <?=e(STATUS_LABELS[$status] . botDownText($state))?></b>
             <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; <?=count($history)?> <?=plural(count($history), 'sprawdzenie', 'sprawdzenia', 'sprawdzeń')?> w 24 h</span>
           </div>
         </div>

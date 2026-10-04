@@ -106,6 +106,29 @@
     gap: 8px;
 }
 
+/* requests for access */
+.card.requests {
+    border-color: rgba(35, 165, 90, 0.5);
+    background: rgba(35, 165, 90, 0.05);
+}
+
+.card.requests h2 i {
+    color: #3fca7a;
+}
+
+/* the backup form in the server card */
+.backup {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-bottom: 4px;
+}
+
+.server dd .muted {
+    display: inline-block;
+}
+
 /* cron has stopped checking the bot */
 .card.alarm {
     border-color: rgba(240, 178, 50, 0.6);

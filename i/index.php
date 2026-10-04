@@ -19,7 +19,7 @@
             http_response_code(galleryCanView() ? 404 : 403);
             exit;
         }
-        sendZip([$zipDir], ($zipDir[1] === '' ? 'galeria' : basename($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
+        sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : basename($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
     }
 
     if (isset($_GET['thumb'])) {
@@ -37,6 +37,8 @@
     // without access the page only offers the login; the folder is not even read
     $user = siteUser();
     $locked = !galleryCanView();
+    // an account without access can ask for it; one request at a time
+    $request = $user && $locked ? pendingRequest('gallery', $user['id']) : null;
     $admin = !$locked && galleryIsAdmin();
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
@@ -117,7 +119,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=7" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -156,6 +158,17 @@
 <?php elseif ($user): ?>
       <h2>Brak dostępu</h2>
       <p>Konto <?=e($user['name'])?> nie ma dostępu do galerii. Wyloguj się, jeśli chcesz użyć innego konta.</p>
+<?php if ($request): ?>
+      <p class="request-sent">Prośba o dostęp wysłana <?=e(date('j.m H:i', $request['time']))?>. Administrator zobaczy ją w panelu.</p>
+<?php else: ?>
+      <form class="request-form" method="post" action="index.php">
+        <input type="hidden" name="csrf" value="<?=e(siteCsrf())?>" />
+        <input type="hidden" name="action" value="request-access" />
+        <input type="hidden" name="back" value="<?=e($requested === '' ? './' : folderUrl($requested))?>" />
+        <input type="text" name="note" maxlength="<?=REQUEST_NOTE_LENGTH?>" placeholder="Kim jesteś? (opcjonalnie)" aria-label="Notatka do prośby" />
+        <button type="submit" class="admin-btn primary">Poproś o dostęp</button>
+      </form>
+<?php endif; ?>
 <?php else: ?>
       <h2>Galeria wymaga logowania</h2>
       <p>Zaloguj się kontem Discord, żeby ją zobaczyć.</p>

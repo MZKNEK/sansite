@@ -63,7 +63,7 @@
     $statusText = [
         'online' => 'Bot działa',
         'idle' => 'Bot działa, ale w ciągu ostatnich 24 h odpowiadał tylko w ' . str_replace('.', ',', $state['uptime']) . '% sprawdzeń',
-        'offline' => 'Bot teraz nie odpowiada',
+        'offline' => 'Bot nie odpowiada' . botDownText($state),
         'maintenance' => 'Bot ma przerwę techniczną'
     ];
     $status = botInMaintenance(time()) ? 'maintenance' : $state['status'];

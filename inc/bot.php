@@ -464,6 +464,39 @@
         return 'Przerwa techniczna ' . botTimeRange($notice['maintenance']['from'], $notice['maintenance']['to']) . '. ' . $notice['text'];
     }
 
+    // how long something took: "27 min", "3 godz. 5 min", "2 dni 4 godz."
+    function duration($seconds)
+    {
+        $minutes = max(1, (int)round($seconds / 60));
+        if ($minutes < 60)
+            return $minutes . ' min';
+
+        $hours = intdiv($minutes, 60);
+        if ($hours < 24)
+            return $hours . ' godz.' . ($minutes % 60 ? ' ' . ($minutes % 60) . ' min' : '');
+
+        $days = intdiv($hours, 24);
+        return $days . ' ' . ($days === 1 ? 'dzień' : 'dni') . ($hours % 24 ? ' ' . ($hours % 24) . ' godz.' : '');
+    }
+
+    // when the outage going on now started, or null while the bot answers
+    function botDownSince()
+    {
+        $incidents = botIncidents(0);
+
+        return isset($incidents[0]) && $incidents[0][1] === null ? $incidents[0][0] : null;
+    }
+
+    // " od 14:05 (23 min)" for a bot that does not answer, otherwise empty
+    function botDownText($state)
+    {
+        $since = $state['status'] === 'offline' ? botDownSince() : null;
+        if ($since === null)
+            return '';
+
+        return ' od ' . date(date('Y-m-d', $since) === date('Y-m-d') ? 'H:i' : 'j.m H:i', $since) . ' (' . duration(time() - $since) . ')';
+    }
+
     // the checks of the last 24 h as [time, online, milliseconds], oldest first
     function botHistory()
     {

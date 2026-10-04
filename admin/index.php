@@ -12,13 +12,16 @@
 
     const LIST_LABELS = [
         'galleryAdmins' => 'administratorzy galerii',
-        'galleryViewers' => 'oglądający galerię'
+        'galleryViewers' => 'oglądający galerię',
+        'apiViewers' => 'dostęp do API'
     ];
 
-    function cut($text, $length)
-    {
-        return function_exists('mb_substr') ? mb_substr($text, 0, $length, 'UTF-8') : substr($text, 0, $length);
-    }
+    // title and description of the card of each list
+    const LIST_CARDS = [
+        'galleryAdmins' => ['Administratorzy galerii', 'Oglądają galerię i dodają, przenoszą oraz usuwają pliki.'],
+        'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
+        'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze.']
+    ];
 
     // name of an account from the recent logins, or its ID
     function accountLabel($id, $logins)
@@ -33,6 +36,29 @@
     }
 
     const LARGEST_SHOWN = 10;
+    const REPO_URL = 'https://github.com/MZKNEK/sansite';
+
+    // files and bytes in a folder and its subfolders
+    function folderTotals($dir)
+    {
+        $files = 0;
+        $bytes = 0;
+        foreach (is_dir($dir) ? (scandir($dir) ?: []) : [] as $name) {
+            if ($name === '.' || $name === '..')
+                continue;
+            $path = $dir . '/' . $name;
+            if (is_dir($path) && !is_link($path)) {
+                list($innerFiles, $innerBytes) = folderTotals($path);
+                $files += $innerFiles;
+                $bytes += $innerBytes;
+            } else if (is_file($path)) {
+                $files++;
+                $bytes += filesize($path);
+            }
+        }
+
+        return [$files, $bytes];
+    }
     const NOTICE_LENGTH = 300;
 
     // a time from a datetime-local field ("2026-10-04T22:00", Polish time), or null
@@ -154,12 +180,19 @@
                     reply(false, 'To konto jest już na tej liście.', 409);
 
                 $access[$list][$id] = [
-                    'note' => cut(trim((string)($_POST['note'] ?? '')), 60),
+                    'note' => cutText(trim((string)($_POST['note'] ?? '')), 60),
                     'added' => time(),
                     'by' => $user['id']
                 ];
                 if (!writeData('access', $access))
                     reply(false, dataError(), 500);
+                // a request of this account is answered now
+                $for = $list === 'apiViewers' ? 'api' : 'gallery';
+                $requests = readData('requests');
+                if (isset($requests[$for][$id])) {
+                    unset($requests[$for][$id]);
+                    writeData('requests', $requests);
+                }
                 done('access', 'Dodano ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'revoke':
@@ -172,6 +205,25 @@
                     reply(false, dataError(), 500);
                 done('access', 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
+            case 'request-dismiss':
+                $for = (string)($_POST['for'] ?? '');
+                $requests = readData('requests');
+                if (!isset(REQUEST_LABELS[$for], $requests[$for][$id]))
+                    reply(false, 'Tej prośby już nie ma, odśwież stronę.', 404);
+                unset($requests[$for][$id]);
+                if (!writeData('requests', $requests))
+                    reply(false, dataError(), 500);
+                done('access', 'Odrzucono prośbę o dostęp do ' . REQUEST_LABELS[$for] . ': ' . accountLabel($id, $logins) . '.');
+
+            case 'backup':
+                // a plain form: the answer is the ZIP itself, a problem comes back as a message
+                $withGallery = ($_POST['gallery'] ?? '') === '1';
+                $roots = [[dataDir(), 'data', false]];
+                if ($withGallery)
+                    $roots[] = [$galleryDir, 'i', true];
+                addHistory('backup', 'Pobrano kopię danych' . ($withGallery ? ' z galerią' : '') . '.');
+                sendZip($roots, 'sanakan-kopia-' . date('Y-m-d-His') . '.zip', './', null);
+
             case 'logout-all':
                 $now = time();
                 if (!writeData('sessions', ['since' => $now]))
@@ -181,7 +233,7 @@
                 done('sessions', 'Wylogowano wszystkich z galerii i panelu (poza sobą).');
 
             case 'notice':
-                $text = cut(trim(str_replace("\r", '', (string)($_POST['text'] ?? ''))), NOTICE_LENGTH);
+                $text = cutText(trim(str_replace("\r", '', (string)($_POST['text'] ?? ''))), NOTICE_LENGTH);
                 if ($text === '')
                     reply(false, 'Wpisz treść ogłoszenia.', 400);
 
@@ -273,6 +325,34 @@
 
         $panelAdmins = configList('PANEL_ADMINS');
         $notice = botNotice();
+
+        // requests for access, newest first; ones of accounts let in meanwhile go away
+        $stored = readData('requests');
+        $kept = [];
+        $requests = [];
+        foreach (REQUEST_LABELS as $for => $label) {
+            foreach ($stored[$for] ?? [] as $id => $request) {
+                $id = (string)$id;
+                if ($for === 'gallery' ? canViewGalleryId($id) : canViewApiId($id))
+                    continue;
+                $kept[$for][$id] = $request;
+                $requests[] = $request + ['id' => $id, 'for' => $for];
+            }
+        }
+        if ($kept != $stored)
+            writeData('requests', $kept);
+        usort($requests, function ($a, $b) { return $b['time'] <=> $a['time']; });
+
+        // what deploy.sh put on the server: commit, its date and subject
+        $deployed = null;
+        $deployFile = dataDir() . '/deployed-info';
+        if (is_file($deployFile)) {
+            $lines = explode("\n", trim((string)file_get_contents($deployFile)));
+            $deployed = ['hash' => $lines[0], 'date' => strtotime($lines[1] ?? '') ?: null, 'subject' => $lines[2] ?? '', 'at' => filemtime($deployFile)];
+        } else if (is_file(dataDir() . '/deployed-commit')) {
+            $deployed = ['hash' => trim((string)file_get_contents(dataDir() . '/deployed-commit')), 'date' => null, 'subject' => '', 'at' => filemtime(dataDir() . '/deployed-commit')];
+        }
+        list(, $dataBytes) = folderTotals(dataDir());
         $stats = galleryStats($galleryDir);
         $diskFree = @disk_free_space($galleryDir);
         $diskTotal = @disk_total_space($galleryDir);
@@ -319,9 +399,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=6" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=5" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=5" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=6" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -367,6 +447,34 @@
             : 'Ostatnie automatyczne sprawdzenie było ' . e(ago($cronLast)) . ' (' . e(date('d.m H:i', $cronLast)) . ').'?>
           Bez niego historia dostępności ma dziury, a awarie, gdy nikt nie odwiedza strony, nie są zapisywane.</p>
         <p class="hint">Zadanie cron (na serwerze, jako root): <code><?=e($cronCommand)?></code><br />Czy cron działa: <code>systemctl status cron</code></p>
+      </section>
+<?php endif; ?>
+
+<?php if ($requests): ?>
+      <section class="card wide requests">
+        <h2><i>+</i>Prośby o dostęp</h2>
+        <p class="hint">Konta, które zalogowały się do galerii albo do API bez dostępu i o niego poprosiły.</p>
+        <ul class="people">
+<?php foreach ($requests as $request): $id = $request['id']; ?>
+          <li>
+            <?=accountCell($id, $logins)?>
+            <span class="role"><?=$request['for'] === 'api' ? 'API' : 'galeria'?></span>
+<?php if (($request['note'] ?? '') !== ''): ?>
+            <span class="note">„<?=e($request['note'])?>”</span>
+<?php endif; ?>
+            <span class="muted"><?=e(ago($request['time']))?></span>
+            <span class="login-actions">
+<?php if ($request['for'] === 'api'): ?>
+              <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ Dostęp do API</button>
+<?php else: ?>
+              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
+              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
+<?php endif; ?>
+              <button type="button" class="admin-btn small danger" data-action="request-dismiss" data-for="<?=e($request['for'])?>" data-id="<?=e($id)?>" data-confirm="Odrzucić prośbę <?=e(accountLabel($id, $logins))?> o dostęp do <?=e(REQUEST_LABELS[$request['for']])?>?">Odrzuć</button>
+            </span>
+          </li>
+<?php endforeach; ?>
+        </ul>
       </section>
 <?php endif; ?>
 
@@ -419,11 +527,11 @@
       </section>
 
 <?php $number = 4; foreach ($lists as $list => $info): ?>
-      <section class="card">
-        <h2><i>0<?=$number++?></i><?=$list === 'galleryAdmins' ? 'Administratorzy galerii' : 'Oglądający galerię'?></h2>
-        <p class="hint"><?=$list === 'galleryAdmins' ? 'Oglądają galerię i dodają, przenoszą oraz usuwają pliki.' : 'Tylko oglądają galerię.'?></p>
+      <section class="card<?=$list === 'apiViewers' ? ' wide' : ''?>">
+        <h2><i>0<?=$number++?></i><?=e(LIST_CARDS[$list][0])?></h2>
+        <p class="hint"><?=e(LIST_CARDS[$list][1])?></p>
 <?php if ($info['everyone']): ?>
-        <p class="everyone">Każde konto Discord (<code>GALLERY_VIEWERS = true</code> w konfiguracji).</p>
+        <p class="everyone">Każde konto Discord (<code><?=e(ACCESS_LISTS[$list])?> = true</code> w konfiguracji).</p>
 <?php endif; ?>
         <ul class="people">
 <?php foreach ($info['entries'] as $entry): ?>
@@ -453,8 +561,8 @@
 <?php endforeach; ?>
 
       <section class="card wide">
-        <h2><i>06</i>Ostatnie logowania</h2>
-        <p class="hint">Każdy, kto zalogował się przez Discord w galerii albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać.</p>
+        <h2><i>07</i>Ostatnie logowania</h2>
+        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać.</p>
 <?php if (!$logins): ?>
         <p class="nobody">Nikt się jeszcze nie logował.</p>
 <?php else: ?>
@@ -468,6 +576,8 @@
             $roles[] = 'admin galerii';
         else if (canViewGalleryId($id))
             $roles[] = 'ogląda galerię';
+        if (!isPanelAdminId($id) && canViewApiId($id))
+            $roles[] = 'API';
 ?>
           <div class="login-row">
             <span class="login-who"><?=accountCell($id, $logins)?></span>
@@ -487,6 +597,9 @@
 <?php if (!isGalleryAdminId($id)): ?>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
 <?php endif; ?>
+<?php if (!canViewApiId($id)): ?>
+              <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ API</button>
+<?php endif; ?>
             </span>
           </div>
 <?php endforeach; ?>
@@ -499,7 +612,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>07</i>Kosz</h2>
+        <h2><i>08</i>Kosz</h2>
         <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.</p>
 <?php if (!$trash): ?>
         <p class="nobody">Kosz jest pusty.</p>
@@ -526,7 +639,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>08</i>Galeria w liczbach</h2>
+        <h2><i>09</i>Galeria w liczbach</h2>
         <div class="stats-summary">
           <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
           <span><b><?=e(formatSize($stats['bytes']))?></b> razem</span>
@@ -574,7 +687,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>09</i>Historia zmian</h2>
+        <h2><i>10</i>Historia zmian</h2>
         <p class="hint">Ostatnie zmiany w galerii i w panelu: kto, kiedy i co.</p>
 <?php if (!$history): ?>
         <p class="nobody">Jeszcze nic się nie zmieniło.</p>
@@ -592,7 +705,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>10</i>Serwer</h2>
+        <h2><i>11</i>Serwer</h2>
         <dl class="server">
           <dt>PHP</dt>
           <dd><?=e(PHP_VERSION)?></dd>
@@ -631,6 +744,24 @@
 
           <dt>Zapis danych</dt>
           <dd><?=dataWritable() ? 'inc/data: OK' : '<b class="warn">brak prawa zapisu</b>: ' . e(dataError())?></dd>
+
+          <dt>Wersja strony</dt>
+          <dd><?php if ($deployed): ?><a href="<?=e(REPO_URL . '/commit/' . $deployed['hash'])?>" target="_blank" rel="noopener"><code><?=e(substr($deployed['hash'], 0, 7))?></code></a><?=$deployed['subject'] !== '' ? ' ' . e($deployed['subject']) : ''?> <span class="muted">(<?=$deployed['date'] ? 'commit z ' . e(date('j.m.Y', $deployed['date'])) . ', ' : ''?>wdrożone <?=e(ago($deployed['at']))?>)</span><?php else: ?>brak informacji <span class="muted">(strona nie była wdrażana przez deploy.sh)</span><?php endif; ?></dd>
+
+          <dt>Kopia danych</dt>
+          <dd>
+<?php if (canZip()): ?>
+            <form class="backup" method="post" action="./">
+              <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
+              <input type="hidden" name="action" value="backup" />
+              <label class="admin-check"><input type="checkbox" name="gallery" value="1" /> z galerią (<?=e(formatSize($stats['bytes']))?>)</label>
+              <button type="submit" class="admin-btn small">Pobierz ZIP</button>
+            </form>
+            <span class="muted">inc/data: <?=e(formatSize($dataBytes))?> (dostępy, historia, statusy, awarie, kosz). Bez inc/config.php, w którym jest sekret aplikacji Discord.</span>
+<?php else: ?>
+            <b class="warn">brak modułu ZIP</b>: <code>apt-get install -y php8.1-zip &amp;&amp; systemctl restart php8.1-fpm</code>
+<?php endif; ?>
+          </dd>
         </dl>
       </section>
 

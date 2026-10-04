@@ -1,7 +1,16 @@
 <?php
-    // OpenAPI spec of the bot API for Swagger UI. The spec is asked for at most
-    // every 10 minutes, and the last good copy is served while the API is down.
+    // OpenAPI spec of the bot API for Swagger UI, for the accounts that may read
+    // the documentation (see api/index.php). The spec is asked for at most every
+    // 10 minutes, and the last good copy is served while the API is down.
     require __DIR__ . '/../inc/bot.php';
+    require __DIR__ . '/../inc/auth.php';
+
+    if (!apiCanView()) {
+        http_response_code(!authConfigured() ? 503 : (siteUser() ? 403 : 401));
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Dokumentacja API wymaga logowania przez Discorda.']);
+        exit;
+    }
 
     const SPEC_URL = 'https://api.sanakan.pl/swagger/v2/swagger.json';
     const SPEC_TTL = 600;
@@ -41,5 +50,6 @@
         exit;
     }
 
-    header('Cache-Control: public, max-age=' . max(0, SPEC_TTL - (time() - filemtime($file))));
+    // only for this visitor: other ones may not be let in
+    header('Cache-Control: private, max-age=' . max(0, SPEC_TTL - (time() - filemtime($file))));
     echo $spec;

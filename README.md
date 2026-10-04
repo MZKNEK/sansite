@@ -4,13 +4,13 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 
 | Address | What it is |
 |---|---|
-| `/` | Home page: the logo with the bot status, links to the commands, wiki, Waifu and Skalpelator |
-| `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`), marks on commands new or changed in the last 14 days |
+| `/` | Home page: the logo with the bot status, links to the commands, wiki, Waifu, Skalpelator and the API documentation (red with a padlock, as it needs a login) |
+| `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`, short: `/cmd/daily`, also by an alias), marks on commands new or changed in the last 14 days |
 | `/cmd/zmiany/` | History of the changes in the commands, noticed by comparing every command list with the one before |
-| `/api/` | API documentation (Swagger UI) with an endpoint search |
-| `/state/` | Public bot status: availability over the last 24 hours, 30 days and 12 months, API answer times, the outages of the last 30 days and the notice from the panel |
-| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90° |
-| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks |
+| `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; an account without access can ask for it |
+| `/state/` | Public bot status: availability over the last 24 hours, 30 days and 12 months, API answer times, the outages of the last 30 days and the notice from the panel. Its link preview is a picture of the current state (`/state/og.php`) |
+| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90°. An account without access can ask for it |
+| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks, the deployed version and a backup of the data as ZIP |
 | `/status.php` | Bot status as JSON, used by the home page |
 
 Hidden way into the panel: hold the status dot on the home page for 10 seconds. A short click on the dot opens `/state/`.
@@ -20,6 +20,7 @@ Hidden way into the panel: hold the status dot on the home page for 10 seconds. 
 | Path | Contents |
 |---|---|
 | `index.html`, `404.html` | Home page and the 404 page |
+| `sanakan-og.png` | Link preview picture of the home page |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/` | Subpages |
 | `status.php` | Bot status for the home page |
 | `inc/bot.php` | Bot API access: one-minute cache, 24 h check history with answer times, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
@@ -27,16 +28,19 @@ Hidden way into the panel: hold the status dot on the home page for 10 seconds. 
 | `inc/auth.php` | Discord login (OAuth2), session, access lists, change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
+| `inc/fonts/` | Lato and Share Tech Mono (SIL Open Font License) for the preview picture of `/state/` |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, `inc/` and the API documentation |
-| `server/nginx/` | nginx rules: blocked `inc/`, 404 page, security headers, browser cache |
+| `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists, status history and outages, change history, trash, file hashes, the time sessions are valid from,
+- `inc/data/`, the data the site writes: access lists and requests, status history and outages, change history, trash, file hashes, the time sessions are valid from,
 - the pictures in `i/` (only `i/index.php` is tracked).
+
+The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (server card, "Kopia danych"). To restore it, unpack `data/` into `inc/data/` and `i/` into `i/`, then give them back to the web server: `chown -R www-data:www-data inc/data i`.
 
 ## Server
 
@@ -56,7 +60,7 @@ apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip webp ffmpeg
 
 The rules are in `server/nginx/`, which `deploy.sh` does not send:
 
-- `sanakan.conf` blocks `inc/`, which holds the configuration and data, sets up the 404 page, and lets browsers keep CSS and JS for a year (every page links them with a `?v=` version, raised on each change) and pictures and videos for a day.
+- `sanakan.conf` blocks `inc/`, which holds the configuration and data, sets up the 404 page, sends short links such as `/cmd/daily` to `/cmd/#daily` (the 404 page does the same where the rule is missing), and lets browsers keep CSS and JS for a year (every page links them with a `?v=` version, raised on each change) and pictures and videos for a day.
 - `sanakan-headers.conf` adds the security headers: Content-Security-Policy, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy and HSTS. A new outside resource (a script, font or picture from another domain) has to be allowed in the policy first.
 
 Both go to `/etc/nginx/snippets/`, and the server block of the site includes the first one:
@@ -100,8 +104,9 @@ Fill `inc/config.php` with the Discord application details (https://discord.com/
 | `PANEL_ADMINS` | Accounts that may open the admin panel. This list is changed only in the file |
 | `GALLERY_ADMINS` | Accounts that may view the gallery and manage its files. The panel can add more |
 | `GALLERY_VIEWERS` | Accounts that may only view the gallery. The panel can add more; `true` lets in any Discord account |
+| `API_VIEWERS` | Accounts that may read the API documentation in `/api/`. The panel can add more, and `PANEL_ADMINS` always can; `true` lets in any Discord account |
 
-Without `inc/config.php` the gallery and the panel stay closed. Direct links to the pictures in `i/` always work.
+Without `inc/config.php` the gallery, the API documentation and the panel stay closed. Direct links to the pictures in `i/` always work.
 
 ### Cron
 
@@ -129,7 +134,7 @@ With an SSH key (`ssh-keygen -t ed25519`, the `.pub` line added to `/root/.ssh/a
 ./deploy.sh sanakan
 ```
 
-`deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. The site goes to `/var/www/html` unless another folder is given as the second argument.
+`deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. It leaves the commit with its date and subject in `inc/data/deployed-info`, which the panel shows. The site goes to `/var/www/html` unless another folder is given as the second argument.
 
 ## Running locally
 

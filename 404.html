@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="/css/style.css?v=20" type="text/css" rel="stylesheet" />
-  <link href="/css/explorer.css?v=5" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=8" type="text/css" rel="stylesheet" />
   <style>
     .not-found .lost {
       display: block;
@@ -58,6 +58,10 @@
   </main>
 
   <script>
+    // a short link to a command (/cmd/daily) where nginx has no rule for it yet
+    var command = location.pathname.match(/^\/cmd\/([^\/.]+)\/?$/);
+    if (command) location.replace('/cmd/#' + command[1]);
+
     // the address that was not found
     var path = location.pathname;
     try {

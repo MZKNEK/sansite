@@ -802,6 +802,34 @@ body.selecting .tile.up {
     cursor: pointer;
 }
 
+/* asking for access, on the locked gallery */
+.request-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.request-form input[type="text"] {
+    flex: 1 1 220px;
+    max-width: 320px;
+    padding: 7px 10px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px Lato, sans-serif;
+    outline: 0;
+}
+
+.request-form input[type="text"]:focus {
+    border-color: var(--accent);
+}
+
+.request-sent {
+    color: #3fca7a;
+}
+
 /* the whole folder as a ZIP, next to the sorting */
 .toolbar .zip-btn {
     padding: 8px 14px;

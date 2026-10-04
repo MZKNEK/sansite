@@ -44,5 +44,7 @@ elif [ -n "$previous" ]; then
     echo "Poprzednio wdrożonego commita $previous nie ma w tym repozytorium, usuniętych plików nie sprawdzam."
 fi
 
-ssh "$target" "mkdir -p '$root/inc/data' && echo '$commit' > '$marker' && chown www-data:www-data '$root/inc/data' '$marker'"
+# the marker, and for the panel the commit's date and subject
+git log -1 --format='%H%n%cI%n%s' \
+    | ssh "$target" "mkdir -p '$root/inc/data' && echo '$commit' > '$marker' && cat > '$root/inc/data/deployed-info' && chown www-data:www-data '$root/inc/data' '$marker' '$root/inc/data/deployed-info'"
 echo "Gotowe: $(git log -1 --format='%h')"

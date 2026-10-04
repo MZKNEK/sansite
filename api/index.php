@@ -1,27 +1,126 @@
+<?php
+    // API documentation of the bot (Swagger UI), behind the Discord login of the
+    // gallery and the panel (inc/auth.php): accounts in API_VIEWERS
+    // (inc/config.php) or added in the panel, and the panel admins. Others see
+    // the login, or can ask for access. read_swagger.php checks the same.
+    require __DIR__ . '/../inc/gallery.php';
+    require __DIR__ . '/../inc/meta.php';
+
+    // a plain form: asking for access or logging out, then back here
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!authConfigured() || !siteUser() || !checkCsrf()) {
+            setFlash('Sesja wygasła, spróbuj jeszcze raz.');
+        } else if (($_POST['action'] ?? '') === 'request-access') {
+            handleAccessRequest('api', apiCanView(), './');
+        } else if (($_POST['action'] ?? '') === 'logout') {
+            logout();
+        }
+        header('Location: ./', true, 303);
+        exit;
+    }
+
+    handleLoginRequest(siteRoot() . 'api/');
+
+    $user = siteUser();
+    $allowed = apiCanView();
+    $flash = takeFlash();
+    if (!$allowed)
+        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
+    $request = $user && !$allowed ? pendingRequest('api', $user['id']) : null;
+    $csrf = $user ? siteCsrf() : '';
+    $description = 'Dokumentacja API bota Sanakan: endpointy, parametry i odpowiedzi.';
+
+    if (!$allowed):
+?>
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<?=metaTags('API · Sanakan', $description, '/api/')?>
+  <title>API &middot; Sanakan</title>
+  <link rel="icon" href="../favicon.ico" sizes="32x32" />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
+  <link href="../css/style.css?v=20" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+  <main class="content">
+    <header class="ex-header">
+      <div class="ex-top">
+        <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
+<?php if ($user): ?>
+        <form class="account" method="post" action="./">
+          <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
+          <span class="account-name"><?=e($user['name'])?></span>
+          <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
+          <input type="hidden" name="action" value="logout" />
+          <button type="submit" class="account-btn">Wyloguj</button>
+        </form>
+<?php endif; ?>
+      </div>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="hud-title">API</h1>
+    </header>
+
+    <section class="locked hud-corners">
+      <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+<?php if (!authConfigured()): ?>
+      <h2>Dokumentacja jest wyłączona</h2>
+      <p>Logowanie nie jest jeszcze skonfigurowane na serwerze.</p>
+<?php elseif ($user): ?>
+      <h2>Brak dostępu</h2>
+      <p>Konto <?=e($user['name'])?> nie ma dostępu do dokumentacji API. Wyloguj się, jeśli chcesz użyć innego konta.</p>
+<?php if ($request): ?>
+      <p class="request-sent">Prośba o dostęp wysłana <?=e(date('j.m H:i', $request['time']))?>. Administrator zobaczy ją w panelu.</p>
+<?php else: ?>
+      <form class="request-form" method="post" action="./">
+        <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
+        <input type="hidden" name="action" value="request-access" />
+        <input type="text" name="note" maxlength="<?=REQUEST_NOTE_LENGTH?>" placeholder="Do czego? (opcjonalnie)" aria-label="Notatka do prośby" />
+        <button type="submit" class="admin-btn primary">Poproś o dostęp</button>
+      </form>
+<?php endif; ?>
+<?php else: ?>
+      <h2>Dokumentacja wymaga logowania</h2>
+      <p>Zaloguj się kontem Discord, żeby zobaczyć dokumentację API.</p>
+      <a class="admin-btn primary" href="?login">Zaloguj przez Discord</a>
+<?php endif; ?>
+    </section>
+  </main>
+
+<?php if ($flash): ?>
+  <div class="toast" id="toast" role="status"><?=e($flash)?></div>
+<?php else: ?>
+  <div class="toast" id="toast" role="status" hidden></div>
+<?php endif; ?>
+  <script src="../js/explorer.js?v=7"></script>
+</body>
+
+</html>
+<?php
+        exit;
+    endif;
+?>
 <!-- HTML for static distribution bundle build -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta name="description" content="Dokumentacja API bota Sanakan: endpointy, parametry i odpowiedzi." />
-  <meta name="theme-color" content="#9b59b6" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Sanakan" />
-  <meta property="og:locale" content="pl_PL" />
-  <meta property="og:title" content="API · Sanakan" />
-  <meta property="og:description" content="Dokumentacja API bota Sanakan: endpointy, parametry i odpowiedzi." />
-  <meta property="og:url" content="https://sanakan.pl/api/" />
-  <meta property="og:image" content="https://sanakan.pl/sanakan.jpg" />
-  <meta property="og:image:width" content="500" />
-  <meta property="og:image:height" content="500" />
-  <meta name="twitter:card" content="summary" />
+<?=metaTags('API · Sanakan', $description, '/api/')?>
   <title>API &middot; Sanakan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=20" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=14" >
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=15" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -50,6 +149,13 @@
 <header class="api-header">
   <div class="api-top">
     <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
+    <form class="api-account" method="post" action="./">
+      <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
+      <span><?=e($user['name'])?></span>
+      <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
+      <input type="hidden" name="action" value="logout" />
+      <button type="submit">Wyloguj</button>
+    </form>
   </div>
   <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
   <h1 class="hud-title">API<span class="api-version" id="api-version" hidden></span></h1>
@@ -103,6 +209,9 @@
 <div id="swagger-ui"></div>
 
 <p class="api-no-results" id="api-no-results" hidden>Brak pasujących endpointów.</p>
+<?php if ($flash): ?>
+<p class="api-flash" role="status"><?=e($flash)?></p>
+<?php endif; ?>
 
 <script src="./swagger-ui-bundle.js?v=1"> </script>
 <script src="./swagger-ui-standalone-preset.js?v=1"> </script>

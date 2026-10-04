@@ -12,10 +12,10 @@
   <meta property="og:title" content="Sanakan" />
   <meta property="og:description" content="Bot na Discorda napisany w C#: polecenia, wiki PocketWaifu, Waifu i status bota." />
   <meta property="og:url" content="https://sanakan.pl/" />
-  <meta property="og:image" content="https://sanakan.pl/sanakan.jpg" />
-  <meta property="og:image:width" content="500" />
-  <meta property="og:image:height" content="500" />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="https://sanakan.pl/sanakan-og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="keywords" content="bot, dotnet, sanakan, sniku, discord" />
   <meta name="author" content="Sniku" />
   <title>Sanakan</title>
@@ -53,6 +53,7 @@
           <a class="swap-main" href="https://skalpel.sanakan.pl"><i aria-hidden="true">04</i>Skalpelator</a>
           <a class="swap-alt" href="https://uskalpel.sanakan.pl/"><i aria-hidden="true">04B</i>USkalpelator</a>
         </div>
+        <a class="restricted" href="./api/" title="Dokumentacja API, wymaga logowania przez Discorda"><i aria-hidden="true">05</i>API<svg class="lock" viewBox="0 0 24 24" aria-label="wymaga logowania"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></a>
       </div>
     </div>
   </main>
@@ -114,7 +115,7 @@
       var labels = {
         online: 'Dostępny: bot działa',
         idle: 'Zaraz wracam: bot działa, ale w ciągu ostatnich 24 h odpowiadał tylko w {uptime}% sprawdzeń',
-        offline: 'Niedostępny: bot teraz nie odpowiada',
+        offline: 'Niedostępny: bot nie odpowiada {down}',
         maintenance: 'Nie przeszkadzać: przerwa techniczna, bot może nie odpowiadać'
       };
 
@@ -126,7 +127,9 @@
         .then(function (data) {
           if (!data || !labels[data.status]) throw new Error('unknown status');
 
-          var label = labels[data.status].replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'));
+          var label = labels[data.status]
+            .replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'))
+            .replace(' {down}', data.down ? ' ' + data.down : '');
           dot.className = 'bot-status ' + data.status;
           dot.title = label + ' (kliknij, żeby zobaczyć dostępność)';
           dot.setAttribute('aria-label', label);
