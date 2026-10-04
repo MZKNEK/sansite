@@ -1,17 +1,26 @@
 <?php
-    // Shared access to the bot API, used by status.php and cmd/index.php.
-    // The bot serves the API, so getting the command list back means it is up.
-    // The API is asked at most once a minute however many people visit, every
-    // check goes to a 24 h history, and the last command list the bot returned
-    // is kept, so the commands page still works while the bot is down.
-    // A bot that is up now but answered less than 99% of the checks is idle.
+    // Shared access to the bot API, used by status.php, cmd/, state/ and the
+    // admin panel. The bot serves the API, so getting the command list back
+    // means it is up. The API is asked at most once a minute however many
+    // people visit, every check goes to a 24 h history, and the last command
+    // list the bot returned is kept, so the commands page still works while
+    // the bot is down. A bot that is up now but answered less than 99% of the
+    // checks is idle. inc/check-bot.php run by cron every minute fills the
+    // history also when nobody visits.
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
     const BOT_CACHE_TTL = 60;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
 
+    // Kept in inc/data, which the web server and cron share (PHP-FPM often has
+    // its own private /tmp) and which outlives a restart; /tmp only when the
+    // folder cannot be written.
     function botFile($name)
     {
+        $dir = __DIR__ . '/data';
+        if (is_dir($dir) ? is_writable($dir) : @mkdir($dir, 0750, true))
+            return $dir . '/bot-' . $name;
+
         return sys_get_temp_dir() . '/sanakan-' . $name;
     }
 
@@ -59,6 +68,23 @@
         return 100 * $up / count($history);
     }
 
+    // The last 24 h in 96 parts of 15 minutes, oldest first; each is
+    // ['from' => time, 'state' => null (no checks) | true (all fine) | false (some failed)]
+    function botTimeline($history)
+    {
+        $start = time() - BOT_HISTORY_SPAN;
+        $parts = [];
+        for ($i = 0; $i < 96; $i++)
+            $parts[] = ['from' => $start + $i * 900, 'state' => null];
+
+        foreach ($history as $check) {
+            $i = min(95, max(0, (int)floor(($check[0] - $start) / 900)));
+            $parts[$i]['state'] = ($parts[$i]['state'] ?? true) && $check[1];
+        }
+
+        return $parts;
+    }
+
     // the checks of the last 24 h as [time, online], oldest first
     function botHistory()
     {
@@ -74,16 +100,17 @@
     }
 
     // ['status' => online|idle|offline, 'uptime' => percent, 'checked' => time],
-    // asks the API only when the cached state is older than a minute
-    function botState()
+    // asks the API only when the cached state is older than a minute or $force
+    function botState($force = false)
     {
         static $state = null;
-        if ($state !== null)
+        if ($state !== null && !$force)
             return $state;
 
         $now = time();
         $file = botFile('status.json');
-        if (is_file($file) && $now - filemtime($file) < BOT_CACHE_TTL)
+        $state = null;
+        if (!$force && is_file($file) && $now - filemtime($file) < BOT_CACHE_TTL)
             $state = @json_decode(@file_get_contents($file), true);
 
         if (!is_array($state) || !isset($state['status'], $state['uptime'], $state['checked'])) {

@@ -5,6 +5,7 @@
     // both); only the accounts in PANEL_ADMINS (inc/config.php) get in.
     require __DIR__ . '/../inc/bot.php';
     require __DIR__ . '/../inc/gallery.php';
+    require __DIR__ . '/../inc/status-card.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     $thumbsDir = sys_get_temp_dir() . '/sanakan-thumbs';
@@ -13,28 +14,10 @@
         'galleryAdmins' => 'administratorzy galerii',
         'galleryViewers' => 'oglądający galerię'
     ];
-    const STATUS_LABELS = [
-        'online' => 'działa',
-        'idle' => 'działa, ale bywał niedostępny',
-        'offline' => 'nie odpowiada'
-    ];
 
     function cut($text, $length)
     {
         return function_exists('mb_substr') ? mb_substr($text, 0, $length, 'UTF-8') : substr($text, 0, $length);
-    }
-
-    function ago($time)
-    {
-        $seconds = time() - $time;
-        if ($seconds < 60)
-            return 'przed chwilą';
-        if ($seconds < 3600)
-            return floor($seconds / 60) . ' min temu';
-        if ($seconds < 86400)
-            return floor($seconds / 3600) . ' godz. temu';
-
-        return date('d.m.Y H:i', $time);
     }
 
     // name of an account from the recent logins, or its ID
@@ -131,8 +114,7 @@
                 reply(true, 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'refresh-status':
-                @unlink(botFile('status.json'));
-                $state = botState();
+                $state = botState(true);
                 reply(true, 'Sprawdzono: bot ' . STATUS_LABELS[$state['status']] . '.');
 
             case 'clear-thumbs':
@@ -161,16 +143,8 @@
         http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
 
     if ($allowed) {
-        $state = botState();
         $history = botHistory();
-
-        // the last 24 h in 96 parts of 15 minutes: no checks, all fine, some failed
-        $timeline = array_fill(0, 96, null);
-        $start = time() - BOT_HISTORY_SPAN;
-        foreach ($history as $check) {
-            $bin = min(95, max(0, (int)floor(($check[0] - $start) / 900)));
-            $timeline[$bin] = ($timeline[$bin] ?? true) && $check[1];
-        }
+        $autoChecks = checksLastHour($history);
 
         $logins = readData('logins');
 
@@ -223,7 +197,8 @@
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=1" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=2" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=2" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -263,24 +238,7 @@
 
       <section class="card wide">
         <h2><i>01</i>Status bota</h2>
-        <div class="status-row">
-          <span class="status-dot <?=e($state['status'])?>"></span>
-          <div class="status-text">
-            <b>Bot <?=e(STATUS_LABELS[$state['status']])?></b>
-            <span>Dostępność z 24 h: <?=e(str_replace('.', ',', $state['uptime']))?>% &middot; <?=count($history)?> <?=plural(count($history), 'sprawdzenie', 'sprawdzenia', 'sprawdzeń')?> &middot; ostatnie <?=e(ago($state['checked']))?></span>
-          </div>
-          <button type="button" class="admin-btn" data-action="refresh-status">Sprawdź teraz</button>
-        </div>
-        <div class="timeline" aria-label="Dostępność w ostatnich 24 godzinach">
-<?php foreach ($timeline as $i => $bin): ?>
-          <span class="<?=$bin === null ? 'none' : ($bin ? 'ok' : 'fail')?>" title="<?=e(date('H:i', $start + $i * 900))?>"></span>
-<?php endforeach; ?>
-        </div>
-        <div class="timeline-legend">
-          <span>24 h temu</span>
-          <span><i class="ok"></i>działał <i class="fail"></i>nie odpowiadał <i class="none"></i>nikt nie sprawdzał</span>
-          <span>teraz</span>
-        </div>
+<?=statusCard(true)?>
       </section>
 
       <section class="card">
@@ -289,6 +247,7 @@
           <a class="hud-corners" href="<?=e($root)?>i/">Galeria <small>i/</small></a>
           <a class="hud-corners" href="<?=e($root)?>api/">API <small>dokumentacja</small></a>
           <a class="hud-corners" href="<?=e($root)?>cmd/">Polecenia <small>cmd/</small></a>
+          <a class="hud-corners" href="<?=e($root)?>state/">Status <small>publiczny podgląd</small></a>
           <a class="hud-corners" href="<?=e($root)?>status.php">Status <small>JSON</small></a>
           <a class="hud-corners" href="<?=e($root)?>">Start <small>strona główna</small></a>
         </nav>
@@ -391,6 +350,12 @@
 
           <dt>Limit wysyłania</dt>
           <dd><?=e(formatSize(uploadLimit()))?> <span class="muted">(PHP; nginx ma osobny client_max_body_size)</span></dd>
+
+          <dt>Auto-sprawdzanie</dt>
+          <dd><?=$autoChecks >= 45
+              ? 'działa: ' . $autoChecks . ' ' . plural($autoChecks, 'sprawdzenie', 'sprawdzenia', 'sprawdzeń') . ' w ostatniej godzinie'
+              : '<b class="warn">nie działa</b>: ' . $autoChecks . ' ' . plural($autoChecks, 'sprawdzenie', 'sprawdzenia', 'sprawdzeń') . ' w ostatniej godzinie. Dodaj zadanie cron: <code>'
+                . e("echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-bot.php')) . " > /dev/null 2>&1' | sudo tee /etc/cron.d/sanakan-status") . '</code>'?></dd>
 
           <dt>Galeria</dt>
           <dd><?=$galleryFiles?> <?=plural($galleryFiles, 'plik', 'pliki', 'plików')?>, <?=e(formatSize($galleryBytes))?></dd>

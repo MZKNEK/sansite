@@ -1,45 +1,11 @@
-/* Admin panel; the header, buttons, login screen and messages come from explorer.css */
+/* Admin panel; the header, buttons, login screen and messages come from explorer.css,
+   the cards and the bot status from status.css */
 
 .panel-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
     margin-top: 32px;
-}
-
-.card {
-    min-width: 0;
-    padding: 20px 22px;
-    border: 1px solid rgba(155, 89, 182, 0.22);
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.card.wide {
-    grid-column: 1 / -1;
-}
-
-.card h2 {
-    display: flex;
-    align-items: center;
-    margin: 0 0 14px;
-    font-size: 16px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: #efe2f7;
-}
-
-.card h2 i {
-    margin-right: 10px;
-    font: normal 0.9em "Share Tech Mono", monospace;
-    color: var(--accent);
-}
-
-.card h2::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    margin-left: 14px;
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.5), transparent);
 }
 
 .hint {
@@ -67,92 +33,6 @@
 .admin-btn.small {
     padding: 3px 10px;
     font-size: 12px;
-}
-
-/* Bot status */
-.status-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 14px;
-}
-
-.status-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #80848e;
-}
-
-.status-dot.online {
-    background: #23a55a;
-    box-shadow: 0 0 8px rgba(35, 165, 90, 0.7);
-}
-
-.status-dot.idle {
-    background: #f0b232;
-}
-
-.status-text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 200px;
-}
-
-.status-text b {
-    color: #efe2f7;
-}
-
-.status-text span {
-    font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
-}
-
-/* 24 h in 15 minute parts */
-.timeline {
-    display: flex;
-    gap: 2px;
-    height: 28px;
-    margin-top: 16px;
-}
-
-.timeline span {
-    flex: 1;
-    min-width: 1px;
-    background: rgba(220, 221, 222, 0.08);
-}
-
-.timeline .ok,
-.timeline-legend .ok {
-    background: rgba(35, 165, 90, 0.75);
-}
-
-.timeline .fail,
-.timeline-legend .fail {
-    background: rgba(217, 83, 79, 0.85);
-}
-
-.timeline-legend .none {
-    background: rgba(220, 221, 222, 0.08);
-}
-
-.timeline-legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 6px 14px;
-    margin-top: 6px;
-    font-size: 12px;
-    color: rgba(220, 221, 222, 0.45);
-}
-
-.timeline-legend i {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin: 0 5px 0 10px;
-    vertical-align: -1px;
 }
 
 /* Shortcuts */
