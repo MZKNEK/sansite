@@ -207,8 +207,27 @@
 
         siteSession();
         $user = $_SESSION['gallery_user'] ?? null;
+        if (!isset($user['id']))
+            return null;
 
-        return isset($user['id']) ? $user : null;
+        // logged in before "log out everyone" in the panel
+        if (($_SESSION['login_time'] ?? 0) < sessionsValidSince()) {
+            unset($_SESSION['gallery_user']);
+            $_SESSION['gallery_flash'] = 'Sesja wygasła, zaloguj się jeszcze raz.';
+            return null;
+        }
+
+        return $user;
+    }
+
+    // sessions started before this time are not valid any more
+    function sessionsValidSince()
+    {
+        static $since = null;
+        if ($since === null)
+            $since = (int)(readData('sessions')['since'] ?? 0);
+
+        return $since;
     }
 
     // token sent with every change, so another site cannot make the browser do one
@@ -355,6 +374,7 @@
 
         session_regenerate_id(true);
         $_SESSION['gallery_user'] = ['id' => $id, 'name' => $name, 'avatar' => $avatar];
+        $_SESSION['login_time'] = time();
         siteCsrf();
         setFlash('Zalogowano jako ' . $name . '.');
         recordLogin($id, $name, $avatar, $account['username'] ?? '');

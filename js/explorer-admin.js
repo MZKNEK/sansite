@@ -221,6 +221,30 @@
       uploadFiles(e.dataTransfer.files);
     });
 
+    // a picture pasted with Ctrl+V, e.g. a screenshot; text pasted into a field stays text
+    document.addEventListener('paste', function (e) {
+      var files = e.clipboardData ? Array.prototype.slice.call(e.clipboardData.files) : [];
+      if (!files.length || document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      uploadFiles(files.map(pastedFile));
+    });
+
+    // browsers call every pasted screenshot "image.png", so it gets the time instead
+    function pastedFile(file) {
+      if (!/^image\.\w+$/i.test(file.name)) return file;
+
+      var now = new Date();
+      function two(n) { return ('0' + n).slice(-2); }
+      var name = 'wklejone ' + now.getFullYear() + '-' + two(now.getMonth() + 1) + '-' + two(now.getDate())
+        + ' ' + two(now.getHours()) + '-' + two(now.getMinutes()) + '-' + two(now.getSeconds())
+        + '.' + file.name.split('.').pop().toLowerCase();
+      try {
+        return new File([file], name, { type: file.type, lastModified: now.getTime() });
+      } catch (err) {
+        return file;
+      }
+    }
+
     // ---- New folder ----
 
     var mkdirDialog = document.getElementById('dlg-mkdir');

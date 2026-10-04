@@ -195,7 +195,10 @@
         if ($bytes < 1024 * 1024)
             return round($bytes / 1024) . ' KB';
 
-        return str_replace('.', ',', round($bytes / 1024 / 1024, 1)) . ' MB';
+        if ($bytes < 1024 * 1024 * 1024)
+            return str_replace('.', ',', round($bytes / 1024 / 1024, 1)) . ' MB';
+
+        return str_replace('.', ',', round($bytes / 1024 / 1024 / 1024, 1)) . ' GB';
     }
 
     // Polish plural: 1 plik, 2-4 pliki, 5+ plików (but 12-14 plików)

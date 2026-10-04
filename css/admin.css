@@ -30,6 +30,134 @@
     font-weight: 400;
 }
 
+/* cron has stopped checking the bot */
+.card.alarm {
+    border-color: rgba(240, 178, 50, 0.6);
+    background: rgba(240, 178, 50, 0.06);
+}
+
+.card.alarm h2 i {
+    color: #f0b232;
+}
+
+.card.alarm p {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
+
+.card.alarm .hint {
+    margin: 0;
+}
+
+.logout-all {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 16px 0 0;
+}
+
+.logout-all .hint {
+    margin: 0;
+}
+
+/* The gallery in numbers */
+.stats-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 26px;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.stats-summary b {
+    font: 20px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.disk {
+    margin-top: 16px;
+}
+
+.disk-bar {
+    display: flex;
+    height: 14px;
+    background: rgba(220, 221, 222, 0.08);
+}
+
+.disk-bar .gallery,
+.disk .timeline-legend .gallery {
+    background: var(--accent);
+}
+
+.disk-bar .used,
+.disk .timeline-legend .used {
+    background: rgba(155, 89, 182, 0.35);
+}
+
+.disk.low .disk-bar .used {
+    background: rgba(240, 178, 50, 0.7);
+}
+
+.disk .timeline-legend {
+    justify-content: flex-start;
+    margin-top: 8px;
+}
+
+.disk .timeline-legend i:first-child {
+    margin-left: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px 26px;
+    margin-top: 20px;
+}
+
+.stats-grid h3 {
+    margin: 0 0 8px;
+    font: 13px "Share Tech Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.stat-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* the bar behind a row is its share of the whole */
+.stat-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 3px;
+    padding: 5px 8px;
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    font: 13px "JetBrains Mono", Consolas, monospace;
+}
+
+.stat-list li > :first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #efe2f7;
+}
+
+.stat-list li > :last-child {
+    flex: none;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.stat-list a:hover {
+    color: var(--accent-light);
+}
+
 .admin-btn.small {
     padding: 3px 10px;
     font-size: 12px;

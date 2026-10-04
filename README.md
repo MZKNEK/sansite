@@ -8,8 +8,8 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples |
 | `/api/` | API documentation (Swagger UI) with an endpoint search |
 | `/state/` | Public bot status: availability over the last 24 hours, 30 days and 12 months, and the outages of the last 30 days |
-| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders |
-| `/admin/` | Admin panel, behind a Discord login |
+| `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V) |
+| `/admin/` | Admin panel, behind a Discord login: gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks |
 | `/status.php` | Bot status as JSON, used by the home page |
 
 Hidden way into the panel: hold the status dot on the home page for 10 seconds. A short click on the dot opens `/state/`.
@@ -34,7 +34,7 @@ Hidden way into the panel: hold the status dot on the home page for 10 seconds. 
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists, status history and outages, change history, trash, file hashes,
+- `inc/data/`, the data the site writes: access lists, status history and outages, change history, trash, file hashes, the time sessions are valid from,
 - the pictures in `i/` (only `i/index.php` is tracked).
 
 ## Server
@@ -107,6 +107,8 @@ A bot check every minute, so the availability history on `/state/` and in the pa
 ```bash
 echo '* * * * * www-data php /var/www/html/inc/check-bot.php > /dev/null 2>&1' > /etc/cron.d/sanakan-status
 ```
+
+The panel shows a warning when this check has not run for 5 minutes.
 
 ## Deployment
 

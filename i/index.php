@@ -192,7 +192,7 @@
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching): ?>
-        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -269,7 +269,7 @@
     </div>
 
 <?php if (!$folders && !$files): ?>
-    <p class="empty"><?=$searching ? 'Nic nie znaleziono w całej galerii.' : 'Ten folder jest pusty.' . ($admin ? ' Przeciągnij tu pliki albo użyj „Dodaj pliki”.' : '')?></p>
+    <p class="empty"><?=$searching ? 'Nic nie znaleziono w całej galerii.' : 'Ten folder jest pusty.' . ($admin ? ' Przeciągnij tu pliki, wklej obrazek (Ctrl+V) albo użyj „Dodaj pliki”.' : '')?></p>
 <?php endif; ?>
     <p class="empty" id="ex-no-results" hidden>Brak pasujących plików.</p>
 <?php endif; ?>
@@ -379,7 +379,7 @@
 
   <script src="../js/explorer.js?v=7"></script>
 <?php if ($admin): ?>
-  <script src="../js/explorer-admin.js?v=6"></script>
+  <script src="../js/explorer-admin.js?v=7"></script>
 <?php endif; ?>
 </body>
 

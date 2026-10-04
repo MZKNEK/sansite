@@ -29,29 +29,72 @@
     function dataError()
     {
         return 'Nie udało się zapisać danych w inc/data. PHP musi mieć tam prawo zapisu, np.: '
-            . 'sudo mkdir -p ' . __DIR__ . '/../inc/data && sudo chown www-data:www-data ' . __DIR__ . '/../inc/data';
+            . 'mkdir -p ' . __DIR__ . '/../inc/data && chown www-data:www-data ' . __DIR__ . '/../inc/data';
     }
 
-    // files and bytes in a folder and its subfolders, without hidden files and the gallery script
-    function folderStats($dir, $top = true)
-    {
-        $files = 0;
-        $bytes = 0;
-        foreach (scandir($dir) ?: [] as $name) {
-            if ($name[0] === '.' || ($top && $name === 'index.php'))
-                continue;
-            $path = $dir . '/' . $name;
-            if (is_dir($path) && !is_link($path)) {
-                list($innerFiles, $innerBytes) = folderStats($path, false);
-                $files += $innerFiles;
-                $bytes += $innerBytes;
-            } else if (is_file($path)) {
-                $files++;
-                $bytes += filesize($path);
-            }
-        }
+    const LARGEST_SHOWN = 10;
+    const CRON_LATE = 300;
 
-        return [$files, $bytes];
+    // The gallery in numbers: files and bytes in all, per top folder ('' for the
+    // files right in i/), per file type, and the biggest files as [rel, size].
+    // Hidden files and the gallery script do not count, as in the gallery itself.
+    function galleryStats($base)
+    {
+        $stats = ['files' => 0, 'bytes' => 0, 'folders' => [], 'types' => [], 'largest' => []];
+        if (!is_dir($base))
+            return $stats;
+
+        foreach (listNames($base, '') as $name)
+            if (is_dir($base . '/' . $name) && !is_link($base . '/' . $name))
+                $stats['folders'][$name] = ['files' => 0, 'bytes' => 0];
+
+        $walk = function ($dirPath, $dirRel, $top, $depth) use (&$walk, &$stats) {
+            foreach (listNames($dirPath, $dirRel) as $name) {
+                $full = $dirPath . '/' . $name;
+                $rel = ltrim($dirRel . '/' . $name, '/');
+                if (is_dir($full) && !is_link($full)) {
+                    if ($depth < 10)
+                        $walk($full, $rel, $top ?? $name, $depth + 1);
+                    continue;
+                }
+                if (!is_file($full))
+                    continue;
+
+                $size = filesize($full);
+                $type = strtolower(pathinfo($name, PATHINFO_EXTENSION)) ?: 'bez rozszerzenia';
+                $stats['files']++;
+                $stats['bytes'] += $size;
+                foreach ([['folders', $top ?? ''], ['types', $type]] as [$group, $key]) {
+                    $stats[$group][$key]['files'] = ($stats[$group][$key]['files'] ?? 0) + 1;
+                    $stats[$group][$key]['bytes'] = ($stats[$group][$key]['bytes'] ?? 0) + $size;
+                }
+
+                // only the biggest are kept while walking
+                $stats['largest'][] = [$rel, $size];
+                if (count($stats['largest']) > 5 * LARGEST_SHOWN)
+                    $stats['largest'] = largestFirst($stats['largest']);
+            }
+        };
+        $walk($base, '', null, 0);
+
+        $stats['largest'] = largestFirst($stats['largest']);
+        foreach (['folders', 'types'] as $group)
+            uasort($stats[$group], function ($a, $b) { return $b['bytes'] <=> $a['bytes']; });
+
+        return $stats;
+    }
+
+    function largestFirst($files)
+    {
+        usort($files, function ($a, $b) { return $b[1] <=> $a[1]; });
+
+        return array_slice($files, 0, LARGEST_SHOWN);
+    }
+
+    // share of the whole for the bar behind a row, as a CSS percentage
+    function share($part, $whole)
+    {
+        return $whole > 0 ? round(100 * $part / $whole, 1) . '%' : '0%';
     }
 
     // ---- Changes ------------------------------------------------------------
@@ -112,6 +155,14 @@
                 if (!writeData('access', $access))
                     reply(false, dataError(), 500);
                 done('access', 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
+
+            case 'logout-all':
+                $now = time();
+                if (!writeData('sessions', ['since' => $now]))
+                    reply(false, dataError(), 500);
+                // the one who asked for it stays logged in
+                $_SESSION['login_time'] = $now;
+                done('sessions', 'Wylogowano wszystkich z galerii i panelu (poza sobą).');
 
             case 'refresh-status':
                 $state = botState(true);
@@ -182,7 +233,14 @@
         }
 
         $panelAdmins = configList('PANEL_ADMINS');
-        list($galleryFiles, $galleryBytes) = is_dir($galleryDir) ? folderStats($galleryDir) : [0, 0];
+        $stats = galleryStats($galleryDir);
+        $diskFree = @disk_free_space($galleryDir);
+        $diskTotal = @disk_total_space($galleryDir);
+        $sessionsSince = sessionsValidSince();
+        $cronLast = botCronLast();
+        $cronLate = $cronLast === null || time() - $cronLast > CRON_LATE;
+        $cronCommand = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-bot.php'))
+            . " > /dev/null 2>&1' > /etc/cron.d/sanakan-status";
         $thumbFiles = glob($thumbsDir . '/*') ?: [];
         $thumbBytes = array_sum(array_map('filesize', $thumbFiles));
         $specFile = botFile('swagger.json');
@@ -221,9 +279,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
   <link href="../css/style.css?v=19" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=5" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=6" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=4" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=3" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=4" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -260,6 +318,17 @@
     </section>
 <?php else: ?>
     <div class="panel-grid">
+
+<?php if ($cronLate): ?>
+      <section class="card wide alarm" role="alert">
+        <h2><i>!</i>Cron nie sprawdza bota</h2>
+        <p><?=$cronLast === null
+            ? 'Automatyczne sprawdzanie jeszcze ani razu nie zadziałało.'
+            : 'Ostatnie automatyczne sprawdzenie było ' . e(ago($cronLast)) . ' (' . e(date('d.m H:i', $cronLast)) . ').'?>
+          Bez niego historia dostępności ma dziury, a awarie, gdy nikt nie odwiedza strony, nie są zapisywane.</p>
+        <p class="hint">Zadanie cron (na serwerze, jako root): <code><?=e($cronCommand)?></code><br />Czy cron działa: <code>systemctl status cron</code></p>
+      </section>
+<?php endif; ?>
 
       <section class="card wide">
         <h2><i>01</i>Status bota</h2>
@@ -361,6 +430,10 @@
 <?php endforeach; ?>
         </div>
 <?php endif; ?>
+        <p class="logout-all">
+          <span class="hint"><?=$sessionsSince ? 'Ostatnio wylogowano wszystkich ' . e(ago($sessionsSince)) . '.' : 'Po odebraniu komuś dostępu można też zakończyć wszystkie sesje.'?></span>
+          <button type="button" class="admin-btn small danger" data-action="logout-all" data-confirm="Wylogować wszystkich z galerii i panelu? Ty zostaniesz zalogowany, inni muszą zalogować się jeszcze raz.">Wyloguj wszystkich</button>
+        </p>
       </section>
 
       <section class="card wide">
@@ -391,7 +464,55 @@
       </section>
 
       <section class="card wide">
-        <h2><i>08</i>Historia zmian</h2>
+        <h2><i>08</i>Galeria w liczbach</h2>
+        <div class="stats-summary">
+          <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
+          <span><b><?=e(formatSize($stats['bytes']))?></b> razem</span>
+          <span><b><?=count($stats['folders'])?></b> <?=plural(count($stats['folders']), 'folder', 'foldery', 'folderów')?> w i/</span>
+        </div>
+<?php if ($diskTotal): $diskUsed = $diskTotal - $diskFree; $diskLow = $diskFree < $diskTotal * 0.1; ?>
+        <div class="disk<?=$diskLow ? ' low' : ''?>">
+          <div class="bar-head"><span>Dysk serwera<?=$diskLow ? ': <b class="warn">mało miejsca</b>' : ''?></span><b>wolne <?=e(formatSize($diskFree))?> z <?=e(formatSize($diskTotal))?></b></div>
+          <div class="disk-bar" title="Zajęte <?=e(formatSize($diskUsed))?>, w tym galeria <?=e(formatSize($stats['bytes']))?>">
+            <span class="gallery" style="width: <?=share($stats['bytes'], $diskTotal)?>"></span><span class="used" style="width: <?=share(max(0, $diskUsed - $stats['bytes']), $diskTotal)?>"></span>
+          </div>
+          <div class="timeline-legend"><span><i class="gallery"></i>galeria <i class="used"></i>reszta serwera <i class="none"></i>wolne</span></div>
+        </div>
+<?php endif; ?>
+<?php if ($stats['files']): ?>
+        <div class="stats-grid">
+          <div>
+            <h3>Foldery</h3>
+            <ul class="stat-list">
+<?php foreach ($stats['folders'] as $name => $folder): ?>
+              <li style="--share: <?=share($folder['bytes'], $stats['bytes'])?>"><a href="<?=e($root . 'i/' . folderUrl((string)$name))?>"><?=e($name === '' ? 'i/ (bez folderu)' : 'i/' . $name)?></a><span><?=$folder['files']?> &middot; <?=e(formatSize($folder['bytes']))?></span></li>
+<?php endforeach; ?>
+            </ul>
+          </div>
+          <div>
+            <h3>Typy plików</h3>
+            <ul class="stat-list">
+<?php foreach ($stats['types'] as $type => $group): ?>
+              <li style="--share: <?=share($group['bytes'], $stats['bytes'])?>"><span><?=e((string)$type)?></span><span><?=$group['files']?> &middot; <?=e(formatSize($group['bytes']))?></span></li>
+<?php endforeach; ?>
+            </ul>
+          </div>
+          <div>
+            <h3>Największe pliki</h3>
+            <ol class="stat-list">
+<?php foreach ($stats['largest'] as [$rel, $size]): ?>
+              <li style="--share: <?=share($size, $stats['largest'][0][1])?>"><a href="<?=e($root . 'i/' . fileUrl($rel))?>" target="_blank" rel="noopener" title="<?=e(galleryPath($rel))?>"><?=e(galleryPath($rel))?></a><span><?=e(formatSize($size))?></span></li>
+<?php endforeach; ?>
+            </ol>
+          </div>
+        </div>
+<?php else: ?>
+        <p class="nobody">Galeria jest pusta.</p>
+<?php endif; ?>
+      </section>
+
+      <section class="card wide">
+        <h2><i>09</i>Historia zmian</h2>
         <p class="hint">Ostatnie zmiany w galerii i w panelu: kto, kiedy i co.</p>
 <?php if (!$history): ?>
         <p class="nobody">Jeszcze nic się nie zmieniło.</p>
@@ -409,7 +530,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>09</i>Serwer</h2>
+        <h2><i>10</i>Serwer</h2>
         <dl class="server">
           <dt>PHP</dt>
           <dd><?=e(PHP_VERSION)?></dd>
@@ -424,13 +545,9 @@
           <dd><?=e(formatSize(uploadLimit()))?> <span class="muted">(PHP; nginx ma osobny client_max_body_size)</span></dd>
 
           <dt>Auto-sprawdzanie</dt>
-          <dd><?=$autoChecks >= 45
-              ? 'działa: ' . $autoChecks . ' ' . plural($autoChecks, 'sprawdzenie', 'sprawdzenia', 'sprawdzeń') . ' w ostatniej godzinie'
-              : '<b class="warn">nie działa</b>: ' . $autoChecks . ' ' . plural($autoChecks, 'sprawdzenie', 'sprawdzenia', 'sprawdzeń') . ' w ostatniej godzinie. Dodaj zadanie cron: <code>'
-                . e("echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-bot.php')) . " > /dev/null 2>&1' | sudo tee /etc/cron.d/sanakan-status") . '</code>'?></dd>
-
-          <dt>Galeria</dt>
-          <dd><?=$galleryFiles?> <?=plural($galleryFiles, 'plik', 'pliki', 'plików')?>, <?=e(formatSize($galleryBytes))?></dd>
+          <dd><?=$cronLate
+              ? '<b class="warn">nie działa</b>: ' . ($cronLast === null ? 'cron jeszcze ani razu nie sprawdził bota' : 'ostatnio ' . e(ago($cronLast))) . '. Zadanie cron: <code>' . e($cronCommand) . '</code>'
+              : 'działa: ostatnio ' . e(ago($cronLast)) . ', ' . $autoChecks . ' ' . plural($autoChecks, 'sprawdzenie', 'sprawdzenia', 'sprawdzeń') . ' w ostatniej godzinie'?></dd>
 
           <dt>Cache miniatur</dt>
           <dd>
@@ -459,7 +576,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=6"></script>
+  <script src="../js/explorer.js?v=7"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=2"></script>
 <?php endif; ?>

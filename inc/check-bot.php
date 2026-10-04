@@ -12,4 +12,6 @@
     require __DIR__ . '/bot.php';
 
     $state = botState(true);
+    // the panel warns when this stops coming
+    botWriteFile(botFile('cron.txt'), (string)time());
     echo date('Y-m-d H:i:s'), ' ', $state['status'], ' ', $state['uptime'], "%\n";

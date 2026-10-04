@@ -227,6 +227,14 @@
         return array_reverse($recent);
     }
 
+    // when inc/check-bot.php last ran from cron, or null when never
+    function botCronLast()
+    {
+        $time = (int)@file_get_contents(botFile('cron.txt'));
+
+        return $time > 0 ? $time : null;
+    }
+
     // the checks of the last 24 h as [time, online], oldest first
     function botHistory()
     {
