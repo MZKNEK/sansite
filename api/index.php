@@ -43,10 +43,8 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=21" type="text/css" rel="stylesheet" />
+  <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
 </head>
 
@@ -94,6 +92,7 @@
 <?php endif; ?>
     </section>
   </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>
@@ -115,11 +114,9 @@
   <meta charset="UTF-8">
 <?=metaTags('API · Sanakan', $description, '/api/')?>
   <title>API &middot; Sanakan</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
+  <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=21" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=23" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=15" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -212,6 +209,8 @@
 <?php if ($flash): ?>
 <p class="api-flash" role="status"><?=e($flash)?></p>
 <?php endif; ?>
+
+<footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <script src="./swagger-ui-bundle.js?v=1"> </script>
 <script src="./swagger-ui-standalone-preset.js?v=1"> </script>

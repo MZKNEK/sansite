@@ -219,9 +219,10 @@
             case 'backup':
                 // a plain form: the answer is the ZIP itself, a problem comes back as a message
                 $withGallery = ($_POST['gallery'] ?? '') === '1';
-                $roots = [[dataDir(), 'data', false]];
+                // without the logins of the moment (sessions), which would only log people in again
+                $roots = [[dataDir(), 'data', ['sessions']]];
                 if ($withGallery)
-                    $roots[] = [$galleryDir, 'i', true];
+                    $roots[] = [$galleryDir, 'i', ['index.php']];
                 addHistory('backup', 'Pobrano kopię danych' . ($withGallery ? ' z galerią' : '') . '.');
                 sendZip($roots, 'sanakan-kopia-' . date('Y-m-d-His') . '.zip', './', null);
 
@@ -396,10 +397,8 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" />
-  <link href="../css/style.css?v=21" type="text/css" rel="stylesheet" />
+  <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=7" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=6" type="text/css" rel="stylesheet" />
@@ -769,6 +768,7 @@
     </div>
 <?php endif; ?>
   </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>

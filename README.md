@@ -26,10 +26,12 @@ The top right corner of the home page logs in with Discord (`account.php`) and t
 | `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
 | `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites |
 | `inc/services.php` | The other Sanakan sites: whether they answer, since when, per day counts |
-| `inc/auth.php` | Discord login (OAuth2), session, access lists, change history |
+| `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
+| `fonts/`, `css/fonts.css` | The site's fonts (Lato, Share Tech Mono, JetBrains Mono, SIL Open Font License), served from the site instead of Google Fonts, so no visitor's address goes to Google |
 | `inc/fonts/` | Lato and Share Tech Mono (SIL Open Font License) for the preview picture of `/state/` |
+| `privacy/` | Privacy note, linked from the footer of every page |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, `inc/` and the API documentation |

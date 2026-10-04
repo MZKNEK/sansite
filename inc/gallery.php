@@ -832,9 +832,10 @@
         return class_exists('ZipArchive');
     }
 
-    // files under a gallery path for the ZIP as [full path or null for an empty
-    // folder, path in the ZIP]; hidden files and the gallery script stay out
-    function zipCollect($full, $local, $isTop, &$files, &$bytes, $depth = 0)
+    // files under a path for the ZIP as [full path or null for an empty folder,
+    // path in the ZIP]; hidden files and the names in $skip (only right in the
+    // given folder, e.g. the gallery script) stay out
+    function zipCollect($full, $local, $skip, &$files, &$bytes, $depth = 0)
     {
         if (is_file($full)) {
             $files[] = [$full, $local];
@@ -846,12 +847,12 @@
 
         $names = [];
         foreach (scandir($full) ?: [] as $name)
-            if ($name[0] !== '.' && !($isTop && $name === 'index.php'))
+            if ($name[0] !== '.' && !in_array($name, $skip, true))
                 $names[] = $name;
         if (!$names)
             $files[] = [null, $local . '/'];
         foreach ($names as $name)
-            zipCollect($full . '/' . $name, $local . '/' . $name, false, $files, $bytes, $depth + 1);
+            zipCollect($full . '/' . $name, $local . '/' . $name, [], $files, $bytes, $depth + 1);
     }
 
     // gallery items ([full path, rel] each) as what sendZip() takes: the top
@@ -860,13 +861,13 @@
     {
         $roots = [];
         foreach ($items as $item)
-            $roots[] = [$item[0], $item[1] === '' ? 'i' : basename($item[1]), $item[1] === ''];
+            $roots[] = [$item[0], $item[1] === '' ? 'i' : basename($item[1]), $item[1] === '' ? ['index.php'] : []];
 
         return $roots;
     }
 
-    // Sends files and folders ([full path, name in the ZIP, whether it is the
-    // gallery's top folder] each) as one ZIP, stored without compression, since
+    // Sends files and folders ([full path, name in the ZIP, names to leave out
+    // right in it] each) as one ZIP, stored without compression, since
     // pictures and videos are compressed already. $maxBytes null means no limit
     // but the free disk space. A problem goes back to $backUrl as a message.
     function sendZip($roots, $zipName, $backUrl, $maxBytes = ZIP_MAX_BYTES)

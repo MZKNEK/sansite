@@ -268,11 +268,11 @@ body.gbe-shot main.hero {
     display: none;
 }
 
+/* the account and its logout look as in the gallery and the panel */
 .home-who {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-right: 4px;
+    gap: 10px;
     color: rgba(220, 221, 222, 0.75);
 }
 
@@ -285,7 +285,6 @@ body.gbe-shot main.hero {
     margin: 0;
 }
 
-.home-account a:not(.home-login),
 .home-account button {
     padding: 6px 12px;
     border: 1px solid rgba(155, 89, 182, 0.45);
@@ -297,14 +296,19 @@ body.gbe-shot main.hero {
     transition: background-color 0.2s, color 0.2s;
 }
 
-.home-account a:not(.home-login):hover,
 .home-account button:hover {
     background: rgba(155, 89, 182, 0.2);
     color: #fff;
 }
 
-/* the login looks like the HUD buttons of the site (the corners come from .hud-corners) */
-.home-account a.home-login {
+/* the login, the gallery and the panel look like the HUD buttons of the site
+   (the corners come from .hud-corners) */
+.home-account a.home-nav:first-of-type {
+    margin-left: 10px;
+}
+
+.home-account a.home-login,
+.home-account a.home-nav {
     padding: 6px 13px;
     color: var(--text);
     font: 11px/1.5 "Share Tech Mono", monospace;
@@ -915,4 +919,75 @@ a.hud-corners:hover {
     .links a i {
         margin-right: 7px;
     }
+}
+
+/* The footer of every page: the author and the privacy note, quiet at the bottom */
+.site-foot {
+    margin-top: auto;
+    padding: 28px 16px 18px;
+    text-align: center;
+    font: 11px "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.site-foot,
+.site-foot a {
+    color: rgba(220, 221, 222, 0.35);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.site-foot i {
+    margin: 0 10px;
+    font-style: normal;
+}
+
+.site-foot a:hover {
+    color: var(--accent-light);
+}
+
+/* Text pages (privacy/) */
+.prose {
+    max-width: 720px;
+    margin: 32px auto 0;
+    line-height: 1.65;
+    text-align: left;
+    color: rgba(220, 221, 222, 0.85);
+}
+
+.prose h2 {
+    margin: 32px 0 10px;
+    font: 14px "Share Tech Mono", monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #efe2f7;
+}
+
+.prose p,
+.prose ul {
+    margin: 0 0 12px;
+}
+
+.prose ul {
+    padding-left: 20px;
+}
+
+.prose li {
+    margin: 4px 0;
+}
+
+.prose a {
+    color: var(--accent-light);
+}
+
+.prose code {
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: var(--accent-light);
+}
+
+.prose .updated {
+    margin-top: 32px;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.45);
 }

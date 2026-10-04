@@ -18,6 +18,7 @@
     // the times in the history and the panel follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');
     const LOGIN_LOG_SIZE = 50;
+    const SESSION_DAYS = 7;
     const HISTORY_KEEP = 1000;
 
     // the lists the panel can add to, and the config constant each one extends
@@ -269,13 +270,24 @@
         if (session_status() === PHP_SESSION_ACTIVE)
             return;
 
+        // A login lasts SESSION_DAYS. The sessions are kept in inc/data/sessions:
+        // PHP's own folder is cleared by Ubuntu's cron after 24 minutes of quiet,
+        // which would end a login much sooner. PHP clears this folder itself.
+        $dir = dataDir() . '/sessions';
+        if (is_dir($dir) || @mkdir($dir, 0700, true))
+            session_save_path($dir);
+        ini_set('session.gc_maxlifetime', (string)(SESSION_DAYS * 86400));
+        ini_set('session.gc_probability', '1');
+        ini_set('session.gc_divisor', '100');
+
         $secure = visitorUsesHttps();
+        $lifetime = SESSION_DAYS * 86400;
         session_name(SITE_SESSION);
         // Lax, not Strict: the cookie has to come along when Discord sends the visitor back
         if (PHP_VERSION_ID >= 70300)
-            session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
+            session_set_cookie_params(['lifetime' => $lifetime, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax']);
         else
-            session_set_cookie_params(0, '/; samesite=Lax', '', $secure, true);
+            session_set_cookie_params($lifetime, '/; samesite=Lax', '', $secure, true);
         session_start();
     }
 

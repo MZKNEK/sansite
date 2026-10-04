@@ -19,10 +19,8 @@
   <link rel="icon" href="favicon.ico" sizes="32x32" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Share+Tech+Mono&display=swap" />
-  <link href="css/style.css?v=21" type="text/css" rel="stylesheet" />
+  <link href="css/fonts.css?v=1" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=23" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
@@ -55,6 +53,8 @@
       </div>
     </div>
   </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="privacy/">Prywatność</a></footer>
+  <script>document.getElementById('foot-year').textContent = new Date().getFullYear();</script>
 
   <script>
     // shows the motto in Morse code; every symbol lights up in real Morse timing,
@@ -224,9 +224,7 @@
           who.append(avatar, name);
           box.appendChild(who);
 
-          if (me.gallery) box.appendChild(link('i/', 'Galeria'));
-          if (me.panel) box.appendChild(link('admin/', 'Panel'));
-
+          // the account and its logout as on the other pages, the places it may open to the right
           var form = document.createElement('form');
           form.method = 'post';
           form.action = 'account.php';
@@ -242,6 +240,8 @@
           logout.textContent = 'Wyloguj';
           form.appendChild(logout);
           box.appendChild(form);
+          if (me.gallery) box.appendChild(link('i/', 'Galeria', 'home-nav hud-corners'));
+          if (me.panel) box.appendChild(link('admin/', 'Panel', 'home-nav hud-corners'));
           box.hidden = false;
 
           if (me.api) {

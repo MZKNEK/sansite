@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#9b59b6" />
+  <meta name="description" content="Jakie dane zbiera strona sanakan.pl i po co." />
+  <title>Prywatność &middot; Sanakan</title>
+  <link rel="icon" href="../favicon.ico" sizes="32x32" />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+  <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+  <main class="content">
+    <header class="ex-header">
+      <div class="ex-top">
+        <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
+      </div>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="hud-title">Prywatność</h1>
+    </header>
+
+    <article class="prose">
+      <p>Krótko: przeglądanie strony nie zostawia żadnych śladów poza zwykłym ruchem sieciowym. Dane zapisujemy dopiero wtedy, gdy ktoś sam zaloguje się przez Discorda, i tylko tyle, ile trzeba do nadawania dostępu.</p>
+
+      <h2>Przeglądanie strony</h2>
+      <ul>
+        <li>Bez analityki, reklam i śledzenia. Czcionki i wszystkie pliki są z tego serwera.</li>
+        <li>Ruch przechodzi przez Cloudflare, który chroni stronę i ją przyspiesza. Widzi on adres IP odwiedzającego, jak każdy pośrednik w sieci.</li>
+      </ul>
+
+      <h2>Logowanie przez Discorda</h2>
+      <p>Logowanie jest potrzebne tylko do galerii, dokumentacji API i panelu administratora. Odbywa się na stronie Discorda, a my dostajemy od niego wyłącznie <b>ID konta, nazwę i awatar</b> (zakres <code>identify</code>). Nie dostajemy adresu e-mail, hasła ani listy serwerów.</p>
+
+      <h2>Co zapisujemy i jak długo</h2>
+      <ul>
+        <li><b>Ostatnie logowania:</b> nazwa, awatar, czas ostatniego logowania i ich liczba, dla 50 ostatnio logujących się kont. Starsze wpisy wypadają same.</li>
+        <li><b>Prośby o dostęp:</b> konto i notatka, którą ktoś do prośby dopisał, do czasu rozpatrzenia.</li>
+        <li><b>Listy dostępu:</b> ID kont, które mogą oglądać galerię albo czytać API, z notatką administratora, do czasu odebrania dostępu.</li>
+        <li><b>Historia zmian:</b> kto i kiedy zmienił coś w galerii albo w panelu, 1000 ostatnich wpisów.</li>
+      </ul>
+      <p>Te dane służą wyłącznie do kontroli dostępu i do tego, żeby wiedzieć, kto co zmienił (prawnie uzasadniony interes, art. 6 ust. 1 lit. f RODO). Nikomu ich nie udostępniamy i nie sprzedajemy.</p>
+
+      <h2>Twoje prawa</h2>
+      <p>Możesz poprosić o wgląd w swoje dane, ich poprawienie albo usunięcie, a także sprzeciwić się ich przetwarzaniu. Napisz na <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>. Masz też prawo złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych.</p>
+
+      <p class="updated">Ostatnia zmiana: 5 października 2026.</p>
+    </article>
+  </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="./">Prywatność</a></footer>
+  <script>document.getElementById('foot-year').textContent = new Date().getFullYear();</script>
+</body>
+
+</html>
