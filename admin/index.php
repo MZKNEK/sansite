@@ -547,7 +547,7 @@
   <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=10" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=11" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">

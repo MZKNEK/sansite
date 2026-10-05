@@ -677,13 +677,19 @@
 
 .diag-ips li {
     display: grid;
-    grid-template-columns: minmax(130px, 200px) 110px minmax(0, 1fr);
+    /* room for a whole IPv6 address, 39 characters */
+    grid-template-columns: minmax(0, 320px) 110px minmax(0, 1fr);
     align-items: start;
     gap: 2px 14px;
     margin-top: 3px;
     padding: 5px 8px;
     background: linear-gradient(90deg, rgba(155, 89, 182, 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
     font: 13px "JetBrains Mono", Consolas, monospace;
+}
+
+.diag-ip {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .diag-ip a {
