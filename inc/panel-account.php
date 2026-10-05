@@ -17,35 +17,6 @@
     const PROFILE_HISTORY_SHOWN = 60;
     const PROFILE_UPLOADS_SHOWN = 12;
 
-    // what it did in the gallery, by the action in the history: [label, items]
-    const GALLERY_ACTIONS = [
-        'upload' => 'dodane pliki',
-        'mkdir' => 'nowe foldery',
-        'move' => 'przeniesione',
-        'rename' => 'zmiany nazw',
-        'rotate' => 'obrócone',
-        'delete' => 'do kosza'
-    ];
-
-    // "Firefox 130 · Windows" from a user agent
-    function deviceName($agent)
-    {
-        $browser = 'przeglądarka';
-        foreach (['Edg' => 'Edge', 'OPR' => 'Opera', 'Firefox' => 'Firefox', 'Chrome' => 'Chrome', 'Version' => 'Safari'] as $token => $name)
-            if (preg_match('~' . $token . '/(\d+)~', $agent, $match)) {
-                $browser = $name . ' ' . $match[1];
-                break;
-            }
-        $system = '';
-        foreach (['Android' => 'Android', 'iPhone' => 'iPhone', 'iPad' => 'iPad', 'Windows' => 'Windows', 'Mac OS X' => 'macOS', 'Linux' => 'Linux'] as $token => $name)
-            if (strpos($agent, $token) !== false) {
-                $system = $name;
-                break;
-            }
-
-        return $agent === '' ? 'nieznane urządzenie' : $browser . ($system !== '' ? ' · ' . $system : '');
-    }
-
     $profile = (function ($id) {
         $logins = readData('logins');
         $addresses = readData('addresses');
@@ -89,23 +60,7 @@
 
         // what it changed, and what others changed for it (its ID in the text);
         // its changes in the gallery counted, with the files it added
-        $history = [];
-        $gallery = array_fill_keys(array_keys(GALLERY_ACTIONS), 0);
-        $uploads = [];
-        foreach (historyEntries(HISTORY_KEEP) as $entry) {
-            $by = ($entry['id'] ?? '') === $id;
-            $text = (string)($entry['text'] ?? '');
-            if (($by || strpos($text, $id) !== false) && count($history) < PROFILE_HISTORY_SHOWN)
-                $history[] = $entry + ['own' => $by];
-            if (!$by || !isset($gallery[$entry['action'] ?? '']))
-                continue;
-
-            // "Do kosza: i/a.png, i/b.png." counts each, "Dodano i/a.png." one
-            $items = preg_match('/^[^:]+: (.+)\.$/u', $text, $list) && in_array($entry['action'], ['delete', 'move', 'rotate'], true) ? count(explode(', ', $list[1])) : 1;
-            $gallery[$entry['action']] += $items;
-            if ($entry['action'] === 'upload' && count($uploads) < PROFILE_UPLOADS_SHOWN && preg_match('~^Dodano i/(.+?)(?:, zamienione z .*)?\.$~u', $text, $file))
-                $uploads[] = ['rel' => $file[1], 'time' => $entry['time'] ?? 0];
-        }
+        [$history, $gallery, $uploads] = accountActivity($id, true, PROFILE_HISTORY_SHOWN, PROFILE_UPLOADS_SHOWN);
 
         $scanners = diagScanners();
         [$cfItems, $cfError] = cloudflareConfigured() ? cloudflareBlocked() : [null, null];

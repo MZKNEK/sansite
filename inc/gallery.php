@@ -189,6 +189,43 @@
         return filesize($full) <= THUMBLESS_MAX_BYTES ? fileUrl($rel) : null;
     }
 
+    // what an account did in the gallery, by the action in the history: [label, items]
+    const GALLERY_ACTIONS = [
+        'upload' => 'dodane pliki',
+        'mkdir' => 'nowe foldery',
+        'move' => 'przeniesione',
+        'rename' => 'zmiany nazw',
+        'rotate' => 'obrócone',
+        'delete' => 'do kosza'
+    ];
+
+    // What an account did, from the history (the newest HISTORY_KEEP entries of
+    // the whole site): [entries, gallery counts by action, files it added].
+    // The entries are its own, and with $aboutIt also the ones of others that
+    // name its ID (what the panel changed for it), each with 'own'.
+    function accountActivity($id, $aboutIt, $historyMax, $uploadsMax)
+    {
+        $history = [];
+        $gallery = array_fill_keys(array_keys(GALLERY_ACTIONS), 0);
+        $uploads = [];
+        foreach (historyEntries(HISTORY_KEEP) as $entry) {
+            $by = ($entry['id'] ?? '') === $id;
+            $text = (string)($entry['text'] ?? '');
+            if (($by || ($aboutIt && strpos($text, $id) !== false)) && count($history) < $historyMax)
+                $history[] = $entry + ['own' => $by];
+            if (!$by || !isset($gallery[$entry['action'] ?? '']))
+                continue;
+
+            // "Do kosza: i/a.png, i/b.png." counts each, "Dodano i/a.png." one
+            $items = preg_match('/^[^:]+: (.+)\.$/u', $text, $list) && in_array($entry['action'], ['delete', 'move', 'rotate'], true) ? count(explode(', ', $list[1])) : 1;
+            $gallery[$entry['action']] += $items;
+            if ($entry['action'] === 'upload' && count($uploads) < $uploadsMax && preg_match('~^Dodano i/(.+?)(?:, zamienione z .*)?\.$~u', $text, $file))
+                $uploads[] = ['rel' => $file[1], 'time' => $entry['time'] ?? 0];
+        }
+
+        return [$history, $gallery, $uploads];
+    }
+
     // lower case for the search, also without the mbstring extension
     function lower($text)
     {

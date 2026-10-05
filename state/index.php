@@ -25,7 +25,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=29" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=30" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
 </head>
@@ -54,6 +54,7 @@
     <p class="state-note">Strona odświeża się sama co 10 minut.</p>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <script src="../js/netsphere.js?v=1"></script>
 </body>
 
 </html>

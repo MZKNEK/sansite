@@ -121,7 +121,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=29" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=30" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
@@ -410,6 +410,7 @@
 
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
+  <script src="../js/netsphere.js?v=1"></script>
 <?php if ($admin): ?>
   <script src="../js/explorer-admin.js?v=8"></script>
 <?php endif; ?>

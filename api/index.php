@@ -42,7 +42,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=29" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=30" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
@@ -93,6 +93,7 @@
 <?php endif; ?>
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
+  <script src="../js/netsphere.js?v=1"></script>
 </body>
 
 </html>
@@ -109,7 +110,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=29" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=30" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=16" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -203,42 +204,8 @@
 <script src="./swagger-ui-standalone-preset.js?v=1"> </script>
 <script src="./search.js?v=2"> </script>
 <script src="../js/account.js?v=1"></script>
-<script>
-window.onload = function() {
-  
-  // Build a system
-  const ui = SwaggerUIBundle({
-    url: "./read_swagger.php",
-    // no badge from online.swagger.io, which would also get the spec address
-    validatorUrl: null,
-    dom_id: '#swagger-ui',
-    deepLinking: true,
-    presets: [
-      SwaggerUIBundle.presets.apis,
-      SwaggerUIStandalonePreset
-    ],
-    plugins: [
-      SwaggerUIBundle.plugins.DownloadUrl,
-      SanakanApiSearch.plugin
-    ],
-    layout: "StandaloneLayout",
-    onComplete: function () {
-      // API version from the spec, next to the title
-      var version = window.ui.specSelectors.info().get("version")
-      if (version) {
-        var badge = document.getElementById("api-version")
-        badge.textContent = "v" + version
-        badge.hidden = false
-      }
-
-      SanakanApiSearch.mount()
-    }
-  })
-
-  window.ui = ui
-  SanakanApiSearch.bind(ui)
-}
-</script>
+<script src="./init.js?v=1"></script>
+<script src="../js/netsphere.js?v=1"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

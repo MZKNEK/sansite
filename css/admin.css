@@ -1089,3 +1089,29 @@ a.who-name:hover {
         margin-bottom: 10px;
     }
 }
+
+/* the profile of the logged-in account itself (account/): plain forms instead of the panel's buttons */
+.devices li form {
+    margin: 0;
+}
+
+.devices-all {
+    margin: 12px 0 0;
+}
+
+.panel-grid > .own-note {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+.own-profile .hint a {
+    color: var(--accent-light);
+}
+
+.own-profile .hint a:hover {
+    color: #fff;
+}
+
+.own-profile .server + .hint {
+    margin-top: 14px;
+}

@@ -12,7 +12,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link href="/css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="/css/style.css?v=29" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=30" type="text/css" rel="stylesheet" />
   <link href="/css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <style>
     .not-found .lost {
@@ -55,22 +55,9 @@
     </section>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
-  <script>document.getElementById('foot-year').textContent = new Date().getFullYear();</script>
-
-  <script>
-    // a short link to a command (/cmd/daily) where nginx has no rule for it yet
-    var command = location.pathname.match(/^\/cmd\/([^\/.]+)\/?$/);
-    if (command) location.replace('/cmd/#' + command[1]);
-
-    // the address that was not found
-    var path = location.pathname;
-    try {
-      path = decodeURIComponent(path);
-    } catch (err) {
-      // a broken %-code stays as it is
-    }
-    document.getElementById('lost').textContent = path;
-  </script>
+  <script src="/js/year.js?v=1"></script>
+  <script src="/js/404.js?v=1"></script>
+  <script src="/js/netsphere.js?v=1"></script>
 </body>
 
 </html>

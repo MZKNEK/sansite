@@ -364,6 +364,7 @@
     // ---- The account in the corner of every page ----------------------------------
 
     const ACCOUNT_ICONS = [
+        'profile' => '<circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" />',
         'gallery' => '<rect x="3" y="4" width="18" height="16" rx="1" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-9 9" />',
         'panel' => '<path d="M4 6h16M4 12h10M4 18h16" />',
         'api' => '<path d="m8 8-4 4 4 4M16 8l4 4-4 4" />',
@@ -381,7 +382,7 @@
 
     // The logged-in account for the top right corner: its avatar ringed in the
     // colour of its role, the name and the level. A click (js/account.js) opens
-    // a menu with the places it may open, none it may not, and logging out,
+    // a menu with its profile, the places it may open, none it may not, and logging out,
     // which comes back to $back. Below them a dim line with the role and the ID.
     function accountMenuHtml($user, $roles, $back)
     {
@@ -391,7 +392,8 @@
         $badge = roleBadge($roles);
         $here = strtok((string)($_SERVER['REQUEST_URI'] ?? ''), '?');
 
-        $places = [];
+        // the account's own profile for everyone, the rest only where it may go
+        $places = [['profile', 'Profil', 'account/']];
         if (canViewGalleryId($user['id']))
             $places[] = ['gallery', 'Galeria', 'i/'];
         if (isPanelAdminId($user['id']))
@@ -655,6 +657,25 @@
             $files[sessionKey(substr(basename($file), 5))] = $file;
 
         return $files;
+    }
+
+    // "Firefox 130 · Windows" from a user agent
+    function deviceName($agent)
+    {
+        $browser = 'przeglądarka';
+        foreach (['Edg' => 'Edge', 'OPR' => 'Opera', 'Firefox' => 'Firefox', 'Chrome' => 'Chrome', 'Version' => 'Safari'] as $token => $name)
+            if (preg_match('~' . $token . '/(\d+)~', $agent, $match)) {
+                $browser = $name . ' ' . $match[1];
+                break;
+            }
+        $system = '';
+        foreach (['Android' => 'Android', 'iPhone' => 'iPhone', 'iPad' => 'iPad', 'Windows' => 'Windows', 'Mac OS X' => 'macOS', 'Linux' => 'Linux'] as $token => $name)
+            if (strpos($agent, $token) !== false) {
+                $system = $name;
+                break;
+            }
+
+        return $agent === '' ? 'nieznane urządzenie' : $browser . ($system !== '' ? ' · ' . $system : '');
     }
 
     // ends one session of an account, by its key: whether there was one
