@@ -41,7 +41,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/` and the API documentation |
 | `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
-| `server/wiki/theme.css` | The site's look for the wiki (Wiki.js 2, dark mode), pasted by hand into its Administration → Theme → CSS Override; the fonts come from this site |
+| `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:
@@ -89,6 +89,20 @@ ssh sanakan 'nginx -t && systemctl reload nginx'
 ```
 
 `/fpm-status` in `sanakan.conf` goes to `unix:/run/php/php8.1-fpm.sock`, the socket of Ubuntu's PHP 8.1; where the site's PHP location uses another one, change it there too.
+
+### Wiki
+
+The wiki (Wiki.js 2, `/var/www/wiki` on the same server, without Docker) gets the site's look by hand, from `server/wiki/`:
+
+- `theme.css` goes into its Administration → Theme → Code Injection → CSS Override, `head.html` into Head HTML Injection.
+- `assets/` holds the site's icon in the sizes Wiki.js uses and its manifest; they go over the wiki's own files, with the originals kept in `/root/wiki-assets-original/`. A Wiki.js update brings its own icons back, so this is repeated after one:
+
+```bash
+scp -r server/wiki/assets sanakan:/tmp/wiki-assets
+ssh sanakan 'set -e; cd /var/www/wiki/assets; [ -d /root/wiki-assets-original ] || { mkdir /root/wiki-assets-original; cp -r favicons manifest.json favicon.ico /root/wiki-assets-original/; }; cp -r /tmp/wiki-assets/. .; chown -R --reference=. .; rm -rf /tmp/wiki-assets; systemctl restart wiki'
+```
+
+Wiki.js keeps `/favicon.ico` in memory, hence the restart. Cloudflare keeps the old icons until they are purged (Caching → Custom Purge, the addresses under `https://wiki.sanakan.pl/_assets/favicons/`, `/_assets/manifest.json` and `/favicon.ico`).
 
 ### PHP-FPM
 

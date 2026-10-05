@@ -1,0 +1,12 @@
+<!-- Pasted into the wiki's Administration -> Theme -> Code Injection -> Head HTML
+     Injection. Wiki.js writes its blue into the page itself; this turns the
+     phone browser bar, the Windows tile and the Safari pinned tab purple like
+     the site. The icons themselves are the files in server/wiki/assets/. -->
+<script>
+  [['meta[name="theme-color"]', 'content', '#9b59b6'],
+   ['meta[name="msapplication-TileColor"]', 'content', '#0e0e11'],
+   ['link[rel="mask-icon"]', 'color', '#9b59b6']].forEach(function (item) {
+    var element = document.querySelector(item[0]);
+    if (element) element.setAttribute(item[1], item[2]);
+  });
+</script>
