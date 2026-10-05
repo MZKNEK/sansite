@@ -408,6 +408,15 @@
     $csrf = $user ? siteCsrf() : '';
     $root = siteRoot();
 
+    // a place an account may open, as a small icon with its name in the title;
+    // $strong marks more than looking, e.g. a gallery admin
+    function accessIcon($icon, $title, $strong = false)
+    {
+        return '<i class="access' . ($strong ? ' strong' : '') . '" title="' . e($title) . '">'
+            . '<svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">' . ACCOUNT_ICONS[$icon] . '</svg>'
+            . '<span class="visually-hidden">' . e($title) . '</span></i>';
+    }
+
     // avatar and name of an account, from its latest login when there was one
     function accountCell($id, $logins)
     {
@@ -433,8 +442,8 @@
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=7" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=8" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=8" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -586,37 +595,37 @@
 
       <section class="card wide">
         <h2><i>06</i>Ostatnie logowania</h2>
-        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowe są role na serwerze bota, odświeżane, gdy konto odwiedza stronę; galerii nie dają.</p>
+        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowy poziom to najwyższa rola na serwerze bota (wszystkie w dymku), odświeżana, gdy konto odwiedza stronę; galerii nie daje. Ikony to dostępy na stronie: galeria (jasna: admin galerii), panel i API.</p>
 <?php if (!$logins): ?>
         <p class="nobody">Nikt się jeszcze nie logował.</p>
 <?php else: ?>
         <div class="logins">
 <?php foreach ($logins as $id => $login):
         $id = (string)$id;
-        $roles = [];
-        if (isPanelAdminId($id))
-            $roles[] = 'panel';
+        // the highest role on the bot's server, the others in its title
+        $serverRoles = $knownRoles[$id]['roles'] ?? null;
+        $badge = roleBadge($serverRoles);
+        // what it may open on this site, as icons
+        $access = [];
         if (isGalleryAdminId($id))
-            $roles[] = 'admin galerii';
+            $access[] = accessIcon('gallery', 'Admin galerii: ogląda i zarządza plikami', true);
         else if (canViewGalleryId($id))
-            $roles[] = 'ogląda galerię';
-        if (!isPanelAdminId($id) && canViewApiId($id))
-            $roles[] = 'API';
+            $access[] = accessIcon('gallery', 'Ogląda galerię');
+        if (isPanelAdminId($id))
+            $access[] = accessIcon('panel', 'Panel administratora');
+        if (canViewApiId($id))
+            $access[] = accessIcon('api', 'Dokumentacja API' . (!isPanelAdminId($id) && !inAccessList('apiViewers', $id, true) ? ' (przez rolę na serwerze)' : ''));
 ?>
           <div class="login-row">
             <span class="login-who"><?=accountCell($id, $logins)?></span>
             <span class="login-when"><?=e(ago($login['last'] ?? 0))?> &middot; <?=(int)($login['count'] ?? 0)?>&times;</span>
             <span class="login-roles">
-<?php foreach (BOT_ROLES as $key => $role): if (!empty($knownRoles[$id]['roles'][$key])): ?>
-              <span class="role bot role-<?=e($key)?>" title="Rola na serwerze Sanakana, według bota"><?=e($role[2])?></span>
-<?php endif; endforeach; ?>
-<?php if (isset($knownRoles[$id]['roles']) && empty($knownRoles[$id]['roles']['onGuild'])): ?>
-              <span class="role bot role-out" title="Według bota tego konta nie ma na serwerze Sanakana">poza serwerem</span>
+<?php if ($badge): ?>
+              <span class="lv role-<?=e($badge['key'])?>" title="<?=e(roleNames($serverRoles) ? 'Role na serwerze Sanakana: ' . implode(', ', roleNames($serverRoles)) : $badge['title'])?>">LV.<?=$badge['level']?> <?=e($badge['name'])?></span>
 <?php endif; ?>
-<?php foreach ($roles as $role): ?>
-              <span class="role"><?=e($role)?></span>
-<?php endforeach; ?>
-<?php if (!$roles): ?>
+<?php if ($access): ?>
+              <span class="access-icons"><?=implode('', $access)?></span>
+<?php else: ?>
               <span class="role none">bez dostępu</span>
 <?php endif; ?>
             </span>

@@ -316,7 +316,7 @@
         return false;
     }
 
-    // the highest role as ['key', 'level', 'label', 'title'], or null when unknown
+    // the highest role as ['key', 'level', 'label', 'name', 'title'], or null when unknown
     function roleBadge($roles)
     {
         if ($roles === null)
@@ -324,11 +324,22 @@
 
         foreach (BOT_ROLES as $key => [$level, $label, $name])
             if (!empty($roles[$key]))
-                return ['key' => $key, 'level' => $level, 'label' => $label, 'title' => 'Rola na serwerze Sanakana: ' . $name];
+                return ['key' => $key, 'level' => $level, 'label' => $label, 'name' => $name, 'title' => 'Rola na serwerze Sanakana: ' . $name];
 
         return empty($roles['onGuild'])
-            ? ['key' => 'out', 'level' => 0, 'label' => 'POZA SERWEREM', 'title' => 'Tego konta nie ma na serwerze Sanakana']
-            : ['key' => 'none', 'level' => 0, 'label' => 'BEZ ROLI', 'title' => 'Konto nie ma roli na serwerze Sanakana'];
+            ? ['key' => 'out', 'level' => 0, 'label' => 'POZA SERWEREM', 'name' => 'poza serwerem', 'title' => 'Tego konta nie ma na serwerze Sanakana']
+            : ['key' => 'none', 'level' => 0, 'label' => 'BEZ ROLI', 'name' => 'bez roli', 'title' => 'Konto nie ma roli na serwerze Sanakana'];
+    }
+
+    // every role of an account, highest first, by its name in the panel
+    function roleNames($roles)
+    {
+        $names = [];
+        foreach (BOT_ROLES as $key => $role)
+            if (!empty($roles[$key]))
+                $names[] = $role[2];
+
+        return $names;
     }
 
     // the level next to the account name, "LV.9" in the colour of the role,
@@ -348,6 +359,7 @@
     const ACCOUNT_ICONS = [
         'gallery' => '<rect x="3" y="4" width="18" height="16" rx="1" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-9 9" />',
         'panel' => '<path d="M4 6h16M4 12h10M4 18h16" />',
+        'api' => '<path d="m8 8-4 4 4 4M16 8l4 4-4 4" />',
         'logout' => '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />',
         'caret' => '<path d="m6 9 6 6 6-6" />'
     ];

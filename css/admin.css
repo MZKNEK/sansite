@@ -377,6 +377,44 @@
     color: var(--role);
 }
 
+/* the recent logins: the highest role as a level, as tall as the chips */
+.login-roles .lv {
+    line-height: 20px;
+    cursor: help;
+}
+
+/* and the places on this site as icons; a strong one does more than look */
+.access-icons {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.access {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 20px;
+    border: 1px solid rgba(155, 89, 182, 0.4);
+    color: var(--accent-light);
+    cursor: help;
+}
+
+.access.strong {
+    border-color: var(--accent-light);
+    background: rgba(155, 89, 182, 0.22);
+    color: #fff;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .nobody,
 .everyone {
     font-size: 14px;
