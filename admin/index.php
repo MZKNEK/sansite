@@ -9,7 +9,7 @@
     require __DIR__ . '/../inc/status-card.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
-    $thumbsDir = sys_get_temp_dir() . '/sanakan-thumbs';
+    $thumbsDir = thumbsDir();
 
     const LIST_LABELS = [
         'galleryAdmins' => 'administratorzy galerii',
@@ -219,8 +219,9 @@
             case 'backup':
                 // a plain form: the answer is the ZIP itself, a problem comes back as a message
                 $withGallery = ($_POST['gallery'] ?? '') === '1';
-                // without the logins of the moment (sessions), which would only log people in again
-                $roots = [[dataDir(), 'data', ['sessions']]];
+                // without the logins of the moment (sessions), which would only log people
+                // in again, and the thumbnails, which are made again by themselves
+                $roots = [[dataDir(), 'data', ['sessions', 'thumbs']]];
                 if ($withGallery)
                     $roots[] = [$galleryDir, 'i', ['index.php']];
                 addHistory('backup', 'Pobrano kopię danych' . ($withGallery ? ' z galerią' : '') . '.');

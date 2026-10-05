@@ -24,7 +24,7 @@ The top right corner of the home page logs in with Discord (`account.php`) and t
 | `cmd/`, `api/`, `state/`, `i/`, `admin/` | Subpages |
 | `status.php` | Bot status for the home page |
 | `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
-| `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites |
+| `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites, once a day it removes the thumbnails nobody looked at for 30 days |
 | `inc/services.php` | The other Sanakan sites: whether they answer, since when, per day counts |
 | `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
@@ -40,7 +40,7 @@ The top right corner of the home page logs in with Discord (`account.php`) and t
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists and requests, status history and outages, change history, trash, file hashes, the time sessions are valid from,
+- `inc/data/`, the data the site writes: access lists and requests, status history and outages, change history, trash, file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup),
 - the pictures in `i/` (only `i/index.php` is tracked).
 
 The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (server card, "Kopia danych"). To restore it, unpack `data/` into `inc/data/` and `i/` into `i/`, then give them back to the web server: `chown -R www-data:www-data inc/data i`.

@@ -20,6 +20,9 @@
     // with api/health the command list (cmd/ and its changes) is fetched only this often
     const BOT_COMMANDS_TTL = 600;
     const BOT_CACHE_TTL = 60;
+    // cron refreshes the state every minute, so a page asks the API itself only
+    // when it is older than this (cron late or stopped)
+    const BOT_STALE_AFTER = 150;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
     const BOT_DAYS_KEEP = 400;
@@ -580,9 +583,20 @@
         return $issues ?: ['bot zgłasza problemy'];
     }
 
+    // the cached state, or null when there is none
+    function botCachedState($file)
+    {
+        $state = is_file($file) ? @json_decode(@file_get_contents($file), true) : null;
+
+        return is_array($state) && isset($state['status'], $state['uptime'], $state['checked']) ? $state : null;
+    }
+
     // ['status' => online|idle|offline, 'uptime' => percent, 'checked' => time,
-    // 'ms' => Discord ping (API answer time without api/health), 'issues' => [...]],
-    // asks the API only when the cached state is older than a minute or $force
+    // 'ms' => Discord ping (API answer time without api/health), 'issues' => [...]].
+    // Cron asks the API every minute ($force). A page asks it itself only when
+    // the cached state is older than BOT_STALE_AFTER (cron has stopped), and
+    // only one request at a time: the others meanwhile get the old state, so a
+    // slow or silent bot cannot hold many PHP workers at once.
     function botState($force = false)
     {
         static $state = null;
@@ -591,52 +605,72 @@
 
         $now = time();
         $file = botFile('status.json');
-        $state = null;
-        if (!$force && is_file($file) && $now - filemtime($file) < BOT_CACHE_TTL)
-            $state = @json_decode(@file_get_contents($file), true);
+        $state = $force ? null : botCachedState($file);
+        if ($state !== null && $now - $state['checked'] < BOT_STALE_AFTER)
+            return $state;
 
-        if (!is_array($state) || !isset($state['status'], $state['uptime'], $state['checked'])) {
-            $report = botAskHealth();
-            if ($report === null) {
-                // a bot without api/health: getting the command list means it is up
-                @unlink(botFile('health.json'));
-                $health = null;
-                [$online, $ms] = botFetchCommands($now);
-            } else {
-                [$online, $ms, $health] = $report;
-                if ($health !== null)
-                    botWriteFile(botFile('health.json'), json_encode($health));
-                else
-                    @unlink(botFile('health.json'));
-
-                $commands = botFile('commands.json');
-                if ($online && (!is_file($commands) || $now - filemtime($commands) >= BOT_COMMANDS_TTL))
-                    botFetchCommands($now);
-            }
-
-            $shinden = $online && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
-            $uptime = botRecordCheck($online, $now, $online ? $ms : null, $shinden);
-            botRecordDay($online, $now);
-            botRecordIncident($online, $now);
-
-            $issues = $online ? botIssues($health) : [];
-            if (!$online)
-                $status = 'offline';
-            else if ($issues || $uptime < BOT_MIN_UPTIME)
-                $status = 'idle';
-            else
-                $status = 'online';
-
-            $state = [
-                'status' => $status,
-                // rounded down, so 98.96 is not shown as 99 next to the idle status
-                'uptime' => floor($uptime * 10) / 10,
-                'checked' => $now,
-                'ms' => $online ? $ms : null,
-                'issues' => $issues
-            ];
-            botWriteFile($file, json_encode($state));
+        // without any state to show the request waits for the one asking
+        $lock = @fopen(botFile('status.lock'), 'c');
+        if ($lock !== false && !flock($lock, $state === null ? LOCK_EX : LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            if ($state !== null)
+                return $state;
+            $lock = false;
         }
+        // the request that held the lock may have just asked
+        $now = time();
+        if (!$force) {
+            $fresh = botCachedState($file);
+            if ($fresh !== null && $now - $fresh['checked'] < BOT_STALE_AFTER) {
+                if ($lock !== false)
+                    fclose($lock);
+                return $state = $fresh;
+            }
+        }
+
+        $report = botAskHealth();
+        if ($report === null) {
+            // a bot without api/health: getting the command list means it is up
+            @unlink(botFile('health.json'));
+            $health = null;
+            [$online, $ms] = botFetchCommands($now);
+        } else {
+            [$online, $ms, $health] = $report;
+            if ($health !== null)
+                botWriteFile(botFile('health.json'), json_encode($health));
+            else
+                @unlink(botFile('health.json'));
+
+            $commands = botFile('commands.json');
+            if ($online && (!is_file($commands) || $now - filemtime($commands) >= BOT_COMMANDS_TTL))
+                botFetchCommands($now);
+        }
+
+        $shinden = $online && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
+        $uptime = botRecordCheck($online, $now, $online ? $ms : null, $shinden);
+        botRecordDay($online, $now);
+        botRecordIncident($online, $now);
+
+        $issues = $online ? botIssues($health) : [];
+        if (!$online)
+            $status = 'offline';
+        else if ($issues || $uptime < BOT_MIN_UPTIME)
+            $status = 'idle';
+        else
+            $status = 'online';
+
+        $state = [
+            'status' => $status,
+            // rounded down, so 98.96 is not shown as 99 next to the idle status
+            'uptime' => floor($uptime * 10) / 10,
+            'checked' => $now,
+            'ms' => $online ? $ms : null,
+            'issues' => $issues
+        ];
+        botWriteFile($file, json_encode($state));
+
+        if ($lock !== false)
+            fclose($lock);
 
         return $state;
     }

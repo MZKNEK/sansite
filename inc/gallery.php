@@ -16,6 +16,7 @@
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
     const TRASH_DAYS = 30;
+    const THUMB_KEEP_DAYS = 30;
     const SEARCH_LIMIT = 300;
     const ZIP_MAX_BYTES = 1073741824;
     const ROTATE_TYPES = ['png', 'jpg', 'jpeg', 'webp'];
@@ -439,6 +440,37 @@
         return $ok;
     }
 
+    // The thumbnail cache, in inc/data/thumbs so it outlives a restart and the
+    // cleaning of /tmp (a gallery that lost it makes all its thumbnails at once).
+    // The old cache in /tmp moves there the first time; /tmp only when inc/data
+    // cannot be written.
+    function thumbsDir()
+    {
+        $dir = dataDir() . '/thumbs';
+        $old = sys_get_temp_dir() . '/sanakan-thumbs';
+        if (!is_dir($dir) && dataWritable()) {
+            @mkdir(dataDir(), 0750, true);
+            if (!(is_dir($old) && @rename($old, $dir)))
+                @mkdir($dir, 0775, true);
+        }
+
+        return is_dir($dir) && is_writable($dir) ? $dir : $old;
+    }
+
+    // Removes the thumbnails nobody has looked at for THUMB_KEEP_DAYS (sendThumb()
+    // renews their time once a day); those of deleted, renamed or changed pictures
+    // are never asked for again. Run by inc/check-bot.php once a day.
+    function pruneThumbs()
+    {
+        $removed = 0;
+        $before = time() - THUMB_KEEP_DAYS * 86400;
+        foreach (glob(thumbsDir() . '/*') ?: [] as $file)
+            if (is_file($file) && filemtime($file) < $before && @unlink($file))
+                $removed++;
+
+        return $removed;
+    }
+
     // Thumbnail of one picture, made on first use and then served from the cache.
     // The URL has the file time in it, so browsers may keep it for good.
     function sendThumb($base, $rel)
@@ -452,9 +484,23 @@
 
         $webp = function_exists('imagewebp');
         $key = md5($file[0] . '|' . filemtime($file[0]) . '|' . filesize($file[0]) . '|' . THUMB_SIZE);
-        $cache = sys_get_temp_dir() . '/sanakan-thumbs/' . $key . ($webp ? '.webp' : '.png');
+        $cache = thumbsDir() . '/' . $key . ($webp ? '.webp' : '.png');
 
-        if (!is_file($cache) && (!hasGd() || !makeThumb($file[0], $cache))) {
+        if (!is_file($cache) && hasGd()) {
+            // One thumbnail at a time: GD holds the whole picture in memory and the
+            // server has one core, so a folder full of new pictures must not make
+            // them all at once. A request that waited may find its thumbnail made.
+            $lock = @fopen(thumbsDir() . '/.lock', 'c');
+            if ($lock !== false)
+                flock($lock, LOCK_EX);
+            clearstatcache(true, $cache);
+            if (!is_file($cache))
+                makeThumb($file[0], $cache);
+            if ($lock !== false)
+                fclose($lock);
+        }
+
+        if (!is_file($cache)) {
             // no thumbnail possible: the picture itself has to do, a video gets none
             if ($video)
                 http_response_code(404);
@@ -462,6 +508,10 @@
                 header('Location: ' . fileUrl($file[1]));
             return;
         }
+
+        // still in use, so pruneThumbs() keeps it
+        if (filemtime($cache) < time() - 86400)
+            @touch($cache);
 
         header('Content-Type: ' . ($webp ? 'image/webp' : 'image/png'));
         header('Cache-Control: public, max-age=31536000, immutable');
@@ -893,6 +943,11 @@
         if ($free !== false && $free < $bytes + 100 * 1024 * 1024)
             $fail('Za mało wolnego miejsca na dysku serwera na złożenie ZIP (' . formatSize($bytes) . ').');
 
+        // the visitor's other pages need not wait while the ZIP is put together
+        // and sent; a later problem opens the session again for its message
+        if (session_status() === PHP_SESSION_ACTIVE)
+            session_write_close();
+
         @set_time_limit(0);
         $tmp = @tempnam(sys_get_temp_dir(), 'sanakan-zip-');
         $zip = new ZipArchive();
@@ -911,9 +966,6 @@
             $fail('Nie udało się utworzyć pliku ZIP.');
         }
 
-        // the visitor's other pages need not wait for the download
-        if (session_status() === PHP_SESSION_ACTIVE)
-            session_write_close();
         $ascii = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $zipName);
         header('Content-Type: application/zip');
         header('Content-Length: ' . filesize($tmp));

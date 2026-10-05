@@ -23,7 +23,12 @@
     }
 
     if (isset($_GET['thumb'])) {
-        if (galleryCanView())
+        $canView = galleryCanView();
+        // PHP locks the session file until the request ends; closed, the many
+        // thumbnails of one page do not wait for each other in line
+        if (session_status() === PHP_SESSION_ACTIVE)
+            session_write_close();
+        if ($canView)
             sendThumb($base, $_GET['thumb']);
         else
             http_response_code(403);
