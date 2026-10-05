@@ -107,35 +107,69 @@
         if ($fp !== false)
             fclose($fp);
 
+        // checks during a planned break do not count, as its outages do not
+        $windows = botMaintenanceWindows();
+        $counted = 0;
         $up = 0;
-        foreach ($history as $entry)
+        foreach ($history as $entry) {
+            if (botInMaintenance($entry[0], $windows))
+                continue;
+            $counted++;
             if ($entry[1])
                 $up++;
+        }
 
-        return 100 * $up / count($history);
+        return $counted ? 100 * $up / $counted : 100;
     }
 
-    // The last 24 h in 96 parts of 15 minutes, oldest first; each is
-    // ['from' => time, 'state' => null (no checks) | true (all fine) | false (some failed)]
+    // The last 24 h in 96 parts of 15 minutes, oldest first; each is ['from' =>
+    // time, 'checks', 'down' => checks without an answer, 'planned' => those of
+    // them during a planned break, 'state']. The state is null without checks,
+    // 'ok' when all answered, 'planned' when only checks in a planned break did
+    // not, 'warn' when less than half did not and 'fail' from half on, so one
+    // missed minute does not paint the whole quarter of an hour red.
     function botTimeline($history)
     {
         $start = time() - BOT_HISTORY_SPAN;
+        $windows = botMaintenanceWindows();
         $parts = [];
         for ($i = 0; $i < 96; $i++)
-            $parts[] = ['from' => $start + $i * 900, 'state' => null];
+            $parts[] = ['from' => $start + $i * 900, 'checks' => 0, 'down' => 0, 'planned' => 0, 'state' => null];
 
         foreach ($history as $check) {
             $i = min(95, max(0, (int)floor(($check[0] - $start) / 900)));
-            $parts[$i]['state'] = ($parts[$i]['state'] ?? true) && $check[1];
+            $parts[$i]['checks']++;
+            if (!$check[1]) {
+                $parts[$i]['down']++;
+                if (botInMaintenance($check[0], $windows))
+                    $parts[$i]['planned']++;
+            }
         }
+
+        foreach ($parts as &$part) {
+            $unplanned = $part['down'] - $part['planned'];
+            if (!$part['checks'])
+                continue;
+            else if (!$part['down'])
+                $part['state'] = 'ok';
+            else if (!$unplanned)
+                $part['state'] = 'planned';
+            else
+                $part['state'] = $unplanned * 2 < $part['checks'] ? 'warn' : 'fail';
+        }
+        unset($part);
 
         return $parts;
     }
 
     // Counts the check for its day: ['Y-m-d' => [checks, online checks]]. The
-    // first time, the days are filled from the 24 h history instead.
+    // first time, the days are filled from the 24 h history instead. Checks
+    // during a planned break are not counted.
     function botRecordDay($online, $now)
     {
+        if (botInMaintenance($now))
+            return;
+
         $fp = @fopen(botFile('days.json'), 'c+');
         if ($fp === false || !flock($fp, LOCK_EX)) {
             if ($fp !== false)
@@ -147,7 +181,10 @@
         if (!is_array($days)) {
             // the history already has this check in it
             $days = [];
+            $windows = botMaintenanceWindows();
             foreach (botHistory() as $check) {
+                if (botInMaintenance($check[0], $windows))
+                    continue;
                 $day = date('Y-m-d', $check[0]);
                 $days[$day] = [($days[$day][0] ?? 0) + 1, ($days[$day][1] ?? 0) + ($check[1] ? 1 : 0)];
             }
@@ -442,10 +479,11 @@
         return is_array($windows) ? $windows : [];
     }
 
-    // whether the time falls in a planned break
-    function botInMaintenance($time)
+    // whether the time falls in a planned break; $windows, read once, saves
+    // reading them for every check of a loop
+    function botInMaintenance($time, $windows = null)
     {
-        foreach (botMaintenanceWindows() as $window)
+        foreach ($windows ?? botMaintenanceWindows() as $window)
             if ($time >= $window['from'] && $time < $window['to'])
                 return true;
 

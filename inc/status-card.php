@@ -154,6 +154,21 @@
         return $uptime >= 99.5 ? 'ok' : ($uptime >= 95 ? 'warn' : 'fail');
     }
 
+    // what a quarter of an hour of the 24 h bar says when pointed at
+    function timelineLabel($part)
+    {
+        if ($part['state'] === null)
+            return 'brak sprawdzeń';
+        if ($part['state'] === 'ok')
+            return 'działał';
+
+        $label = $part['down'] . ' z ' . $part['checks'] . ' ' . plural($part['checks'], 'sprawdzenia', 'sprawdzeń', 'sprawdzeń') . ' bez odpowiedzi';
+        if ($part['state'] === 'planned')
+            return 'przerwa techniczna, ' . $label;
+
+        return $label . ($part['planned'] ? ' (' . $part['planned'] . ' w przerwie technicznej)' : '');
+    }
+
     function partTitle($label, $part)
     {
         if (!$part['checks'])
@@ -301,11 +316,8 @@
         <div class="bar">
           <div class="bar-head"><span>Ostatnie 24 godziny</span><b><?=e(str_replace('.', ',', $state['uptime']))?>%</b></div>
           <div class="timeline" aria-label="Dostępność w ostatnich 24 godzinach, po 15 minut">
-<?php foreach (botTimeline($history) as $part):
-        $class = $part['state'] === null ? 'none' : ($part['state'] ? 'ok' : 'fail');
-        $label = $part['state'] === null ? 'brak sprawdzeń' : ($part['state'] ? 'działał' : 'nie odpowiadał');
-?>
-            <span class="<?=$class?>" title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . $label)?>"></span>
+<?php foreach (botTimeline($history) as $part): ?>
+            <span class="<?=$part['state'] ?? 'none'?>" title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . timelineLabel($part))?>"></span>
 <?php endforeach; ?>
           </div>
           <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
@@ -327,7 +339,7 @@
         </div>
 
         <div class="timeline-legend">
-          <span><i class="ok"></i>działał <i class="warn"></i>częściowo <i class="fail"></i>nie działał <i class="none"></i>brak sprawdzeń</span>
+          <span><i class="ok"></i>działał <i class="warn"></i>częściowo <i class="fail"></i>nie działał <i class="planned"></i>przerwa techniczna <i class="none"></i>brak sprawdzeń</span>
         </div>
 
         <div class="bar incidents">

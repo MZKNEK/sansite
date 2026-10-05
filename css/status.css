@@ -137,6 +137,12 @@
     background: rgba(217, 83, 79, 0.85);
 }
 
+/* a planned maintenance break, in the colour of the planned outages below */
+.timeline .planned,
+.timeline-legend .planned {
+    background: rgba(88, 101, 242, 0.8);
+}
+
 .timeline-legend .none {
     background: rgba(220, 221, 222, 0.08);
 }
