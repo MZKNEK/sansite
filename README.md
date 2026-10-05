@@ -8,9 +8,9 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`, short: `/cmd/daily`, also by an alias), marks on commands new or changed in the last 14 days; the bot's admins and devs and the panel admins also see the moderator and debug commands, marked red with a padlock |
 | `/cmd/zmiany/` | History of the changes in the commands, noticed by comparing every command list with the one before |
 | `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; the bot's devs, admins, semi-admins and testers get in by their role, an account without access can ask for it |
-| `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version), availability over the last 24 hours (quarters of an hour: yellow when less than half the checks went unanswered, red from half on, blue for a planned maintenance break) and 90 days, planned breaks not counted, the Discord ping and Shinden's answer time, the outages of the last 90 days and the notice from the panel; below, the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 90 days. Its link preview is a picture of the current state (`/state/og.php`) |
+| `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version), availability over the last 24 hours (quarters of an hour: yellow when less than half the checks went unanswered, red from half on, blue for a planned maintenance break) and 90 days, planned breaks not counted, the Discord ping and Shinden's answer time, the outages of the last 90 days and the notice from the panel; below, this site (checked every 10 seconds) and the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 90 days. Its link preview is a picture of the current state (`/state/og.php`) |
 | `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90°. An account without access can ask for it |
-| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery and API access, recent logins with their roles on the bot's server and logging everyone out, trash, change history, gallery statistics and disk space, the availability of the site (checked every 10 seconds through Cloudflare and on the server itself, the wiki for comparison; every failure with what the server went through meanwhile and the addresses that sent most requests, from the nginx log), the server's resources (processor use, load, waiting for the disk and time taken by the host, memory and swap, the programs using the most memory, OPcache), server checks, the deployed version and a backup of the data as ZIP |
+| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery and API access, recent logins with their roles on the bot's server and logging everyone out, trash, change history, gallery statistics and disk space, the availability of the site (checked every 10 seconds through Cloudflare and on the server itself, the wiki for comparison; every failure with what the server went through meanwhile and the addresses that sent most requests, from the nginx log; the scanners of the last 3 days, blocking an address in Cloudflare with one button, and the time PHP took per page), the server's resources (processor use, load, waiting for the disk and time taken by the host, memory and swap, the programs using the most memory, OPcache), server checks, the deployed version and a backup of the data as ZIP |
 | `/status.php` | Bot status as JSON, used by the home page |
 
 The top right corner of the home page logs in with Discord (`account.php`); the API button unlocks for the accounts that may read it. Every page shows the logged-in account there the same way: its avatar ringed in the colour of its role on the bot's Discord server, the name and its Safeguard level in that colour, e.g. `LV.9` for a dev or `LV.3` for a moderator. A click opens a menu in HUD corners with the gallery and the panel, only for the accounts that may open them, logging out (set apart by a line, back to the same page) and a line with the full role, e.g. `LV.9 DEV`, and the account ID. Only dev, admin, semi-admin and tester give anything on the site (the API documentation, and for admin and dev the private commands); the gallery has its own lists and never follows these roles. A short click on the status dot opens `/state/`; held for 3 seconds it fires the beam of the Gravitational Beam Emitter from BLAME!.
@@ -26,8 +26,9 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes, the moderator and debug commands fetched with the site's key |
 | `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites, once a day it removes the thumbnails nobody looked at for 30 days |
 | `inc/system.php` | The server's resources for the panel, read from Linux's `/proc` when the panel opens |
-| `inc/diag.php`, `inc/check-site.php` | Availability of the site, checked by cron every 10 seconds through Cloudflare and straight on the server, with the kernel's TCP counters, the state of nginx and PHP-FPM and the requests from the site's nginx log; kept 3 days in `inc/data/diag/` (left out of the backup) |
-| `inc/services.php` | The other Sanakan sites: whether they answer, since when, per day counts |
+| `inc/diag.php`, `inc/check-site.php` | Availability of the site, checked by cron every 10 seconds through Cloudflare and straight on the server, with the kernel's TCP counters, the state of nginx and PHP-FPM and the requests from the site's nginx log; the scanners and the PHP time per page from the same log; kept 3 days in `inc/data/diag/` (left out of the backup) |
+| `inc/cloudflare.php` | Blocking addresses in Cloudflare from the panel, through an IP list of the account |
+| `inc/services.php` | The Sanakan sites, this one included: whether they answer, since when, per day counts |
 | `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, the account's roles on the bot's server (asked with the site's key, kept 10 minutes), change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
@@ -136,7 +137,26 @@ Fill `inc/config.php` with the Discord application details (https://discord.com/
 | `API_VIEWERS` | Accounts that may read the API documentation in `/api/`. The panel can add more, and `PANEL_ADMINS` always can; `true` lets in any Discord account |
 | `BOT_APP_KEY` | Key of the site's application in the bot API, sent as `x-app-key`; it needs the Info right (Site covers it too). With it the site reads the roles of the logged-in account (`/api/User/discord/{id}/permissions`) and the moderator and debug commands (`/api/Info/commands/private`). Without it neither happens, and the panel's server card says so |
 
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_LIST` | Optional: blocking addresses in Cloudflare from the panel (below) |
+
 Without `inc/config.php` the gallery, the API documentation and the panel stay closed. Direct links to the pictures in `i/` always work.
+
+### Blocking in Cloudflare
+
+The panel can block an address in Cloudflare, so its requests never reach the server: the "Zablokuj" button next to every address of the "Dostępność strony" card, "Odblokuj" on the list of the blocked ones. It puts the address (an IPv6 one with its whole /64) on an IP list of the Cloudflare account, which one custom rule of the zone blocks. Set up once:
+
+1. Cloudflare, account home → Manage Account → Configurations → Lists → Create new list: type IP, name `sanakan_blokada`.
+2. Domain sanakan.pl → Security → Security rules (or WAF → Custom rules) → Create rule, expression `(ip.src in $sanakan_blokada)`, action Block.
+3. My Profile → API Tokens → Create Token → Custom token, permission Account → Account Filter Lists → Edit, for the account of the domain.
+4. In `inc/config.php` the token, the account ID (domain overview, right column) and the name of the list:
+
+```php
+const CLOUDFLARE_API_TOKEN = '...';
+const CLOUDFLARE_ACCOUNT_ID = '...';
+const CLOUDFLARE_LIST = 'sanakan_blokada';
+```
+
+The "Ustawienie" list of the card says whether the panel reaches the list.
 
 ### Cron
 

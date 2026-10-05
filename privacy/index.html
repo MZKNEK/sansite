@@ -32,7 +32,8 @@
       <ul>
         <li>Bez analityki, reklam i śledzenia. Czcionki i wszystkie pliki są z tego serwera.</li>
         <li>Ruch przechodzi przez Cloudflare, który chroni stronę i ją przyspiesza. Widzi on adres IP odwiedzającego, jak każdy pośrednik w sieci.</li>
-        <li><b>Dziennik serwera:</b> przy każdym zapytaniu serwer zapisuje adres IP, czas, otwarty adres strony, kod i czas odpowiedzi, nazwę przeglądarki (user agent) i kraj podany przez Cloudflare. Służy tylko do wykrywania awarii i skanerów, które je wywołują. Dziennik jest kasowany po 14 dniach, a zestawienia w panelu administratora (adresy, które wysłały najwięcej zapytań) po 3 dniach.</li>
+        <li><b>Dziennik serwera:</b> przy każdym zapytaniu serwer zapisuje adres IP, czas, otwarty adres strony, kod i czas odpowiedzi, nazwę przeglądarki (user agent) i kraj podany przez Cloudflare. Służy tylko do wykrywania awarii i skanerów, które je wywołują. Dziennik jest kasowany po 14 dniach, a zestawienia w panelu administratora (adresy, które wysłały najwięcej zapytań, i skanery) po 3 dniach.</li>
+        <li><b>Blokady:</b> adres, który skanuje stronę albo zalewa ją zapytaniami, administrator może zablokować w Cloudflare. Trafia wtedy na listę blokad z krótką notatką (np. czego szukał) i zostaje na niej do odblokowania.</li>
       </ul>
 
       <h2>Logowanie przez Discorda</h2>

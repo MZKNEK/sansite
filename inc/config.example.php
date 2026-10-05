@@ -46,6 +46,14 @@
     // the moderator and debug commands on cmd/. Without it neither happens.
     const BOT_APP_KEY = '';
 
+    // Optional: blocking addresses in Cloudflare from the panel (inc/cloudflare.php,
+    // README). A token with Account Filter Lists: Edit, the account ID (domain
+    // overview in Cloudflare, right column) and the name of the IP list that a
+    // custom rule blocks: (ip.src in $sanakan_blokada).
+    // const CLOUDFLARE_API_TOKEN = '';
+    // const CLOUDFLARE_ACCOUNT_ID = '';
+    // const CLOUDFLARE_LIST = 'sanakan_blokada';
+
     // Optional, for the availability checks of the panel (inc/diag.php); the
     // values below are the defaults. Where the server answers past Cloudflare
     // (https://127.0.0.1 when nginx serves the site only on https), the site's

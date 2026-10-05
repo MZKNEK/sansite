@@ -13,8 +13,16 @@
     // since the round before from the site's nginx log, with the addresses that
     // sent most of them. Kept DIAG_KEEP_DAYS days in inc/data/diag/, one JSON
     // line per round, one file per day.
+    //
+    // From the same log come two summaries kept apart from the rounds: the
+    // scanners (addresses asking for paths no visitor of this site asks for, or
+    // with the user agent of a known scanning tool) of the last DIAG_KEEP_DAYS
+    // days, and the time PHP took per page, by the hour, for 24 hours. Whether
+    // the site answers through Cloudflare also goes to its line on state/
+    // (inc/services.php), every 10 seconds instead of every 5 minutes.
     require_once __DIR__ . '/bot.php';
     require_once __DIR__ . '/system.php';
+    require_once __DIR__ . '/services.php';
 
     const DIAG_SITE = 'https://sanakan.pl';
     const DIAG_WIKI = 'https://wiki.sanakan.pl';
@@ -32,6 +40,22 @@
     const DIAG_USER_AGENT = 'SanakanDiag/1 (+https://sanakan.pl)';
     // at most this much of the log per round; more is skipped
     const DIAG_LOG_READ_MAX = 8 << 20;
+
+    // the site's own PHP files; any other .php asked for is someone looking for
+    // a weak spot (a new PHP file of the site goes here too)
+    const SITE_PHP_FILES = [
+        '/account.php', '/status.php', '/admin/index.php', '/api/index.php', '/api/read_swagger.php',
+        '/cmd/index.php', '/cmd/zmiany/index.php', '/i/index.php', '/state/index.php', '/state/og.php'
+    ];
+    // paths no visitor of this site asks for: secrets, other software's admin
+    // pages, backups
+    const DIAG_SCANNER_PATHS = '~/\.(?:env|git|svn|hg|aws|ssh|docker|vscode|idea|ds_store|htaccess|htpasswd)|/wp-|wordpress|xmlrpc|phpmyadmin|/pma/|adminer|/cgi-bin|/vendor/|/actuator|/server-status|/boaform|/hnap1|/owa/|/solr/|/console|/_profiler|/telescope|/debug/|/config\.(?:json|ya?ml|ini|php)|\.(?:asp|aspx|jsp|cgi|bak|old|sql|tar|gz|7z|rar)$~i';
+    // user agents of scanning tools
+    const DIAG_SCANNER_AGENTS = '~zgrab|masscan|nmap|nikto|sqlmap|nuclei|httpx|visionheight|censys|expanse|internet-measurement|l9explore|l9tcpid|wpscan|dirbuster|gobuster|ffuf|feroxbuster|fuzz~i';
+    // at most this many scanners are remembered, the ones seen longest ago go first
+    const DIAG_SCANNERS_KEEP = 3000;
+    // pages per hour kept for the PHP times, the most asked
+    const DIAG_PAGES_KEEP = 100;
 
     // the same ranges as set_real_ip_from in server/nginx/sanakan.conf
     const CLOUDFLARE_RANGES = [
@@ -259,10 +283,36 @@
         return cutText($path === '' ? (string)$uri : $path, 100);
     }
 
+    // why a logged request looks like a scanner, or null
+    function diagScannerReason($request, $path)
+    {
+        $agent = (string)($request['ua'] ?? '');
+        if (preg_match(DIAG_SCANNER_AGENTS, $agent, $match))
+            return 'user agent „' . $match[0] . '”';
+        // nginx logs no address for a request it could not read (e.g. https on port 80)
+        if ($path === '' && (int)($request['s'] ?? 0) === 400)
+            return 'zepsute zapytanie';
+        if (preg_match(DIAG_SCANNER_PATHS, $path)
+                || (preg_match('~\.php$~i', $path) && !in_array(strtolower($path), SITE_PHP_FILES, true)))
+            return 'szuka ' . $path;
+
+        return null;
+    }
+
+    // milliseconds PHP took, from $upstream_response_time ("0.012", or
+    // "0.012, 0.004" when nginx asked twice)
+    function diagUpstreamMs($time)
+    {
+        preg_match_all('~[\d.]+~', (string)$time, $matches);
+
+        return (int)round(1000 * array_sum(array_map('floatval', $matches[0])));
+    }
+
     // The requests logged since the round before: count, PHP ones (they keep a
     // pool worker busy), 4xx and 5xx, the slowest in ms, the addresses with
     // most requests as [ip, requests, PHP, country, user agent, top path] and
     // the most asked paths as [path, requests]. null when the log cannot be read.
+    // The scanners and the PHP times go to their summaries on the way.
     function diagReadLog()
     {
         $file = diagAccessLog();
@@ -300,6 +350,7 @@
         $stats = ['n' => 0, 'php' => 0, 's4' => 0, 's5' => 0, 'rt' => 0, 'ips' => [], 'paths' => []];
         $ips = [];
         $paths = [];
+        $pages = [];
         foreach ($chunk === '' ? [] : explode("\n", $chunk) as $line) {
             $r = json_decode($line, true);
             if (!is_array($r) || ($r['ua'] ?? '') === DIAG_USER_AGENT)
@@ -320,7 +371,19 @@
             $ips[$ip]['n']++;
             $ips[$ip]['php'] += (int)$php;
             $ips[$ip]['paths'][$path] = ($ips[$ip]['paths'][$path] ?? 0) + 1;
+            if (!isset($ips[$ip]['reason']) && ($reason = diagScannerReason($r, $path)) !== null)
+                $ips[$ip]['reason'] = $reason;
+
+            if ($php) {
+                $ms = diagUpstreamMs($r['ut']);
+                $page = $pages[$path] ?? [0, 0, 0];
+                $pages[$path] = [$page[0] + 1, $page[1] + $ms, max($page[2], $ms)];
+            }
         }
+        if ($ips)
+            diagRecordScanners($ips, time());
+        if ($pages)
+            diagRecordPages($pages, time());
 
         uasort($ips, function ($a, $b) { return $b['n'] <=> $a['n']; });
         foreach (array_slice($ips, 0, DIAG_TOP, true) as $ip => $info) {
@@ -334,6 +397,73 @@
             $stats['skipped'] = $skipped;
 
         return $stats;
+    }
+
+    // Opens a summary file of inc/data/diag/ locked, gives its data to $change
+    // and writes back what that returns.
+    function diagUpdate($name, $change)
+    {
+        $handle = @fopen(diagDir() . '/' . $name, 'c+');
+        if ($handle === false || !flock($handle, LOCK_EX)) {
+            if ($handle !== false)
+                fclose($handle);
+            return;
+        }
+        $data = json_decode((string)stream_get_contents($handle), true);
+        $data = $change(is_array($data) ? $data : []);
+        ftruncate($handle, 0);
+        rewind($handle);
+        fwrite($handle, json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+
+    // Adds the requests of this round to the scanners: of the addresses that
+    // looked like one now, and of those seen as one before. Kept per address as
+    // [requests, first seen, last seen, country, user agent, why, [path => requests]].
+    function diagRecordScanners($ips, $now)
+    {
+        diagUpdate('scanners.json', function ($scanners) use ($ips, $now) {
+            foreach ($ips as $ip => $info) {
+                $ip = (string)$ip;
+                if (!isset($info['reason']) && !isset($scanners[$ip]))
+                    continue;
+                $known = $scanners[$ip] ?? [0, $now, $now, $info['cc'], $info['ua'], $info['reason'], []];
+                $known[0] += $info['n'];
+                $known[2] = $now;
+                foreach ($info['paths'] as $path => $n)
+                    $known[6][$path] = ($known[6][$path] ?? 0) + $n;
+                arsort($known[6]);
+                $known[6] = array_slice($known[6], 0, 5, true);
+                $scanners[$ip] = $known;
+            }
+
+            $scanners = array_filter($scanners, function ($scanner) use ($now) { return $scanner[2] >= $now - DIAG_KEEP_DAYS * 86400; });
+            if (count($scanners) > DIAG_SCANNERS_KEEP) {
+                uasort($scanners, function ($a, $b) { return $b[2] <=> $a[2]; });
+                $scanners = array_slice($scanners, 0, DIAG_SCANNERS_KEEP, true);
+            }
+
+            return $scanners;
+        });
+    }
+
+    // Adds the PHP times of this round to its hour: [hour => [path => [requests,
+    // ms in all, slowest ms]]], 24 hours kept.
+    function diagRecordPages($pages, $now)
+    {
+        diagUpdate('pages.json', function ($hours) use ($pages, $now) {
+            $hour = (string)(intdiv($now, 3600) * 3600);
+            $kept = $hours[$hour] ?? [];
+            foreach ($pages as $path => [$n, $ms, $max]) {
+                $page = $kept[$path] ?? [0, 0, 0];
+                $kept[$path] = [$page[0] + $n, $page[1] + $ms, max($page[2], $max)];
+            }
+            uasort($kept, function ($a, $b) { return $b[0] <=> $a[0]; });
+            $hours[$hour] = array_slice($kept, 0, DIAG_PAGES_KEEP, true);
+
+            return array_filter($hours, function ($start) use ($now) { return (int)$start > $now - 86400; }, ARRAY_FILTER_USE_KEY);
+        });
     }
 
     // A minute of rounds, one every DIAG_INTERVAL seconds, each written once all
@@ -398,6 +528,9 @@
                     $round = $rounds[$index];
                     unset($round['pending'], $rounds[$index]);
                     @file_put_contents(diagDayFile($round['t']), json_encode($round, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
+                    // the site's line on state/: up when both its probes through Cloudflare answered
+                    $up = diagProbeState($round['p']['pub'] ?? null) !== 'fail' && diagProbeState($round['p']['pubphp'] ?? null) !== 'fail';
+                    servicesRecord(['site' => [$up, $round['p']['pub'][1] ?? null]], $round['t']);
                 }
             }
             // -1 right away on some systems, which would spin
@@ -717,4 +850,40 @@
             array_shift($entries);
 
         return array_reverse(array_slice(array_values(array_filter($entries, 'strlen')), -$count));
+    }
+
+    // the scanners of the last DIAG_KEEP_DAYS days, most requests first, as
+    // ['ip', 'n', 'first', 'last', 'cc', 'ua', 'reason', 'paths' => [path => requests]]
+    function diagScanners()
+    {
+        $scanners = json_decode((string)@file_get_contents(diagDir() . '/scanners.json'), true);
+        $list = [];
+        foreach (is_array($scanners) ? $scanners : [] as $ip => [$n, $first, $last, $cc, $ua, $reason, $paths])
+            $list[(string)$ip] = ['ip' => (string)$ip, 'n' => $n, 'first' => $first, 'last' => $last, 'cc' => $cc, 'ua' => $ua, 'reason' => $reason, 'paths' => $paths];
+        uasort($list, function ($a, $b) { return $b['n'] <=> $a['n']; });
+
+        return $list;
+    }
+
+    // the PHP pages of the last 24 hours that kept the pool busiest, as
+    // [path, requests, average ms, slowest ms, ms in all]
+    function diagPages($count = 12)
+    {
+        $hours = json_decode((string)@file_get_contents(diagDir() . '/pages.json'), true);
+        $pages = [];
+        foreach (is_array($hours) ? $hours : [] as $start => $paths) {
+            if ((int)$start <= time() - 86400)
+                continue;
+            foreach ($paths as $path => [$n, $ms, $max]) {
+                $page = $pages[$path] ?? [0, 0, 0];
+                $pages[$path] = [$page[0] + $n, $page[1] + $ms, max($page[2], $max)];
+            }
+        }
+        uasort($pages, function ($a, $b) { return $b[1] <=> $a[1]; });
+
+        $list = [];
+        foreach (array_slice($pages, 0, $count, true) as $path => [$n, $ms, $max])
+            $list[] = [(string)$path, $n, (int)round($ms / max(1, $n)), $max, $ms];
+
+        return $list;
     }

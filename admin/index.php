@@ -9,6 +9,7 @@
     require __DIR__ . '/../inc/status-card.php';
     require_once __DIR__ . '/../inc/system.php';
     require __DIR__ . '/../inc/diag.php';
+    require __DIR__ . '/../inc/cloudflare.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     $thumbsDir = thumbsDir();
@@ -203,9 +204,32 @@
         return $html . '</div><div class="bar-ends"><span>24 h temu</span><span>teraz</span></div></div>';
     }
 
-    // the addresses that sent most requests: address (with a lookup in AbuseIPDB),
-    // country, requests and those of them to PHP, user agent and most asked path
-    function diagIpList($ips)
+    // An address in a list: a lookup in AbuseIPDB, the country, whether it is a
+    // scanner and whether Cloudflare blocks it, or a button to block it there.
+    // $marks: ['scanners' => [ip => why], 'blocked' => [address or /64 => item],
+    // null when blocking is not set up].
+    function diagIpCell($ip, $cc, $note, $marks)
+    {
+        $html = '<span class="diag-ip"><a href="https://www.abuseipdb.com/check/' . e(rawurlencode($ip)) . '" target="_blank" rel="noopener" title="Sprawdź adres w AbuseIPDB">' . e($ip) . '</a>'
+            . ($cc !== '' ? ' <span class="muted">' . e($cc) . '</span>' : '');
+        if (isset($marks['scanners'][$ip]))
+            $html .= ' <span class="role scanner" title="' . e($marks['scanners'][$ip]) . '">skaner</span>';
+
+        $target = cloudflareTarget($ip);
+        if ($target !== null && !diagIsCloudflare($ip) && $marks['blocked'] !== null) {
+            if (isset($marks['blocked'][$target]))
+                $html .= ' <span class="role blocked" title="' . e($target) . ' jest na liście blokad w Cloudflare">zablokowany</span>';
+            else
+                $html .= ' <button type="button" class="admin-btn small danger" data-action="cf-block" data-ip="' . e($ip) . '" data-note="' . e($note) . '"'
+                    . ' data-confirm="' . e('Zablokować ' . $target . ' w Cloudflare? Jego zapytania przestaną docierać do strony.') . '">Zablokuj</button>';
+        }
+
+        return $html . '</span>';
+    }
+
+    // the addresses that sent most requests: address, requests and those of
+    // them to PHP, user agent and most asked path
+    function diagIpList($ips, $marks)
     {
         if (!$ips)
             return '<p class="nobody">Brak zapytań w dzienniku.</p>';
@@ -214,12 +238,33 @@
         $html = '<ul class="diag-ips">';
         foreach ($ips as $ip) {
             $html .= '<li style="--share: ' . share($ip['n'], $most) . '">'
-                . '<span class="diag-ip"><a href="https://www.abuseipdb.com/check/' . e(rawurlencode($ip['ip'])) . '" target="_blank" rel="noopener" title="Sprawdź adres w AbuseIPDB">' . e($ip['ip']) . '</a>'
-                . ($ip['cc'] !== '' ? ' <span class="muted">' . e($ip['cc']) . '</span>' : '') . '</span>'
+                . diagIpCell($ip['ip'], $ip['cc'], $marks['scanners'][$ip['ip']] ?? ($ip['ua'] !== '' ? $ip['ua'] : $ip['path']), $marks)
                 . '<span class="diag-count">' . formatCount($ip['n']) . ($ip['php'] ? ' <span class="muted">PHP ' . formatCount($ip['php']) . '</span>' : '') . '</span>'
                 . '<span class="diag-agent"><span title="' . e($ip['ua']) . '">' . e($ip['ua'] !== '' ? $ip['ua'] : 'bez user agenta') . '</span>'
                 . '<code title="' . e($ip['path']) . '">' . e($ip['path']) . '</code></span>'
                 . (diagIsCloudflare($ip['ip']) ? '<b class="warn">adres Cloudflare, nie odwiedzającego</b>' : '')
+                . '</li>';
+        }
+
+        return $html . '</ul>';
+    }
+
+    // the scanners of the last days: address, requests, why and when, user
+    // agent and the paths they asked for most
+    function diagScannerList($scanners, $marks)
+    {
+        $most = $scanners ? reset($scanners)['n'] : 0;
+        $html = '<ul class="diag-ips">';
+        foreach ($scanners as $scanner) {
+            $paths = array_keys($scanner['paths']);
+            $sameDay = date('Y-m-d', $scanner['first']) === date('Y-m-d', $scanner['last']);
+            $html .= '<li style="--share: ' . share($scanner['n'], $most) . '">'
+                . diagIpCell($scanner['ip'], $scanner['cc'], $scanner['reason'], $marks)
+                . '<span class="diag-count">' . formatCount($scanner['n']) . '</span>'
+                . '<span class="diag-agent"><span>' . e($scanner['reason']) . ' &middot; ' . e(date('d.m H:i', $scanner['first']))
+                    . ($scanner['last'] - $scanner['first'] >= 60 ? '–' . e(date($sameDay ? 'H:i' : 'd.m H:i', $scanner['last'])) : '') . '</span>'
+                . '<span title="' . e($scanner['ua']) . '">' . e($scanner['ua'] !== '' ? $scanner['ua'] : 'bez user agenta') . '</span>'
+                . '<code title="' . e(implode(' ', $paths)) . '">' . e(implode(' ', array_slice($paths, 0, 3))) . '</code></span>'
                 . '</li>';
         }
 
@@ -396,6 +441,30 @@
                     reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
                 done('purge', 'Usunięto na zawsze ' . galleryPath($item['from']) . ' (z kosza).');
 
+            case 'cf-block':
+                if (!cloudflareConfigured())
+                    reply(false, 'Blokowanie w Cloudflare nie jest ustawione.', 503);
+                $ip = trim((string)($_POST['ip'] ?? ''));
+                $target = cloudflareTarget($ip);
+                if ($target === null || diagIsCloudflare($ip))
+                    reply(false, 'Tego adresu nie da się zablokować: to adres lokalny albo Cloudflare.', 400);
+                $note = trim((string)($_POST['note'] ?? ''));
+                $error = cloudflareBlock($ip, 'Panel, ' . $user['name'] . ($note !== '' ? ': ' . $note : ''));
+                if ($error !== null)
+                    reply(false, $error, 502);
+                done('cloudflare', 'Zablokowano w Cloudflare ' . $target . ($note !== '' ? ' (' . cutText($note, 80) . ')' : '') . '.');
+
+            case 'cf-unblock':
+                if (!cloudflareConfigured())
+                    reply(false, 'Blokowanie w Cloudflare nie jest ustawione.', 503);
+                $item = (string)($_POST['item'] ?? '');
+                if (!preg_match('/^[0-9a-f]{32}$/', $item))
+                    reply(false, 'Nieznana pozycja listy, odśwież stronę.', 400);
+                $error = cloudflareUnblock($item);
+                if ($error !== null)
+                    reply(false, $error, 502);
+                done('cloudflare', 'Odblokowano w Cloudflare ' . cutText(trim((string)($_POST['ip'] ?? '')), 60) . '.');
+
             case 'trash-empty':
                 $removed = 0;
                 foreach (array_keys(trashItems()) as $item)
@@ -501,6 +570,17 @@
         $diagEpisodes = diagEpisodes($diagRounds);
         $diagHour = diagMergeTraffic(array_filter($diagRounds, function ($round) use ($now) { return $round['t'] >= $now - 3600; }), 10);
         $diagSlow = diagSlowEntries();
+        $diagScanners = diagScanners();
+        $diagPages = diagPages();
+        // what Cloudflare blocks, read when blocking is set up
+        $cfItems = null;
+        $cfError = null;
+        if (cloudflareConfigured())
+            [$cfItems, $cfError] = cloudflareBlocked();
+        $diagMarks = [
+            'scanners' => array_map(function ($scanner) { return $scanner['reason']; }, $diagScanners),
+            'blocked' => $cfItems === null ? null : array_column($cfItems, null, 'ip')
+        ];
         $diagCron = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-site.php'))
             . " > /dev/null 2>&1' > /etc/cron.d/sanakan-site";
 
@@ -547,7 +627,7 @@
   <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=11" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=12" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -911,7 +991,7 @@
               <dt>Ruch</dt>
               <dd><?=formatCount($episode['traffic']['n'])?> zapytań od minuty przed awarią do jej końca, w tym <?=formatCount($episode['traffic']['php'])?> do PHP · najwięcej <?=formatCount($episode['traffic']['peak'])?> w 10 s · błędy 4xx <?=formatCount($episode['traffic']['s4'])?>, 5xx <?=formatCount($episode['traffic']['s5'])?></dd>
             </dl>
-            <?=diagIpList($episode['traffic']['ips'])?>
+            <?=diagIpList($episode['traffic']['ips'], $diagMarks)?>
 
           </details>
 <?php endforeach; ?>
@@ -919,7 +999,7 @@
 <?php endif; ?>
 
         <h3 class="diag-title">Ostatnia godzina <span class="muted"><?=formatCount($diagHour['n'])?> zapytań, <?=formatCount($diagHour['php'])?> do PHP, najwięcej <?=formatCount($diagHour['peak'])?> w 10 s</span></h3>
-        <?=diagIpList($diagHour['ips'])?>
+        <?=diagIpList($diagHour['ips'], $diagMarks)?>
 
 <?php if ($diagHour['paths']): ?>
         <div class="stats-grid">
@@ -933,6 +1013,39 @@
           </div>
         </div>
 <?php endif; ?>
+<?php endif; ?>
+
+        <h3 class="diag-title">Skanery w ostatnich <?=DIAG_KEEP_DAYS?> dniach<?=$diagScanners ? ' <span class="muted">' . count($diagScanners) . ' ' . plural(count($diagScanners), 'adres', 'adresy', 'adresów') . ', ' . formatCount(array_sum(array_column($diagScanners, 'n'))) . ' zapytań</span>' : ''?></h3>
+        <p class="hint">Adresy, które pytały o to, czego na tej stronie nie ma (<code>/.env</code>, <code>/wp-*</code>, obce pliki <code>.php</code>, kopie zapasowe), albo przedstawiły się jako narzędzie do skanowania. Liczone są wszystkie ich zapytania od pierwszego takiego.</p>
+<?php if (!$diagScanners): ?>
+        <p class="nobody">Żadnych skanerów.</p>
+<?php else: ?>
+        <div class="diag-scroll">
+          <?=diagScannerList(array_slice($diagScanners, 0, 50, true), $diagMarks)?>
+
+        </div>
+<?php endif; ?>
+<?php if ($cfItems): ?>
+
+        <h3 class="diag-title">Zablokowane w Cloudflare <span class="muted"><?=count($cfItems)?> na liście <?=e(CLOUDFLARE_LIST)?></span></h3>
+        <ul class="diag-blocked">
+<?php foreach ($cfItems as $item): ?>
+          <li>
+            <code><?=e($item['ip'])?></code>
+            <span><?=e($item['comment'])?><?=$item['created'] ? ' <span class="muted">' . e(date('d.m.Y H:i', $item['created'])) . '</span>' : ''?></span>
+            <button type="button" class="admin-btn small" data-action="cf-unblock" data-item="<?=e($item['id'])?>" data-ip="<?=e($item['ip'])?>" data-confirm="<?=e('Odblokować ' . $item['ip'] . '?')?>">Odblokuj</button>
+          </li>
+<?php endforeach; ?>
+        </ul>
+<?php endif; ?>
+<?php if ($diagPages): ?>
+
+        <h3 class="diag-title">Czas PHP według stron <span class="muted">24 godziny, najwięcej czasu w sumie u góry</span></h3>
+        <ul class="stat-list diag-pages">
+<?php foreach ($diagPages as [$path, $n, $average, $slowest, $total]): ?>
+          <li style="--share: <?=share($total, $diagPages[0][4])?>"><span title="<?=e($path)?>"><?=e($path)?></span><span><?=formatCount($n)?> &times; średnio <?=e(milliseconds($average))?> &middot; najdłużej <?=e(milliseconds($slowest))?></span></li>
+<?php endforeach; ?>
+        </ul>
 <?php endif; ?>
 <?php if ($diagSlow): ?>
 
@@ -974,6 +1087,11 @@
           <dd><?=$diagSlow === null
               ? '<b class="warn">nie można czytać</b> <code>' . e(diagSlowLog()) . '</code>: <code>request_slowlog_timeout = 5s</code> i <code>slowlog</code> w puli PHP-FPM (README)'
               : 'dziennik <code>' . e(diagSlowLog()) . '</code>' . ($diagSlow ? '' : ', pusty')?></dd>
+
+          <dt>Blokowanie w Cloudflare</dt>
+          <dd><?=!cloudflareConfigured()
+              ? 'wyłączone: <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code> i <code>CLOUDFLARE_LIST</code> w <code>inc/config.php</code> (README)'
+              : ($cfError !== null ? '<b class="warn">' . e($cfError) . '</b>' : 'lista <code>' . e(CLOUDFLARE_LIST) . '</code>, ' . count($cfItems) . ' ' . plural(count($cfItems), 'pozycja', 'pozycje', 'pozycji'))?></dd>
         </dl>
       </section>
 

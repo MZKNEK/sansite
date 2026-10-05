@@ -270,7 +270,7 @@
           <div class="status-text">
             <b>Bot <?=e(statusLabel($state))?></b>
             <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; dostępność z 24 h: <?=e(str_replace('.', ',', $state['uptime']))?>%<?=$average === null ? '' : ($health ? ' &middot; ping do Discorda średnio ' : ' &middot; odpowiada średnio w ') . e(milliseconds($average))?><?=!empty($health['version']) ? ' &middot; wersja ' . e($health['version']) : ''?></span>
-            <span><?=($down = servicesDown()) ? '<b class="warn">Nie odpowiada: ' . e(implode(', ', $down)) . '</b>' : 'Pozostałe serwisy (wiki, Waifu, Alter, Skalpelator, USkalpelator) działają'?></span>
+            <span><?=($down = servicesDown()) ? '<b class="warn">Nie odpowiada: ' . e(implode(', ', $down)) . '</b>' : 'Strona i pozostałe serwisy (wiki, Waifu, Alter, Skalpelator, USkalpelator) działają'?></span>
           </div>
         </div>
 <?php

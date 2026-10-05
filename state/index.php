@@ -48,7 +48,7 @@
     </section>
 
     <section class="card state-card">
-      <h2><i>+</i>Pozostałe serwisy</h2>
+      <h2><i>+</i>Strona i pozostałe serwisy</h2>
 <?=$services?>
     </section>
     <p class="state-note">Strona odświeża się sama co 10 minut.</p>

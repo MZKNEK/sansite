@@ -728,6 +728,61 @@
     font-size: 12px;
 }
 
+.diag-ip .role,
+.diag-ip .admin-btn.small {
+    margin-left: 4px;
+    font-size: 11px;
+}
+
+.diag-ip .admin-btn.small {
+    padding: 1px 8px;
+}
+
+.role.scanner {
+    border-color: rgba(240, 178, 50, 0.5);
+    color: #f0b232;
+}
+
+.role.blocked {
+    border-color: rgba(217, 83, 79, 0.6);
+    color: #e86262;
+}
+
+.diag-scroll {
+    max-height: 560px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+}
+
+/* addresses on the block list of Cloudflare */
+.diag-blocked {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.diag-blocked li {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 14px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.1);
+    font-size: 13px;
+}
+
+.diag-blocked code {
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+    overflow-wrap: anywhere;
+}
+
+.diag-blocked li > span {
+    color: rgba(220, 221, 222, 0.7);
+    overflow-wrap: anywhere;
+}
+
 .diag-slow {
     max-height: 220px;
     margin: 6px 0 0;
@@ -752,6 +807,7 @@
 
     .history li,
     .diag-ips li,
+    .diag-blocked li,
     .diag-episode summary {
         grid-template-columns: 1fr;
         gap: 0;

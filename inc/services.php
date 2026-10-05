@@ -1,13 +1,16 @@
 <?php
-    // The other Sanakan sites, checked every 5 minutes by inc/check-bot.php (which
+    // The Sanakan sites, checked every 5 minutes by inc/check-bot.php (which
     // cron runs every minute for the bot): whether they answer, how fast, since
     // when they are up or down,
     // and per day how many checks they passed, for the 90 day bars on state/.
+    // This site itself is checked every 10 seconds by inc/check-site.php
+    // (inc/diag.php), and every 5 minutes here only while that does not run.
     // Kept in inc/data/services.json as
     // [key => ['up', 'since', 'ms', 'checked', 'days' => ['Y-m-d' => [checks, up]]]].
     require_once __DIR__ . '/bot.php';
 
     const SERVICES = [
+        'site' => ['sanakan.pl', 'https://sanakan.pl/'],
         'wiki' => ['Wiki', 'https://wiki.sanakan.pl/'],
         'waifu' => ['Waifu', 'https://waifu.sanakan.pl/'],
         'alter' => ['Alter', 'https://alter.sanakan.pl/'],
@@ -17,6 +20,8 @@
     const SERVICE_TIMEOUT = 8;
     const SERVICE_INTERVAL = 300;
     const SERVICE_DAYS_KEEP = 100;
+    // checked by inc/check-site.php; here only when its last check is this old
+    const SERVICE_OWN_STALE = 600;
 
     // [answered with a page (2xx/3xx), milliseconds]
     function serviceCheck($url)
@@ -45,18 +50,28 @@
     function servicesDue()
     {
         $data = json_decode((string)@file_get_contents(botFile('services.json')), true);
+        unset($data['site']);
         $checked = is_array($data) && $data ? min(array_map(function ($entry) { return $entry['checked'] ?? 0; }, $data)) : 0;
 
         return time() - $checked >= SERVICE_INTERVAL - 30;
     }
 
-    // checks every service once and records the results
+    // checks every service once and records the results; this site only when
+    // inc/check-site.php has not checked it for a while
     function servicesCheckAll()
     {
+        $data = json_decode((string)@file_get_contents(botFile('services.json')), true);
         $results = [];
         foreach (SERVICES as $key => $service)
-            $results[$key] = serviceCheck($service[1]);
+            if ($key !== 'site' || time() - ($data['site']['checked'] ?? 0) >= SERVICE_OWN_STALE)
+                $results[$key] = serviceCheck($service[1]);
 
+        servicesRecord($results, time());
+    }
+
+    // records checks as [key => [up, milliseconds]], made at $now
+    function servicesRecord($results, $now)
+    {
         $fp = @fopen(botFile('services.json'), 'c+');
         if ($fp === false || !flock($fp, LOCK_EX)) {
             if ($fp !== false)
@@ -66,7 +81,6 @@
 
         $data = json_decode((string)stream_get_contents($fp), true);
         $data = is_array($data) ? $data : [];
-        $now = time();
         $day = date('Y-m-d', $now);
         foreach ($results as $key => [$up, $ms]) {
             $entry = $data[$key] ?? ['days' => []];
