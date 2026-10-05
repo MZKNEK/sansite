@@ -10,7 +10,7 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; the bot's devs, admins, semi-admins and testers get in by their role, an account without access can ask for it |
 | `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version), availability over the last 24 hours (quarters of an hour: yellow when less than half the checks went unanswered, red from half on, blue for a planned maintenance break) and 90 days, planned breaks not counted, the Discord ping and Shinden's answer time, the outages of the last 90 days and the notice from the panel; below, the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 90 days. Its link preview is a picture of the current state (`/state/og.php`) |
 | `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90°. An account without access can ask for it |
-| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery and API access, recent logins with their roles on the bot's server and logging everyone out, trash, change history, gallery statistics and disk space, the server's resources (processor use, load, waiting for the disk and time taken by the host, memory and swap, the programs using the most memory, OPcache), server checks, the deployed version and a backup of the data as ZIP |
+| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery and API access, recent logins with their roles on the bot's server and logging everyone out, trash, change history, gallery statistics and disk space, the availability of the site (checked every 10 seconds through Cloudflare and on the server itself, the wiki for comparison; every failure with what the server went through meanwhile and the addresses that sent most requests, from the nginx log), the server's resources (processor use, load, waiting for the disk and time taken by the host, memory and swap, the programs using the most memory, OPcache), server checks, the deployed version and a backup of the data as ZIP |
 | `/status.php` | Bot status as JSON, used by the home page |
 
 The top right corner of the home page logs in with Discord (`account.php`); the API button unlocks for the accounts that may read it. Every page shows the logged-in account there the same way: its avatar ringed in the colour of its role on the bot's Discord server, the name and its Safeguard level in that colour, e.g. `LV.9` for a dev or `LV.3` for a moderator. A click opens a menu in HUD corners with the gallery and the panel, only for the accounts that may open them, logging out (set apart by a line, back to the same page) and a line with the full role, e.g. `LV.9 DEV`, and the account ID. Only dev, admin, semi-admin and tester give anything on the site (the API documentation, and for admin and dev the private commands); the gallery has its own lists and never follows these roles. A short click on the status dot opens `/state/`; held for 3 seconds it fires the beam of the Gravitational Beam Emitter from BLAME!.
@@ -26,6 +26,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes, the moderator and debug commands fetched with the site's key |
 | `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites, once a day it removes the thumbnails nobody looked at for 30 days |
 | `inc/system.php` | The server's resources for the panel, read from Linux's `/proc` when the panel opens |
+| `inc/diag.php`, `inc/check-site.php` | Availability of the site, checked by cron every 10 seconds through Cloudflare and straight on the server, with the kernel's TCP counters, the state of nginx and PHP-FPM and the requests from the site's nginx log; kept 3 days in `inc/data/diag/` (left out of the backup) |
 | `inc/services.php` | The other Sanakan sites: whether they answer, since when, per day counts |
 | `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, the account's roles on the bot's server (asked with the site's key, kept 10 minutes), change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
@@ -36,7 +37,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, `inc/` and the API documentation |
-| `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache |
+| `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:
@@ -51,7 +52,7 @@ The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (serve
 The site runs on nginx with PHP-FPM, currently Ubuntu with PHP 8.1. Required packages:
 
 ```bash
-apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip webp ffmpeg
+apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip php8.1-curl webp ffmpeg
 ```
 
 - `php8.1-gd` makes thumbnails and converts PNG and JPG to WebP.
@@ -59,6 +60,7 @@ apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip webp ffmpeg
 - `ffmpeg` takes a frame of every WebM video for its thumbnail; without it the tile loads the video itself.
 - `php8.1-zip` packs folders for download; without it the ZIP buttons are not shown.
 - `php8.1-cli` runs the bot check from cron.
+- `php8.1-curl` runs the availability checks of the panel, several at once.
 
 ### nginx
 
@@ -67,7 +69,10 @@ The rules are in `server/nginx/`, which `deploy.sh` does not send:
 - `sanakan.conf` blocks `inc/`, which holds the configuration and data, sets up the 404 page, sends short links such as `/cmd/daily` to `/cmd/#daily` (the 404 page does the same where the rule is missing), and lets browsers keep CSS and JS for a year (every page links them with a `?v=` version, raised on each change) and pictures and videos for a day.
 - `sanakan-headers.conf` adds the security headers: Content-Security-Policy, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy and HSTS. A new outside resource (a script, font or picture from another domain) has to be allowed in the policy first.
 
-Both go to `/etc/nginx/snippets/`, and the server block of the site includes the first one:
+- `sanakan.conf` also takes the visitor's own address from `CF-Connecting-IP` for requests that come from Cloudflare (otherwise every log line shows Cloudflare), writes the site's own log `/var/log/nginx/sanakan-access.log`, and serves `/nginx-status` and `/fpm-status` only to the server itself, for the availability checks.
+- `sanakan-log.conf` is the format of that log (one JSON line per request). `log_format` works only in the http block, so this file goes to `/etc/nginx/conf.d/` instead.
+
+The first two go to `/etc/nginx/snippets/`, and the server block of the site includes the first one:
 
 ```nginx
 include snippets/sanakan.conf;
@@ -75,7 +80,27 @@ include snippets/sanakan.conf;
 
 ```bash
 scp server/nginx/sanakan.conf server/nginx/sanakan-headers.conf sanakan:/etc/nginx/snippets/
+scp server/nginx/sanakan-log.conf sanakan:/etc/nginx/conf.d/
 ssh sanakan 'nginx -t && systemctl reload nginx'
+```
+
+`/fpm-status` in `sanakan.conf` goes to `unix:/run/php/php8.1-fpm.sock`, the socket of Ubuntu's PHP 8.1; where the site's PHP location uses another one, change it there too.
+
+### PHP-FPM
+
+For the availability checks the pool shows its state and logs where a slow request is stuck. In `/etc/php/8.1/fpm/pool.d/www.conf`:
+
+```ini
+pm.status_path = /fpm-status
+request_slowlog_timeout = 5s
+slowlog = /var/log/php8.1-fpm.slow.log
+```
+
+The slow log is written by PHP-FPM's master process, as root. When the panel says it cannot read it, let the web server read it:
+
+```bash
+systemctl restart php8.1-fpm
+touch /var/log/php8.1-fpm.slow.log && chmod 644 /var/log/php8.1-fpm.slow.log
 ```
 
 Upload limit for the gallery (nginx accepts only 1 MB by default):
@@ -122,6 +147,14 @@ echo '* * * * * www-data php /var/www/html/inc/check-bot.php > /dev/null 2>&1' >
 ```
 
 The panel shows a warning when this check has not run for 5 minutes.
+
+The availability checks of the site, a run a minute doing a round every 10 seconds:
+
+```bash
+echo '* * * * * www-data php /var/www/html/inc/check-site.php > /dev/null 2>&1' > /etc/cron.d/sanakan-site
+```
+
+The "Dostępność strony" card of the panel lists what is still missing on the server (curl, the log, the state pages, the slow log).
 
 ## Deployment
 

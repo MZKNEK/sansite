@@ -45,3 +45,11 @@
     // semi-admin and tester may read the API documentation, admin and dev see
     // the moderator and debug commands on cmd/. Without it neither happens.
     const BOT_APP_KEY = '';
+
+    // Optional, for the availability checks of the panel (inc/diag.php); the
+    // values below are the defaults. Where the server answers past Cloudflare
+    // (https://127.0.0.1 when nginx serves the site only on https), the site's
+    // nginx log and PHP-FPM's slow log.
+    // const DIAG_LOCAL_ORIGIN = 'http://127.0.0.1';
+    // const DIAG_ACCESS_LOG = '/var/log/nginx/sanakan-access.log';
+    // const DIAG_SLOW_LOG = '/var/log/php8.1-fpm.slow.log';

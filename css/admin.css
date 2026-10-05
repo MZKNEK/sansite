@@ -587,6 +587,152 @@
     overflow-wrap: anywhere;
 }
 
+/* Availability of the site: three 24 h bars close together, the failures and
+   the addresses that sent most requests */
+.diag .bar {
+    margin-top: 12px;
+}
+
+.diag-now {
+    margin-top: 18px;
+}
+
+.diag-now b {
+    font-size: 16px;
+}
+
+.diag-title {
+    margin: 26px 0 10px;
+    font: 13px "Share Tech Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.diag-title .muted {
+    margin-left: 8px;
+    font: 12px Lato, sans-serif;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.diag-episodes {
+    max-height: 640px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+}
+
+.diag-episode {
+    margin-top: 6px;
+    border-left: 2px solid rgba(217, 83, 79, 0.85);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.diag-episode.ongoing {
+    border-left-color: #f0b232;
+}
+
+.diag-episode summary {
+    display: grid;
+    grid-template-columns: 110px 80px 1fr;
+    gap: 4px 14px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    list-style: none;
+}
+
+.diag-episode summary::-webkit-details-marker {
+    display: none;
+}
+
+.diag-episode summary time,
+.diag-episode summary b {
+    font: 13px "JetBrains Mono", Consolas, monospace;
+}
+
+.diag-episode summary b {
+    color: #e86262;
+}
+
+.diag-episode[open] summary {
+    border-bottom: 1px solid rgba(155, 89, 182, 0.15);
+}
+
+.diag-episode .server {
+    padding: 12px;
+    font-size: 13px;
+}
+
+.diag-episode .diag-ips {
+    padding: 0 12px 12px;
+}
+
+.diag-ips {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.diag-ips li {
+    display: grid;
+    grid-template-columns: minmax(130px, 200px) 110px minmax(0, 1fr);
+    align-items: start;
+    gap: 2px 14px;
+    margin-top: 3px;
+    padding: 5px 8px;
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    font: 13px "JetBrains Mono", Consolas, monospace;
+}
+
+.diag-ip a {
+    color: #efe2f7;
+}
+
+.diag-ip a:hover {
+    color: var(--accent-light);
+}
+
+.diag-count {
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.diag-agent {
+    display: grid;
+    min-width: 0;
+    font: 12px Lato, sans-serif;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.diag-agent > span,
+.diag-agent code {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diag-agent code {
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: var(--accent-light);
+}
+
+.diag-ips .warn {
+    grid-column: 1 / -1;
+    font-size: 12px;
+}
+
+.diag-slow {
+    max-height: 220px;
+    margin: 6px 0 0;
+    padding: 10px 12px;
+    overflow: auto;
+    background: rgba(0, 0, 0, 0.25);
+    font: 12px/1.5 "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.75);
+    white-space: pre;
+}
+
 @media only screen and (max-width: 760px) {
     .panel-grid {
         grid-template-columns: 1fr;
@@ -598,7 +744,9 @@
         grid-template-columns: 1fr;
     }
 
-    .history li {
+    .history li,
+    .diag-ips li,
+    .diag-episode summary {
         grid-template-columns: 1fr;
         gap: 0;
     }

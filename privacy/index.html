@@ -26,12 +26,13 @@
     </header>
 
     <article class="prose">
-      <p>Krótko: przeglądanie strony nie zostawia żadnych śladów poza zwykłym ruchem sieciowym. Dane zapisujemy dopiero wtedy, gdy ktoś sam zaloguje się przez Discorda, i tylko tyle, ile trzeba do nadawania dostępu.</p>
+      <p>Krótko: przy przeglądaniu strony serwer prowadzi tylko zwykły dziennik zapytań, potrzebny do wykrywania awarii. Inne dane zapisujemy dopiero wtedy, gdy ktoś sam zaloguje się przez Discorda, i tylko tyle, ile trzeba do nadawania dostępu.</p>
 
       <h2>Przeglądanie strony</h2>
       <ul>
         <li>Bez analityki, reklam i śledzenia. Czcionki i wszystkie pliki są z tego serwera.</li>
         <li>Ruch przechodzi przez Cloudflare, który chroni stronę i ją przyspiesza. Widzi on adres IP odwiedzającego, jak każdy pośrednik w sieci.</li>
+        <li><b>Dziennik serwera:</b> przy każdym zapytaniu serwer zapisuje adres IP, czas, otwarty adres strony, kod i czas odpowiedzi, nazwę przeglądarki (user agent) i kraj podany przez Cloudflare. Służy tylko do wykrywania awarii i skanerów, które je wywołują. Dziennik jest kasowany po 14 dniach, a zestawienia w panelu administratora (adresy, które wysłały najwięcej zapytań) po 3 dniach.</li>
       </ul>
 
       <h2>Logowanie przez Discorda</h2>
@@ -45,7 +46,7 @@
         <li><b>Role na serwerze Sanakana:</b> to, co bot powiedział o roli konta, dla 200 ostatnio sprawdzanych kont; odświeżane co 10 minut przy odwiedzinach.</li>
         <li><b>Historia zmian:</b> kto i kiedy zmienił coś w galerii albo w panelu, 1000 ostatnich wpisów.</li>
       </ul>
-      <p>Te dane służą wyłącznie do kontroli dostępu i do tego, żeby wiedzieć, kto co zmienił (prawnie uzasadniony interes, art. 6 ust. 1 lit. f RODO). Nikomu ich nie udostępniamy i nie sprzedajemy.</p>
+      <p>Te dane służą wyłącznie do kontroli dostępu, do tego, żeby wiedzieć, kto co zmienił, i do ochrony strony przed awariami i atakami (prawnie uzasadniony interes, art. 6 ust. 1 lit. f RODO). Nikomu ich nie udostępniamy i nie sprzedajemy.</p>
 
       <h2>Twoje prawa</h2>
       <p>Możesz poprosić o wgląd w swoje dane, ich poprawienie albo usunięcie, a także sprzeciwić się ich przetwarzaniu. Napisz na <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>. Masz też prawo złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych.</p>

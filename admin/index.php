@@ -7,7 +7,8 @@
     require __DIR__ . '/../inc/services.php';
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
-    require __DIR__ . '/../inc/system.php';
+    require_once __DIR__ . '/../inc/system.php';
+    require __DIR__ . '/../inc/diag.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     $thumbsDir = thumbsDir();
@@ -159,6 +160,98 @@
             . '<p>' . $details . '</p></div>';
     }
 
+    // ---- Availability of the site (inc/diag.php) -----------------------------------
+
+    // "40 s", or minutes and hours as duration() gives them
+    function diagSeconds($seconds)
+    {
+        return $seconds < 60 ? max(1, (int)$seconds) . ' s' : duration($seconds);
+    }
+
+    // a 24 h bar of quarter hours for the probes in $names
+    function diagBar($title, $rounds, $names)
+    {
+        $parts = diagTimeline($rounds, $names);
+        $checked = array_sum(array_column($parts, 'rounds'));
+        $failed = array_sum(array_column($parts, 'fail'));
+        $html = '<div class="bar"><div class="bar-head"><span>' . e($title) . '</span><b>'
+            . ($checked ? ($failed ? $failed . ' z ' . formatCount($checked) . ' bez odpowiedzi' : 'zawsze odpowiadała') : '–') . '</b></div>'
+            . '<div class="timeline" aria-label="' . e($title) . ' w ostatnich 24 godzinach, po 15 minut">';
+        foreach ($parts as $part) {
+            $label = !$part['rounds'] ? 'brak pomiarów'
+                : ($part['fail'] ? $part['fail'] . ' z ' . $part['rounds'] . ' bez odpowiedzi' : 'odpowiadała')
+                    . ($part['slow'] ? ', ' . $part['slow'] . ' wolno (ponad ' . milliseconds(DIAG_SLOW_MS) . ')' : '');
+            $html .= '<span class="' . ($part['state'] ?? 'none') . '" title="' . e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . $label) . '"></span>';
+        }
+
+        return $html . '</div></div>';
+    }
+
+    // requests per quarter hour from the nginx log, the peak of 10 s in the title
+    function diagTrafficChart($rounds)
+    {
+        $parts = diagTimeline($rounds, []);
+        $scale = max(1, max(array_column($parts, 'requests')));
+        $total = array_sum(array_column($parts, 'requests'));
+        $html = '<div class="bar"><div class="bar-head"><span>Ruch na stronie, 24 godziny</span><b>' . formatCount($total) . ' ' . plural($total, 'zapytanie', 'zapytania', 'zapytań')
+            . ' &middot; najwięcej ' . formatCount(max(array_column($parts, 'peak'))) . ' w 10 s</b></div>'
+            . '<div class="response-chart" aria-label="Zapytania do strony w ostatnich 24 godzinach, po 15 minut">';
+        foreach ($parts as $part)
+            $html .= '<span title="' . e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . formatCount($part['requests']) . ' zapytań, najwięcej ' . formatCount($part['peak']) . ' w 10 s') . '">'
+                . ($part['requests'] ? '<i style="height: ' . max(4, round(100 * $part['requests'] / $scale)) . '%"></i>' : '') . '</span>';
+
+        return $html . '</div><div class="bar-ends"><span>24 h temu</span><span>teraz</span></div></div>';
+    }
+
+    // the addresses that sent most requests: address (with a lookup in AbuseIPDB),
+    // country, requests and those of them to PHP, user agent and most asked path
+    function diagIpList($ips)
+    {
+        if (!$ips)
+            return '<p class="nobody">Brak zapytań w dzienniku.</p>';
+
+        $most = $ips[0]['n'];
+        $html = '<ul class="diag-ips">';
+        foreach ($ips as $ip) {
+            $html .= '<li style="--share: ' . share($ip['n'], $most) . '">'
+                . '<span class="diag-ip"><a href="https://www.abuseipdb.com/check/' . e(rawurlencode($ip['ip'])) . '" target="_blank" rel="noopener" title="Sprawdź adres w AbuseIPDB">' . e($ip['ip']) . '</a>'
+                . ($ip['cc'] !== '' ? ' <span class="muted">' . e($ip['cc']) . '</span>' : '') . '</span>'
+                . '<span class="diag-count">' . formatCount($ip['n']) . ($ip['php'] ? ' <span class="muted">PHP ' . formatCount($ip['php']) . '</span>' : '') . '</span>'
+                . '<span class="diag-agent"><span title="' . e($ip['ua']) . '">' . e($ip['ua'] !== '' ? $ip['ua'] : 'bez user agenta') . '</span>'
+                . '<code title="' . e($ip['path']) . '">' . e($ip['path']) . '</code></span>'
+                . (diagIsCloudflare($ip['ip']) ? '<b class="warn">adres Cloudflare, nie odwiedzającego</b>' : '')
+                . '</li>';
+        }
+
+        return $html . '</ul>';
+    }
+
+    // what most likely went wrong in an episode, from what the server noted meanwhile
+    function diagVerdict($episode)
+    {
+        if ($episode['publicOnly']) {
+            $text = 'Na serwerze strona odpowiadała, a połączenia z Cloudflare nie dochodziły';
+            if ($episode['overflows'])
+                return $text . ': jądro odrzuciło ' . formatCount($episode['overflows']) . ' ' . plural($episode['overflows'], 'połączenie', 'połączenia', 'połączeń')
+                    . ', bo nginx nie nadążał ich przyjmować (pełna kolejka).';
+            if ($episode['nginxUnhandled'])
+                return $text . ': nginx nie obsłużył ' . formatCount($episode['nginxUnhandled']) . ' połączeń, zabrakło mu worker_connections.';
+
+            return $text . '. Jądro żadnych nie odrzuciło, więc to raczej zapora, sieć hosta albo sam Cloudflare.';
+        }
+        if ($episode['phpOnly']) {
+            $text = 'nginx odpowiadał, PHP nie';
+            if ($episode['fpmFull'] || $episode['fpmQueue'])
+                return $text . ': wszystkie procesy PHP-FPM były zajęte'
+                    . ($episode['fpmActive'] !== null ? ' (' . $episode['fpmActive'] . ' z ' . $episode['fpmTotal'] . ')' : '')
+                    . ($episode['fpmQueue'] ? ', w kolejce czekało do ' . $episode['fpmQueue'] . ' zapytań' : '') . '.';
+
+            return $text . '. Wolne zapytania pokaże dziennik slowlog niżej.';
+        }
+
+        return 'Strona nie odpowiadała także na serwerze: nginx nie przyjmował połączeń albo serwer stanął.';
+    }
+
     // ---- Changes ------------------------------------------------------------
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -234,8 +327,9 @@
                 // a plain form: the answer is the ZIP itself, a problem comes back as a message
                 $withGallery = ($_POST['gallery'] ?? '') === '1';
                 // without the logins of the moment (sessions), which would only log people
-                // in again, and the thumbnails, which are made again by themselves
-                $roots = [[dataDir(), 'data', ['sessions', 'thumbs']]];
+                // in again, the thumbnails, which are made again by themselves, and the
+                // availability checks of the last days
+                $roots = [[dataDir(), 'data', ['sessions', 'thumbs', 'diag']]];
                 if ($withGallery)
                     $roots[] = [$galleryDir, 'i', ['index.php']];
                 addHistory('backup', 'Pobrano kopię danych' . ($withGallery ? ' z galerią' : '') . '.');
@@ -400,6 +494,16 @@
         $privateTime = botPrivateCommandsTime();
         $system = systemStats();
 
+        // availability of the site (inc/diag.php): the rounds of 24 h, failures, traffic of the last hour
+        $now = time();
+        $diagRounds = diagRounds($now - 86400);
+        $diagLast = $diagRounds ? end($diagRounds) : null;
+        $diagEpisodes = diagEpisodes($diagRounds);
+        $diagHour = diagMergeTraffic(array_filter($diagRounds, function ($round) use ($now) { return $round['t'] >= $now - 3600; }), 10);
+        $diagSlow = diagSlowEntries();
+        $diagCron = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-site.php'))
+            . " > /dev/null 2>&1' > /etc/cron.d/sanakan-site";
+
         purgeTrash();
         $trash = trashItems();
         $history = historyEntries(100);
@@ -443,7 +547,7 @@
   <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=9" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=10" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -743,8 +847,138 @@
 <?php endif; ?>
       </section>
 
+      <section class="card wide diag">
+        <h2><i>10</i>Dostępność strony</h2>
+        <p class="hint">Co 10 sekund serwer pyta stronę przez Cloudflare, tak jak odwiedzający, i bezpośrednio u siebie, z pominięciem Cloudflare, a dla porównania wiki. Obok zapisuje ruch z dziennika nginx. Gdy strona nie działa tylko przez Cloudflare (522), połączenia nie dochodzą do serwera. Gdy nie działa też na serwerze, zatyka się nginx albo PHP. Pomiary z <?=DIAG_KEEP_DAYS?> dni, pokazane 24 godziny.</p>
+<?php if (!$diagRounds): ?>
+        <p class="nobody">Jeszcze nie ma pomiarów. Ustawienie serwera opisuje lista niżej.</p>
+<?php else:
+        $ngNow = $diagLast['ng'] ?? null;
+        $fpmNow = $diagLast['fpm'] ?? null;
+        $tcpNow = $diagLast['tcp'] ?? [];
+?>
+<?=diagBar('Przez Cloudflare', $diagRounds, ['pub', 'pubphp'])?>
+<?=diagBar('Na serwerze, bez Cloudflare', $diagRounds, ['loc', 'locphp'])?>
+<?=diagBar('Wiki przez Cloudflare', $diagRounds, ['wiki'])?>
+        <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
+        <div class="timeline-legend">
+          <span><i class="ok"></i>odpowiadała <i class="warn"></i>wolno <i class="fail"></i>bez odpowiedzi <i class="none"></i>brak pomiarów</span>
+        </div>
+
+<?=diagTrafficChart($diagRounds)?>
+
+        <div class="stats-summary diag-now" title="Ostatni pomiar, <?=e(date('H:i:s', $diagLast['t']))?>">
+<?php if ($ngNow): ?>
+          <span><b><?=$ngNow['a']?></b> <?=plural($ngNow['a'], 'połączenie', 'połączenia', 'połączeń')?> nginx</span>
+<?php endif; ?>
+<?php if ($fpmNow): ?>
+          <span><b><?=$fpmNow['act']?>/<?=$fpmNow['tot']?></b> zajętych PHP-FPM<?=$fpmNow['q'] ? ', <b class="warn">' . $fpmNow['q'] . '</b> w kolejce' : ''?></span>
+          <span><b><?=formatCount($fpmNow['mcr'])?></b> &times; pula pełna <span class="muted">od startu PHP-FPM</span></span>
+<?php endif; ?>
+<?php if (isset($tcpNow['lo'])): ?>
+          <span><b><?=formatCount($tcpNow['lo'])?></b> odrzuconych połączeń <span class="muted">od startu serwera</span></span>
+<?php endif; ?>
+<?php if (isset($tcpNow['ct'])): ?>
+          <span><b><?=formatCount($tcpNow['ct'])?></b> z <?=formatCount($tcpNow['ctm'])?> w conntrack</span>
+<?php endif; ?>
+        </div>
+
+        <h3 class="diag-title">Awarie w ostatnich 24 godzinach<?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
+<?php if (!$diagEpisodes): ?>
+        <p class="nobody">Strona cały czas odpowiadała.</p>
+<?php else: ?>
+        <div class="diag-episodes">
+<?php foreach (array_slice($diagEpisodes, 0, 20) as $i => $episode): ?>
+          <details class="diag-episode<?=$episode['ongoing'] ? ' ongoing' : ''?>"<?=$i === 0 ? ' open' : ''?>>
+            <summary>
+              <time><?=e(date(date('Y-m-d', $episode['from']) === date('Y-m-d') ? 'H:i:s' : 'd.m H:i:s', $episode['from']))?></time>
+              <b><?=$episode['ongoing'] ? 'trwa' : e(diagSeconds($episode['to'] - $episode['from']))?></b>
+              <span><?=e(diagVerdict($episode))?></span>
+            </summary>
+            <dl class="server">
+<?php foreach (DIAG_PROBE_NAMES as $name => [$label]): if (!$episode['answers'][$name]) continue; ?>
+              <dt><?=e(ucfirst($label))?></dt>
+              <dd><?=e(implode(', ', array_map(function ($text, $times) { return $text . ($times > 1 ? ' ×' . $times : ''); }, array_keys($episode['answers'][$name]), $episode['answers'][$name])))?></dd>
+<?php endforeach; ?>
+              <dt>Połączenia TCP</dt>
+              <dd><?=$episode['overflows'] === null ? 'brak danych' : ($episode['overflows'] ? '<b class="warn">' . formatCount($episode['overflows']) . ' odrzuconych</b> (pełna kolejka)' : 'żadne nie odrzucone')?><?=$episode['queue'] !== null ? ' · kolejka do ' . $episode['queue'] . ' · półotwartych do ' . $episode['syn'] : ''?></dd>
+              <dt>nginx</dt>
+              <dd><?=$episode['nginxActive'] === null ? 'brak danych' : 'do ' . $episode['nginxActive'] . ' połączeń' . ($episode['nginxUnhandled'] ? ' · <b class="warn">' . formatCount($episode['nginxUnhandled']) . ' nieobsłużonych</b> (worker_connections)' : '')?></dd>
+              <dt>PHP-FPM</dt>
+              <dd><?=$episode['fpmActive'] === null ? 'brak danych' : 'zajętych do ' . $episode['fpmActive'] . ' z ' . $episode['fpmTotal'] . ($episode['fpmQueue'] ? ' · <b class="warn">do ' . $episode['fpmQueue'] . ' w kolejce</b>' : '') . ($episode['fpmFull'] ? ' · <b class="warn">pula pełna ' . $episode['fpmFull'] . '×</b>' : '')?></dd>
+              <dt>Obciążenie</dt>
+              <dd><?=decimal($episode['load'], 2)?></dd>
+              <dt>Ruch</dt>
+              <dd><?=formatCount($episode['traffic']['n'])?> zapytań od minuty przed awarią do jej końca, w tym <?=formatCount($episode['traffic']['php'])?> do PHP · najwięcej <?=formatCount($episode['traffic']['peak'])?> w 10 s · błędy 4xx <?=formatCount($episode['traffic']['s4'])?>, 5xx <?=formatCount($episode['traffic']['s5'])?></dd>
+            </dl>
+            <?=diagIpList($episode['traffic']['ips'])?>
+
+          </details>
+<?php endforeach; ?>
+        </div>
+<?php endif; ?>
+
+        <h3 class="diag-title">Ostatnia godzina <span class="muted"><?=formatCount($diagHour['n'])?> zapytań, <?=formatCount($diagHour['php'])?> do PHP, najwięcej <?=formatCount($diagHour['peak'])?> w 10 s</span></h3>
+        <?=diagIpList($diagHour['ips'])?>
+
+<?php if ($diagHour['paths']): ?>
+        <div class="stats-grid">
+          <div>
+            <h3>Najczęstsze adresy stron</h3>
+            <ul class="stat-list">
+<?php foreach ($diagHour['paths'] as [$path, $n]): ?>
+              <li style="--share: <?=share($n, $diagHour['paths'][0][1])?>"><span title="<?=e($path)?>"><?=e($path)?></span><span><?=formatCount($n)?></span></li>
+<?php endforeach; ?>
+            </ul>
+          </div>
+        </div>
+<?php endif; ?>
+<?php endif; ?>
+<?php if ($diagSlow): ?>
+
+        <h3 class="diag-title">Wolne zapytania PHP <span class="muted">ostatnie z dziennika slowlog</span></h3>
+<?php foreach ($diagSlow as $entry): ?>
+        <pre class="diag-slow"><?=e($entry)?></pre>
+<?php endforeach; ?>
+<?php endif; ?>
+
+        <h3 class="diag-title">Ustawienie</h3>
+<?php
+        $nginxProbe = $diagLast['p']['nginx'] ?? null;
+        $fpmProbe = $diagLast['p']['fpm'] ?? null;
+        $logReadable = is_readable(diagAccessLog());
+        $cloudflareInLog = false;
+        foreach ($diagHour['ips'] as $ip)
+            $cloudflareInLog = $cloudflareInLog || diagIsCloudflare($ip['ip']);
+?>
+        <dl class="server">
+          <dt>Pomiary</dt>
+          <dd><?=!diagAvailable()
+              ? '<b class="warn">brak rozszerzenia curl</b>: <code>apt-get install -y php8.1-curl &amp;&amp; systemctl restart php8.1-fpm</code>'
+              : ($diagLast && time() - $diagLast['t'] < 180
+                  ? 'działają: ostatni ' . e(ago($diagLast['t']))
+                  : '<b class="warn">nie działają</b>' . ($diagLast ? ': ostatni ' . e(ago($diagLast['t'])) : '') . '. Zadanie cron: <code>' . e($diagCron) . '</code>')?></dd>
+
+          <dt>Dziennik nginx</dt>
+          <dd><?=!$logReadable
+              ? '<b class="warn">nie można czytać</b> <code>' . e(diagAccessLog()) . '</code>: <code>server/nginx/sanakan-log.conf</code> do <code>/etc/nginx/conf.d/</code> i nowy <code>sanakan.conf</code> (README)'
+              : 'czytany: <code>' . e(diagAccessLog()) . '</code>' . ($cloudflareInLog ? ' · <b class="warn">pokazuje adresy Cloudflare</b>: brak <code>set_real_ip_from</code> z <code>sanakan.conf</code>' : '')?></dd>
+
+          <dt>Stan nginx</dt>
+          <dd><?=$nginxProbe === null ? 'jeszcze nie sprawdzony' : (!empty($diagLast['ng']) ? 'czytany' : '<b class="warn">brak</b> (' . e($nginxProbe[0] === 200 ? 'odpowiedź to nie stub_status' : diagProbeText($nginxProbe)) . '): <code>location = /nginx-status</code> z <code>sanakan.conf</code>')?></dd>
+
+          <dt>Stan PHP-FPM</dt>
+          <dd><?=$fpmProbe === null ? 'jeszcze nie sprawdzony' : (!empty($diagLast['fpm']) ? 'czytany' : '<b class="warn">brak</b> (' . e($fpmProbe[0] === 200 ? 'odpowiedź to nie status puli' : diagProbeText($fpmProbe)) . '): <code>pm.status_path = /fpm-status</code> w <code>/etc/php/8.1/fpm/pool.d/www.conf</code> i <code>location = /fpm-status</code> z <code>sanakan.conf</code>')?></dd>
+
+          <dt>Wolne zapytania</dt>
+          <dd><?=$diagSlow === null
+              ? '<b class="warn">nie można czytać</b> <code>' . e(diagSlowLog()) . '</code>: <code>request_slowlog_timeout = 5s</code> i <code>slowlog</code> w puli PHP-FPM (README)'
+              : 'dziennik <code>' . e(diagSlowLog()) . '</code>' . ($diagSlow ? '' : ', pusty')?></dd>
+        </dl>
+      </section>
+
       <section class="card wide">
-        <h2><i>10</i>Zasoby serwera</h2>
+        <h2><i>11</i>Zasoby serwera</h2>
         <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
 <?php if ($system['cpu'] === null && $system['memory'] === null): ?>
         <p class="nobody">Brak danych: serwer nie ma <code>/proc</code> (to nie Linux) albo PHP nie może go czytać (<code>open_basedir</code>).</p>
@@ -811,7 +1045,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>11</i>Serwer</h2>
+        <h2><i>12</i>Serwer</h2>
         <dl class="server">
           <dt>PHP</dt>
           <dd><?=e(PHP_VERSION)?></dd>
