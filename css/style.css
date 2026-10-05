@@ -249,22 +249,32 @@ body.gbe-shot main.hero {
     }
 }
 
-/* The Discord account in the top right corner of the home page */
-/* below the Morse line that runs along the top */
-.home-account {
+/* The Discord account in the top right corner of the home page and the places
+   it may open (the gallery, the panel) at the left edge, both below the Morse
+   line that runs along the top */
+.home-account,
+.home-places {
     position: absolute;
     top: 46px;
-    right: 16px;
     z-index: 5;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-end;
     gap: 8px;
     font-size: 14px;
 }
 
-.home-account[hidden] {
+.home-account {
+    right: 16px;
+    justify-content: flex-end;
+}
+
+.home-places {
+    left: 16px;
+}
+
+.home-account[hidden],
+.home-places[hidden] {
     display: none;
 }
 
@@ -303,12 +313,8 @@ body.gbe-shot main.hero {
 
 /* the login, the gallery and the panel look like the HUD buttons of the site
    (the corners come from .hud-corners) */
-.home-account a.home-nav:first-of-type {
-    margin-left: 10px;
-}
-
 .home-account a.home-login,
-.home-account a.home-nav {
+.home-places a {
     padding: 6px 13px;
     color: var(--text);
     font: 11px/1.5 "Share Tech Mono", monospace;
@@ -332,7 +338,8 @@ body.gbe-shot main.hero {
 }
 
 @media only screen and (max-width: 720px) {
-    .home-account {
+    .home-account,
+    .home-places {
         position: static;
         justify-content: center;
         margin: 14px 16px 0;

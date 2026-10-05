@@ -20,11 +20,12 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link href="css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="css/style.css?v=23" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=24" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
   <div class="home-account" id="home-account" hidden></div>
+  <nav class="home-places" id="home-places" hidden></nav>
   <div class="motto" id="motto" title="Niby nie taki lekki, ale lata">Niby nie taki lekki, ale lata</div>
 
   <main class="hero">
@@ -189,10 +190,11 @@
     })();
 
     // The Discord account in the top right corner (account.php): a login button,
-    // or the account with the gallery and the panel when it may open them. An
-    // account that may read the API gets the API button unlocked.
+    // or the account, with the gallery and the panel at the left edge when it may
+    // open them. An account that may read the API gets the API button unlocked.
     (function () {
       var box = document.getElementById('home-account');
+      var places = document.getElementById('home-places');
       var api = document.getElementById('api-link');
 
       function link(href, text, className) {
@@ -224,7 +226,7 @@
           who.append(avatar, name);
           box.appendChild(who);
 
-          // the account and its logout as on the other pages, the places it may open to the right
+          // the account and its logout as on the other pages
           var form = document.createElement('form');
           form.method = 'post';
           form.action = 'account.php';
@@ -240,9 +242,10 @@
           logout.textContent = 'Wyloguj';
           form.appendChild(logout);
           box.appendChild(form);
-          if (me.gallery) box.appendChild(link('i/', 'Galeria', 'home-nav hud-corners'));
-          if (me.panel) box.appendChild(link('admin/', 'Panel', 'home-nav hud-corners'));
           box.hidden = false;
+          if (me.gallery) places.appendChild(link('i/', 'Galeria', 'hud-corners'));
+          if (me.panel) places.appendChild(link('admin/', 'Panel', 'hud-corners'));
+          places.hidden = !places.firstChild;
 
           if (me.api) {
             api.classList.remove('restricted');
