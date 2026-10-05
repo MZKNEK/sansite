@@ -55,9 +55,11 @@
             $modules[] = $module + ['private' => true];
         }
     }
+    // the account menu of every page, built while the session is still open (its CSRF token)
+    $accountMenu = $user !== null ? accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '') : '';
     if (session_status() === PHP_SESSION_ACTIVE)
         session_write_close();
-    if ($privateTotal)
+    if ($user !== null)
         header('Cache-Control: private, no-store');
 
     // Address of a command on the page, e.g. #daily or #pw-daily with the module
@@ -115,6 +117,7 @@ include 'sanakan.head.html';
     <header class="cmd-header">
       <div class="cmd-top">
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
+        <?=$accountMenu?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
       <h1 class="hud-title">Polecenia</h1>

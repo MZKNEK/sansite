@@ -13,6 +13,14 @@
     $stored = json_decode((string)@file_get_contents(botFile('commands-index.json')), true);
     $index = $stored['commands'] ?? [];
 
+    // the account menu of every page, built while the session is still open (its CSRF token)
+    $user = siteUser();
+    $accountMenu = $user !== null ? accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '') : '';
+    if (session_status() === PHP_SESSION_ACTIVE)
+        session_write_close();
+    if ($user !== null)
+        header('Cache-Control: private, no-store');
+
     function e($text)
     {
         return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
@@ -66,7 +74,7 @@
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=30" type="text/css" rel="stylesheet" />
-  <link href="../style.css?v=11" type="text/css" rel="stylesheet" />
+  <link href="../style.css?v=12" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="cmd-page">
@@ -74,6 +82,7 @@
     <header class="cmd-header">
       <div class="cmd-top">
         <a class="back hud-corners" href="../" title="Polecenia">&larr; Polecenia</a>
+        <?=$accountMenu?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
       <h1 class="hud-title">Zmiany</h1>
@@ -120,6 +129,7 @@
 <?php endforeach; ?>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
+  <script src="../../js/account.js?v=1"></script>
   <script src="../../js/netsphere.js?v=1"></script>
 </body>
 
