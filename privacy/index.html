@@ -5,13 +5,13 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#9b59b6" />
-  <meta name="description" content="Jakie dane zbiera strona sanakan.pl i po co." />
+  <meta name="description" content="Informacja o przetwarzaniu danych osobowych w serwisie sanakan.pl." />
   <title>Prywatność &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=29" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
@@ -26,31 +26,20 @@
     </header>
 
     <article class="prose">
-      <p>Krótko: przy przeglądaniu strony serwer prowadzi tylko zwykły dziennik zapytań, potrzebny do wykrywania awarii. Inne dane zapisujemy dopiero wtedy, gdy ktoś sam zaloguje się przez Discorda, i tylko tyle, ile trzeba do nadawania dostępu.</p>
+      <p>Poniższa informacja opisuje przetwarzanie danych osobowych w związku z korzystaniem z serwisu sanakan.pl, zgodnie z rozporządzeniem (UE) 2016/679 (ogólnym rozporządzeniem o ochronie danych, &bdquo;RODO&rdquo;).</p>
 
-      <h2>Przeglądanie strony</h2>
-      <ul>
-        <li>Bez analityki, reklam i śledzenia. Czcionki i wszystkie pliki są z tego serwera.</li>
-        <li>Ruch przechodzi przez Cloudflare, który chroni stronę i ją przyspiesza. Widzi on adres IP odwiedzającego, jak każdy pośrednik w sieci.</li>
-        <li><b>Dziennik serwera:</b> przy każdym zapytaniu serwer zapisuje adres IP, czas, otwarty adres strony, kod i czas odpowiedzi, nazwę przeglądarki (user agent) i kraj podany przez Cloudflare. Służy tylko do wykrywania awarii i skanerów, które je wywołują. Dziennik jest kasowany po 14 dniach, a zestawienia w panelu administratora (adresy, które wysłały najwięcej zapytań, i skanery) po 3 dniach.</li>
-        <li><b>Blokady:</b> adres, który skanuje stronę albo zalewa ją zapytaniami, administrator może zablokować w Cloudflare. Trafia wtedy na listę blokad z krótką notatką (np. czego szukał) i zostaje na niej do odblokowania.</li>
-      </ul>
+      <h2>1. Administrator</h2>
+      <p>Administratorem danych osobowych jest operator serwisu sanakan.pl. We wszystkich sprawach dotyczących danych osobowych można się kontaktować pod adresem <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>.</p>
 
-      <h2>Logowanie przez Discorda</h2>
-      <p>Logowanie jest potrzebne tylko do galerii, dokumentacji API i panelu administratora. Odbywa się na stronie Discorda, a my dostajemy od niego wyłącznie <b>ID konta, nazwę i awatar</b> (zakres <code>identify</code>). Nie dostajemy adresu e-mail, hasła ani listy serwerów. ID konta sprawdzamy u bota Sanakan, który mówi, jaką rolę (np. moderator, admin) ma ono na jego serwerze.</p>
+      <h2>2. Przetwarzane dane</h2>
+      <p>Serwis przetwarza adresy IP i informacje o urządzeniach, z których korzystają odwiedzający, a w przypadku logowania przez Discorda także podstawowe dane konta (identyfikator, nazwę i awatar), jego rolę na serwerze Discord Sanakana, uprawnienia dostępu oraz działania wykonane w serwisie. Adresy IP i informacje o urządzeniach są przechowywane nie dłużej niż 30 dni, z wyjątkiem adresów zablokowanych za ataki na serwis. Pozostałe dane konta są przechowywane, dopóki są potrzebne do celów opisanych niżej. Serwis nie otrzymuje adresu e-mail ani hasła.</p>
+      <p>Serwis nie korzysta z analityki, reklam ani narzędzi śledzących. Ruch przechodzi przez Cloudflare, Inc., działający jako podmiot przetwarzający.</p>
 
-      <h2>Co zapisujemy i jak długo</h2>
-      <ul>
-        <li><b>Ostatnie logowania:</b> nazwa, awatar, czas ostatniego logowania i ich liczba, dla 50 ostatnio logujących się kont. Starsze wpisy wypadają same.</li>
-        <li><b>Prośby o dostęp:</b> konto i notatka, którą ktoś do prośby dopisał, do czasu rozpatrzenia.</li>
-        <li><b>Listy dostępu:</b> ID kont, które mogą oglądać galerię albo czytać API, z notatką administratora, do czasu odebrania dostępu.</li>
-        <li><b>Role na serwerze Sanakana:</b> to, co bot powiedział o roli konta, dla 200 ostatnio sprawdzanych kont; odświeżane co 10 minut przy odwiedzinach.</li>
-        <li><b>Historia zmian:</b> kto i kiedy zmienił coś w galerii albo w panelu, 1000 ostatnich wpisów.</li>
-      </ul>
-      <p>Te dane służą wyłącznie do kontroli dostępu, do tego, żeby wiedzieć, kto co zmienił, i do ochrony strony przed awariami i atakami (prawnie uzasadniony interes, art. 6 ust. 1 lit. f RODO). Nikomu ich nie udostępniamy i nie sprzedajemy.</p>
+      <h2>3. Cele i podstawa prawna</h2>
+      <p>Dane osobowe są przetwarzane wyłącznie w celu kontroli dostępu do serwisu, prowadzenia rejestru zmian oraz ochrony serwisu przed awariami i nadużyciami, na podstawie prawnie uzasadnionego interesu administratora (art. 6 ust. 1 lit. f RODO). Adres IP wykorzystywany do ataku na serwis może zostać zablokowany. Dane nie są udostępniane podmiotom trzecim innym niż podmioty przetwarzające ani sprzedawane.</p>
 
-      <h2>Twoje prawa</h2>
-      <p>Możesz poprosić o wgląd w swoje dane, ich poprawienie albo usunięcie, a także sprzeciwić się ich przetwarzaniu. Napisz na <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>. Masz też prawo złożyć skargę do Prezesa Urzędu Ochrony Danych Osobowych.</p>
+      <h2>4. Prawa osób, których dane dotyczą</h2>
+      <p>Przysługuje Ci prawo dostępu do swoich danych, ich sprostowania, usunięcia lub ograniczenia przetwarzania, a także prawo wniesienia sprzeciwu wobec ich przetwarzania. Wnioski można kierować na adres <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>. Przysługuje Ci również prawo wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych.</p>
 
       <p class="updated">Ostatnia zmiana: 5 października 2026.</p>
     </article>

@@ -90,10 +90,267 @@
     font-size: 14px;
 }
 
-.notice-fields label {
+.notice-fields label,
+.notice-time {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+/* Date and time in the Polish way (js/admin.js): a text field and a calendar */
+.dt {
+    position: relative;
+    display: inline-block;
+}
+
+.dt-field {
+    box-sizing: border-box;
+    width: 172px;
+    padding: 7px 10px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    outline: 0;
+}
+
+.dt-field:focus {
+    border-color: var(--accent);
+}
+
+.dt-field.invalid {
+    border-color: #e86262;
+}
+
+.dt-pop {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    width: 264px;
+    padding: 12px;
+    border: 1px solid rgba(155, 89, 182, 0.45);
+    background: #121115;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.dt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.dt-head b {
+    font: 14px "Share Tech Mono", monospace;
+    letter-spacing: 0.08em;
+    color: #efe2f7;
+}
+
+.dt-step {
+    width: 30px;
+    height: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--accent-light);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.dt-step:hover {
+    color: #fff;
+}
+
+.dt-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.dt-weekday {
+    padding: 4px 0;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.dt-day {
+    height: 30px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    cursor: pointer;
+}
+
+.dt-day:hover {
+    background: rgba(155, 89, 182, 0.2);
+}
+
+.dt-day.other {
+    color: rgba(220, 221, 222, 0.3);
+}
+
+.dt-day.sunday {
+    color: #e86262;
+}
+
+.dt-day.other.sunday {
+    color: rgba(232, 98, 98, 0.4);
+}
+
+.dt-day.today {
+    border-color: rgba(155, 89, 182, 0.6);
+}
+
+.dt-day.chosen {
+    background: var(--accent);
+    color: #fff;
+}
+
+.dt-time {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.dt-time input {
+    width: 52px;
+    padding: 5px 6px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    text-align: center;
+    outline: 0;
+    color-scheme: dark;
+}
+
+.dt-time input:focus {
+    border-color: var(--accent);
+}
+
+.dt-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+/* the server's clock under the bot status */
+.server-clock {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.7);
+}
+
+.server-clock b {
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.server-clock .warn {
+    font: inherit;
+    color: #f0b232;
+}
+
+/* the search under the title of the panel */
+.panel-search {
+    display: flex;
+    gap: 8px;
+    max-width: 520px;
+    margin: 18px auto 0;
+}
+
+.panel-search input {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 12px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px Lato, sans-serif;
+    outline: 0;
+    color-scheme: dark;
+}
+
+.panel-search input:focus {
+    border-color: var(--accent);
+}
+
+/* the devices an account is logged in on */
+.devices {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.devices li {
+    display: grid;
+    grid-template-columns: minmax(0, 260px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 14px;
+    padding: 7px 8px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.1);
+    font-size: 13px;
+}
+
+.device-name {
+    color: #efe2f7;
+}
+
+/* the profile of an account */
+.profile-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.profile-head img {
+    border-radius: 50%;
+}
+
+.profile-head > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.profile-name {
+    font-size: 20px;
+    color: #efe2f7;
+}
+
+.profile-head code {
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.profile-yes {
+    color: #3ba55c;
+}
+
+a.who-name:hover {
+    color: var(--accent-light);
+}
+
+.role.account {
+    border-color: rgba(88, 101, 242, 0.6);
+    color: #8ea1ff;
+}
+
+.role.account:hover {
+    color: #fff;
+}
+
+.role.protected {
+    border-color: rgba(59, 165, 92, 0.6);
+    color: #3ba55c;
 }
 
 .notice-form > .hint:last-of-type {
@@ -556,8 +813,13 @@
     color: rgba(220, 221, 222, 0.5);
 }
 
-.history-who {
+.history-who,
+.history-who a {
     color: var(--accent-light);
+}
+
+.history-who a:hover {
+    color: #fff;
 }
 
 .history-text {
@@ -808,6 +1070,7 @@
     .history li,
     .diag-ips li,
     .diag-blocked li,
+    .devices li,
     .diag-episode summary {
         grid-template-columns: 1fr;
         gap: 0;

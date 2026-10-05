@@ -17,7 +17,8 @@
     // From the same log come two summaries kept apart from the rounds: the
     // scanners (addresses asking for paths no visitor of this site asks for, or
     // with the user agent of a known scanning tool) of the last DIAG_KEEP_DAYS
-    // days, and the time PHP took per page, by the hour, for 24 hours. Whether
+    // days, the time PHP took per page, and the requests from the addresses of
+    // each logged-in account (inc/data/addresses.json), by the hour, for 24 hours. Whether
     // the site answers through Cloudflare also goes to its line on state/
     // (inc/services.php), every 10 seconds instead of every 5 minutes.
     require_once __DIR__ . '/bot.php';
@@ -380,8 +381,10 @@
                 $pages[$path] = [$page[0] + 1, $page[1] + $ms, max($page[2], $ms)];
             }
         }
-        if ($ips)
+        if ($ips) {
             diagRecordScanners($ips, time());
+            diagRecordAccounts($ips, time());
+        }
         if ($pages)
             diagRecordPages($pages, time());
 
@@ -445,6 +448,62 @@
             }
 
             return $scanners;
+        });
+    }
+
+    // an address as the accounts' addresses are matched: IPv4 whole, IPv6 by its /64
+    function diagAddressKey($ip)
+    {
+        $packed = @inet_pton((string)$ip);
+        if ($packed === false)
+            return (string)$ip;
+
+        return strlen($packed) === 4 ? (string)$ip : bin2hex(substr($packed, 0, 8));
+    }
+
+    // Adds the requests of this round from the addresses of logged-in accounts to
+    // their hour: [id => [hour => [requests, PHP, [path => requests]]]], 24 hours.
+    function diagRecordAccounts($ips, $now)
+    {
+        $owners = [];
+        foreach (readData('addresses') as $id => $known)
+            foreach (array_keys($known) as $ip)
+                $owners[diagAddressKey($ip)][(string)$id] = true;
+        if (!$owners)
+            return;
+
+        $traffic = [];
+        foreach ($ips as $ip => $info)
+            foreach (array_keys($owners[diagAddressKey($ip)] ?? []) as $id) {
+                $known = $traffic[$id] ?? [0, 0, []];
+                $known[0] += $info['n'];
+                $known[1] += $info['php'];
+                foreach ($info['paths'] as $path => $n)
+                    $known[2][$path] = ($known[2][$path] ?? 0) + $n;
+                $traffic[$id] = $known;
+            }
+        if (!$traffic)
+            return;
+
+        diagUpdate('accounts.json', function ($data) use ($traffic, $now) {
+            $hour = (string)(intdiv($now, 3600) * 3600);
+            foreach ($traffic as $id => [$n, $php, $paths]) {
+                $known = $data[$id][$hour] ?? [0, 0, []];
+                $known[0] += $n;
+                $known[1] += $php;
+                foreach ($paths as $path => $count)
+                    $known[2][$path] = ($known[2][$path] ?? 0) + $count;
+                arsort($known[2]);
+                $known[2] = array_slice($known[2], 0, 10, true);
+                $data[$id][$hour] = $known;
+            }
+            foreach ($data as $id => $hours) {
+                $data[$id] = array_filter($hours, function ($start) use ($now) { return (int)$start > $now - 86400; }, ARRAY_FILTER_USE_KEY);
+                if (!$data[$id])
+                    unset($data[$id]);
+            }
+
+            return $data;
         });
     }
 
@@ -886,4 +945,47 @@
             $list[] = [(string)$path, $n, (int)round($ms / max(1, $n)), $max, $ms];
 
         return $list;
+    }
+
+    // The requests from the addresses of an account in the last 24 hours: in all,
+    // to PHP, per hour (24 parts, oldest first, as ['from', 'n', 'php']) and the
+    // most asked paths as [path => requests].
+    function diagAccountTraffic($id)
+    {
+        $hours = json_decode((string)@file_get_contents(diagDir() . '/accounts.json'), true)[(string)$id] ?? [];
+        $start = intdiv(time(), 3600) * 3600 - 23 * 3600;
+        $traffic = ['n' => 0, 'php' => 0, 'hours' => [], 'paths' => []];
+        for ($i = 0; $i < 24; $i++)
+            $traffic['hours'][$i] = ['from' => $start + $i * 3600, 'n' => 0, 'php' => 0];
+
+        foreach ($hours as $from => [$n, $php, $paths]) {
+            $i = intdiv((int)$from - $start, 3600);
+            if ($i < 0 || $i > 23)
+                continue;
+            $traffic['hours'][$i]['n'] += $n;
+            $traffic['hours'][$i]['php'] += $php;
+            $traffic['n'] += $n;
+            $traffic['php'] += $php;
+            foreach ($paths as $path => $count)
+                $traffic['paths'][$path] = ($traffic['paths'][$path] ?? 0) + $count;
+        }
+        arsort($traffic['paths']);
+        $traffic['paths'] = array_slice($traffic['paths'], 0, 10, true);
+
+        return $traffic;
+    }
+
+    // What the rounds of the last 24 hours say about every address that was
+    // among the most active of some 10 seconds: [ip => ['n', 'php', 'cc', 'ua',
+    // 'path', 'last']]. Addresses with only a few requests may be missing.
+    function diagRecentAddresses()
+    {
+        $addresses = [];
+        foreach (diagRounds(time() - 86400) as $round)
+            foreach ($round['log']['ips'] ?? [] as [$ip, $n, $php, $cc, $ua, $path]) {
+                $known = $addresses[$ip] ?? ['n' => 0, 'php' => 0];
+                $addresses[$ip] = ['n' => $known['n'] + $n, 'php' => $known['php'] + $php, 'cc' => $cc, 'ua' => $ua, 'path' => $path, 'last' => $round['t']];
+            }
+
+        return $addresses;
     }

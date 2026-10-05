@@ -161,6 +161,44 @@
             . '<p>' . $details . '</p></div>';
     }
 
+    // The server's clock for the bot card: now in ms, the time zone of the site,
+    // the system's own zone and whether NTP keeps the clock right (null when
+    // systemd-timesyncd does not run).
+    function serverClock()
+    {
+        $system = trim((string)@file_get_contents('/etc/timezone'));
+        if ($system === '' && ($link = @readlink('/etc/localtime')) !== false)
+            $system = preg_replace('~^.*zoneinfo/~', '', $link);
+        $ntp = is_file('/run/systemd/timesync/synchronized') ? true : (is_dir('/run/systemd/timesync') ? false : null);
+
+        return ['ms' => (int)round(microtime(true) * 1000), 'zone' => date_default_timezone_get(), 'system' => $system, 'ntp' => $ntp];
+    }
+
+    // Why an address must not be blocked, or null: it is the one this admin
+    // uses now, or one an account of the panel came from. $owners from accountsAtAddress().
+    function protectedAddress($ip, $owners, $logins)
+    {
+        if (sameAddress($ip, $_SERVER['REMOTE_ADDR'] ?? ''))
+            return 'to twój obecny adres';
+        foreach ($owners as $id => $owner)
+            if (isPanelAdminId($id))
+                return 'z tego adresu korzysta konto panelu ' . ($logins[$id]['name'] ?? $id);
+
+        return null;
+    }
+
+    // what the lists of addresses mark: scanners, blocked in Cloudflare (null when
+    // blocking is not set up), the accounts that came from an address
+    function diagMarks($scanners, $cfItems)
+    {
+        return [
+            'scanners' => array_map(function ($scanner) { return $scanner['reason']; }, $scanners),
+            'blocked' => $cfItems === null ? null : array_column($cfItems, null, 'ip'),
+            'addresses' => readData('addresses'),
+            'logins' => readData('logins')
+        ];
+    }
+
     // ---- Availability of the site (inc/diag.php) -----------------------------------
 
     // "40 s", or minutes and hours as duration() gives them
@@ -205,23 +243,34 @@
     }
 
     // An address in a list: a lookup in AbuseIPDB, the country, whether it is a
-    // scanner and whether Cloudflare blocks it, or a button to block it there.
-    // $marks: ['scanners' => [ip => why], 'blocked' => [address or /64 => item],
-    // null when blocking is not set up].
+    // scanner, the accounts that came from it (links to their profiles), and
+    // whether Cloudflare blocks it, or a button to block it there. Never a
+    // button for the admin's own address or one of an account of the panel.
+    // $marks from diagMarks().
     function diagIpCell($ip, $cc, $note, $marks)
     {
         $html = '<span class="diag-ip"><a href="https://www.abuseipdb.com/check/' . e(rawurlencode($ip)) . '" target="_blank" rel="noopener" title="Sprawdź adres w AbuseIPDB">' . e($ip) . '</a>'
             . ($cc !== '' ? ' <span class="muted">' . e($cc) . '</span>' : '');
         if (isset($marks['scanners'][$ip]))
             $html .= ' <span class="role scanner" title="' . e($marks['scanners'][$ip]) . '">skaner</span>';
+        $owners = accountsAtAddress($ip, $marks['addresses']);
+        foreach ($owners as $id => $owner)
+            $html .= ' <a class="role account" href="?konto=' . e($id) . '" title="' . e('Konto logowało się z ' . ($owner[0] === $ip ? 'tego adresu' : 'tej samej sieci /64') . ', ostatnio ' . ago($owner[1])) . '">'
+                . e($marks['logins'][$id]['name'] ?? $id) . '</a>';
 
         $target = cloudflareTarget($ip);
         if ($target !== null && !diagIsCloudflare($ip) && $marks['blocked'] !== null) {
+            $protected = protectedAddress($ip, $owners, $marks['logins']);
             if (isset($marks['blocked'][$target]))
                 $html .= ' <span class="role blocked" title="' . e($target) . ' jest na liście blokad w Cloudflare">zablokowany</span>';
-            else
+            else if ($protected !== null)
+                $html .= ' <span class="role protected" title="' . e('Nie da się zablokować: ' . $protected) . '">chroniony</span>';
+            else {
+                $names = array_map(function ($id) use ($marks) { return $marks['logins'][$id]['name'] ?? $id; }, array_keys($owners));
                 $html .= ' <button type="button" class="admin-btn small danger" data-action="cf-block" data-ip="' . e($ip) . '" data-note="' . e($note) . '"'
-                    . ' data-confirm="' . e('Zablokować ' . $target . ' w Cloudflare? Jego zapytania przestaną docierać do strony.') . '">Zablokuj</button>';
+                    . ' data-confirm="' . e('Zablokować ' . $target . ' w Cloudflare? Jego zapytania przestaną docierać do strony.'
+                        . ($names ? ' Logowało się z niego konto: ' . implode(', ', $names) . '.' : '')) . '">Zablokuj</button>';
+            }
         }
 
         return $html . '</span>';
@@ -388,6 +437,27 @@
                 $_SESSION['login_time'] = $now;
                 done('sessions', 'Wylogowano wszystkich z galerii i panelu (poza sobą).');
 
+            case 'logout-account':
+                if (!preg_match('/^\d{17,20}$/', $id))
+                    reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
+                if ($id === $user['id'])
+                    reply(false, 'Siebie wyloguj z menu konta w rogu strony.', 400);
+                $sessions = readData('sessions');
+                $sessions['accounts'][$id] = time();
+                if (!writeData('sessions', $sessions))
+                    reply(false, dataError(), 500);
+                done('sessions', 'Wylogowano ' . accountLabel($id, $logins) . ' na wszystkich urządzeniach.');
+
+            case 'logout-session':
+                $key = (string)($_POST['session'] ?? '');
+                if (!preg_match('/^\d{17,20}$/', $id) || !preg_match('/^[0-9a-f]{20}$/', $key))
+                    reply(false, 'Nieznana sesja, odśwież stronę.', 400);
+                if ($key === sessionKey(session_id()))
+                    reply(false, 'To ta sesja, z której teraz korzystasz. Wyloguj się z menu konta.', 400);
+                if (!endDevice($id, $key))
+                    reply(false, 'Tej sesji już nie ma, odśwież stronę.', 404);
+                done('sessions', 'Wylogowano ' . accountLabel($id, $logins) . ' na jednym urządzeniu.');
+
             case 'notice':
                 $text = cutText(trim(str_replace("\r", '', (string)($_POST['text'] ?? ''))), NOTICE_LENGTH);
                 if ($text === '')
@@ -448,6 +518,9 @@
                 $target = cloudflareTarget($ip);
                 if ($target === null || diagIsCloudflare($ip))
                     reply(false, 'Tego adresu nie da się zablokować: to adres lokalny albo Cloudflare.', 400);
+                $protected = protectedAddress($ip, accountsAtAddress($ip, readData('addresses')), $logins);
+                if ($protected !== null)
+                    reply(false, 'Nie blokuję: ' . $protected . '.', 409);
                 $note = trim((string)($_POST['note'] ?? ''));
                 $error = cloudflareBlock($ip, 'Panel, ' . $user['name'] . ($note !== '' ? ': ' . $note : ''));
                 if ($error !== null)
@@ -486,7 +559,16 @@
     if (!$allowed)
         http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
 
-    if ($allowed) {
+    // ?konto=ID shows the profile of an account instead (inc/panel-account.php),
+    // ?szukaj=... what the search found (inc/panel-search.php)
+    $profileId = isset($_GET['konto']) && preg_match('/^\d{17,20}$/', (string)$_GET['konto']) ? (string)$_GET['konto'] : null;
+    $searchQuery = $profileId === null && isset($_GET['szukaj']) && trim((string)$_GET['szukaj']) !== '' ? cutText(trim((string)$_GET['szukaj']), 100) : null;
+    if ($allowed && $profileId !== null)
+        require __DIR__ . '/../inc/panel-account.php';
+    if ($allowed && $searchQuery !== null)
+        require __DIR__ . '/../inc/panel-search.php';
+
+    if ($allowed && $profileId === null && $searchQuery === null) {
         $autoChecks = checksLastHour(botHistory());
 
         $logins = readData('logins');
@@ -577,10 +659,7 @@
         $cfError = null;
         if (cloudflareConfigured())
             [$cfItems, $cfError] = cloudflareBlocked();
-        $diagMarks = [
-            'scanners' => array_map(function ($scanner) { return $scanner['reason']; }, $diagScanners),
-            'blocked' => $cfItems === null ? null : array_column($cfItems, null, 'ip')
-        ];
+        $diagMarks = diagMarks($diagScanners, $cfItems);
         $diagCron = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-site.php'))
             . " > /dev/null 2>&1' > /etc/cron.d/sanakan-site";
 
@@ -609,7 +688,7 @@
         $name = $known['name'] ?? 'nieznane konto';
 
         return '<img src="' . e($avatar) . '" alt="" width="28" height="28" loading="lazy" />'
-            . '<span class="who"><span class="who-name">' . e($name) . '</span><code>' . e($id) . '</code></span>';
+            . '<span class="who"><a class="who-name" href="?konto=' . e($id) . '" title="Profil konta">' . e($name) . '</a><code>' . e($id) . '</code></span>';
     }
 ?>
 <!DOCTYPE html>
@@ -619,15 +698,15 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <title>Panel &middot; Sanakan</title>
+  <title><?=$allowed && $profileId !== null ? e($profile['name']) . ' &middot; Konto &middot; Panel' : ($allowed && $searchQuery !== null ? 'Szukaj &middot; Panel' : 'Panel')?> &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=29" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=12" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=15" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -640,7 +719,13 @@
 <?php endif; ?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
-      <h1 class="hud-title">Panel</h1>
+      <h1 class="hud-title"><?=$allowed && $profileId !== null ? 'Konto' : ($allowed && $searchQuery !== null ? 'Szukaj' : 'Panel')?></h1>
+<?php if ($allowed): ?>
+      <form class="panel-search" method="get" action="./" role="search">
+        <input type="search" name="szukaj" value="<?=e($searchQuery ?? '')?>" placeholder="Konto, ID albo adres IP" aria-label="Szukaj konta albo adresu IP" />
+        <button type="submit" class="admin-btn">Szukaj</button>
+      </form>
+<?php endif; ?>
     </header>
 
 <?php if (!$allowed): ?>
@@ -658,6 +743,10 @@
       <a class="admin-btn primary" href="?login">Zaloguj przez Discord</a>
 <?php endif; ?>
     </section>
+<?php elseif ($profileId !== null): ?>
+<?php profilePage($profile); ?>
+<?php elseif ($searchQuery !== null): ?>
+<?php searchPage($search); ?>
 <?php else: ?>
     <div class="panel-grid">
 
@@ -703,6 +792,15 @@
       <section class="card wide">
         <h2><i>01</i>Status bota</h2>
 <?=statusSummary()?>
+<?php $clock = serverClock(); ?>
+        <p class="server-clock" data-server-ms="<?=$clock['ms']?>" data-zone="<?=e($clock['zone'])?>">
+          Czas serwera <b class="server-clock-now"><?=e(date('H:i:s'))?></b>
+          <span class="muted">(<?=e($clock['zone'])?>, UTC<?=e(date('P'))?><?=$clock['system'] !== '' && $clock['system'] !== $clock['zone'] ? '; system: ' . e($clock['system']) : ''?>)</span>
+<?php if ($clock['ntp'] !== null): ?>
+          &middot; <?=$clock['ntp'] ? 'NTP: zsynchronizowany' : '<b class="warn">NTP: niezsynchronizowany</b>'?>
+<?php endif; ?>
+          &middot; <span class="server-clock-drift"></span>
+        </p>
         <p class="hint status-more">Bota sprawdza cron co minutę. Wykresy, czasy odpowiedzi i awarie: <a href="<?=e($root)?>state/">strona statusu</a>.</p>
 
         <form class="notice-form" data-action="notice">
@@ -714,8 +812,8 @@
           <textarea name="text" rows="2" maxlength="<?=NOTICE_LENGTH?>" placeholder="Np. Dziś wieczorem aktualizacja bota, przez chwilę może nie odpowiadać." aria-label="Treść ogłoszenia"><?=e($notice['text'] ?? '')?></textarea>
           <div class="notice-fields">
             <label class="admin-check"><input type="checkbox" name="maintenance" value="1"<?=!empty($notice['maintenance']) ? ' checked' : ''?> /> Przerwa techniczna</label>
-            <label>Od <input type="datetime-local" name="from" value="<?=e(fieldTime($notice['maintenance']['from'] ?? null))?>" /></label>
-            <label>Do <input type="datetime-local" name="to" value="<?=e(fieldTime($notice['to'] ?? null))?>" /></label>
+            <span class="notice-time">Od <input type="datetime-local" name="from" aria-label="Od" value="<?=e(fieldTime($notice['maintenance']['from'] ?? null))?>" /></span>
+            <span class="notice-time">Do <input type="datetime-local" name="to" aria-label="Do" value="<?=e(fieldTime($notice['to'] ?? null))?>" /></span>
           </div>
           <p class="hint">„Od” liczy się tylko dla przerwy (puste: od teraz). „Do” to koniec przerwy, a bez przerwy czas, kiedy ogłoszenie zniknie (puste: zostaje, aż się je usunie).</p>
           <div class="notice-actions">
@@ -1243,7 +1341,7 @@
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=3"></script>
+  <script src="../js/admin.js?v=4"></script>
 <?php endif; ?>
 </body>
 

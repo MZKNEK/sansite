@@ -1126,6 +1126,17 @@ a.hud-corners:hover {
     margin: 0 0 12px;
 }
 
+/* justified, with words split by the rules of the page's language */
+.prose p,
+.prose li {
+    text-align: justify;
+    hyphens: auto;
+}
+
+.prose .updated {
+    text-align: left;
+}
+
 .prose ul {
     padding-left: 20px;
 }
