@@ -74,7 +74,7 @@
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=30" type="text/css" rel="stylesheet" />
-  <link href="../style.css?v=12" type="text/css" rel="stylesheet" />
+  <link href="../style.css?v=13" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="cmd-page">

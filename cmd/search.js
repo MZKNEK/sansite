@@ -156,3 +156,25 @@
   updateToolbarHeight();
   showLinked();
 })();
+
+// The arrow in the bottom right corner, shown once the page header is out of
+// sight, scrolls back to the top. Used from the keyboard it also puts the
+// focus into the search, as the arrow itself disappears.
+(function () {
+  var button = document.getElementById('to-top');
+  var header = document.querySelector('.cmd-header');
+  if (!button || !header || !('IntersectionObserver' in window)) return;
+
+  button.hidden = false;
+  new IntersectionObserver(function (entries) {
+    button.classList.toggle('shown', !entries[0].isIntersecting);
+  }).observe(header);
+
+  button.addEventListener('click', function (e) {
+    var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+
+    var input = document.getElementById('cmd-search');
+    if (e.detail === 0 && input) input.focus({ preventScroll: true });
+  });
+})();
