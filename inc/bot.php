@@ -162,14 +162,14 @@
         return $parts;
     }
 
-    // Counts the check for its day: ['Y-m-d' => [checks, online checks]]. The
-    // first time, the days are filled from the 24 h history instead. Checks
-    // during a planned break are not counted.
+    // Counts the checks per day: ['Y-m-d' => [checks, online checks]], without
+    // the checks during a planned break. Today is counted again from the 24 h
+    // history at every check, so the day always says what the 24 h bar says;
+    // only when the history does not reach back to midnight (the day the clocks
+    // go back has 25 hours) the check is added instead. The first time, every
+    // day the history reaches is filled from it.
     function botRecordDay($online, $now)
     {
-        if (botInMaintenance($now))
-            return;
-
         $fp = @fopen(botFile('days.json'), 'c+');
         if ($fp === false || !flock($fp, LOCK_EX)) {
             if ($fp !== false)
@@ -178,19 +178,26 @@
         }
 
         $days = json_decode((string)stream_get_contents($fp), true);
-        if (!is_array($days)) {
+        $first = !is_array($days);
+        $days = $first ? [] : $days;
+        $today = date('Y-m-d', $now);
+        $history = botHistory();
+        $whole = isset($history[0]) && $history[0][0] - 120 <= strtotime('today', $now);
+
+        if ($first || $whole) {
             // the history already has this check in it
-            $days = [];
             $windows = botMaintenanceWindows();
-            foreach (botHistory() as $check) {
-                if (botInMaintenance($check[0], $windows))
-                    continue;
+            $counted = [];
+            foreach ($history as $check) {
                 $day = date('Y-m-d', $check[0]);
-                $days[$day] = [($days[$day][0] ?? 0) + 1, ($days[$day][1] ?? 0) + ($check[1] ? 1 : 0)];
+                if (($first || $day === $today) && !botInMaintenance($check[0], $windows))
+                    $counted[$day] = [($counted[$day][0] ?? 0) + 1, ($counted[$day][1] ?? 0) + ($check[1] ? 1 : 0)];
             }
-        } else {
-            $day = date('Y-m-d', $now);
-            $days[$day] = [($days[$day][0] ?? 0) + 1, ($days[$day][1] ?? 0) + ($online ? 1 : 0)];
+            unset($days[$today]);
+            foreach ($counted as $day => $count)
+                $days[$day] = $count;
+        } else if (!botInMaintenance($now)) {
+            $days[$today] = [($days[$today][0] ?? 0) + 1, ($days[$today][1] ?? 0) + ($online ? 1 : 0)];
         }
 
         ksort($days);

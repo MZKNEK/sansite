@@ -442,7 +442,7 @@
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=8" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 

@@ -298,6 +298,8 @@
                 $downtime += ($incident[1] ?? time()) - max($incident[0], $days[0]['from']);
             }
         }
+        // the planned ones are listed too, so the header says how many of them there are
+        $breaks = count($incidents) - $unplanned;
 
         ob_start();
 ?>
@@ -343,7 +345,7 @@
         </div>
 
         <div class="bar incidents">
-          <div class="bar-head"><span>Awarie w ostatnich <?=DAYS_SHOWN?> dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; razem ' . e(duration($downtime)) : ''?></b></div>
+          <div class="bar-head"><span>Awarie w ostatnich <?=DAYS_SHOWN?> dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; razem ' . e(duration($downtime)) : ''?><?=$breaks ? ' &middot; <span class="planned-count">' . $breaks . ' ' . plural($breaks, 'przerwa techniczna', 'przerwy techniczne', 'przerw technicznych') . '</span>' : ''?></b></div>
 <?php if (!$incidents): ?>
           <p class="incidents-none">Bez awarii.</p>
 <?php else: ?>

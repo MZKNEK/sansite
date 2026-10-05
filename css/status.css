@@ -274,6 +274,10 @@
 }
 
 /* during a planned maintenance break */
+.planned-count {
+    color: #aab1ff;
+}
+
 .incident-list .planned {
     border-left-color: #5865f2;
 }
