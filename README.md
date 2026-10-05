@@ -41,6 +41,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/` and the API documentation |
 | `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
+| `server/wiki/theme.css` | The site's look for the wiki (Wiki.js 2, dark mode), pasted by hand into its Administration → Theme → CSS Override; the fonts come from this site |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:

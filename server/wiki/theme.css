@@ -1,0 +1,636 @@
+/* Sanakan look for the wiki (Wiki.js 2, dark mode): paste the whole file into
+   Administration -> Theme -> Code Injection -> CSS Override, replacing what is
+   there (its own additions are kept at the end). Wiki.js minifies it itself.
+   The fonts come from sanakan.pl, which serves them to other origins
+   (Access-Control-Allow-Origin in server/nginx/sanakan.conf).
+   Wiki.js loads its own page styles after this one, so the selectors here
+   start with .v-application.theme--dark or a doubled .v-application to
+   outweigh them. */
+
+/* ---- Fonts and colours of the site (css/fonts.css, css/style.css) ---------- */
+
+@font-face {
+    font-family: "Lato";
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/lato-400-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Lato";
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/lato-400-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Lato";
+    font-weight: 700;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/lato-700-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Lato";
+    font-weight: 700;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/lato-700-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Share Tech Mono";
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/share-tech-mono-400-latin.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/jetbrains-mono-400-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("https://sanakan.pl/fonts/jetbrains-mono-400-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+    --san-accent: #9b59b6;
+    --san-accent-light: #b670d3;
+    --san-accent-dark: #713b87;
+    --san-bg-dark: #080909;
+    --san-bg-mid: #202225;
+    --san-text: #dcddde;
+    --san-title: #efe2f7;
+    --san-line: rgba(155, 89, 182, 0.22);
+    --san-panel: rgba(14, 14, 17, 0.88);
+}
+
+::selection {
+    background: rgba(155, 89, 182, 0.45);
+    color: #fff;
+}
+
+/* ---- The page: the site's dark gradient with the purple glow top right ---- */
+
+.v-application.theme--dark {
+    background: radial-gradient(ellipse at top right, rgba(155, 89, 182, 0.18), transparent 55%),
+                linear-gradient(to top right, var(--san-bg-dark), var(--san-bg-mid)) !important;
+    background-attachment: fixed !important;
+    color: var(--san-text);
+}
+
+.v-application,
+.v-application.v-application .contents {
+    font-family: Lato, Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Vuetify sets Roboto on its type classes with !important */
+.v-application.v-application .headline,
+.v-application.v-application .title,
+.v-application.v-application .subtitle-1,
+.v-application.v-application .subtitle-2,
+.v-application.v-application .body-1,
+.v-application.v-application .body-2,
+.v-application.v-application .caption,
+.v-application.v-application .text-h6,
+.v-application.v-application .text-subtitle-1,
+.v-application.v-application .text-subtitle-2 {
+    font-family: Lato, Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+.v-application.v-application .overline {
+    font-family: "Share Tech Mono", monospace !important;
+    letter-spacing: 0.2em !important;
+}
+
+/* thin purple scrollbars, like the module chips of /cmd/ */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+}
+
+/* ---- Accent colour: the site's purple in place of Wiki.js blue ------------ */
+
+.v-application.v-application .primary {
+    background-color: var(--san-accent) !important;
+    border-color: var(--san-accent) !important;
+}
+
+.v-application.v-application .primary--text,
+.v-application.v-application .blue--text.text--lighten-2,
+.v-application.v-application .indigo--text,
+.v-application.v-application .indigo--text.text--lighten-3,
+.v-application.v-application .teal--text.text--lighten-3 {
+    color: var(--san-accent-light) !important;
+    caret-color: var(--san-accent-light) !important;
+}
+
+.v-application.v-application .deep-purple {
+    background-color: var(--san-accent-dark) !important;
+    border-color: var(--san-accent-dark) !important;
+}
+
+/* ---- Top bar: dark glass with a purple line, like the /cmd/ toolbar ------- */
+
+.v-application.v-application .v-app-bar.nav-header,
+.v-application.v-application .nav-header .v-toolbar {
+    background-color: var(--san-panel) !important;
+    border-color: var(--san-panel) !important;
+}
+
+.v-application.v-application .v-app-bar.nav-header {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--san-line) !important;
+}
+
+.v-application.v-application .nav-header .v-toolbar__title,
+.v-application.v-application .nav-header .subheading {
+    font-family: "Share Tech Mono", monospace !important;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+/* the search field with the targeting corners of the site's search box */
+.v-application.v-application .nav-header .v-text-field.v-text-field--solo .v-input__slot {
+    --corner: rgba(182, 112, 211, 0.9);
+    --arm: 10px;
+    border-radius: 0 !important;
+    background:
+        linear-gradient(var(--corner), var(--corner)) left top / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left top / 2px var(--arm) no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right top / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right top / 2px var(--arm) no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left bottom / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left bottom / 2px var(--arm) no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right bottom / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right bottom / 2px var(--arm) no-repeat,
+        rgba(155, 89, 182, 0.06) !important;
+    transition: background-size 0.25s;
+}
+
+.v-application.v-application .nav-header .v-text-field.v-input--is-focused .v-input__slot {
+    --arm: 18px;
+}
+
+/* ---- Navigation on the left -------------------------------------------- */
+
+.v-application.theme--dark .v-navigation-drawer.grey,
+.v-application.theme--dark .v-navigation-drawer .grey.darken-4-d4 {
+    background-color: rgba(10, 10, 12, 0.82) !important;
+    border-color: transparent !important;
+}
+
+.v-application.theme--dark .v-navigation-drawer {
+    border-right: 1px solid var(--san-line);
+}
+
+.v-application.theme--dark .v-navigation-drawer .grey.darken-5 {
+    background-color: rgba(155, 89, 182, 0.06) !important;
+    border-bottom: 1px solid var(--san-line);
+}
+
+.v-application.theme--dark .v-navigation-drawer .grey.darken-4 {
+    background-color: rgba(155, 89, 182, 0.14) !important;
+    border-color: transparent !important;
+}
+
+.v-application.v-application .v-navigation-drawer .v-list-item {
+    border-radius: 0 !important;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.v-application.v-application .v-navigation-drawer .v-list-item:hover::before {
+    opacity: 0 !important;
+}
+
+.v-application.v-application .v-navigation-drawer .v-list-item:hover {
+    background: rgba(155, 89, 182, 0.16);
+}
+
+.v-application.v-application .v-navigation-drawer .v-list-item--active {
+    background: rgba(155, 89, 182, 0.12);
+    box-shadow: inset 3px 0 0 var(--san-accent);
+    color: var(--san-accent-light) !important;
+}
+
+.v-application.v-application .v-navigation-drawer .v-list-item--active::before {
+    opacity: 0 !important;
+}
+
+.v-application.v-application .v-navigation-drawer .v-list-item .v-icon {
+    color: var(--san-accent-light) !important;
+    opacity: 0.85;
+}
+
+.v-application.v-application .v-navigation-drawer .v-divider {
+    border-color: var(--san-line) !important;
+}
+
+/* ---- Breadcrumbs and the page title ----------------------------------- */
+
+.v-application.theme--dark .v-main .v-toolbar.grey.darken-4-d3 {
+    background-color: rgba(14, 14, 17, 0.6) !important;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12) !important;
+}
+
+.v-application.v-application .breadcrumbs-nav .v-btn {
+    font: 12px "Share Tech Mono", monospace !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    color: rgba(220, 221, 222, 0.7) !important;
+}
+
+.v-application.v-application .breadcrumbs-nav .v-btn:hover {
+    color: var(--san-accent-light) !important;
+}
+
+.v-application.v-application .breadcrumbs-nav .v-breadcrumbs__divider {
+    color: rgba(155, 89, 182, 0.6);
+}
+
+/* the band with the title: no grey, a purple line below */
+.v-application.theme--dark .v-main .container.grey.darken-4-l3 {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--san-line) !important;
+}
+
+.v-application.v-application .page-header-headings .headline {
+    color: var(--san-title) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.18em !important;
+    text-transform: uppercase;
+    text-shadow: 0 0 18px rgba(155, 89, 182, 0.7);
+}
+
+/* the blinking cursor of the site's "SAFEGUARD · LV.9_" line */
+.v-application.v-application .page-header-headings .headline::after {
+    content: "_";
+    margin-left: 4px;
+    color: var(--san-accent-light);
+    text-shadow: none;
+    animation: san-blink 1.1s steps(1) infinite;
+}
+
+@keyframes san-blink {
+    50% { opacity: 0; }
+}
+
+.v-application.v-application .page-header-headings .caption {
+    color: rgba(220, 221, 222, 0.6) !important;
+    font-size: 14px !important;
+}
+
+.v-application.theme--dark .page-header-section .page-edit-shortcuts .v-btn {
+    background-color: rgba(155, 89, 182, 0.1) !important;
+    border-right-color: var(--san-line) !important;
+    border-bottom-color: var(--san-line) !important;
+    color: var(--san-text) !important;
+}
+
+/* ---- Side cards (contents, tags, author): HUD corners, no grey boxes ----- */
+
+.v-application.theme--dark .page-col-sd .v-card {
+    --corner: rgba(182, 112, 211, 0.9);
+    --arm: 10px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background:
+        linear-gradient(var(--corner), var(--corner)) left top / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left top / 2px var(--arm) no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right top / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right top / 2px var(--arm) no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left bottom / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left bottom / 2px var(--arm) no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right bottom / var(--arm) 2px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right bottom / 2px var(--arm) no-repeat,
+        rgba(155, 89, 182, 0.05) !important;
+}
+
+.v-application.theme--dark .page-col-sd .v-list,
+.v-application.theme--dark .page-col-sd .v-card .grey {
+    background-color: transparent !important;
+}
+
+.v-application.v-application .page-col-sd .v-list-item {
+    border-radius: 0 !important;
+}
+
+.v-application.v-application .page-col-sd .v-list-item:hover {
+    background: rgba(155, 89, 182, 0.16);
+}
+
+.v-application.v-application .page-col-sd .v-list-item:hover::before {
+    opacity: 0 !important;
+}
+
+.v-application.v-application .page-col-sd .v-list-item .v-icon {
+    color: var(--san-accent) !important;
+}
+
+.v-application.v-application .page-col-sd .v-divider {
+    border-color: var(--san-line) !important;
+}
+
+/* tags as the module chips of /cmd/ */
+.v-application.theme--dark .v-chip.teal {
+    border: 1px solid rgba(155, 89, 182, 0.35) !important;
+    border-radius: 0 !important;
+    background-color: rgba(155, 89, 182, 0.08) !important;
+}
+
+.v-application.theme--dark .v-chip.teal:hover {
+    background-color: rgba(155, 89, 182, 0.2) !important;
+}
+
+.v-application.v-application .v-chip .teal--text {
+    color: var(--san-accent-light) !important;
+    letter-spacing: 0.06em;
+}
+
+/* ---- The article ---------------------------------------------------------- */
+
+.v-application.theme--dark .v-main .contents {
+    color: rgba(220, 221, 222, 0.88);
+    line-height: 1.65;
+}
+
+.v-application.theme--dark .v-main .contents a {
+    color: var(--san-accent-light);
+    transition: color 0.2s;
+}
+
+.v-application.theme--dark .v-main .contents a:hover {
+    color: #fff;
+}
+
+.v-application.theme--dark .v-main .contents a.is-internal-link.is-invalid-page {
+    color: #f0a09e;
+}
+
+/* headings like the cards of the panel: bold, spaced, a fading purple line */
+.v-application.theme--dark .v-main .contents h1 {
+    margin-top: 32px;
+    color: var(--san-title);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-shadow: 0 0 14px rgba(155, 89, 182, 0.55);
+}
+
+.v-application.theme--dark .v-main .contents h1::after {
+    height: 1px;
+    border-radius: 0;
+    background: linear-gradient(90deg, rgba(182, 112, 211, 0.9), rgba(155, 89, 182, 0.35) 40%, transparent) !important;
+}
+
+.v-application.theme--dark .v-main .contents h2 {
+    margin-top: 25px;
+    color: #d6b4ec;
+    letter-spacing: 0.04em;
+}
+
+.v-application.theme--dark .v-main .contents h2::after {
+    background: linear-gradient(90deg, rgba(155, 89, 182, 0.5), transparent) !important;
+}
+
+.v-application.theme--dark .v-main .contents h3 {
+    margin-top: 25px;
+    color: var(--san-accent-light);
+}
+
+.v-application.theme--dark .v-main .contents h4,
+.v-application.theme--dark .v-main .contents h5,
+.v-application.theme--dark .v-main .contents h6 {
+    color: rgba(220, 221, 222, 0.6);
+    font-family: "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.v-application.theme--dark .v-main .contents hr {
+    background-color: var(--san-line);
+}
+
+/* code: JetBrains Mono in purple, blocks in a dark panel */
+.v-application.theme--dark .v-main .contents code {
+    background-color: rgba(155, 89, 182, 0.12);
+    color: #d6b4ec;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 0.9em;
+}
+
+.v-application.theme--dark .v-main .contents .prismjs,
+.v-application.theme--dark .v-main .contents pre {
+    border: 1px solid rgba(155, 89, 182, 0.2);
+    border-radius: 0;
+    background-color: rgba(8, 9, 9, 0.75);
+}
+
+.v-application.theme--dark .v-main .contents pre > code,
+.v-application.theme--dark .v-main .contents .prismjs code {
+    background: none;
+    color: var(--san-text);
+}
+
+/* notes: the site's notices, a dark tint and a solid band for the icon */
+.v-application.theme--dark .v-main .contents blockquote {
+    border-radius: 0;
+    border-left-color: var(--san-accent-dark);
+    background-color: rgba(155, 89, 182, 0.08);
+    box-shadow: none;
+}
+
+.v-application.theme--dark .v-main .contents blockquote.is-info {
+    border-left-color: var(--san-accent-dark);
+    background-color: rgba(155, 89, 182, 0.12);
+    color: #e8dcef;
+}
+
+.v-application.theme--dark .v-main .contents blockquote.is-warning {
+    border-left-color: #a8761f;
+    background-color: rgba(240, 178, 50, 0.08);
+    color: #e8d5a8;
+    box-shadow: none;
+}
+
+.v-application.theme--dark .v-main .contents blockquote.is-danger {
+    border-left-color: #a33f3c;
+    background-color: rgba(217, 83, 79, 0.1);
+    color: #f0c4c2;
+}
+
+.v-application.theme--dark .v-main .contents blockquote.is-success {
+    border-left-color: #1f7a46;
+    background-color: rgba(35, 165, 90, 0.08);
+    color: #c9ecd6;
+}
+
+.v-application.theme--dark .v-main .contents blockquote a {
+    color: inherit !important;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+}
+
+/* tables like the lists of the panel: a purple head, rows a shade apart */
+.v-application.theme--dark .v-main .contents table {
+    border: 1px solid rgba(155, 89, 182, 0.28);
+    border-radius: 0;
+}
+
+.v-application.theme--dark .v-main .contents table th {
+    background-color: rgba(14, 14, 17, 0.9);
+    border-bottom: 2px solid rgba(155, 89, 182, 0.6);
+    color: var(--san-accent-light);
+    font: 13px "Share Tech Mono", monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.v-application.theme--dark .v-main .contents table tr td,
+.v-application.theme--dark .v-main .contents table tr td:nth-child(2n),
+.v-application.theme--dark .v-main .contents table tr:nth-child(2n) td,
+.v-application.theme--dark .v-main .contents table tr:nth-child(2n) td:nth-child(2n) {
+    border-right-color: rgba(155, 89, 182, 0.08);
+    border-bottom-color: rgba(155, 89, 182, 0.12);
+    background-color: rgba(20, 20, 24, 0.7);
+}
+
+.v-application.theme--dark .v-main .contents table tr:nth-child(2n) td,
+.v-application.theme--dark .v-main .contents table tr:nth-child(2n) td:nth-child(2n) {
+    background-color: rgba(155, 89, 182, 0.06);
+}
+
+.v-application.theme--dark .v-main .contents table tr:hover td {
+    background-color: rgba(155, 89, 182, 0.12);
+}
+
+.v-application.theme--dark .v-main .contents details,
+.v-application.theme--dark .v-main .contents details > summary {
+    border-color: var(--san-line);
+    background-color: rgba(155, 89, 182, 0.05);
+}
+
+.v-application.theme--dark .v-main .contents details[open] > summary {
+    background-color: rgba(155, 89, 182, 0.12);
+}
+
+.v-application.theme--dark .tabset {
+    background-color: rgba(14, 14, 17, 0.7);
+}
+
+.v-application.theme--dark .tabset > .tabset-tabs {
+    background: rgba(155, 89, 182, 0.08);
+    box-shadow: inset 0 -1px 0 0 var(--san-line);
+}
+
+.v-application.theme--dark .tabset > .tabset-tabs > li.is-active {
+    background-color: rgba(14, 14, 17, 0.7);
+    color: var(--san-accent-light);
+}
+
+/* ---- Footer, like the site's: small, spaced, dim ---------------------------- */
+
+.v-application.theme--dark .v-footer {
+    background-color: transparent !important;
+    border-top: 1px solid rgba(155, 89, 182, 0.12) !important;
+}
+
+.v-application.v-application .v-footer .caption,
+.v-application.v-application .v-footer a {
+    color: rgba(220, 221, 222, 0.35) !important;
+    font: 11px "Share Tech Mono", monospace !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.v-application.v-application .v-footer a:hover {
+    color: var(--san-accent-light) !important;
+}
+
+/* ---- Login page: the side panel as dark glass ------------------------------ */
+
+.login-sd {
+    background-color: var(--san-panel) !important;
+    border-left: 1px solid var(--san-line) !important;
+    border-right: 1px solid var(--san-line) !important;
+}
+
+.login-logo {
+    background-color: var(--san-bg-dark) !important;
+}
+
+.login-title,
+.login-title .text-h6,
+.login-subtitle {
+    color: var(--san-title) !important;
+    text-shadow: none !important;
+}
+
+.login-subtitle {
+    background-image: none !important;
+    font-family: "Share Tech Mono", monospace !important;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.login-info {
+    background-color: rgba(155, 89, 182, 0.08) !important;
+    color: rgba(220, 221, 222, 0.7) !important;
+}
+
+.login-form,
+.login-info,
+.login-list,
+.login-subtitle {
+    border-color: var(--san-line) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v-application .page-header-headings .headline::after {
+        animation: none;
+    }
+}
+
+/* ---- The wiki's own additions, as they were -------------------------------- */
+
+.v-main .contents table td {
+    padding: 3px;
+}
+
+.v-main .contents img.align-right {
+    margin: 0 0.5rem 1rem 1rem;
+}
+
+.new-tag {
+    text-transform: capitalize;
+    margin-bottom: 5px;
+    padding: 2px 5px;
+    border-radius: 5px;
+    background-color: rgba(37, 139, 37, 0.594);
+    font-size: 14px;
+    color: #282727bc;
+}
+
+.ultimate-border-small {
+    width: 30px !important;
+    height: 42px !important;
+}
+
+.ultimate-border-medium {
+    width: 101px !important;
+    height: 143px !important;
+}
