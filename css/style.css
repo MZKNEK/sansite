@@ -291,6 +291,35 @@ body.gbe-shot main.hero {
     box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
 }
 
+/* The role of the account on the bot's Discord server as a Safeguard level,
+   "LV.9 DEV", next to its name on every page; the panel colours its role
+   chips the same way */
+.role-dev { --role: #4fd1c5; }
+.role-admin { --role: #e86262; }
+.role-semiAdmin { --role: #f0a35e; }
+.role-tester { --role: #e8d36a; }
+.role-moderator { --role: #5fd38d; }
+.role-user { --role: var(--accent-light); }
+.role-none,
+.role-out { --role: #80848e; }
+
+.lv {
+    flex: none;
+    color: var(--role);
+    font: 11px/16px "Share Tech Mono", monospace;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.lv b {
+    margin-right: 6px;
+    padding: 0 5px;
+    background: var(--role);
+    color: var(--bg-dark);
+    font-weight: normal;
+}
+
 .home-account form {
     margin: 0;
 }

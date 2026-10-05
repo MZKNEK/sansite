@@ -44,7 +44,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
 </head>
 
@@ -57,6 +57,7 @@
         <form class="account" method="post" action="./">
           <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
           <span class="account-name"><?=e($user['name'])?></span>
+          <?=roleBadgeHtml(siteRoles())?>
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="logout" />
           <button type="submit" class="account-btn">Wyloguj</button>
@@ -116,7 +117,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=23" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=25" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=15" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -149,6 +150,7 @@
     <form class="api-account" method="post" action="./">
       <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
       <span><?=e($user['name'])?></span>
+      <?=roleBadgeHtml(siteRoles())?>
       <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
       <input type="hidden" name="action" value="logout" />
       <button type="submit">Wyloguj</button>

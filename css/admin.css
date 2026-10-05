@@ -208,6 +208,56 @@
     margin-left: 0;
 }
 
+/* Server resources: a bar per resource, yellow from 75%, red from 90% */
+.meters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 18px 26px;
+    margin: 6px 0 22px;
+}
+
+.meter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.meter-head b {
+    font: 15px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+    white-space: nowrap;
+}
+
+.meter-bar {
+    height: 10px;
+    background: rgba(220, 221, 222, 0.08);
+}
+
+.meter-bar span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+}
+
+.meter.high .meter-bar span {
+    background: #f0b232;
+}
+
+.meter.critical .meter-bar span {
+    background: #e86262;
+}
+
+.meter p {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(220, 221, 222, 0.55);
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -260,31 +310,6 @@
 .admin-btn.small {
     padding: 3px 10px;
     font-size: 12px;
-}
-
-/* Shortcuts */
-.shortcuts {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 10px;
-}
-
-.shortcuts a {
-    display: flex;
-    flex-direction: column;
-    padding: 10px 14px;
-    color: var(--text);
-    font: 14px "Share Tech Mono", monospace;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.shortcuts small {
-    margin-top: 2px;
-    font: 12px Lato, sans-serif;
-    letter-spacing: 0;
-    text-transform: none;
-    color: rgba(220, 221, 222, 0.45);
 }
 
 /* Accounts */
@@ -346,6 +371,12 @@
     color: rgba(220, 221, 222, 0.45);
 }
 
+/* a role on the bot's Discord server, in its colour (css/style.css) */
+.role.bot {
+    border-color: var(--role);
+    color: var(--role);
+}
+
 .nobody,
 .everyone {
     font-size: 14px;
@@ -382,9 +413,17 @@
 }
 
 /* Recent logins */
+/* one grid for all rows (subgrid), so the columns line up whatever the
+   roles and buttons of a row */
+.logins {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.3fr) max-content minmax(160px, 2fr) max-content;
+}
+
 .login-row {
     display: grid;
-    grid-template-columns: minmax(200px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
     align-items: center;
     gap: 8px 16px;
     padding: 8px 0;
@@ -515,6 +554,7 @@
         grid-template-columns: 1fr;
     }
 
+    .logins,
     .login-row,
     .trash-row {
         grid-template-columns: 1fr;

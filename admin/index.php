@@ -1,12 +1,13 @@
 <?php
-    // Admin panel: who may use the gallery, the bot status, links and server
-    // tools. The home page links here for the accounts that may open it. The
+    // Admin panel: who may use the gallery and the API, the bot status, the
+    // roles the bot reports for the recent logins, and server tools. The home page links here for the accounts that may open it. The
     // Discord login is the gallery's (inc/auth.php, one session for all); only
     // the accounts in PANEL_ADMINS (inc/config.php) get in.
     require __DIR__ . '/../inc/bot.php';
     require __DIR__ . '/../inc/services.php';
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
+    require __DIR__ . '/../inc/system.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     $thumbsDir = thumbsDir();
@@ -21,7 +22,7 @@
     const LIST_CARDS = [
         'galleryAdmins' => ['Administratorzy galerii', 'Oglądają galerię i dodają, przenoszą oraz usuwają pliki.'],
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
-        'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze.']
+        'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
 
     // name of an account from the recent logins, or its ID
@@ -138,6 +139,24 @@
     function share($part, $whole)
     {
         return $whole > 0 ? round(100 * $part / $whole, 1) . '%' : '0%';
+    }
+
+    // a number with a Polish decimal comma, "0,52"
+    function decimal($number, $digits = 1)
+    {
+        return number_format((float)$number, $digits, ',', '');
+    }
+
+    // a resource bar of the server card: yellow from 75%, red from 90%
+    function meter($title, $part, $whole, $value, $details)
+    {
+        $percent = $whole > 0 ? 100 * $part / $whole : 0;
+        $level = $percent >= 90 ? ' critical' : ($percent >= 75 ? ' high' : '');
+
+        return '<div class="meter' . $level . '">'
+            . '<div class="meter-head"><span>' . e($title) . '</span><b>' . $value . '</b></div>'
+            . '<div class="meter-bar"><span style="width: ' . share($part, $whole) . '"></span></div>'
+            . '<p>' . $details . '</p></div>';
     }
 
     // ---- Changes ------------------------------------------------------------
@@ -326,6 +345,22 @@
             $lists[$list] = ['everyone' => $config === true, 'entries' => $entries];
         }
 
+        // accounts that read the API through their role on the bot's server, as the bot said it last
+        $knownRoles = readData('roles');
+        $apiByRole = [];
+        foreach ($knownRoles as $id => $known) {
+            if (isPanelAdminId($id))
+                continue;
+            foreach (API_ROLES as $role) {
+                if (!empty($known['roles'][$role])) {
+                    $apiByRole[(string)$id] = $role;
+                    break;
+                }
+            }
+        }
+        foreach ($lists['apiViewers']['entries'] as $entry)
+            unset($apiByRole[$entry['id']]);
+
         $panelAdmins = configList('PANEL_ADMINS');
         $notice = botNotice();
 
@@ -367,6 +402,8 @@
         $thumbFiles = glob($thumbsDir . '/*') ?: [];
         $thumbBytes = array_sum(array_map('filesize', $thumbFiles));
         $specFile = botFile('swagger.json');
+        $privateTime = botPrivateCommandsTime();
+        $system = systemStats();
 
         purgeTrash();
         $trash = trashItems();
@@ -399,10 +436,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=7" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=6" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=8" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -414,6 +451,7 @@
         <div class="account">
           <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
           <span class="account-name"><?=e($user['name'])?></span>
+          <?=roleBadgeHtml(siteRoles())?>
           <button type="button" class="account-btn" id="act-logout" data-csrf="<?=e($csrf)?>">Wyloguj</button>
         </div>
 <?php endif; ?>
@@ -507,18 +545,7 @@
       </section>
 
       <section class="card">
-        <h2><i>02</i>Skróty</h2>
-        <nav class="shortcuts">
-          <a class="hud-corners" href="<?=e($root)?>i/">Galeria <small>i/</small></a>
-          <a class="hud-corners" href="<?=e($root)?>api/">API <small>dokumentacja</small></a>
-          <a class="hud-corners" href="<?=e($root)?>cmd/">Polecenia <small>cmd/</small></a>
-          <a class="hud-corners" href="<?=e($root)?>state/">Status <small>publiczny podgląd</small></a>
-          <a class="hud-corners" href="<?=e($root)?>">Start <small>strona główna</small></a>
-        </nav>
-      </section>
-
-      <section class="card">
-        <h2><i>03</i>Dostęp do panelu</h2>
+        <h2><i>02</i>Dostęp do panelu</h2>
         <ul class="people">
 <?php foreach ($panelAdmins === true ? [] : $panelAdmins as $id): ?>
           <li><?=accountCell($id, $logins)?><span class="badge-config" title="Ustawione w inc/config.php">config</span></li>
@@ -527,8 +554,8 @@
         <p class="hint">Listę zmienia się w <code>inc/config.php</code> (<code>PANEL_ADMINS</code>), panel nie może nadawać dostępu do samego siebie.</p>
       </section>
 
-<?php $number = 4; foreach ($lists as $list => $info): ?>
-      <section class="card<?=$list === 'apiViewers' ? ' wide' : ''?>">
+<?php $number = 3; foreach ($lists as $list => $info): ?>
+      <section class="card">
         <h2><i>0<?=$number++?></i><?=e(LIST_CARDS[$list][0])?></h2>
         <p class="hint"><?=e(LIST_CARDS[$list][1])?></p>
 <?php if ($info['everyone']): ?>
@@ -548,7 +575,13 @@
 <?php endif; ?>
           </li>
 <?php endforeach; ?>
-<?php if (!$info['entries'] && !$info['everyone']): ?>
+<?php if ($list === 'apiViewers'): foreach ($apiByRole as $id => $role): ?>
+          <li>
+            <?=accountCell($id, $logins)?>
+            <span class="role bot role-<?=e($role)?>" title="Rola na serwerze Sanakana, według bota">rola: <?=e(BOT_ROLES[$role][2])?></span>
+          </li>
+<?php endforeach; endif; ?>
+<?php if (!$info['entries'] && !$info['everyone'] && ($list !== 'apiViewers' || !$apiByRole)): ?>
           <li class="nobody">Nikogo jeszcze nie ma.</li>
 <?php endif; ?>
         </ul>
@@ -562,8 +595,8 @@
 <?php endforeach; ?>
 
       <section class="card wide">
-        <h2><i>07</i>Ostatnie logowania</h2>
-        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać.</p>
+        <h2><i>06</i>Ostatnie logowania</h2>
+        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowe są role na serwerze bota, odświeżane, gdy konto odwiedza stronę; galerii nie dają.</p>
 <?php if (!$logins): ?>
         <p class="nobody">Nikt się jeszcze nie logował.</p>
 <?php else: ?>
@@ -584,6 +617,12 @@
             <span class="login-who"><?=accountCell($id, $logins)?></span>
             <span class="login-when"><?=e(ago($login['last'] ?? 0))?> &middot; <?=(int)($login['count'] ?? 0)?>&times;</span>
             <span class="login-roles">
+<?php foreach (BOT_ROLES as $key => $role): if (!empty($knownRoles[$id]['roles'][$key])): ?>
+              <span class="role bot role-<?=e($key)?>" title="Rola na serwerze Sanakana, według bota"><?=e($role[2])?></span>
+<?php endif; endforeach; ?>
+<?php if (isset($knownRoles[$id]['roles']) && empty($knownRoles[$id]['roles']['onGuild'])): ?>
+              <span class="role bot role-out" title="Według bota tego konta nie ma na serwerze Sanakana">poza serwerem</span>
+<?php endif; ?>
 <?php foreach ($roles as $role): ?>
               <span class="role"><?=e($role)?></span>
 <?php endforeach; ?>
@@ -613,7 +652,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>08</i>Kosz</h2>
+        <h2><i>07</i>Kosz</h2>
         <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.</p>
 <?php if (!$trash): ?>
         <p class="nobody">Kosz jest pusty.</p>
@@ -640,7 +679,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>09</i>Galeria w liczbach</h2>
+        <h2><i>08</i>Galeria w liczbach</h2>
         <div class="stats-summary">
           <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
           <span><b><?=e(formatSize($stats['bytes']))?></b> razem</span>
@@ -688,7 +727,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>10</i>Historia zmian</h2>
+        <h2><i>09</i>Historia zmian</h2>
         <p class="hint">Ostatnie zmiany w galerii i w panelu: kto, kiedy i co.</p>
 <?php if (!$history): ?>
         <p class="nobody">Jeszcze nic się nie zmieniło.</p>
@@ -703,6 +742,73 @@
 <?php endforeach; ?>
         </ol>
 <?php endif; ?>
+      </section>
+
+      <section class="card wide">
+        <h2><i>10</i>Zasoby serwera</h2>
+        <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
+<?php if ($system['cpu'] === null && $system['memory'] === null): ?>
+        <p class="nobody">Brak danych: serwer nie ma <code>/proc</code> (to nie Linux) albo PHP nie może go czytać (<code>open_basedir</code>).</p>
+<?php else:
+        $cores = $system['cpuInfo']['cores'];
+        $load = $system['load'];
+        $memory = $system['memory'];
+        $opcache = $system['opcache'];
+?>
+        <div class="meters">
+<?php if ($system['cpu']): $cpu = $system['cpu']; ?>
+          <?=meter('Procesor', $cpu['busy'], 100, decimal($cpu['busy']) . '%',
+              ($load ? 'obciążenie ' . decimal($load[0], 2) . ' · ' . decimal($load[1], 2) . ' · ' . decimal($load[2], 2) . ' (1, 5, 15 min)'
+                  . ($cores && $load[1] > $cores ? ' <b class="warn">więcej niż rdzeni</b>' : '') . '<br />' : '')
+              . ($cores ? $cores . ' ' . plural($cores, 'rdzeń', 'rdzenie', 'rdzeni') : '')
+              . ($system['cpuInfo']['model'] ? ' · ' . e($system['cpuInfo']['model']) : '') . '<br />'
+              . 'czekanie na dysk ' . decimal($cpu['iowait']) . '%' . ($cpu['iowait'] >= 10 ? ' <b class="warn">dysk nie nadąża</b>' : '')
+              . ' · zabrane przez hosta ' . decimal($cpu['steal']) . '%' . ($cpu['steal'] >= 10 ? ' <b class="warn">host jest przeciążony</b>' : ''))?>
+
+<?php endif; ?>
+<?php if ($memory): $used = $memory['total'] - $memory['available']; ?>
+          <?=meter('Pamięć RAM', $used, $memory['total'], e(formatSize($used)) . ' z ' . e(formatSize($memory['total'])),
+              'wolne do użycia ' . e(formatSize($memory['available'])) . '<br />w tym cache dysku ' . e(formatSize($memory['cached'])) . ', które system odda, gdy zabraknie')?>
+
+<?php $swapUsed = $memory['swapTotal'] - $memory['swapFree']; ?>
+          <?=$memory['swapTotal'] > 0
+              ? meter('Swap', $swapUsed, $memory['swapTotal'], e(formatSize($swapUsed)) . ' z ' . e(formatSize($memory['swapTotal'])),
+                  $swapUsed > $memory['swapTotal'] * 0.5 ? '<b class="warn">mocno używany</b>: brakuje RAM-u, wszystko zwalnia' : 'pamięć na dysku, gdy brakuje RAM-u')
+              : meter('Swap', 0, 1, 'brak', 'bez swapu, gdy zabraknie RAM-u, system zabija procesy (OOM)')?>
+
+<?php endif; ?>
+<?php if ($opcache): ?>
+          <?=meter('OPcache', $opcache['used'], $opcache['size'], e(formatSize($opcache['used'])) . ' z ' . e(formatSize($opcache['size'])),
+              ($opcache['hits'] !== null ? 'trafienia ' . decimal($opcache['hits']) . '% · ' : '') . $opcache['scripts'] . ' ' . plural($opcache['scripts'], 'skrypt', 'skrypty', 'skryptów')
+              . ($opcache['full'] ? ' · <b class="warn">pełny</b>, zwiększ <code>opcache.memory_consumption</code>' : ''))?>
+
+<?php else: ?>
+          <?=meter('OPcache', 0, 1, 'wyłączony', 'PHP kompiluje każdy skrypt przy każdym wejściu; włącz <code>opcache.enable</code>')?>
+
+<?php endif; ?>
+        </div>
+<?php endif; ?>
+        <div class="stats-grid">
+<?php if ($system['processes'] && !empty($memory)): ?>
+          <div>
+            <h3>Najwięcej pamięci</h3>
+            <ul class="stat-list">
+<?php foreach ($system['processes'] as $name => $program): ?>
+              <li style="--share: <?=share($program['bytes'], $memory['total'])?>"><span><?=e($name)?><?=$program['count'] > 1 ? ' <span class="muted">&times;' . $program['count'] . '</span>' : ''?></span><span><?=e(formatSize($program['bytes']))?> &middot; <?=decimal(100 * $program['bytes'] / $memory['total'])?>%</span></li>
+<?php endforeach; ?>
+            </ul>
+          </div>
+<?php endif; ?>
+          <div>
+            <h3>PHP</h3>
+            <ul class="stat-list">
+              <li style="--share: 0"><span>limit pamięci skryptu</span><span><?=e(ini_get('memory_limit'))?></span></li>
+              <li style="--share: 0"><span>limit czasu skryptu</span><span><?=(int)ini_get('max_execution_time')?> s</span></li>
+              <li style="--share: 0"><span>ten widok zużył</span><span><?=e(formatSize(memory_get_peak_usage(true)))?></span></li>
+              <li style="--share: 0"><span>pomiar procesora trwał</span><span><?=SYSTEM_CPU_SAMPLE / 1000?> ms</span></li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       <section class="card wide">
@@ -742,6 +848,12 @@
             <?=is_file($specFile) ? 'pobrana ' . e(ago(filemtime($specFile))) : 'jeszcze nie pobrana'?>
             <button type="button" class="admin-btn small" data-action="refresh-spec">Odśwież</button>
           </dd>
+
+          <dt>Klucz API bota</dt>
+          <dd><?=botAppKey() === ''
+              ? '<b class="warn">brak BOT_APP_KEY</b> w <code>inc/config.php</code>: bez niego strona nie zna ról z serwera bota i nie pokazuje poleceń moderatorskich'
+              : 'ustawiony; role znane dla ' . count($knownRoles) . ' ' . plural(count($knownRoles), 'konta', 'kont', 'kont') . ', polecenia moderatorskie '
+                  . ($privateTime ? 'pobrane ' . e(ago($privateTime)) : '<b class="warn">jeszcze nie pobrane</b> (klucz musi mieć uprawnienie Info)')?></dd>
 
           <dt>Zapis danych</dt>
           <dd><?=dataWritable() ? 'inc/data: OK' : '<b class="warn">brak prawa zapisu</b>: ' . e(dataError())?></dd>

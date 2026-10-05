@@ -20,7 +20,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link href="css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="css/style.css?v=24" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=25" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
@@ -224,6 +224,16 @@
           var name = document.createElement('span');
           name.textContent = me.user.name;
           who.append(avatar, name);
+          // the role on the bot's server as a Safeguard level, "LV.9 DEV"
+          if (me.role) {
+            var level = document.createElement('span');
+            level.className = 'lv role-' + me.role.key;
+            level.title = me.role.title;
+            var number = document.createElement('b');
+            number.textContent = 'LV.' + me.role.level;
+            level.append(number, me.role.label);
+            who.appendChild(level);
+          }
           box.appendChild(who);
 
           // the account and its logout as on the other pages

@@ -38,3 +38,10 @@
     const API_VIEWERS = [
         // '234567890123456789',
     ];
+
+    // Key of this site's application in the bot API, sent as x-app-key; it needs
+    // the Info right (Site covers it too). With it the site asks the bot for the
+    // roles of the logged-in account on its Discord server: dev, admin,
+    // semi-admin and tester may read the API documentation, admin and dev see
+    // the moderator and debug commands on cmd/. Without it neither happens.
+    const BOT_APP_KEY = '';

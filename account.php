@@ -1,6 +1,6 @@
 <?php
     // The Discord account for the home page (index.html is static, so it asks
-    // here): who is logged in and what they may open. ?login starts the login
+    // here): who is logged in, their role on the bot's server and what they may open. ?login starts the login
     // and comes back to the home page; a POST with the CSRF token logs out.
     require __DIR__ . '/inc/auth.php';
 
@@ -21,10 +21,13 @@
     header('Cache-Control: no-store, private');
 
     $user = siteUser();
+    $roles = siteRoles();
     echo json_encode($user === null ? [
         'login' => authConfigured()
     ] : [
         'user' => ['name' => $user['name'], 'avatar' => $user['avatar']],
+        // the role on the bot's server as ['key', 'level', 'label', 'title'], or null
+        'role' => roleBadge($roles),
         'gallery' => canViewGalleryId($user['id']),
         'api' => canViewApiId($user['id']),
         'panel' => isPanelAdminId($user['id']),

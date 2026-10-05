@@ -161,6 +161,51 @@ code {
     background: linear-gradient(90deg, rgba(155, 89, 182, 0.6), transparent);
 }
 
+/* The moderator and debug commands, only for the admins: red like the locked
+   API button of the home page */
+.cmd-meta .private-count,
+.module-private {
+    color: #f0c4c2;
+}
+
+.module-chips a.private {
+    border-color: rgba(232, 98, 98, 0.45);
+    color: #f0c4c2;
+}
+
+.module-chips a.private:hover {
+    background: rgba(217, 83, 79, 0.2);
+    color: #fff;
+}
+
+.module-chips a.private i,
+.module.private .module-head i {
+    color: #e86262;
+}
+
+.module.private .module-head::after {
+    background: linear-gradient(90deg, rgba(232, 98, 98, 0.6), transparent);
+}
+
+.module-private {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 14px;
+    padding: 2px 8px;
+    border: 1px solid rgba(232, 98, 98, 0.45);
+    font: 11px/16px "Share Tech Mono", monospace;
+    letter-spacing: 0.12em;
+}
+
+.module-private svg {
+    width: 11px;
+    height: 11px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
 .submodule-prefix {
     margin: 12px 0;
     color: rgba(220, 221, 222, 0.6);

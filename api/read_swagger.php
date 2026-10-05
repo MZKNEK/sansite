@@ -3,7 +3,7 @@
     // the documentation (see api/index.php). The spec is asked for at most every
     // 10 minutes, and the last good copy is served while the API is down.
     require __DIR__ . '/../inc/bot.php';
-    require __DIR__ . '/../inc/auth.php';
+    require_once __DIR__ . '/../inc/auth.php';
 
     if (!apiCanView()) {
         http_response_code(!authConfigured() ? 503 : (siteUser() ? 403 : 401));

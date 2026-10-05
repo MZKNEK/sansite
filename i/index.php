@@ -121,7 +121,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
 </head>
 
@@ -134,6 +134,7 @@
         <div class="account">
           <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
           <span class="account-name"><?=e($user['name'])?></span>
+          <?=roleBadgeHtml(siteRoles())?>
           <button type="button" class="account-btn" id="act-logout" data-csrf="<?=e(siteCsrf())?>">Wyloguj</button>
         </div>
 <?php endif; ?>

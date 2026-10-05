@@ -9,6 +9,10 @@
     //   GALLERY_ADMINS   may view and manage the gallery
     //   GALLERY_VIEWERS  may view the gallery (true lets in anyone with Discord)
     //   API_VIEWERS      may read the API documentation (the panel admins always can)
+    //   BOT_APP_KEY      the site's key to the bot API (x-app-key with Info rights)
+    // With the key the bot also says the account's roles on its Discord server:
+    // dev, admin, semi-admin and tester may read the API documentation, the
+    // other roles are only shown. The gallery never follows these roles.
     // The panel adds more gallery admins and viewers and API readers. An account
     // without access can ask for it; the requests wait in inc/data/requests.json. Those are kept in
     // inc/data/access.json, next to a list of recent logins; inc/ is not
@@ -31,6 +35,22 @@
     // what an account can ask for, as it reads after "dostęp do"
     const REQUEST_LABELS = ['gallery' => 'galerii', 'api' => 'API'];
     const REQUEST_NOTE_LENGTH = 200;
+
+    // the roles the bot reports, highest first: Safeguard level, badge, name in the panel
+    const BOT_ROLES = [
+        'dev' => [9, 'DEV', 'dev'],
+        'admin' => [8, 'ADMIN', 'admin'],
+        'semiAdmin' => [6, 'SEMI-ADMIN', 'semi-admin'],
+        'tester' => [5, 'TESTER', 'tester'],
+        'moderator' => [3, 'MOD', 'moderator'],
+        'user' => [1, 'USER', 'user']
+    ];
+    // roles that may read the API documentation, and that see the private commands on cmd/
+    const API_ROLES = ['dev', 'admin', 'semiAdmin', 'tester'];
+    const PRIVATE_COMMAND_ROLES = ['dev', 'admin'];
+    const BOT_ROLES_URL = 'https://api.sanakan.pl/api/User/discord/%s/permissions';
+    const BOT_ROLES_TTL = 600;
+    const BOT_ROLES_KEEP = 200;
 
     function authConfigured()
     {
@@ -193,16 +213,133 @@
         return isGalleryAdminId($id) || inAccessList('galleryViewers', $id, true);
     }
 
+    // a role counts as the bot said it last; siteRoles() asks again for the logged-in account
     function canViewApiId($id)
     {
-        return isPanelAdminId($id) || inAccessList('apiViewers', $id, true);
+        return isPanelAdminId($id) || inAccessList('apiViewers', $id, true) || hasBotRole($id, API_ROLES);
+    }
+
+    function canSeePrivateCommandsId($id)
+    {
+        return isPanelAdminId($id) || hasBotRole($id, PRIVATE_COMMAND_ROLES);
     }
 
     function apiCanView()
     {
         $user = siteUser();
+        siteRoles();
 
         return $user !== null && canViewApiId($user['id']);
+    }
+
+    // ---- Roles on the bot's Discord server ---------------------------------------
+    // The bot API says what an account is on its server. The answers are kept in
+    // inc/data/roles.json as [id => ['roles' => [...], 'checked' => time,
+    // 'tried' => time]], so the panel can show them for the recent logins too; the
+    // logged-in account is asked again when its answer is older than BOT_ROLES_TTL.
+
+    // the site's key to the bot API (x-app-key), or '' without one
+    function botAppKey()
+    {
+        authConfigured();
+
+        return defined('BOT_APP_KEY') ? (string)BOT_APP_KEY : '';
+    }
+
+    // GET from the bot API with the site's key: the answer as an array, or null
+    function botAppGet($url, $timeout = 4)
+    {
+        $context = stream_context_create(['http' => [
+            'method' => 'GET',
+            'timeout' => $timeout,
+            'ignore_errors' => true,
+            'header' => "Accept: application/json\r\nx-app-key: " . botAppKey()
+        ]]);
+        $json = @file_get_contents($url, false, $context);
+
+        $status = 0;
+        foreach ($http_response_header ?? [] as $line)
+            if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
+                $status = (int)$match[1];
+        $data = $json === false || $status !== 200 ? null : json_decode($json, true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    // The flags of an account (onGuild and the keys of BOT_ROLES), or null when
+    // the bot was never asked; $refresh asks it again when the answer is old.
+    function botRoles($id, $refresh = false)
+    {
+        $id = (string)$id;
+        $entry = readData('roles')[$id] ?? null;
+        $age = time() - max($entry['checked'] ?? 0, $entry['tried'] ?? 0);
+
+        if ($refresh && $age >= BOT_ROLES_TTL && botAppKey() !== '' && preg_match('/^\d{17,20}$/', $id)) {
+            $answer = botAppGet(sprintf(BOT_ROLES_URL, $id));
+            if ($answer !== null) {
+                $roles = ['onGuild' => !empty($answer['onGuild'])];
+                foreach (array_keys(BOT_ROLES) as $role)
+                    $roles[$role] = !empty($answer[$role]);
+                $entry = ['roles' => $roles, 'checked' => time()];
+            } else {
+                // the bot does not answer: the last roles stay, asked again after BOT_ROLES_TTL
+                $entry = ['tried' => time()] + ($entry ?? []);
+            }
+
+            // read again, another request may have written meanwhile
+            $known = readData('roles');
+            $known[$id] = $entry;
+            uasort($known, function ($a, $b) {
+                return max($b['checked'] ?? 0, $b['tried'] ?? 0) <=> max($a['checked'] ?? 0, $a['tried'] ?? 0);
+            });
+            writeData('roles', array_slice($known, 0, BOT_ROLES_KEEP, true));
+        }
+
+        return $entry['roles'] ?? null;
+    }
+
+    // roles of the logged-in account, asked again when old, or null
+    function siteRoles()
+    {
+        $user = siteUser();
+
+        return $user === null ? null : botRoles($user['id'], true);
+    }
+
+    function hasBotRole($id, $roles)
+    {
+        $known = botRoles($id);
+        foreach ($roles as $role)
+            if (!empty($known[$role]))
+                return true;
+
+        return false;
+    }
+
+    // the highest role as ['key', 'level', 'label', 'title'], or null when unknown
+    function roleBadge($roles)
+    {
+        if ($roles === null)
+            return null;
+
+        foreach (BOT_ROLES as $key => [$level, $label, $name])
+            if (!empty($roles[$key]))
+                return ['key' => $key, 'level' => $level, 'label' => $label, 'title' => 'Rola na serwerze Sanakana: ' . $name];
+
+        return empty($roles['onGuild'])
+            ? ['key' => 'out', 'level' => 0, 'label' => 'POZA SERWEREM', 'title' => 'Tego konta nie ma na serwerze Sanakana']
+            : ['key' => 'none', 'level' => 0, 'label' => 'BEZ ROLI', 'title' => 'Konto nie ma roli na serwerze Sanakana'];
+    }
+
+    // the badge next to the account name, "LV.9 DEV" in the colour of the role
+    function roleBadgeHtml($roles)
+    {
+        $badge = roleBadge($roles);
+        if ($badge === null)
+            return '';
+
+        return '<span class="lv role-' . $badge['key'] . '" title="' . htmlspecialchars($badge['title'], ENT_QUOTES, 'UTF-8') . '">'
+            . '<b>LV.' . $badge['level'] . '</b>' . $badge['label'] . '</span>';
     }
 
     // ---- Requests for access ----------------------------------------------------

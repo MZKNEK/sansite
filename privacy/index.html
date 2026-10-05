@@ -11,7 +11,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=23" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
 </head>
 
@@ -35,13 +35,14 @@
       </ul>
 
       <h2>Logowanie przez Discorda</h2>
-      <p>Logowanie jest potrzebne tylko do galerii, dokumentacji API i panelu administratora. Odbywa się na stronie Discorda, a my dostajemy od niego wyłącznie <b>ID konta, nazwę i awatar</b> (zakres <code>identify</code>). Nie dostajemy adresu e-mail, hasła ani listy serwerów.</p>
+      <p>Logowanie jest potrzebne tylko do galerii, dokumentacji API i panelu administratora. Odbywa się na stronie Discorda, a my dostajemy od niego wyłącznie <b>ID konta, nazwę i awatar</b> (zakres <code>identify</code>). Nie dostajemy adresu e-mail, hasła ani listy serwerów. ID konta sprawdzamy u bota Sanakan, który mówi, jaką rolę (np. moderator, admin) ma ono na jego serwerze.</p>
 
       <h2>Co zapisujemy i jak długo</h2>
       <ul>
         <li><b>Ostatnie logowania:</b> nazwa, awatar, czas ostatniego logowania i ich liczba, dla 50 ostatnio logujących się kont. Starsze wpisy wypadają same.</li>
         <li><b>Prośby o dostęp:</b> konto i notatka, którą ktoś do prośby dopisał, do czasu rozpatrzenia.</li>
         <li><b>Listy dostępu:</b> ID kont, które mogą oglądać galerię albo czytać API, z notatką administratora, do czasu odebrania dostępu.</li>
+        <li><b>Role na serwerze Sanakana:</b> to, co bot powiedział o roli konta, dla 200 ostatnio sprawdzanych kont; odświeżane co 10 minut przy odwiedzinach.</li>
         <li><b>Historia zmian:</b> kto i kiedy zmienił coś w galerii albo w panelu, 1000 ostatnich wpisów.</li>
       </ul>
       <p>Te dane służą wyłącznie do kontroli dostępu i do tego, żeby wiedzieć, kto co zmienił (prawnie uzasadniony interes, art. 6 ust. 1 lit. f RODO). Nikomu ich nie udostępniamy i nie sprzedajemy.</p>

@@ -14,9 +14,14 @@
     // list (new, removed, changed commands) are logged for cmd/ and cmd/zmiany/.
     // The bot's api/health says whether it is connected to Discord, its ping and
     // the state of its database and of Shinden. While a bot without it answers
-    // 404, the command list is the check, as before.
+    // 404, the command list is the check, as before. With the site's key
+    // (BOT_APP_KEY, inc/auth.php) the moderator and debug commands are fetched
+    // as often as the public ones, for the accounts that may see them on cmd/.
+    require_once __DIR__ . '/auth.php';
+
     const BOT_HEALTH_URL = 'https://api.sanakan.pl/api/health';
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
+    const BOT_PRIVATE_URL = 'https://api.sanakan.pl/api/Info/commands/private';
     // with api/health the command list (cmd/ and its changes) is fetched only this often
     const BOT_COMMANDS_TTL = 600;
     const BOT_CACHE_TTL = 60;
@@ -556,6 +561,65 @@
         return [true, $ms];
     }
 
+    // The moderator and debug commands, every BOT_COMMANDS_TTL while the bot is
+    // up and the site has its key. A failed try keeps the last list and waits as long.
+    function botFetchPrivateCommands($now)
+    {
+        $file = botFile('commands-private.json');
+        if (botAppKey() === '' || (is_file($file) && $now - filemtime($file) < BOT_COMMANDS_TTL))
+            return;
+
+        $data = botAppGet(BOT_PRIVATE_URL, 5);
+        if (isset($data['modules']))
+            botWriteFile($file, json_encode($data, JSON_UNESCAPED_UNICODE));
+        else if (is_file($file))
+            @touch($file);
+    }
+
+    // When the moderator and debug commands were last fetched, or null
+    function botPrivateCommandsTime()
+    {
+        $file = botFile('commands-private.json');
+
+        return is_file($file) ? filemtime($file) : null;
+    }
+
+    // The modules of the moderator and debug commands. A command that is also in
+    // the public list is left out, so it is not shown twice.
+    function botPrivateModules()
+    {
+        $data = json_decode((string)@file_get_contents(botFile('commands-private.json')), true);
+        if (empty($data['modules']))
+            return [];
+
+        $public = botCommandIndex(botCommands() ?? []);
+        $modules = [];
+        foreach ($data['modules'] as $module) {
+            $submodules = [];
+            foreach ($module['subModules'] ?? [] as $submodule) {
+                $prefix = trim((string)($submodule['prefix'] ?? ''));
+                $commands = [];
+                foreach ($submodule['commands'] ?? [] as $command) {
+                    $name = (string)($command['name'] ?? '');
+                    if (!isset($public[trim($prefix . ' ' . $name)]))
+                        $commands[] = [
+                            'name' => $name,
+                            'description' => (string)($command['description'] ?? ''),
+                            'aliases' => array_map('strval', $command['aliases'] ?? []),
+                            'attributes' => $command['attributes'] ?? [],
+                            'example' => (string)($command['example'] ?? '')
+                        ];
+                }
+                if ($commands)
+                    $submodules[] = ['prefix' => $prefix, 'prefixAliases' => $submodule['prefixAliases'] ?? [], 'commands' => $commands];
+            }
+            if ($submodules)
+                $modules[] = ['name' => (string)($module['name'] ?? ''), 'subModules' => $submodules];
+        }
+
+        return $modules;
+    }
+
     // the last health report of the bot, or null (no api/health, or not answered)
     function botHealth()
     {
@@ -645,6 +709,8 @@
             if ($online && (!is_file($commands) || $now - filemtime($commands) >= BOT_COMMANDS_TTL))
                 botFetchCommands($now);
         }
+        if ($online)
+            botFetchPrivateCommands($now);
 
         $shinden = $online && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
         $uptime = botRecordCheck($online, $now, $online ? $ms : null, $shinden);

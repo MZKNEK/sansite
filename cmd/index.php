@@ -44,6 +44,22 @@
     foreach ($modules AS $module)
         $total += moduleCount($module);
 
+    // The moderator and debug commands follow for the panel admins and the
+    // bot's admins and devs (inc/auth.php); such a page is for this visitor only.
+    $user = siteUser();
+    siteRoles();
+    $privateTotal = 0;
+    if ($user !== null && canSeePrivateCommandsId($user['id'])) {
+        foreach (botPrivateModules() AS $module) {
+            $privateTotal += moduleCount($module);
+            $modules[] = $module + ['private' => true];
+        }
+    }
+    if (session_status() === PHP_SESSION_ACTIVE)
+        session_write_close();
+    if ($privateTotal)
+        header('Cache-Control: private, no-store');
+
     // Address of a command on the page, e.g. #daily or #pw-daily with the module
     // prefix (commandSlug() in inc/bot.php); the same name twice gets -2, -3 and so on.
     $usedIds = [];
@@ -109,6 +125,9 @@ include 'sanakan.head.html';
 <?php if ($total): ?>
         <span><?=$total?> <?=plural($total, 'polecenie', 'polecenia', 'poleceń')?></span>
 <?php endif; ?>
+<?php if ($privateTotal): ?>
+        <span class="private-count" title="Widzą je tylko administratorzy">+ <?=$privateTotal?> moderatorskich i debug</span>
+<?php endif; ?>
         <span class="state <?=e($status)?>"><?=e($statusText[$status])?></span>
       </div>
     </header>
@@ -130,7 +149,7 @@ include 'sanakan.head.html';
       </label>
       <nav class="module-chips" aria-label="Moduły">
 <?php foreach ($modules AS $mi => $module): ?>
-        <a href="#module-<?=$mi?>" data-module="<?=$mi?>"><i aria-hidden="true"><?=num($mi)?></i><?=e($module['name'])?><b class="chip-count"><?=moduleCount($module)?></b></a>
+        <a href="#module-<?=$mi?>" data-module="<?=$mi?>"<?=empty($module['private']) ? '' : ' class="private" title="Polecenia moderatorskie i debug"'?>><i aria-hidden="true"><?=num($mi)?></i><?=e($module['name'])?><b class="chip-count"><?=moduleCount($module)?></b></a>
 <?php endforeach; ?>
       </nav>
       <div class="search-info" id="search-info" aria-live="polite"></div>
@@ -138,8 +157,8 @@ include 'sanakan.head.html';
 <?php endif; ?>
 
 <?php foreach ($modules AS $mi => $module): ?>
-    <section class="module" id="module-<?=$mi?>" data-module="<?=$mi?>">
-      <h2 class="module-head"><i aria-hidden="true"><?=num($mi)?></i><?=e($module['name'])?></h2>
+    <section class="module<?=empty($module['private']) ? '' : ' private'?>" id="module-<?=$mi?>" data-module="<?=$mi?>">
+      <h2 class="module-head"><i aria-hidden="true"><?=num($mi)?></i><?=e($module['name'])?><?php if (!empty($module['private'])): ?><small class="module-private" title="Polecenia moderatorskie i debug, widzą je tylko administratorzy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>moderatorskie</small><?php endif; ?></h2>
 <?php foreach ($module['subModules'] AS $submodule):
         $smprefix = $submodule['prefix'];
         if ($smprefix != '')

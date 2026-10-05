@@ -5,15 +5,15 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | Address | What it is |
 |---|---|
 | `/` | Home page: the logo with the bot status, links to the commands, wiki, Waifu, Skalpelator and the API documentation (red with a padlock, as it needs a login) |
-| `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`, short: `/cmd/daily`, also by an alias), marks on commands new or changed in the last 14 days |
+| `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`, short: `/cmd/daily`, also by an alias), marks on commands new or changed in the last 14 days; the bot's admins and devs and the panel admins also see the moderator and debug commands, marked red with a padlock |
 | `/cmd/zmiany/` | History of the changes in the commands, noticed by comparing every command list with the one before |
-| `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; an account without access can ask for it |
+| `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; the bot's devs, admins, semi-admins and testers get in by their role, an account without access can ask for it |
 | `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version), availability over the last 24 hours and 90 days, the Discord ping and Shinden's answer time, the outages of the last 90 days and the notice from the panel; below, the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 90 days. Its link preview is a picture of the current state (`/state/og.php`) |
 | `/i/` | Gallery of pictures and WebM videos, behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. Videos get a frame as thumbnail. Folders and picked items download as ZIP, admins can turn pictures by 90°. An account without access can ask for it |
-| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery access, recent logins and logging everyone out, trash, change history, gallery statistics and disk space, server checks, the deployed version and a backup of the data as ZIP |
+| `/admin/` | Admin panel, behind a Discord login: bot status line, the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile), requests for access, gallery and API access, recent logins with their roles on the bot's server and logging everyone out, trash, change history, gallery statistics and disk space, the server's resources (processor use, load, waiting for the disk and time taken by the host, memory and swap, the programs using the most memory, OPcache), server checks, the deployed version and a backup of the data as ZIP |
 | `/status.php` | Bot status as JSON, used by the home page |
 
-The top right corner of the home page logs in with Discord (`account.php`) and then links to the gallery and the panel for the accounts that may open them; the API button unlocks for the accounts that may read it. A short click on the status dot opens `/state/`; held for 3 seconds it fires the beam of the Gravitational Beam Emitter from BLAME!.
+The top right corner of the home page logs in with Discord (`account.php`) and then links to the gallery and the panel for the accounts that may open them; the API button unlocks for the accounts that may read it. Next to the account name every page shows its role on the bot's Discord server as a Safeguard level, e.g. `LV.9 DEV` or `LV.3 MOD`, in the colour of the role. Only dev, admin, semi-admin and tester give anything on the site (the API documentation, and for admin and dev the private commands); the gallery has its own lists and never follows these roles. A short click on the status dot opens `/state/`; held for 3 seconds it fires the beam of the Gravitational Beam Emitter from BLAME!.
 
 ## Repository layout
 
@@ -23,10 +23,11 @@ The top right corner of the home page logs in with Discord (`account.php`) and t
 | `sanakan-og.png` | Link preview picture of the home page |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/` | Subpages |
 | `status.php` | Bot status for the home page |
-| `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes |
+| `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes, the moderator and debug commands fetched with the site's key |
 | `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites, once a day it removes the thumbnails nobody looked at for 30 days |
+| `inc/system.php` | The server's resources for the panel, read from Linux's `/proc` when the panel opens |
 | `inc/services.php` | The other Sanakan sites: whether they answer, since when, per day counts |
-| `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, change history |
+| `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, the account's roles on the bot's server (asked with the site's key, kept 10 minutes), change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
 | `fonts/`, `css/fonts.css` | The site's fonts (Lato, Share Tech Mono, JetBrains Mono, SIL Open Font License), served from the site instead of Google Fonts, so no visitor's address goes to Google |
@@ -40,7 +41,7 @@ The top right corner of the home page logs in with Discord (`account.php`) and t
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists and requests, status history and outages, change history, trash, file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup),
+- `inc/data/`, the data the site writes: access lists and requests, the roles the bot reported, status history and outages, change history, trash, file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup),
 - the pictures in `i/` (only `i/index.php` is tracked).
 
 The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (server card, "Kopia danych"). To restore it, unpack `data/` into `inc/data/` and `i/` into `i/`, then give them back to the web server: `chown -R www-data:www-data inc/data i`.
@@ -108,6 +109,7 @@ Fill `inc/config.php` with the Discord application details (https://discord.com/
 | `GALLERY_ADMINS` | Accounts that may view the gallery and manage its files. The panel can add more |
 | `GALLERY_VIEWERS` | Accounts that may only view the gallery. The panel can add more; `true` lets in any Discord account |
 | `API_VIEWERS` | Accounts that may read the API documentation in `/api/`. The panel can add more, and `PANEL_ADMINS` always can; `true` lets in any Discord account |
+| `BOT_APP_KEY` | Key of the site's application in the bot API, sent as `x-app-key`; it needs the Info right (Site covers it too). With it the site reads the roles of the logged-in account (`/api/User/discord/{id}/permissions`) and the moderator and debug commands (`/api/Info/commands/private`). Without it neither happens, and the panel's server card says so |
 
 Without `inc/config.php` the gallery, the API documentation and the panel stay closed. Direct links to the pictures in `i/` always work.
 
