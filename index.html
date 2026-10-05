@@ -20,12 +20,11 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link href="css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="css/style.css?v=25" type="text/css" rel="stylesheet" />
+  <link href="css/style.css?v=28" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="home">
   <div class="home-account" id="home-account" hidden></div>
-  <nav class="home-places" id="home-places" hidden></nav>
   <div class="motto" id="motto" title="Niby nie taki lekki, ale lata">Niby nie taki lekki, ale lata</div>
 
   <main class="hero">
@@ -57,6 +56,7 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="privacy/">Prywatność</a></footer>
   <script>document.getElementById('foot-year').textContent = new Date().getFullYear();</script>
 
+  <script src="js/account.js?v=1"></script>
   <script>
     // shows the motto in Morse code; every symbol lights up in real Morse timing,
     // like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7)
@@ -190,72 +190,32 @@
     })();
 
     // The Discord account in the top right corner (account.php): a login button,
-    // or the account, with the gallery and the panel at the left edge when it may
-    // open them. An account that may read the API gets the API button unlocked.
+    // or the account menu of every page, with the gallery and the panel when it
+    // may open them (js/account.js). An account that may read the API gets the
+    // API button unlocked.
     (function () {
       var box = document.getElementById('home-account');
-      var places = document.getElementById('home-places');
       var api = document.getElementById('api-link');
-
-      function link(href, text, className) {
-        var a = document.createElement('a');
-        a.href = href;
-        a.textContent = text;
-        if (className) a.className = className;
-        return a;
-      }
 
       fetch('./account.php', { credentials: 'same-origin', cache: 'no-store' })
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (me) {
           if (!me) return;
-          if (!me.user) {
+          if (!me.menu) {
             if (!me.login) return;
-            box.appendChild(link('account.php?login', 'Zaloguj przez Discord', 'home-login hud-corners'));
+            var login = document.createElement('a');
+            login.href = 'account.php?login';
+            login.className = 'home-login hud-corners';
+            login.textContent = 'Zaloguj przez Discord';
+            box.appendChild(login);
             box.hidden = false;
             return;
           }
 
-          var who = document.createElement('span');
-          who.className = 'home-who';
-          var avatar = new Image(28, 28);
-          avatar.src = me.user.avatar;
-          avatar.alt = '';
-          var name = document.createElement('span');
-          name.textContent = me.user.name;
-          who.append(avatar, name);
-          // the role on the bot's server as a Safeguard level, "LV.9 DEV"
-          if (me.role) {
-            var level = document.createElement('span');
-            level.className = 'lv role-' + me.role.key;
-            level.title = me.role.title;
-            var number = document.createElement('b');
-            number.textContent = 'LV.' + me.role.level;
-            level.append(number, me.role.label);
-            who.appendChild(level);
-          }
-          box.appendChild(who);
-
-          // the account and its logout as on the other pages
-          var form = document.createElement('form');
-          form.method = 'post';
-          form.action = 'account.php';
-          [['csrf', me.csrf], ['action', 'logout']].forEach(function (field) {
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = field[0];
-            input.value = field[1];
-            form.appendChild(input);
-          });
-          var logout = document.createElement('button');
-          logout.type = 'submit';
-          logout.textContent = 'Wyloguj';
-          form.appendChild(logout);
-          box.appendChild(form);
+          // the menu comes ready from the server, its texts escaped there
+          box.innerHTML = me.menu;
+          SanakanAccount.bind(box.firstElementChild);
           box.hidden = false;
-          if (me.gallery) places.appendChild(link('i/', 'Galeria', 'hud-corners'));
-          if (me.panel) places.appendChild(link('admin/', 'Panel', 'hud-corners'));
-          places.hidden = !places.firstChild;
 
           if (me.api) {
             api.classList.remove('restricted');

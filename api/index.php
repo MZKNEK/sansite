@@ -6,14 +6,12 @@
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/meta.php';
 
-    // a plain form: asking for access or logging out, then back here
+    // a plain form: asking for access, then back here
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!authConfigured() || !siteUser() || !checkCsrf()) {
             setFlash('Sesja wygasła, spróbuj jeszcze raz.');
         } else if (($_POST['action'] ?? '') === 'request-access') {
             handleAccessRequest('api', apiCanView(), './');
-        } else if (($_POST['action'] ?? '') === 'logout') {
-            logout();
         }
         header('Location: ./', true, 303);
         exit;
@@ -44,8 +42,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -54,14 +52,7 @@
       <div class="ex-top">
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
 <?php if ($user): ?>
-        <form class="account" method="post" action="./">
-          <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
-          <span class="account-name"><?=e($user['name'])?></span>
-          <?=roleBadgeHtml(siteRoles())?>
-          <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
-          <input type="hidden" name="action" value="logout" />
-          <button type="submit" class="account-btn">Wyloguj</button>
-        </form>
+        <?=accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '')?>
 <?php endif; ?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
@@ -100,7 +91,8 @@
 <?php else: ?>
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
-  <script src="../js/explorer.js?v=7"></script>
+  <script src="../js/explorer.js?v=8"></script>
+  <script src="../js/account.js?v=1"></script>
 </body>
 
 </html>
@@ -117,8 +109,8 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=25" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=15" >
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=28" />
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=16" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -147,14 +139,7 @@
 <header class="api-header">
   <div class="api-top">
     <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
-    <form class="api-account" method="post" action="./">
-      <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
-      <span><?=e($user['name'])?></span>
-      <?=roleBadgeHtml(siteRoles())?>
-      <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
-      <input type="hidden" name="action" value="logout" />
-      <button type="submit">Wyloguj</button>
-    </form>
+    <?=accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '')?>
   </div>
   <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
   <h1 class="hud-title">API<span class="api-version" id="api-version" hidden></span></h1>
@@ -217,6 +202,7 @@
 <script src="./swagger-ui-bundle.js?v=1"> </script>
 <script src="./swagger-ui-standalone-preset.js?v=1"> </script>
 <script src="./search.js?v=2"> </script>
+<script src="../js/account.js?v=1"></script>
 <script>
 window.onload = function() {
   

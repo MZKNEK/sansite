@@ -121,8 +121,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -131,12 +131,7 @@
       <div class="ex-top">
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
 <?php if ($user): ?>
-        <div class="account">
-          <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
-          <span class="account-name"><?=e($user['name'])?></span>
-          <?=roleBadgeHtml(siteRoles())?>
-          <button type="button" class="account-btn" id="act-logout" data-csrf="<?=e(siteCsrf())?>">Wyloguj</button>
-        </div>
+        <?=accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '')?>
 <?php endif; ?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
@@ -413,7 +408,8 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=7"></script>
+  <script src="../js/explorer.js?v=8"></script>
+  <script src="../js/account.js?v=1"></script>
 <?php if ($admin): ?>
   <script src="../js/explorer-admin.js?v=8"></script>
 <?php endif; ?>

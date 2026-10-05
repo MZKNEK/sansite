@@ -172,11 +172,6 @@
             reply(false, 'Sesja wygasła, odśwież stronę.', 403);
 
         $action = (string)($_POST['action'] ?? '');
-        if ($action === 'logout') {
-            logout();
-            reply(true, 'Wylogowano.');
-        }
-
         if (!isPanelAdminId($user['id']))
             reply(false, 'To konto nie ma dostępu do panelu.', 403);
 
@@ -436,8 +431,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=25" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=8" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=28" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=7" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=8" type="text/css" rel="stylesheet" />
 </head>
@@ -448,12 +443,7 @@
       <div class="ex-top">
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
 <?php if ($user): ?>
-        <div class="account">
-          <img src="<?=e($user['avatar'])?>" alt="" width="28" height="28" />
-          <span class="account-name"><?=e($user['name'])?></span>
-          <?=roleBadgeHtml(siteRoles())?>
-          <button type="button" class="account-btn" id="act-logout" data-csrf="<?=e($csrf)?>">Wyloguj</button>
-        </div>
+        <?=accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '')?>
 <?php endif; ?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
@@ -889,7 +879,8 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=7"></script>
+  <script src="../js/explorer.js?v=8"></script>
+  <script src="../js/account.js?v=1"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=3"></script>
 <?php endif; ?>

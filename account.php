@@ -1,13 +1,15 @@
 <?php
     // The Discord account for the home page (index.html is static, so it asks
-    // here): who is logged in, their role on the bot's server and what they may open. ?login starts the login
-    // and comes back to the home page; a POST with the CSRF token logs out.
+    // here): the account menu of the top right corner (accountMenuHtml() in
+    // inc/auth.php) and whether the account may read the API. ?login starts the
+    // login and comes back to the home page. A POST with the CSRF token logs
+    // out; every page's account menu sends it here, with the page to go back to.
     require __DIR__ . '/inc/auth.php';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (authConfigured() && siteUser() && checkCsrf() && ($_POST['action'] ?? '') === 'logout')
             logout();
-        header('Location: ./', true, 303);
+        header('Location: ' . localPath($_POST['back'] ?? ''), true, 303);
         exit;
     }
 
@@ -21,16 +23,10 @@
     header('Cache-Control: no-store, private');
 
     $user = siteUser();
-    $roles = siteRoles();
     echo json_encode($user === null ? [
         'login' => authConfigured()
     ] : [
-        'user' => ['name' => $user['name'], 'avatar' => $user['avatar']],
-        // the role on the bot's server as ['key', 'level', 'label', 'title'], or null
-        'role' => roleBadge($roles),
-        'gallery' => canViewGalleryId($user['id']),
+        'menu' => accountMenuHtml($user, siteRoles(), siteRoot()),
         'api' => canViewApiId($user['id']),
-        'panel' => isPanelAdminId($user['id']),
-        'csrf' => siteCsrf(),
         'flash' => takeFlash()
     ], JSON_UNESCAPED_UNICODE);

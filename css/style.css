@@ -249,51 +249,36 @@ body.gbe-shot main.hero {
     }
 }
 
-/* The Discord account in the top right corner of the home page and the places
-   it may open (the gallery, the panel) at the left edge, both below the Morse
-   line that runs along the top */
-.home-account,
-.home-places {
+/* The Discord account in the top right corner of the home page, below the
+   Morse line that runs along the top */
+.home-account {
     position: absolute;
     top: 46px;
+    right: 16px;
     z-index: 5;
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
+    justify-content: flex-end;
     font-size: 14px;
 }
 
-.home-account {
-    right: 16px;
-    justify-content: flex-end;
-}
-
-.home-places {
-    left: 16px;
-}
-
-.home-account[hidden],
-.home-places[hidden] {
+.home-account[hidden] {
     display: none;
 }
 
-/* the account and its logout look as in the gallery and the panel */
-.home-who {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: rgba(220, 221, 222, 0.75);
-}
-
-.home-who img {
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
+/* the login looks like the HUD buttons of the site (corners from .hud-corners) */
+.home-account a.home-login {
+    padding: 6px 13px;
+    color: var(--text);
+    font: 11px/1.5 "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background-size 0.25s, background-color 0.25s, color 0.2s;
 }
 
 /* The role of the account on the bot's Discord server as a Safeguard level,
-   "LV.9 DEV", next to its name on every page; the panel colours its role
-   chips the same way */
+   "LV.9", next to its name on every page; the panel colours its role chips
+   the same way */
 .role-dev { --role: #4fd1c5; }
 .role-admin { --role: #e86262; }
 .role-semiAdmin { --role: #f0a35e; }
@@ -305,52 +290,175 @@ body.gbe-shot main.hero {
 
 .lv {
     flex: none;
-    color: var(--role);
+    padding: 0 5px;
+    background: var(--role);
+    color: var(--bg-dark);
     font: 11px/16px "Share Tech Mono", monospace;
     letter-spacing: 0.12em;
     white-space: nowrap;
     cursor: default;
 }
 
-.lv b {
-    margin-right: 6px;
-    padding: 0 5px;
-    background: var(--role);
-    color: var(--bg-dark);
-    font-weight: normal;
+/* The account menu of every page (accountMenuHtml() in inc/auth.php,
+   js/account.js): the account as a button, its avatar ringed in the colour of
+   its role, and below it a menu in HUD corners with the places it may open,
+   logging out and a dim line with the role and the ID */
+.account-menu {
+    --role: var(--accent-light);
+    position: relative;
+    z-index: 15;
+    font: 14px Lato, sans-serif;
 }
 
-.home-account form {
-    margin: 0;
-}
-
-.home-account button {
-    padding: 6px 12px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
+.account-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 8px 5px 6px;
+    border: 0;
     background: transparent;
-    color: var(--accent-light);
-    font: 13px Lato, sans-serif;
-    text-decoration: none;
+    color: rgba(220, 221, 222, 0.85);
+    font: inherit;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
 }
 
-.home-account button:hover {
-    background: rgba(155, 89, 182, 0.2);
+.account-toggle:hover,
+.account-menu.open .account-toggle {
+    background: rgba(155, 89, 182, 0.12);
     color: #fff;
 }
 
-/* the login, the gallery and the panel look like the HUD buttons of the site
-   (the corners come from .hud-corners) */
-.home-account a.home-login,
-.home-places a {
-    padding: 6px 13px;
+.account-toggle img {
+    flex: none;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--role);
+}
+
+.account-toggle .lv {
+    cursor: inherit;
+}
+
+.account-icon {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.account-toggle > .account-icon {
+    color: var(--accent-light);
+    transition: transform 0.2s;
+}
+
+.account-menu.open .account-toggle > .account-icon {
+    transform: rotate(180deg);
+}
+
+/* graphite with a thin frame under the corners, like the toasts of the site;
+   .hud-corners, later in this file, would make it see-through */
+.account-menu .account-drop {
+    --fill: #18181e;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+}
+
+.account-drop {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 230px;
+    padding-top: 8px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    font: 12px "Share Tech Mono", monospace;
+    letter-spacing: 0.12em;
+    text-align: left;
+}
+
+.account-drop[hidden] {
+    display: none;
+}
+
+.account-drop form {
+    margin: 0;
+}
+
+/* logging out apart from the places, when there are any */
+.account-drop a + form {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(155, 89, 182, 0.22);
+}
+
+.account-drop a,
+.account-drop button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 16px;
+    border: 0;
+    background: none;
     color: var(--text);
-    font: 11px/1.5 "Share Tech Mono", monospace;
-    letter-spacing: 0.14em;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: left;
     text-decoration: none;
     text-transform: uppercase;
-    transition: background-size 0.25s, background-color 0.25s, color 0.2s;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.account-drop a:hover,
+.account-drop a:focus-visible {
+    background: rgba(155, 89, 182, 0.16);
+    color: #fff;
+}
+
+.account-drop a .account-icon {
+    color: var(--accent-light);
+}
+
+.account-drop a[aria-current] {
+    color: var(--accent-light);
+}
+
+.account-drop small {
+    margin-left: auto;
+    padding-left: 16px;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: none;
+    color: rgba(220, 221, 222, 0.32);
+}
+
+.account-drop .account-out {
+    color: #f0a09e;
+}
+
+.account-drop .account-out:hover,
+.account-drop .account-out:focus-visible {
+    background: rgba(217, 83, 79, 0.16);
+    color: #ffd2d0;
+}
+
+.account-scan {
+    margin-top: 8px;
+    padding: 7px 16px 8px;
+    border-top: 1px solid rgba(155, 89, 182, 0.18);
+    background: rgba(155, 89, 182, 0.08);
+    color: rgba(220, 221, 222, 0.42);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+}
+
+.account-scan em {
+    font-style: normal;
+    color: var(--role);
 }
 
 .home-flash {
@@ -367,11 +475,24 @@ body.gbe-shot main.hero {
 }
 
 @media only screen and (max-width: 720px) {
-    .home-account,
-    .home-places {
+    .home-account {
         position: static;
         justify-content: center;
         margin: 14px 16px 0;
+    }
+
+    /* the account is in the middle there, and so is its menu */
+    .home-account .account-drop {
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+/* on a phone the name goes, the avatar and the level stay */
+@media only screen and (max-width: 480px) {
+    .account-toggle .account-name {
+        display: none;
     }
 }
 

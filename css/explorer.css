@@ -448,34 +448,6 @@ body.viewer-open {
     gap: 10px;
 }
 
-.account {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: rgba(220, 221, 222, 0.75);
-}
-
-.account img {
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
-}
-
-.account-btn {
-    padding: 6px 12px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
-    background: transparent;
-    color: var(--accent-light);
-    font: 13px Lato, sans-serif;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.account-btn:hover {
-    background: rgba(155, 89, 182, 0.2);
-    color: #fff;
-}
-
 /* Managing files */
 .admin-bar {
     display: flex;

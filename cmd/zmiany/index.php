@@ -65,7 +65,7 @@
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=25" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=28" type="text/css" rel="stylesheet" />
   <link href="../style.css?v=11" type="text/css" rel="stylesheet" />
 </head>
 

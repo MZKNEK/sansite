@@ -43,35 +43,6 @@ body {
     text-align: left;
 }
 
-/* the logged-in account, as in the gallery */
-.api-account {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0;
-    font: 14px Lato, sans-serif;
-    color: rgba(220, 221, 222, 0.75);
-}
-
-.api-account img {
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(155, 89, 182, 0.6);
-}
-
-.api-account button {
-    padding: 6px 12px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
-    background: transparent;
-    color: #b670d3;
-    font: 13px Lato, sans-serif;
-    cursor: pointer;
-}
-
-.api-account button:hover {
-    background: rgba(155, 89, 182, 0.2);
-    color: #fff;
-}
-
 /* a message after the login, gone after a few seconds */
 .api-flash {
     position: fixed;

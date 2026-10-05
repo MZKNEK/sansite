@@ -1209,11 +1209,6 @@
         if (!checkCsrf())
             reply(false, 'Sesja wygasła, odśwież stronę.', 403);
 
-        if ($action === 'logout') {
-            logout();
-            reply(true, 'Wylogowano.');
-        }
-
         if ($action === 'request-access')
             handleAccessRequest('gallery', galleryCanView(), $_POST['back'] ?? '');
 

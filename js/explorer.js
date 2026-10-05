@@ -36,25 +36,6 @@ window.SanakanGallery = (function () {
     }
   }
 
-  // logging out works for everyone logged in, also without the admin script
-  var logout = document.getElementById('act-logout');
-  if (logout) {
-    logout.addEventListener('click', function () {
-      var form = new FormData();
-      form.append('action', 'logout');
-      form.append('csrf', logout.dataset.csrf);
-      fetch('index.php', { method: 'POST', body: form }).then(function (res) {
-        return res.json();
-      }).then(function (result) {
-        flashAfterReload(result.message, !result.ok);
-      }).catch(function () {
-        flashAfterReload('Nie udało się wylogować.', true);
-      }).then(function () {
-        location.reload();
-      });
-    });
-  }
-
   return { toast: show, flashAfterReload: flashAfterReload };
 })();
 
