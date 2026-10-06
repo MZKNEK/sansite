@@ -987,7 +987,7 @@
   <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=19" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=20" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1733,7 +1733,7 @@
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=5"></script>
+  <script src="../js/admin.js?v=6"></script>
 <?php endif; ?>
 </body>
 
