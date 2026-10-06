@@ -48,7 +48,7 @@
 
 .notice-form h3 {
     margin: 0 0 12px;
-    font: 13px "Share Tech Mono", monospace;
+    font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--accent-light);
@@ -142,7 +142,7 @@
 }
 
 .dt-head b {
-    font: 14px "Share Tech Mono", monospace;
+    font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
     color: #efe2f7;
 }
@@ -524,7 +524,7 @@ a.who-name:hover {
 
 .stats-grid h3 {
     margin: 0 0 8px;
-    font: 13px "Share Tech Mono", monospace;
+    font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--accent-light);
@@ -619,7 +619,7 @@ a.who-name:hover {
     padding: 1px 8px;
     border: 1px solid rgba(155, 89, 182, 0.4);
     color: var(--accent-light);
-    font: 11px/18px "Share Tech Mono", monospace;
+    font: 11px/18px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
 }
 
@@ -731,7 +731,7 @@ a.who-name:hover {
     grid-template-columns: subgrid;
     column-gap: 16px;
     padding-bottom: 4px;
-    font: 10px "Share Tech Mono", monospace;
+    font: 10px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: rgba(220, 221, 222, 0.45);
@@ -1010,6 +1010,11 @@ a.who-name:hover {
     font-size: 13px;
 }
 
+/* the history of one's own profile names nobody: the text takes the column of the name too */
+.history.own-history li {
+    grid-template-columns: 90px 1fr;
+}
+
 .history time {
     font: 12px "JetBrains Mono", Consolas, monospace;
     color: rgba(220, 221, 222, 0.5);
@@ -1160,7 +1165,7 @@ a.who-name:hover {
 
 .diag-title {
     margin: 26px 0 10px;
-    font: 13px "Share Tech Mono", monospace;
+    font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--accent-light);

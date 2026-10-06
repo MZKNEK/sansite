@@ -1,5 +1,5 @@
 /* Commands page, in the Safeguard scanner style of the home page.
-   Fonts: Share Tech Mono for HUD labels (it has no Polish letters),
+   Fonts: Sanakan Mono for HUD labels,
    Lato for text, JetBrains Mono for commands. */
 
 main.content {
@@ -129,14 +129,14 @@ code {
 .module-chips i,
 .module-head i {
     margin-right: 8px;
-    font: normal 0.9em "Share Tech Mono", monospace;
+    font: normal 0.9em "Sanakan Mono", monospace;
     color: var(--accent);
     opacity: 0.8;
 }
 
 .chip-count {
     margin-left: 8px;
-    font: 400 0.9em "Share Tech Mono", monospace;
+    font: 400 0.9em "Sanakan Mono", monospace;
     opacity: 0.55;
 }
 
@@ -199,7 +199,7 @@ code {
     margin-left: 14px;
     padding: 2px 8px;
     border: 1px solid rgba(232, 98, 98, 0.45);
-    font: 11px/16px "Share Tech Mono", monospace;
+    font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
 }
 
@@ -260,7 +260,7 @@ code {
     padding: 0 6px;
     border: 1px solid rgba(35, 165, 90, 0.6);
     color: #3fca7a;
-    font: 10px/16px "Share Tech Mono", monospace;
+    font: 10px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     text-decoration: none;
@@ -307,7 +307,7 @@ code {
     align-items: baseline;
     gap: 4px 14px;
     margin: 0 0 6px;
-    font: 18px "Share Tech Mono", monospace;
+    font: 18px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     color: #efe2f7;
 }
@@ -340,7 +340,7 @@ code {
 }
 
 .change-kind {
-    font: 11px/22px "Share Tech Mono", monospace;
+    font: 11px/22px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
@@ -495,7 +495,7 @@ code {
     border: 1px solid rgba(155, 89, 182, 0.4);
     background: transparent;
     color: rgba(220, 221, 222, 0.6);
-    font: 11px/18px "Share Tech Mono", monospace;
+    font: 11px/18px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     cursor: pointer;

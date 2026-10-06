@@ -269,7 +269,7 @@ body.gbe-shot main.hero {
 .home-account a.home-login {
     padding: 6px 13px;
     color: var(--text);
-    font: 11px/1.5 "Share Tech Mono", monospace;
+    font: 11px/1.5 "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-decoration: none;
     text-transform: uppercase;
@@ -293,7 +293,7 @@ body.gbe-shot main.hero {
     padding: 0 5px;
     background: var(--role);
     color: var(--bg-dark);
-    font: 11px/16px "Share Tech Mono", monospace;
+    font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     white-space: nowrap;
     cursor: default;
@@ -417,7 +417,7 @@ body.gbe-shot main.hero {
     min-width: 230px;
     padding-top: 8px;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-    font: 12px "Share Tech Mono", monospace;
+    font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-align: left;
 }
@@ -609,7 +609,7 @@ body.gbe-shot main.hero {
     gap: 12px;
     max-width: 360px;
     margin: 26px auto 10px;
-    font: 13px "Share Tech Mono", monospace;
+    font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.3em;
     color: var(--accent-light);
 }
@@ -648,7 +648,7 @@ body.gbe-shot main.hero {
 .kana {
     margin: 8px 0 0;
     padding-left: 0.6em;
-    font: 14px "Share Tech Mono", monospace;
+    font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.6em;
     color: var(--accent);
     opacity: 0.7;
@@ -664,7 +664,7 @@ body.gbe-shot main.hero {
     z-index: 1;
     text-align: center;
     white-space: nowrap;
-    font: 11px/1 "Share Tech Mono", monospace;
+    font: 11px/1 "Sanakan Mono", monospace;
     letter-spacing: 0.2em;
     color: rgba(220, 221, 222, 0.18);
     cursor: help;
@@ -813,7 +813,7 @@ a.hud-corners:hover {
     border: 1px solid rgba(155, 89, 182, 0.45);
     border-radius: 3px;
     color: var(--accent-light);
-    font: 13px/20px "Share Tech Mono", monospace;
+    font: 13px/20px "Sanakan Mono", monospace;
     opacity: 0.7;
 }
 
@@ -839,7 +839,7 @@ a.hud-corners:hover {
     display: inline-block;
     padding: 8px 16px;
     color: var(--text);
-    font: 13px/1.5 "Share Tech Mono", monospace;
+    font: 13px/1.5 "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
 }
@@ -848,7 +848,7 @@ a.hud-corners:hover {
     min-width: 170px;
     padding: 12px 20px;
     color: var(--text);
-    font: 15px/1.5 "Share Tech Mono", monospace;
+    font: 15px/1.5 "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
 }
@@ -1127,7 +1127,7 @@ a.hud-corners:hover {
     margin-top: auto;
     padding: 28px 16px 18px;
     text-align: center;
-    font: 11px "Share Tech Mono", monospace;
+    font: 11px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
@@ -1159,7 +1159,7 @@ a.hud-corners:hover {
 
 .prose h2 {
     margin: 32px 0 10px;
-    font: 14px "Share Tech Mono", monospace;
+    font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: #efe2f7;
@@ -1237,7 +1237,7 @@ a.hud-corners:hover {
     max-width: 520px;
     padding: 22px 24px 18px;
     --fill: rgba(20, 12, 26, 0.95);
-    font: 14px "Share Tech Mono", monospace;
+    font: 14px "Sanakan Mono", monospace;
     color: var(--text);
 }
 
@@ -1424,7 +1424,7 @@ a.hud-corners:hover {
     border: 0;
     outline: 0;
     background: none;
-    font: 16px "Share Tech Mono", monospace;
+    font: 16px "Sanakan Mono", monospace;
     color: #fff;
     caret-color: var(--accent-light);
 }

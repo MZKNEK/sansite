@@ -23,7 +23,7 @@
 
 .card h2 i {
     margin-right: 10px;
-    font: normal 0.9em "Share Tech Mono", monospace;
+    font: normal 0.9em "Sanakan Mono", monospace;
     color: var(--accent);
 }
 
@@ -194,7 +194,7 @@
 
 .health-box h3 {
     margin: 0 0 2px;
-    font: 12px "Share Tech Mono", monospace;
+    font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--accent-light);
@@ -292,7 +292,7 @@
 
 .incident-list small {
     margin-left: 8px;
-    font: 11px "Share Tech Mono", monospace;
+    font: 11px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
     color: #8f98ff;
 }

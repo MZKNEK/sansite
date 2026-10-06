@@ -67,8 +67,8 @@
         return $ok;
     }
 
-    // Share Tech Mono has no Polish letters, so it gets only the HUD labels and numbers
-    const OG_MONO = OG_FONTS . 'ShareTechMono-Regular.ttf';
+    // Sanakan Mono (Share Tech Mono with Polish letters) for the HUD labels and numbers
+    const OG_MONO = OG_FONTS . 'SanakanMono-Regular.ttf';
     const OG_BOLD = OG_FONTS . 'Lato-Bold.ttf';
     const OG_REGULAR = OG_FONTS . 'Lato-Regular.ttf';
 

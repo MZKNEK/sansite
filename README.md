@@ -38,8 +38,8 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, the account's roles on the bot's server (asked with the site's key, kept 10 minutes), change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, WebP conversion, search, duplicate check, trash, renaming, rotating, ZIP downloads |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
-| `fonts/`, `css/fonts.css` | The site's fonts (Lato, Share Tech Mono, JetBrains Mono, SIL Open Font License), served from the site instead of Google Fonts, so no visitor's address goes to Google |
-| `inc/fonts/` | Lato and Share Tech Mono (SIL Open Font License) for the preview picture of `/state/` |
+| `fonts/`, `css/fonts.css` | The site's fonts (Lato, Sanakan Mono, JetBrains Mono, SIL Open Font License; Sanakan Mono is Share Tech Mono with the Polish letters it lacks added), served from the site instead of Google Fonts, so no visitor's address goes to Google |
+| `inc/fonts/` | Lato and Sanakan Mono (SIL Open Font License) for the preview picture of `/state/` |
 | `privacy/` | Privacy notice, linked from the footer of every page |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |

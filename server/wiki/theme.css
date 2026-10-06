@@ -42,10 +42,10 @@
 }
 
 @font-face {
-    font-family: "Share Tech Mono";
+    font-family: "Sanakan Mono";
     font-weight: 400;
     font-display: swap;
-    src: url("https://sanakan.pl/fonts/share-tech-mono-400-latin.woff2") format("woff2");
+    src: url("https://sanakan.pl/fonts/sanakan-mono-400.woff2") format("woff2");
 }
 
 @font-face {
@@ -110,7 +110,7 @@
 }
 
 .v-application.v-application .overline {
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Sanakan Mono", monospace !important;
     letter-spacing: 0.2em !important;
 }
 
@@ -157,7 +157,7 @@
 
 .v-application.v-application .nav-header .v-toolbar__title,
 .v-application.v-application .nav-header .subheading {
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Sanakan Mono", monospace !important;
     letter-spacing: 0.16em;
     text-transform: uppercase;
 }
@@ -246,7 +246,7 @@
 }
 
 .v-application.v-application .breadcrumbs-nav .v-btn {
-    font: 12px "Share Tech Mono", monospace !important;
+    font: 12px "Sanakan Mono", monospace !important;
     letter-spacing: 0.14em !important;
     text-transform: uppercase !important;
     color: rgba(220, 221, 222, 0.7) !important;
@@ -414,7 +414,7 @@
 .v-application.theme--dark .v-main .contents h5,
 .v-application.theme--dark .v-main .contents h6 {
     color: rgba(220, 221, 222, 0.6);
-    font-family: "Share Tech Mono", monospace;
+    font-family: "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
@@ -494,7 +494,7 @@
     background-color: rgba(14, 14, 17, 0.9);
     border-bottom: 2px solid rgba(155, 89, 182, 0.6);
     color: var(--san-accent-light);
-    font: 13px "Share Tech Mono", monospace;
+    font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
@@ -551,7 +551,7 @@
 .v-application.v-application .v-footer .caption,
 .v-application.v-application .v-footer a {
     color: rgba(220, 221, 222, 0.35) !important;
-    font: 11px "Share Tech Mono", monospace !important;
+    font: 11px "Sanakan Mono", monospace !important;
     letter-spacing: 0.14em !important;
     text-transform: uppercase;
     text-decoration: none;
@@ -582,7 +582,7 @@
 
 .login-subtitle {
     background-image: none !important;
-    font-family: "Share Tech Mono", monospace !important;
+    font-family: "Sanakan Mono", monospace !important;
     letter-spacing: 0.16em;
     text-transform: uppercase;
 }

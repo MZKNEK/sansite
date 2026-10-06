@@ -1,4 +1,7 @@
 Copyright (c) 2012, Carrois Type Design, Ralph du Carrois (post@carrois.com www.carrois.com), with Reserved Font Name 'Share'
+Sanakan Mono: Share Tech Mono with the Polish letters (ą ć ę ń ś ź ż and the
+capitals) added from its own accents in 2026 for sanakan.pl, under a new name
+as the Reserved Font Name requires.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

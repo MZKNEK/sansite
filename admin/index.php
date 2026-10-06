@@ -983,11 +983,11 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
-  <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=11" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=21" type="text/css" rel="stylesheet" />
+  <link href="../css/fonts.css?v=2" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=33" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=12" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=10" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=22" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
