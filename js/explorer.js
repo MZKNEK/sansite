@@ -237,8 +237,122 @@ window.SanakanGallery = (function () {
     video.load();
   }
 
+  // Zoom of the picture open in the viewer: the wheel zooms towards the pointer,
+  // once zoomed a drag moves it, and a double click goes back to fit. Only the
+  // picture, a film keeps its own controls.
+  var ZOOM_MAX = 8;
+  var zoom = { scale: 1, x: 0, y: 0, baseW: 0, baseH: 0 };
+  var stageEl = document.getElementById('viewer-stage');
+  var panning = null;
+  var panMoved = false;
+
+  // the box the picture is centred in, without the stage's padding
+  function stageBox() {
+    var cs = getComputedStyle(stageEl);
+    var r = stageEl.getBoundingClientRect();
+    var left = parseFloat(cs.paddingLeft);
+    var top = parseFloat(cs.paddingTop);
+    var w = stageEl.clientWidth - left - parseFloat(cs.paddingRight);
+    var h = stageEl.clientHeight - top - parseFloat(cs.paddingBottom);
+
+    return { w: w, h: h, cx: r.left + left + w / 2, cy: r.top + top + h / 2 };
+  }
+
+  function applyZoom() {
+    image.style.transform = 'translate(' + zoom.x + 'px, ' + zoom.y + 'px) scale(' + zoom.scale + ')';
+    viewer.classList.toggle('zoomed', zoom.scale > 1);
+  }
+
+  function resetZoom() {
+    zoom.scale = 1;
+    zoom.x = 0;
+    zoom.y = 0;
+    zoom.baseW = 0;
+    zoom.baseH = 0;
+    image.style.transform = '';
+    viewer.classList.remove('zoomed', 'panning');
+    panning = null;
+  }
+
+  // the size the picture has when it fits, before any zoom
+  function rememberBase() {
+    image.style.transform = '';
+    var r = image.getBoundingClientRect();
+    zoom.baseW = r.width;
+    zoom.baseH = r.height;
+  }
+
+  function clampZoom() {
+    var box = stageBox();
+    var maxX = Math.max(0, (zoom.baseW * zoom.scale - box.w) / 2);
+    var maxY = Math.max(0, (zoom.baseH * zoom.scale - box.h) / 2);
+    zoom.x = Math.max(-maxX, Math.min(maxX, zoom.x));
+    zoom.y = Math.max(-maxY, Math.min(maxY, zoom.y));
+  }
+
+  stageEl.addEventListener('wheel', function (e) {
+    if (image.hidden) return;
+    e.preventDefault();
+    if (!zoom.baseW) rememberBase();
+
+    var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    var next = Math.max(1, Math.min(ZOOM_MAX, zoom.scale * Math.exp(-dy * 0.0015)));
+    if (next === zoom.scale) return;
+
+    // the point under the pointer stays where it is
+    var box = stageBox();
+    var dx = e.clientX - box.cx;
+    var dyy = e.clientY - box.cy;
+    var ratio = next / zoom.scale;
+    zoom.x = dx - ratio * (dx - zoom.x);
+    zoom.y = dyy - ratio * (dyy - zoom.y);
+    zoom.scale = next;
+    if (zoom.scale === 1) { zoom.x = 0; zoom.y = 0; }
+    clampZoom();
+    applyZoom();
+  }, { passive: false });
+
+  // once zoomed, dragging moves the picture; a real drag does not close the viewer
+  stageEl.addEventListener('pointerdown', function (e) {
+    if (zoom.scale <= 1 || e.button !== 0 || e.target.closest('button')) return;
+    panning = { x: e.clientX, y: e.clientY, ox: zoom.x, oy: zoom.y };
+    panMoved = false;
+    try {
+      stageEl.setPointerCapture(e.pointerId);
+    } catch (err) {
+      // no capture, the drag still works
+    }
+    viewer.classList.add('panning');
+  });
+
+  stageEl.addEventListener('pointermove', function (e) {
+    if (!panning) return;
+    if (Math.abs(e.clientX - panning.x) + Math.abs(e.clientY - panning.y) > 3) panMoved = true;
+    zoom.x = panning.ox + (e.clientX - panning.x);
+    zoom.y = panning.oy + (e.clientY - panning.y);
+    clampZoom();
+    applyZoom();
+  });
+
+  function endPan() {
+    if (!panning) return;
+    panning = null;
+    viewer.classList.remove('panning');
+  }
+
+  stageEl.addEventListener('pointerup', endPan);
+  stageEl.addEventListener('pointercancel', endPan);
+
+  // a double click on the picture goes back to fit
+  stageEl.addEventListener('dblclick', function () {
+    if (image.hidden) return;
+    resetZoom();
+    rememberBase();
+  });
+
   function show(tile) {
     current = tile;
+    resetZoom();
     nameEl.textContent = tile.dataset.title;
     detailsEl.textContent = tile.dataset.details;
     openLink.href = tile.getAttribute('href');
@@ -261,6 +375,7 @@ window.SanakanGallery = (function () {
   image.addEventListener('load', function () {
     loading.hidden = true;
     image.hidden = false;
+    if (zoom.scale === 1) rememberBase();
   });
 
   // the player shows as soon as the size is known, so big videos show their controls while loading
@@ -291,6 +406,7 @@ window.SanakanGallery = (function () {
     document.body.classList.remove('viewer-open');
     image.removeAttribute('src');
     stopVideo();
+    resetZoom();
     if (current) current.focus();
   }
 
@@ -316,8 +432,9 @@ window.SanakanGallery = (function () {
   document.getElementById('viewer-prev').addEventListener('click', function () { step(-1); });
   document.getElementById('viewer-next').addEventListener('click', function () { step(1); });
 
-  // a click on the dark background closes the viewer
-  document.getElementById('viewer-stage').addEventListener('click', function (e) {
+  // a click on the dark background closes the viewer, unless it ended a drag
+  stageEl.addEventListener('click', function (e) {
+    if (panMoved) { panMoved = false; return; }
     if (e.target === this) close();
   });
 
