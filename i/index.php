@@ -254,7 +254,7 @@
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
         <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $admin ? array_merge(IMAGE_TYPES, VIDEO_TYPES) : IMAGE_TYPES))?>" hidden />
 <?php if ($admin && canConvertToWebp()): ?>
-        <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, GIF-y jako animowane (gdy serwer ma gif2webp). Gdy WebP nie wyjdzie mniejszy o więcej niż 5%, zostaje oryginał. Filmy zostają bez zmian.">
+        <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, GIF-y jako animowane (gdy serwer ma gif2webp). Gdy WebP nie wyjdzie mniejszy o więcej niż 2%, zostaje oryginał. Filmy zostają bez zmian.">
           <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP
         </label>
 <?php endif; ?>

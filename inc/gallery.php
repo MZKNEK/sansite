@@ -28,8 +28,8 @@
     const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm'];
     // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
-    // how much smaller a WebP has to be to replace the original, 0.05 is 5%
-    const WEBP_MIN_SAVING = 0.05;
+    // how much smaller a WebP has to be to replace the original, 0.02 is 2%
+    const WEBP_MIN_SAVING = 0.02;
     const WEBP_QUALITY = 90;
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
