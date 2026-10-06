@@ -299,9 +299,9 @@
 <?php if (!$searching): ?>
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
         <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $admin ? array_merge(IMAGE_TYPES, VIDEO_TYPES) : IMAGE_TYPES))?>" hidden />
-<?php if ($admin && canConvertToWebp()): ?>
-        <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, GIF-y jako animowane (gdy serwer ma gif2webp). Gdy WebP nie wyjdzie mniejszy o więcej niż 2%, zostaje oryginał. Filmy zostają bez zmian.">
-          <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP
+<?php if ($admin && (canConvertToWebp() || canConvertVideo())): ?>
+        <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia). Gdy nowy plik nie wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%, zostaje oryginał.">
+          <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP/WebM
         </label>
 <?php endif; ?>
         <button type="button" class="admin-btn" id="act-mkdir"<?=$admin ? '' : ' hidden'?>>Nowy folder</button>
@@ -329,7 +329,7 @@
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching && $admin): ?>
-        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Filmy MP4 zapisują się jako WebM, gdy wyjdzie wyraźnie mniejszy. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
         <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> każde zapisują się jako WebP, gdy wychodzi wyraźnie mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>

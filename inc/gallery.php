@@ -24,10 +24,12 @@
     const THUMB_WAIT = 5;
     const THUMBLESS_MAX_BYTES = 1500000;
     const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-    const VIDEO_TYPES = ['webm'];
-    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm'];
+    const VIDEO_TYPES = ['webm', 'mp4'];
+    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm', 'mp4' => 'video/mp4'];
     // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
+    // an MP4 becomes WebM under the same rule as WebP: only when it is smaller
+    const VIDEO_SOURCE_TYPES = ['mp4'];
     // how much smaller a WebP has to be to replace the original, 0.02 is 2%
     const WEBP_MIN_SAVING = 0.02;
     // cwebp at 95 with sharp_yuv keeps lines free of colour noise at about a
@@ -107,6 +109,20 @@
         return strncmp($head, "\x1A\x45\xDF\xA3", 4) === 0 && strpos($head, 'webm') !== false;
     }
 
+    // MP4 (ISO base media): it names its type in the "ftyp" box near the start
+    function isMp4($path)
+    {
+        $head = (string)@file_get_contents($path, false, null, 0, 12);
+
+        return strlen($head) >= 12 && substr($head, 4, 4) === 'ftyp';
+    }
+
+    // the content of an uploaded film matches its extension
+    function isVideoContent($name, $path)
+    {
+        return extensionOf($name) === 'mp4' ? isMp4($path) : isWebm($path);
+    }
+
     function canConvertToWebp()
     {
         return hasGd() && function_exists('imagewebp');
@@ -140,6 +156,12 @@
     function canConvertGifToWebp()
     {
         return findTool('gif2webp') !== null;
+    }
+
+    // a film can be written as WebM when ffmpeg is there
+    function canConvertVideo()
+    {
+        return findTool('ffmpeg') !== null;
     }
 
     // Runs a tool, at most $timeout seconds (a slow conversion must not hang the
@@ -187,6 +209,31 @@
             @unlink($tmp);
 
         return $ok;
+    }
+
+    // an MP4 as WebM, or false; VP9 for size, VP8 where the build has no VP9,
+    // and a long film that does not finish in TOOL_TIMEOUT keeps its original
+    function mp4ToWebm($source, $target)
+    {
+        $ffmpeg = findTool('ffmpeg');
+        if (!$ffmpeg)
+            return false;
+
+        $tmp = $target . '.' . getmypid();
+        $encoders = [
+            ['libvpx-vp9', ['-crf', '33', '-b:v', '0', '-row-mt', '1']],
+            ['libvpx', ['-crf', '12', '-b:v', '1M']]
+        ];
+        foreach ($encoders as $encoder) {
+            @unlink($tmp);
+            $args = array_merge(['-v', 'error', '-y', '-i', $source, '-c:v', $encoder[0]], $encoder[1],
+                ['-deadline', 'realtime', '-cpu-used', '4', '-c:a', 'libopus', '-b:a', '96k', '-f', 'webm', $tmp]);
+            if (runTool($ffmpeg, $args, TOOL_TIMEOUT) && @rename($tmp, $target))
+                return true;
+        }
+        @unlink($tmp);
+
+        return false;
     }
 
     function hasGd()
@@ -2070,7 +2117,7 @@
             reply(false, $name . ': ' . $error, 400);
 
         // the extension alone is not enough, the content has to match it
-        if (isVideo($name) ? !isWebm($file['tmp_name']) : !@getimagesize($file['tmp_name']))
+        if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !@getimagesize($file['tmp_name']))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
 
         // an account with a folder of its own: only pictures, within its limits
@@ -2120,6 +2167,36 @@
                     $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
                     done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
                         'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
+                }
+            }
+        }
+
+        // an MP4 as WebM when "change" is on and the WebM comes out smaller, the
+        // same rule as WebP: the original stays when it does not, or when the
+        // conversion fails or does not finish
+        if (($own || ($_POST['webp'] ?? '') === '1') && in_array(extensionOf($name), VIDEO_SOURCE_TYPES, true)) {
+            if (!canConvertVideo()) {
+                $note = ' Serwer nie umie zamieniać filmów na WebM (brak ffmpeg), zostawiono MP4.';
+            } else {
+                $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webm');
+                $path = $dir[0] . '/' . $target;
+                if (mp4ToWebm($file['tmp_name'], $path)) {
+                    clearstatcache();
+                    if (filesize($path) > $file['size'] * (1 - WEBP_MIN_SAVING)) {
+                        $note = ' WebM nie wyszedłby wyraźnie mniejszy (' . formatSize(filesize($path)) . '), zostawiono MP4.';
+                        @unlink($path);
+                    } else {
+                        @chmod($path, 0644);
+                        if ($own)
+                            checkUserTotal($dir[0], $path, $name);
+                        recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
+                        $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
+                        done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
+                            'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
+                    }
+                } else {
+                    @unlink($path);
+                    $note = ' Nie udało się zamienić na WebM, zostawiono MP4.';
                 }
             }
         }
