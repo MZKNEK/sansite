@@ -2,7 +2,11 @@
 # Puts the committed site on the server over SSH. Only files tracked by git go
 # out, so inc/config.php, inc/data/ and the pictures in i/ are never sent or
 # replaced. Files deleted from the repository since the last deploy are deleted
-# on the server too. Run it from Git Bash or any shell with ssh and tar:
+# on the server too. The nginx rules (server/nginx/ and server/wiki/nginx-og.conf),
+# which git archive leaves out, are sent on their own when they changed since the
+# last deploy, then nginx -t runs and nginx reloads; a configuration that does
+# not pass is rolled back and the deploy stops. Run it from Git Bash or any shell
+# with ssh and tar:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
 # sanakan.pl goes through Cloudflare, which lets no SSH through, so the target
@@ -14,6 +18,17 @@ set -euo pipefail
 target=${1:?"Użycie: ./deploy.sh użytkownik@serwer [folder strony, domyślnie /var/www/html]"}
 root=${2:-/var/www/html}
 cd "$(dirname "$0")"
+
+# where a file of server/ goes on the server; the wiki's theme and assets are
+# pasted by hand and have no place here, so they are not among the rules sent
+nginx_dest() {
+    case "$1" in
+        server/nginx/sanakan-log.conf) echo "/etc/nginx/conf.d/$(basename "$1")" ;;
+        server/nginx/*)                echo "/etc/nginx/snippets/$(basename "$1")" ;;
+        server/wiki/nginx-og.conf)     echo "/etc/nginx/snippets/$(basename "$1")" ;;
+        *)                             return 1 ;;
+    esac
+}
 
 # only HEAD is sent, so work that is not committed would silently stay behind
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
@@ -42,6 +57,82 @@ if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
     fi
 elif [ -n "$previous" ]; then
     echo "Poprzednio wdrożonego commita $previous nie ma w tym repozytorium, usuniętych plików nie sprawdzam."
+fi
+
+# The nginx rules are not part of the site's files (server/ is export-ignored),
+# so they go on their own when they changed since the last deploy: to their
+# place, then nginx -t; a configuration that does not pass is rolled back and
+# the deploy stops, so a broken file never stays behind.
+if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
+    changed_config=$(git diff --name-only --diff-filter=ACMR "$previous" HEAD -- server/nginx/ server/wiki/nginx-og.conf)
+else
+    # no marker yet (the first deploy): send them, it is harmless
+    changed_config=$(git ls-files -- server/nginx/ server/wiki/nginx-og.conf)
+fi
+
+if [ -n "$changed_config" ]; then
+    echo "Zmienione reguły nginx, wysyłam:"
+    config_files=()
+    config_dests=()
+    while IFS= read -r file; do
+        [ -n "$file" ] || continue
+        if dest=$(nginx_dest "$file"); then
+            config_files+=("$file")
+            config_dests+=("$dest")
+            echo "  $file -> $dest"
+        else
+            echo "  $file (pomijam, nie ma dla niego miejsca)"
+        fi
+    done <<< "$changed_config"
+
+    if [ ${#config_files[@]} -gt 0 ]; then
+        # each file goes next to its place under a temporary name, so the whole
+        # configuration can be tested before anything is replaced
+        i=0
+        while [ $i -lt ${#config_files[@]} ]; do
+            scp -q "${config_files[$i]}" "$target:${config_dests[$i]}.sanakan-new"
+            i=$((i + 1))
+        done
+
+        ssh "$target" "bash -s -- $(printf '%q ' "${config_dests[@]}")" <<'REMOTE'
+set -euo pipefail
+
+# puts the old files back (or removes the new ones) after a configuration that
+# does not pass
+restore() {
+    for dest in "$@"; do
+        if [ -f "$dest.sanakan-bak" ]; then
+            mv -f "$dest.sanakan-bak" "$dest"
+        else
+            rm -f "$dest"
+        fi
+        rm -f "$dest.sanakan-new"
+    done
+}
+
+for dest in "$@"; do
+    if [ -e "$dest" ]; then
+        cp -a "$dest" "$dest.sanakan-bak"
+    fi
+    mv -f "$dest.sanakan-new" "$dest"
+done
+
+if ! nginx -t; then
+    echo "nginx -t nie przeszło, przywracam poprzednią konfigurację." >&2
+    restore "$@"
+    exit 1
+fi
+
+if ! systemctl reload nginx; then
+    echo "Nie udało się przeładować nginx." >&2
+    exit 1
+fi
+for dest in "$@"; do
+    rm -f "$dest.sanakan-bak"
+done
+echo "Reguły nginx wgrane i przeładowane."
+REMOTE
+    fi
 fi
 
 # the marker, and for the panel the commit's date and subject

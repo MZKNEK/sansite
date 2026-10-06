@@ -98,6 +98,8 @@ scp server/nginx/sanakan-log.conf sanakan:/etc/nginx/conf.d/
 ssh sanakan 'nginx -t && systemctl reload nginx'
 ```
 
+The first time, or by hand. Later changes to these files are sent by `deploy.sh` when it sees them changed since the previous deploy, and it runs `nginx -t` and reloads for you (rolling the files back and stopping when the test fails).
+
 `/fpm-status` in `sanakan.conf` goes to `unix:/run/php/php8.1-fpm.sock`, the socket of Ubuntu's PHP 8.1; where the site's PHP location uses another one, change it there too.
 
 ### Wiki
@@ -233,7 +235,7 @@ With an SSH key (`ssh-keygen -t ed25519`, the `.pub` line added to `/root/.ssh/a
 ./deploy.sh sanakan
 ```
 
-`deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. It leaves the commit with its date and subject in `inc/data/deployed-info`, which the panel shows. The site goes to `/var/www/html` unless another folder is given as the second argument.
+`deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. It leaves the commit with its date and subject in `inc/data/deployed-info`, which the panel shows. The nginx rules (`server/nginx/` and `server/wiki/nginx-og.conf`) are not part of the site's files, so it sends them on their own when they changed since the previous deploy: each to its place under a temporary name, then `nginx -t`; a configuration that does not pass is rolled back and the deploy stops, so a broken file never stays behind. The wiki's theme, head and assets are still pasted by hand (see Wiki). The site goes to `/var/www/html` unless another folder is given as the second argument.
 
 ## Running locally
 
