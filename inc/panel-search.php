@@ -110,7 +110,7 @@
 <?php endif; ?>
 <?php if ($s['accounts']): ?>
         <h3 class="diag-title">Konta <span class="muted"><?=count($s['accounts'])?></span></h3>
-        <div class="logins">
+        <div class="logins logins-search">
 <?php foreach ($s['accounts'] as $id => $why): $id = (string)$id; $badge = roleBadge($knownRoles[$id]['roles'] ?? null); ?>
           <div class="login-row">
             <span class="login-who"><?=accountCell($id, $s['logins'])?></span>

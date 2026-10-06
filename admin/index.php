@@ -544,7 +544,7 @@
                 $shares = readData('shares');
                 if (!isset($shares[$token]['rel']))
                     reply(false, 'Tego linku już nie ma, odśwież stronę.', 404);
-                $rel = $shares[$token]['rel'];
+                $rel = (resolvePath($galleryDir, $shares[$token]['rel'], true) ?? [null, $shares[$token]['rel']])[1];
                 unset($shares[$token]);
                 if (!writeData('shares', $shares))
                     reply(false, dataError(), 500);
@@ -856,13 +856,83 @@
     $csrf = $user ? siteCsrf() : '';
     $root = siteRoot();
 
-    // a place an account may open, as a small icon with its name in the title;
-    // $strong marks more than looking, e.g. a gallery admin
-    function accessIcon($icon, $title, $strong = false)
+    // the columns of the recent logins: what an account may do on this site
+    const ACCESS_COLUMNS = ['gallery' => 'Galeria', 'folder' => 'Folder', 'panel' => 'Panel', 'api' => 'API'];
+
+    // where an account has a right of a list from: "inc/config.php", "panel,
+    // 05.10.2026, nadał(a) Sniku: „note”"
+    function accessFrom($list, $id, $logins)
     {
-        return '<i class="access' . ($strong ? ' strong' : '') . '" title="' . e($title) . '">'
-            . '<svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true">' . ACCOUNT_ICONS[$icon] . '</svg>'
-            . '<span class="visually-hidden">' . e($title) . '</span></i>';
+        $config = configList(ACCESS_LISTS[$list]);
+        if ($config === true)
+            return 'każdy zalogowany (inc/config.php)';
+        if (in_array($id, $config, true))
+            return 'inc/config.php';
+        $entry = panelList($list)[$id] ?? null;
+        if ($entry === null)
+            return '';
+
+        return 'panel' . (!empty($entry['added']) ? ', ' . date('d.m.Y', $entry['added']) : '')
+            . (!empty($entry['by']) ? ', nadał(a) ' . ($logins[$entry['by']]['name'] ?? $entry['by']) : '')
+            . (($entry['note'] ?? '') !== '' ? ': „' . $entry['note'] . '”' : '');
+    }
+
+    // What an account may do, for its row of the recent logins: [cells, details].
+    // A cell per ACCESS_COLUMNS as [text, level ('strong': does more than look,
+    // 'on', '' for nothing), title]; the details, shown when the row is opened,
+    // as [label, text], where each right comes from.
+    function accessColumns($id, $logins, $galleryDir, $serverRoles)
+    {
+        $cells = [];
+        $details = [];
+        $join = function ($what, $from) { return $what . ($from !== '' ? ' (' . $from . ')' : ''); };
+
+        if (isGalleryAdminId($id)) {
+            $cells['gallery'] = ['zarządza', 'strong', 'Admin galerii: ogląda i zarządza plikami'];
+            $details[] = ['Galeria', $join('zarządza', accessFrom('galleryAdmins', $id, $logins))];
+        } else if (canViewGalleryId($id)) {
+            $cells['gallery'] = ['ogląda', 'on', 'Ogląda galerię'];
+            $details[] = ['Galeria', $join('ogląda', accessFrom('galleryViewers', $id, $logins))];
+        } else {
+            $cells['gallery'] = ['—', '', 'Nie widzi galerii'];
+        }
+
+        $folder = userFolder($galleryDir, $id);
+        [$files, $bytes] = $folder !== null ? folderUse($galleryDir . '/' . $folder) : [0, 0];
+        if (isGalleryUploaderId($id)) {
+            $limit = userFilesLimit($id);
+            $use = $files . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', ' . formatSize($bytes) . ' z ' . formatSize(USER_TOTAL_MAX_BYTES);
+            $cells['folder'] = [$files . '/' . $limit, 'on', 'Własny folder: ' . $use];
+            $details[] = ['Własny folder', $join(($folder !== null ? displayPath($folder) . ', ' : 'jeszcze nie założony, ') . $use, accessFrom('galleryUploaders', $id, $logins))];
+        } else if ($folder !== null) {
+            $cells['folder'] = ['zostaje', '', 'Dostęp odebrany, folder został: ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików')];
+            $details[] = ['Własny folder', displayPath($folder) . ' został po odebraniu dostępu, ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików')];
+        } else {
+            $cells['folder'] = ['—', '', 'Bez własnego folderu'];
+        }
+
+        if (isPanelAdminId($id)) {
+            $cells['panel'] = ['tak', 'strong', 'Panel administratora'];
+            $details[] = ['Panel', 'tak (inc/config.php, PANEL_ADMINS)'];
+        } else {
+            $cells['panel'] = ['—', '', 'Bez panelu'];
+        }
+
+        if (isPanelAdminId($id)) {
+            $cells['api'] = ['przez panel', 'on', 'Dokumentacja API, jak dla każdego z panelu'];
+        } else if (inAccessList('apiViewers', $id, true)) {
+            $cells['api'] = ['z listy', 'on', 'Dokumentacja API z listy dostępu'];
+            $details[] = ['API', $join('z listy', accessFrom('apiViewers', $id, $logins))];
+        } else if (hasBotRole($id, API_ROLES)) {
+            $cells['api'] = ['przez rolę', 'on', 'Dokumentacja API przez rolę na serwerze bota'];
+            $details[] = ['API', 'przez rolę na serwerze bota'];
+        } else {
+            $cells['api'] = ['—', '', 'Bez dokumentacji API'];
+        }
+
+        $details[] = ['Role na serwerze bota', $serverRoles === null ? 'nieznane (bot jeszcze nie pytany)' : (roleNames($serverRoles) ? implode(', ', roleNames($serverRoles)) : (empty($serverRoles['onGuild']) ? 'poza serwerem' : 'brak'))];
+
+        return [$cells, $details];
     }
 
     // avatar and name of an account, from its latest login when there was one
@@ -892,7 +962,7 @@
   <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=18" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=19" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1105,56 +1175,63 @@
 
       <section class="card wide">
         <h2><i><?=sprintf('%02d', $number++)?></i>Ostatnie logowania</h2>
-        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowy poziom to najwyższa rola na serwerze bota (wszystkie w dymku), odświeżana, gdy konto odwiedza stronę; galerii nie daje. Ikony to dostępy na stronie: galeria (jasna: admin galerii), panel i API.</p>
+        <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowy poziom to najwyższa rola na serwerze bota (wszystkie w dymku), odświeżana, gdy konto odwiedza stronę; galerii nie daje. Kolumny to dostępy na stronie, jaśniejsze mocniejsze; strzałka na końcu wiersza pokazuje, skąd są, i przyciski do nadania nowych.</p>
 <?php if (!$logins): ?>
         <p class="nobody">Nikt się jeszcze nie logował.</p>
 <?php else: ?>
+        <p class="logins-all"><button type="button" class="admin-btn small" id="logins-toggle" aria-expanded="false">Rozwiń wszystkie</button></p>
         <div class="logins">
+          <div class="login-head" aria-hidden="true">
+            <span>Konto</span><span>Ostatnio</span><span>Rola</span>
+<?php foreach (ACCESS_COLUMNS as $label): ?>
+            <span><?=e($label)?></span>
+<?php endforeach; ?>
+            <span></span>
+          </div>
 <?php foreach ($logins as $id => $login):
         $id = (string)$id;
         // the highest role on the bot's server, the others in its title
         $serverRoles = $knownRoles[$id]['roles'] ?? null;
         $badge = roleBadge($serverRoles);
-        // what it may open on this site, as icons
-        $access = [];
-        if (isGalleryAdminId($id))
-            $access[] = accessIcon('gallery', 'Admin galerii: ogląda i zarządza plikami', true);
-        else if (canViewGalleryId($id))
-            $access[] = accessIcon('gallery', 'Ogląda galerię' . (isGalleryUploaderId($id) ? ' i ma własny folder' : ''));
-        else if (isGalleryUploaderId($id))
-            $access[] = accessIcon('gallery', 'Własny folder w galerii');
-        if (isPanelAdminId($id))
-            $access[] = accessIcon('panel', 'Panel administratora');
-        if (canViewApiId($id))
-            $access[] = accessIcon('api', 'Dokumentacja API' . (!isPanelAdminId($id) && !inAccessList('apiViewers', $id, true) ? ' (przez rolę na serwerze)' : ''));
+        [$cells, $details] = accessColumns($id, $logins, $galleryDir, $serverRoles);
 ?>
           <div class="login-row">
             <span class="login-who"><?=accountCell($id, $logins)?></span>
             <span class="login-when"><?=e(ago($login['last'] ?? 0))?> &middot; <?=(int)($login['count'] ?? 0)?>&times;</span>
-            <span class="login-roles">
+            <span class="login-lv">
 <?php if ($badge): ?>
               <span class="lv role-<?=e($badge['key'])?>" title="<?=e(roleNames($serverRoles) ? 'Role na serwerze Sanakana: ' . implode(', ', roleNames($serverRoles)) : $badge['title'])?>">LV.<?=$badge['level']?> <?=e($badge['name'])?></span>
 <?php endif; ?>
-<?php if ($access): ?>
-              <span class="access-icons"><?=implode('', $access)?></span>
-<?php else: ?>
-              <span class="role none">bez dostępu</span>
-<?php endif; ?>
             </span>
-            <span class="login-actions">
+<?php foreach (ACCESS_COLUMNS as $column => $label): [$text, $level, $title] = $cells[$column]; ?>
+            <span class="access-cell<?=$level !== '' ? ' ' . $level : ''?>" data-column="<?=e($label)?>" title="<?=e($title)?>"><?=e($text)?></span>
+<?php endforeach; ?>
+            <button type="button" class="login-more" aria-expanded="false" title="Skąd te uprawnienia i nadawanie nowych">
+              <svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true"><?=ACCOUNT_ICONS['caret']?></svg><span class="visually-hidden">Szczegóły</span>
+            </button>
+            <div class="login-details" hidden>
+              <dl class="server">
+<?php foreach ($details as [$label, $text]): ?>
+                <dt><?=e($label)?></dt>
+                <dd><?=e($text)?></dd>
+<?php endforeach; ?>
+              </dl>
+              <div class="login-actions">
 <?php if (!canViewGalleryId($id)): ?>
-              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
+                <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
 <?php endif; ?>
 <?php if (!isGalleryAdminId($id) && !isGalleryUploaderId($id)): ?>
-              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>">+ Własny folder</button>
+                <button type="button" class="admin-btn small" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>">+ Własny folder</button>
 <?php endif; ?>
 <?php if (!isGalleryAdminId($id)): ?>
-              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
+                <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
 <?php endif; ?>
 <?php if (!canViewApiId($id)): ?>
-              <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ API</button>
+                <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ API</button>
 <?php endif; ?>
-            </span>
+                <a class="admin-btn small" href="?konto=<?=e($id)?>">Profil konta, odbieranie</a>
+              </div>
+            </div>
           </div>
 <?php endforeach; ?>
         </div>
@@ -1199,15 +1276,15 @@
         <p class="nobody">Żaden folder nie jest udostępniony.</p>
 <?php else: ?>
         <div class="trash">
-<?php foreach ($shares as $token => $share): $shareUrl = SITE_URL . $root . 'i/?s=' . $token; ?>
+<?php foreach ($shares as $token => $share): $shareUrl = SITE_URL . $root . 'i/?s=' . $token; $shared = resolvePath($galleryDir, $share['rel'], true); ?>
           <div class="trash-row">
             <span class="trash-name">
-              <a href="<?=e($root . 'i/' . folderUrl($share['rel']))?>"><b><?=e(galleryPath($share['rel']))?></b></a>
+              <a href="<?=e($root . 'i/' . folderUrl($shared[1] ?? $share['rel']))?>"><b><?=e(displayPath($shared[1] ?? $share['rel']))?></b></a>
               <code class="share-link"><?=e($shareUrl)?></code>
             </span>
-            <span class="trash-info">od <?=e(ago($share['created']))?><?=($share['name'] ?? '') !== '' ? ', ' . e($share['name']) : ''?> &middot; <?=$share['expires'] === null ? 'bez końca' : 'do ' . e(date('d.m.Y H:i', $share['expires']))?><?=resolvePath($galleryDir, $share['rel'], true) ? '' : ' &middot; <b class="warn">folderu już nie ma</b>'?></span>
+            <span class="trash-info">od <?=e(ago($share['created']))?><?=($share['name'] ?? '') !== '' ? ', ' . e($share['name']) : ''?> &middot; <?=$share['expires'] === null ? 'bez końca' : 'do ' . e(date('d.m.Y H:i', $share['expires']))?><?=$shared ? '' : ' &middot; <b class="warn">folderu już nie ma</b>'?></span>
             <span class="login-actions">
-              <button type="button" class="admin-btn small danger" data-action="share-revoke" data-token="<?=e($token)?>" data-confirm="<?=e('Wyłączyć link do ' . galleryPath($share['rel']) . '? Kto go ma, przestanie widzieć folder.')?>">Wyłącz</button>
+              <button type="button" class="admin-btn small danger" data-action="share-revoke" data-token="<?=e($token)?>" data-confirm="<?=e('Wyłączyć link do ' . displayPath($shared[1] ?? $share['rel']) . '? Kto go ma, przestanie widzieć folder.')?>">Wyłącz</button>
             </span>
           </div>
 <?php endforeach; ?>
@@ -1624,7 +1701,7 @@
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=4"></script>
+  <script src="../js/admin.js?v=5"></script>
 <?php endif; ?>
 </body>
 

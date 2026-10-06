@@ -635,32 +635,36 @@ a.who-name:hover {
 }
 
 /* the recent logins: the highest role as a level, as tall as the chips */
-.login-roles .lv {
+.login-roles .lv,
+.login-lv .lv {
     line-height: 20px;
     cursor: help;
 }
 
-/* and the places on this site as icons; a strong one does more than look */
-.access-icons {
-    display: inline-flex;
-    gap: 4px;
-}
-
-.access {
-    display: inline-flex;
+/* and a column per place on this site; a strong one does more than look */
+.access-cell {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 20px;
-    border: 1px solid rgba(155, 89, 182, 0.4);
-    color: var(--accent-light);
+    height: 22px;
+    padding: 0 8px;
+    border-left: 2px solid rgba(220, 221, 222, 0.12);
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.35);
+    white-space: nowrap;
     cursor: help;
 }
 
-.access.strong {
-    border-color: var(--accent-light);
-    background: rgba(155, 89, 182, 0.22);
+.access-cell.on {
+    border-left-color: var(--accent-light);
+    background: rgba(155, 89, 182, 0.08);
+    color: #e6dcef;
+}
+
+.access-cell.strong {
+    border-left-color: #fff;
+    background: rgba(155, 89, 182, 0.25);
     color: #fff;
+    font-weight: 700;
 }
 
 .visually-hidden {
@@ -709,10 +713,88 @@ a.who-name:hover {
 
 /* Recent logins */
 /* one grid for all rows (subgrid), so the columns line up whatever the
-   roles and buttons of a row */
+   roles and rights of a row: the account, when, its role, the four places of
+   ACCESS_COLUMNS, the button that opens the row */
 .logins {
     display: grid;
+    grid-template-columns: minmax(180px, 1.3fr) max-content max-content repeat(4, minmax(84px, max-content)) auto;
+}
+
+/* the accounts found by the search of the panel: who, why, role, profile */
+.logins-search {
     grid-template-columns: minmax(180px, 1.3fr) max-content minmax(160px, 2fr) max-content;
+}
+
+.login-head {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    column-gap: 16px;
+    padding-bottom: 4px;
+    font: 10px "Share Tech Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.login-head span:nth-child(n + 4) {
+    padding-left: 10px;
+}
+
+.login-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: transparent;
+    color: var(--accent-light);
+    cursor: pointer;
+}
+
+.login-more:hover,
+.login-more[aria-expanded="true"] {
+    background: rgba(155, 89, 182, 0.18);
+}
+
+.login-more .account-icon {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.15s;
+}
+
+.login-more[aria-expanded="true"] .account-icon {
+    transform: rotate(180deg);
+}
+
+/* an opened row: where its rights come from and the buttons to give more */
+.login-details {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px 24px;
+    padding: 8px 12px 4px;
+    border-left: 2px solid rgba(155, 89, 182, 0.4);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.login-details[hidden] {
+    display: none;
+}
+
+.login-details .server {
+    flex: 1 1 360px;
+    margin: 0;
+    font-size: 13px;
+}
+
+.logins-all {
+    margin: 0 0 6px;
+    text-align: right;
 }
 
 .login-row {
@@ -738,6 +820,7 @@ a.who-name:hover {
 }
 
 .login-roles,
+.login-lv,
 .login-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1215,10 +1298,48 @@ a.who-name:hover {
         grid-template-columns: 1fr;
     }
 
-    .logins,
-    .login-row,
     .trash-row {
         grid-template-columns: 1fr;
+    }
+
+    /* the four places two by two, each with its name */
+    .logins,
+    .login-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .access-cell {
+        min-width: 0;
+        height: auto;
+        min-height: 22px;
+        white-space: normal;
+    }
+
+    .login-who,
+    .login-when,
+    .login-lv,
+    .login-details {
+        grid-column: 1 / -1;
+    }
+
+    .login-head {
+        display: none;
+    }
+
+    .logins-search,
+    .logins-search .login-row {
+        grid-template-columns: 1fr;
+    }
+
+    .access-cell::before {
+        content: attr(data-column) "\00a0";
+        color: rgba(220, 221, 222, 0.45);
+        font-weight: 400;
+    }
+
+    .login-more {
+        grid-column: 1 / -1;
+        width: 100%;
     }
 
     .history li,

@@ -280,6 +280,32 @@
     }
   }
 
+  // ---- The recent logins ----------------------------------------------------------
+  // A row opens to where its rights come from and the buttons to give more;
+  // the button above opens or closes them all.
+  var loginButtons = Array.prototype.slice.call(document.querySelectorAll('.login-more'));
+  var openAll = document.getElementById('logins-toggle');
+
+  function openLogin(button, open) {
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    button.parentNode.querySelector('.login-details').hidden = !open;
+  }
+
+  loginButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      openLogin(button, button.getAttribute('aria-expanded') !== 'true');
+    });
+  });
+
+  if (openAll) {
+    openAll.addEventListener('click', function () {
+      var open = openAll.getAttribute('aria-expanded') !== 'true';
+      loginButtons.forEach(function (button) { openLogin(button, open); });
+      openAll.setAttribute('aria-expanded', open ? 'true' : 'false');
+      openAll.textContent = open ? 'Zwiń wszystkie' : 'Rozwiń wszystkie';
+    });
+  }
+
   // buttons: the action is in data-action, its fields in the other data-* attributes
   // (data-confirm asks first)
   document.querySelectorAll('button[data-action]').forEach(function (button) {

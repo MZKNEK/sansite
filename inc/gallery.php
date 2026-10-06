@@ -754,16 +754,23 @@
         if ($user === null || !isGalleryUploaderId($user['id']))
             return $known[$base] = null;
 
+        // the nick only as far as a name in the gallery may have it
+        $nick = ltrim(trim(cutText(preg_replace('/[\/\\\\:*?"<>|\x00-\x1F]+/', '', (string)($user['name'] ?? '')), 40)), '.');
+        $named = USERS_DIR . '/' . $user['id'] . ($nick !== '' ? '-' . $nick : '');
         $rel = userFolder($base, $user['id']);
         if ($rel === null) {
-            // the nick only as far as a name in the gallery may have it
-            $nick = trim(cutText(preg_replace('/[\/\\\\:*?"<>|\x00-\x1F]+/', '', (string)($user['name'] ?? '')), 40));
-            $rel = USERS_DIR . '/' . $user['id'] . (ltrim($nick, '.') !== '' ? '-' . ltrim($nick, '.') : '');
             if (!is_dir($base . '/' . USERS_DIR))
                 @mkdir($base . '/' . USERS_DIR, 0755);
-            if (!@mkdir($base . '/' . $rel, 0755) && !is_dir($base . '/' . $rel))
+            if (!@mkdir($base . '/' . $named, 0755) && !is_dir($base . '/' . $named))
                 return $known[$base] = null;
-            addHistory('mkdir', 'Utworzono własny folder ' . galleryPath($rel) . '.');
+            addHistory('mkdir', 'Utworzono własny folder ' . galleryPath($named) . '.');
+            $rel = $named;
+        } else if ($rel !== $named && !file_exists($base . '/' . $named) && @rename($base . '/' . $rel, $base . '/' . $named)) {
+            // the account changed its nick on Discord: the folder follows, its links
+            // stay as they go by the ID
+            moveHashes($rel, $named);
+            addHistory('rename', 'Własny folder ' . galleryPath($rel) . ' nazywa się teraz ' . basename($named) . ' (nowy nick).');
+            $rel = $named;
         }
 
         return $known[$base] = $rel;
@@ -799,7 +806,8 @@
 
     // ---- Shared links ---------------------------------------------------------------
     // inc/data/shares.json: [token => ['rel', 'by' (id), 'name' (whose), 'created',
-    // 'expires' (null: until taken back)]]. Opening the link (i/?s=token) puts
+    // 'expires' (null: until taken back)]]; 'rel' as links have it, so the
+    // folder of an account stays shared when its name follows a new nick. Opening the link (i/?s=token) puts
     // its token in the visitor's session, so the folder's pages, thumbnails and
     // ZIP open without a login.
 
@@ -816,7 +824,7 @@
     {
         $shares = activeShares();
         $token = bin2hex(random_bytes(12));
-        $shares[$token] = ['rel' => $rel, 'by' => $user['id'], 'name' => $user['name'], 'created' => time(),
+        $shares[$token] = ['rel' => publicRel($rel), 'by' => $user['id'], 'name' => $user['name'], 'created' => time(),
             'expires' => $days > 0 ? time() + $days * 86400 : null];
 
         return writeData('shares', $shares) ? $token : null;
@@ -835,8 +843,8 @@
         $shares = activeShares();
         $folders = [];
         foreach ((array)($_SESSION['gallery_shares'] ?? []) as $token)
-            if (isset($shares[$token]) && resolvePath($base, $shares[$token]['rel'], true))
-                $folders[] = $shares[$token]['rel'];
+            if (isset($shares[$token]) && ($folder = resolvePath($base, $shares[$token]['rel'], true)))
+                $folders[] = $folder[1];
 
         return $known[$base] = array_values(array_unique($folders));
     }
@@ -845,13 +853,14 @@
     function openShare($base, $token)
     {
         $share = activeShares()[(string)$token] ?? null;
-        if ($share === null || !resolvePath($base, $share['rel'], true))
+        $folder = $share === null ? null : resolvePath($base, $share['rel'], true);
+        if ($folder === null)
             return null;
 
         siteSession();
         $_SESSION['gallery_shares'] = array_values(array_unique(array_merge((array)($_SESSION['gallery_shares'] ?? []), [(string)$token])));
 
-        return $share['rel'];
+        return $folder[1];
     }
 
     // ---- Changes ------------------------------------------------------------
@@ -1210,8 +1219,28 @@
     function displayName($rel)
     {
         $name = basename($rel);
+        if (dirname($rel) !== USERS_DIR || !preg_match('/^(\d+)-?(.*)$/', $name, $match))
+            return $name;
 
-        return dirname($rel) === USERS_DIR ? (preg_replace('/^\d+-?/', '', $name) ?: 'bez nicku') : $name;
+        // two accounts with one nick are told apart by the end of their IDs
+        $nick = $match[2] !== '' ? $match[2] : 'bez nicku';
+        return (userNicks()[lower($nick)] ?? 0) > 1 ? $nick . ' #' . substr($match[1], -4) : $nick;
+    }
+
+    // how many folders of accounts have each nick, by the nick in lower case
+    function userNicks()
+    {
+        static $nicks = null;
+        if ($nicks === null) {
+            $nicks = [];
+            foreach (@scandir(str_replace('\\', '/', dirname(__DIR__)) . '/i/' . USERS_DIR) ?: [] as $name)
+                if (preg_match('/^\d+-?(.*)$/', $name, $match)) {
+                    $nick = lower($match[1] !== '' ? $match[1] : 'bez nicku');
+                    $nicks[$nick] = ($nicks[$nick] ?? 0) + 1;
+                }
+        }
+
+        return $nicks;
     }
 
     // a path as the gallery shows it, "i/users/Sniku/a.webp"; galleryPath()
