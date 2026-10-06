@@ -927,6 +927,15 @@ a.who-name:hover {
     color: rgba(220, 221, 222, 0.55);
 }
 
+/* a long trash scrolls in its card, as the history does */
+.trash-list {
+    max-height: 520px;
+    padding-right: 6px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+}
+
 .trash-all {
     margin: 14px 0 0;
     text-align: right;

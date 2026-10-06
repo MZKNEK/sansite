@@ -18,6 +18,7 @@
     }).then(function (result) {
       if (result.ok) {
         gallery.flashAfterReload(result.message);
+        keepScrolls();
         location.reload();
       } else {
         gallery.toast(result.message, true);
@@ -27,6 +28,33 @@
       gallery.toast('Serwer nie odpowiedział poprawnie.', true);
       controls.forEach(function (control) { control.disabled = false; });
     });
+  }
+
+  // A list that scrolls in its card (data-keep-scroll, e.g. the trash) is
+  // where it was after the reload of a change; the browser keeps only the page
+  var SCROLLS_KEY = 'panel-scrolls';
+
+  function keepScrolls() {
+    var tops = {};
+    document.querySelectorAll('[data-keep-scroll]').forEach(function (el) {
+      tops[el.id] = el.scrollTop;
+    });
+    try {
+      sessionStorage.setItem(SCROLLS_KEY, JSON.stringify(tops));
+    } catch (err) {
+      // the lists start at the top then
+    }
+  }
+
+  try {
+    var tops = JSON.parse(sessionStorage.getItem(SCROLLS_KEY) || '{}');
+    sessionStorage.removeItem(SCROLLS_KEY);
+    Object.keys(tops).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.scrollTop = tops[id];
+    });
+  } catch (err) {
+    // nothing kept
   }
 
   // ---- Date and time in the Polish way -------------------------------------------

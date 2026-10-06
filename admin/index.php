@@ -985,9 +985,9 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=11" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=20" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=21" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1273,7 +1273,7 @@
 <?php if (!$trash): ?>
         <p class="nobody">Kosz jest pusty.</p>
 <?php else: ?>
-        <div class="trash">
+        <div class="trash trash-list" id="trash-list" data-keep-scroll>
 <?php foreach ($trash as $id => $item):
         $daysLeft = max(0, (int)ceil((($item['deleted'] ?? 0) + TRASH_DAYS * 86400 - time()) / 86400));
         $kind = !empty($item['folder']) ? 'folder' : (isImage($item['name']) ? 'image' : (isVideo($item['name']) ? 'video' : null));
@@ -1732,11 +1732,11 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=9"></script>
+  <script src="../js/explorer.js?v=10"></script>
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=6"></script>
+  <script src="../js/admin.js?v=7"></script>
 <?php endif; ?>
 </body>
 
