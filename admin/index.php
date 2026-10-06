@@ -1660,6 +1660,9 @@
           <dt>Miniatury (GD)</dt>
           <dd><?=hasGd() ? 'włączone' . (function_exists('imagewebp') ? ', WebP' : ', PNG') : '<b class="warn">GD wyłączone</b>: duże pliki nie mają podglądów'?></dd>
 
+          <dt>PNG/JPG → WebP</dt>
+          <dd><?=!canConvertToWebp() ? '<b class="warn">GD nie zapisuje WebP</b>: obrazy zostają w swoim formacie' : (findTool('cwebp') ? 'cwebp: ' . e(findTool('cwebp')) : '<b class="warn">brak cwebp</b>: zapisuje GD, z szumem kolorów przy liniach. Instalacja: <code>apt-get install -y webp</code>')?></dd>
+
           <dt>GIF → WebP</dt>
           <dd><?=canConvertGifToWebp() ? 'gif2webp: ' . e(findTool('gif2webp')) . (findTool('webpmux') ? '' : ' <b class="warn">(bez webpmux miniatury animowanych WebP się nie zrobią)</b>') : '<b class="warn">brak gif2webp</b>: GIF-y zostają GIF-ami. Instalacja: <code>apt-get install -y webp</code>'?></dd>
 

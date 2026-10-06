@@ -63,8 +63,8 @@ The site runs on nginx with PHP-FPM, currently Ubuntu with PHP 8.1. Required pac
 apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip php8.1-curl webp ffmpeg
 ```
 
-- `php8.1-gd` makes thumbnails and converts PNG and JPG to WebP.
-- `webp` (`gif2webp`, `webpmux`) converts GIFs to animated WebP and makes their thumbnails.
+- `php8.1-gd` makes thumbnails and reads PNG and JPG for the change to WebP.
+- `webp` (`cwebp`, `gif2webp`, `webpmux`) writes PNG and JPG as WebP (`cwebp` with `-sharp_yuv`; without it GD writes them, with colour noise along lines), converts GIFs to animated WebP and makes their thumbnails.
 - `ffmpeg` takes a frame of every WebM video for its thumbnail; without it the tile loads the video itself.
 - `php8.1-zip` packs folders for download; without it the ZIP buttons are not shown.
 - `php8.1-cli` runs the bot check from cron.

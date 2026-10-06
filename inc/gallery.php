@@ -30,7 +30,9 @@
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
     // how much smaller a WebP has to be to replace the original, 0.02 is 2%
     const WEBP_MIN_SAVING = 0.02;
-    const WEBP_QUALITY = 90;
+    // cwebp at 95 with sharp_yuv keeps lines free of colour noise at about a
+    // third more bytes than GD at 90, which smudges colours along every line
+    const WEBP_QUALITY = 95;
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
     const TRASH_DAYS = 30;
@@ -107,7 +109,7 @@
         return hasGd() && function_exists('imagewebp');
     }
 
-    // Path of a command-line tool (gif2webp and webpmux from apt-get install webp,
+    // Path of a command-line tool (cwebp, gif2webp and webpmux from apt-get install webp,
     // ffmpeg), or null. PHP-FPM usually runs without PATH, so the usual folders
     // are tried too.
     function findTool($name)
@@ -351,6 +353,26 @@
         return $img;
     }
 
+    // Writes a GD image (with imagesavealpha) as WebP. cwebp gets it as a PNG:
+    // its sharp_yuv keeps the colours of thin lines, which GD's own encoder
+    // cannot; without cwebp, or when it fails, GD writes it.
+    function writeWebp($img, $file)
+    {
+        if ($cwebp = findTool('cwebp')) {
+            $png = sys_get_temp_dir() . '/sanakan-webp-' . getmypid() . '.png';
+            // -m 4, not 6: a 20 MP picture takes 3 s instead of 20 s, for 3% more bytes
+            $ok = @imagepng($img, $png, 1)
+                && runTool($cwebp, ['-quiet', '-q', (string)WEBP_QUALITY, '-m', '4', '-sharp_yuv', '-mt', $png, '-o', $file], TOOL_TIMEOUT);
+            @unlink($png);
+            clearstatcache();
+            if ($ok && @filesize($file) > 0)
+                return true;
+            @unlink($file);
+        }
+
+        return @imagewebp($img, $file, WEBP_QUALITY);
+    }
+
     // saves a picture as WebP, keeping transparency
     function convertToWebp($source, $target)
     {
@@ -361,7 +383,7 @@
         imagealphablending($img, false);
         imagesavealpha($img, true);
         $tmp = $target . '.' . getmypid();
-        $ok = @imagewebp($img, $tmp, WEBP_QUALITY) && @rename($tmp, $target);
+        $ok = writeWebp($img, $tmp) && @rename($tmp, $target);
         imagedestroy($img);
         if (!$ok)
             @unlink($tmp);
@@ -1195,7 +1217,7 @@
         if ($ext === 'png')
             $ok = @imagepng($rotated, $tmp, 6);
         else if ($ext === 'webp')
-            $ok = @imagewebp($rotated, $tmp, WEBP_QUALITY);
+            $ok = writeWebp($rotated, $tmp);
         else
             $ok = @imagejpeg($rotated, $tmp, 92);
         imagedestroy($rotated);
