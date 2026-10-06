@@ -6,6 +6,7 @@
     // the panel shows them and more in admin/?konto=ID.
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
+    require __DIR__ . '/../inc/meta.php';
 
     const OWN_HISTORY_SHOWN = 60;
     const OWN_UPLOADS_SHOWN = 12;
@@ -53,7 +54,8 @@
     $user = siteUser();
     $flash = takeFlash();
     if (!$user)
-        http_response_code(!authConfigured() ? 503 : 401);
+        // the login page itself is a 200, as Discord shows no link preview for a 401
+        http_response_code(!authConfigured() ? 503 : 200);
     header('Cache-Control: private, no-store');
 
     if ($user) {
@@ -115,7 +117,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <meta name="theme-color" content="#9b59b6" />
+<?=metaTags('Profil', 'Twoje konto na stronie Sanakan: role, dostęp i urządzenia, na których jesteś zalogowany.', '/account/', 'account')?>
   <title>Profil &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />

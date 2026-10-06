@@ -10,6 +10,7 @@
     require_once __DIR__ . '/../inc/system.php';
     require __DIR__ . '/../inc/diag.php';
     require __DIR__ . '/../inc/cloudflare.php';
+    require __DIR__ . '/../inc/meta.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     $thumbsDir = thumbsDir();
@@ -556,8 +557,9 @@
     $user = siteUser();
     $allowed = $user !== null && isPanelAdminId($user['id']);
     $flash = takeFlash();
+    // the login page itself is a 200, as Discord shows no link preview for a 401
     if (!$allowed)
-        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
+        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 200));
 
     // ?konto=ID shows the profile of an account instead (inc/panel-account.php),
     // ?szukaj=... what the search found (inc/panel-search.php)
@@ -698,6 +700,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
+<?=metaTags('Panel', 'Panel administracyjny strony Sanakan, tylko dla administracji.', '/admin/', 'admin')?>
   <title><?=$allowed && $profileId !== null ? e($profile['name']) . ' &middot; Konto &middot; Panel' : ($allowed && $searchQuery !== null ? 'Szukaj &middot; Panel' : 'Panel')?> &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />

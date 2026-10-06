@@ -18,7 +18,10 @@
         'zmiany' => ['drawChanges', BOT_COMMANDS_TTL],
         'i' => ['drawGallery', 86400],
         'api' => ['drawApi', 86400],
-        'privacy' => ['drawPrivacy', 86400]
+        'privacy' => ['drawPrivacy', 86400],
+        // the sites are checked every 5 minutes
+        'admin' => ['drawAdmin', SERVICE_INTERVAL],
+        'account' => ['drawAccount', 86400]
     ];
     // as long as cmd/ marks a command new or changed
     const OG_NEW_DAYS = 14;
@@ -339,4 +342,142 @@
         box($img, $cx - 52 * $k, $y + 18 * $k, $cx + 52 * $k, $y + 96 * $k, $light);
         circle($img, $cx, $y + 46 * $k, 20 * $k, $inside);
         shape($img, [[$cx - 5 * $k, $y + 50 * $k], [$cx + 5 * $k, $y + 50 * $k], [$cx + 8 * $k, $y + 76 * $k], [$cx - 8 * $k, $y + 76 * $k]], $inside);
+    }
+
+    // The panel gives nothing away either: the Safeguard's radar over the
+    // Megastructure, the bot in its centre and the Sanakan sites as blips in the
+    // colours of their last check, which state/ shows anyway; a sweep passes
+    // over them
+    function drawAdmin($file)
+    {
+        $state = botState();
+        $status = botInMaintenance(time()) ? 'maintenance' : $state['status'];
+        $sites = servicesState(1);
+        $answering = count(array_filter($sites, function ($site) { return $site['up'] === true; })) + ($state['status'] !== 'offline' ? 1 : 0);
+
+        $img = ogCanvas();
+        ogHead($img, 'SAFEGUARD · LV.9 · ADMIN', 'Panel');
+        ogLine($img, 'Centrum kontroli');
+        // the mono font has no Polish letters, so the bot's state is in English as on Discord
+        ogStats($img, [
+            'węzły' => $answering . '/' . (count($sites) + 1),
+            'bot' => ['online' => 'ONLINE', 'idle' => 'IDLE', 'offline' => 'OFFLINE', 'maintenance' => 'DND'][$status],
+            'skan' => date('H:i')
+        ], 190);
+
+        $cx = 905;
+        $cy = 318;
+        $r = 215;
+        $purple = function ($alpha) use ($img) { return color($img, '#9b59b6', $alpha); };
+        circle($img, $cx, $cy, 2 * $r, $purple(118));
+        foreach ([0.25, 0.5, 0.75] as $k)
+            ring($img, $cx, $cy, 2 * $r * $k, 1, $purple(90));
+        ring($img, $cx, $cy, 2 * $r, 2, $purple(30));
+        line($img, $cx - $r, $cy, $cx + $r, $cy, 1, $purple(95));
+        line($img, $cx, $cy - $r, $cx, $cy + $r, 1, $purple(95));
+        // the scale around it: a tick every 10 degrees, longer every 30
+        for ($deg = 0; $deg < 360; $deg += 10) {
+            $t = deg2rad($deg);
+            $length = $deg % 30 ? 7 : 15;
+            line($img, $cx + cos($t) * ($r + 6), $cy + sin($t) * ($r + 6), $cx + cos($t) * ($r + 6 + $length), $cy + sin($t) * ($r + 6 + $length), 2, $purple($deg % 30 ? 80 : 30));
+        }
+
+        // the sweep: a fan of thin slices, fading behind its bright leading edge
+        $lead = -50;
+        $span = 85;
+        $slices = 48;
+        for ($i = 0; $i < $slices; $i++) {
+            $a1 = deg2rad($lead - $span + $span * $i / $slices);
+            $a2 = deg2rad($lead - $span + $span * ($i + 1) / $slices);
+            shape($img, [[$cx, $cy], [$cx + cos($a1) * $r, $cy + sin($a1) * $r], [$cx + cos($a2) * $r, $cy + sin($a2) * $r]], color($img, '#b670d3', (int)(126 - 76 * ($i + 1) / $slices)));
+        }
+        line($img, $cx, $cy, $cx + cos(deg2rad($lead)) * $r, $cy + sin(deg2rad($lead)) * $r, 3, color($img, '#d2a8e8'));
+
+        // the sites: where each blip stands, as [degrees, part of the radius]
+        $places = [[-20, 0.8], [30, 0.5], [78, 0.78], [140, 0.6], [200, 0.8], [250, 0.48]];
+        foreach ($sites as $i => $site) {
+            [$deg, $k] = $places[$i % count($places)];
+            $x = $cx + cos(deg2rad($deg)) * $r * $k;
+            $y = $cy + sin(deg2rad($deg)) * $r * $k;
+            $hex = $site['up'] === null ? '#80848e' : ($site['up'] ? '#23a55a' : '#d9534f');
+            for ($g = 0; $g < 5; $g++)
+                circle($img, $x, $y, 36 - $g * 6, color($img, $hex, 116 - $g * 8));
+            circle($img, $x, $y, 11, color($img, $hex));
+            // the label on the side away from the edge
+            $right = $x < $cx + $r * 0.35;
+            text($img, OG_REGULAR, 17, $right ? $x + 16 : $x - 16, $y + 6, color($img, '#dcddde', 40), $site['name'], 0, $right ? 'left' : 'right');
+        }
+
+        // the bot in the centre with its Discord status, as on the home page
+        circle($img, $cx, $cy, 44, color($img, OG_BACKGROUND));
+        ring($img, $cx, $cy, 44, 2, color($img, '#b670d3'));
+        statusDot($img, $cx, $cy, 12, $status, color($img, OG_BACKGROUND));
+
+        ogFoot($img, 'sanakan.pl/admin', '');
+
+        return ogSave($img, $file);
+    }
+
+    // The profile is somebody's own, so the picture is nobody's: the Safeguard's
+    // identity card of a resident, the photo a silhouette, the name blacked
+    // out, the level unknown and no Net Terminal Gene
+    function drawAccount($file)
+    {
+        $img = ogCanvas();
+        ogHead($img, 'SAFEGUARD · LV.9', 'Profil');
+        text($img, OG_BOLD, 34, 80, 296, color($img, '#efe2f7'), 'Twoje konto:');
+        text($img, OG_BOLD, 34, 80, 344, color($img, '#efe2f7'), 'role, dostęp, urządzenia');
+        ogFoot($img, 'sanakan.pl/account', '');
+
+        // the card with its top band
+        $left = 640;
+        $top = 140;
+        $right = 1120;
+        $bottom = 510;
+        box($img, $left, $top, $right, $bottom, color($img, '#1c1a21'));
+        box($img, $left, $top, $right, $top + 40, color($img, '#2a2233'));
+        text($img, OG_MONO, 16, $left + 22, $top + 27, color($img, '#b670d3'), 'SAFEGUARD · ID', 3);
+        text($img, OG_MONO, 16, $right - 22, $top + 27, color($img, '#dcddde', 70), 'NR ????-????', 1, 'right');
+        corners($img, $left, $top, $right, $bottom, 22, color($img, '#9b59b6'));
+
+        // the photo: a silhouette behind scan lines and the scanning beam
+        $px1 = $left + 26;
+        $py1 = $top + 66;
+        $px2 = $px1 + 150;
+        $py2 = $py1 + 180;
+        box($img, $px1, $py1, $px2, $py2, color($img, '#241a2c'));
+        $mid = ($px1 + $px2) / 2;
+        circle($img, $mid, $py1 + 66, 70, color($img, '#6c3483'));
+        imagefilledarc($img, (int)($mid * OG_SCALE), $py2 * OG_SCALE, 136 * OG_SCALE, 150 * OG_SCALE, 180, 360, color($img, '#6c3483'), IMG_ARC_PIE);
+        for ($y = $py1 + 3; $y < $py2; $y += 6)
+            box($img, $px1, $y, $px2, $y + 2, color($img, '#241a2c', 40));
+        box($img, $px1, $py1 + 104, $px2, $py1 + 123, color($img, '#b670d3', 105));
+        box($img, $px1 - 6, $py1 + 112, $px2 + 6, $py1 + 115, color($img, '#d2a8e8'));
+        frame($img, $px1, $py1, $px2, $py2, 2, color($img, '#9b59b6', 60));
+
+        // the fields: a label and its value
+        $fx = $px2 + 30;
+        $label = color($img, '#dcddde', 50);
+        text($img, OG_REGULAR, 17, $fx, $py1 + 16, $label, 'nazwa');
+        // the name blacked out in uneven blocks
+        $x = $fx;
+        foreach ([86, 52, 104] as $width) {
+            box($img, $x, $py1 + 30, $x + $width, $py1 + 54, color($img, '#46305a'));
+            $x += $width + 10;
+        }
+        text($img, OG_REGULAR, 17, $fx, $py1 + 88, $label, 'poziom Safeguard');
+        text($img, OG_MONO, 26, $fx, $py1 + 122, color($img, '#efe2f7'), 'LV.?', 2);
+        text($img, OG_REGULAR, 17, $fx, $py1 + 160, $label, 'gen terminala sieciowego');
+        text($img, OG_MONO, 24, $fx, $py1 + 192, color($img, '#e86262'), 'NIE WYKRYTO', 2);
+
+        // a barcode along the bottom, the same every time
+        mt_srand(42);
+        $x = $left + 26;
+        while ($x < $right - 30) {
+            $width = mt_rand(1, 4) * 1.5;
+            box($img, $x, $bottom - 62, $x + $width, $bottom - 26, color($img, '#dcddde', mt_rand(0, 1) ? 30 : 75));
+            $x += $width + mt_rand(1, 3) * 2;
+        }
+
+        return ogSave($img, $file);
     }

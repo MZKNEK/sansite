@@ -1,7 +1,14 @@
 <!-- Pasted into the wiki's Administration -> Theme -> Code Injection -> Head HTML
      Injection. Wiki.js writes its blue into the page itself; this turns the
      phone browser bar, the Windows tile and the Safari pinned tab purple like
-     the site. The icons themselves are the files in server/wiki/assets/. -->
+     the site. The icons themselves are the files in server/wiki/assets/.
+     Wiki.js 2 writes its og:image empty, so Discord showed no picture; the
+     tags below give every wiki page the fixed picture wiki-og.png, served by
+     sanakan.pl. -->
+<meta property="og:image" content="https://sanakan.pl/wiki-og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <script>
   [['meta[name="theme-color"]', 'content', '#9b59b6'],
    ['meta[name="msapplication-TileColor"]', 'content', '#0e0e11'],

@@ -204,6 +204,15 @@
         imagefilledellipse($img, (int)round($cx * OG_SCALE), (int)round($cy * OG_SCALE), $d, $d, $color);
     }
 
+    // the outline of a circle, $width thick, in the picture's own pixels
+    function ring($img, $cx, $cy, $diameter, $width, $color)
+    {
+        for ($k = 0; $k < $width * OG_SCALE; $k++) {
+            $d = (int)round($diameter * OG_SCALE) - 2 * $k;
+            imageellipse($img, (int)round($cx * OG_SCALE), (int)round($cy * OG_SCALE), $d, $d, $color);
+        }
+    }
+
     // a filled polygon from [[x, y], ...] in the picture's own pixels
     function shape($img, $points, $color)
     {
