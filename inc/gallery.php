@@ -793,14 +793,17 @@
     }
 
     // A file of the private folder for its link, i/private/<name>: only those
-    // who may see the folder get it, everyone else a 404. Unlike the rest of
-    // the gallery, nginx never gives these files straight from the disk
-    // (server/nginx/sanakan.conf sends them to i/index.php).
+    // who may see the folder get it, everyone else the site's own 404 page.
+    // Unlike the rest of the gallery, nginx never gives these files straight
+    // from the disk (server/nginx/sanakan.conf sends them to i/index.php).
     function sendPrivateFile($base, $rel)
     {
         $file = resolvePath($base, $rel, false);
         if (!$file || !inPrivateDir($file[1]) || !galleryCanSee($base, $file[1])) {
             http_response_code(404);
+            header('Content-Type: text/html; charset=utf-8');
+            header('Cache-Control: no-store');
+            readfile(str_replace('\\', '/', dirname(__DIR__)) . '/404.html');
             return;
         }
 
