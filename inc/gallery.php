@@ -224,6 +224,7 @@
         'move' => 'przeniesione',
         'rename' => 'zmiany nazw',
         'rotate' => 'obrócone',
+        'webp' => 'zamienione na WebP',
         'delete' => 'do kosza'
     ];
 
@@ -245,7 +246,7 @@
                 continue;
 
             // "Do kosza: i/a.png, i/b.png." counts each, "Dodano i/a.png." one
-            $items = preg_match('/^[^:]+: (.+)\.$/u', $text, $list) && in_array($entry['action'], ['delete', 'move', 'rotate'], true) ? count(explode(', ', $list[1])) : 1;
+            $items = preg_match('/^[^:]+: (.+)\.$/u', $text, $list) && in_array($entry['action'], ['delete', 'move', 'rotate', 'webp'], true) ? count(explode(', ', $list[1])) : 1;
             $gallery[$entry['action']] += $items;
             if ($entry['action'] === 'upload' && count($uploads) < $uploadsMax && preg_match('~^Dodano i/(.+?)(?:, zamienione z .*)?\.$~u', $text, $file))
                 $uploads[] = ['rel' => $file[1], 'time' => $entry['time'] ?? 0];
@@ -739,7 +740,7 @@
     {
         $file = resolvePath($base, $rel, false);
         if (!$file || !inUsersDir($file[1])) {
-            http_response_code(404);
+            sendMovedLink($rel);
             return;
         }
 
@@ -1432,6 +1433,106 @@
         writeData('hashes', $cache);
     }
 
+    // ---- Pictures changed to WebP -----------------------------------------------
+    // A gallery admin can change a PNG, JPG or GIF to WebP; the original goes to
+    // the trash and its old link keeps working: nginx sends a gallery picture
+    // that is not there to i/index.php (server/nginx/sanakan.conf), which sends
+    // it on to the WebP. The links are kept as links have them (publicRel()), so
+    // the folder of an account may change its nick.
+
+    // the old link of a picture now goes to the new one (links that went to the old one too)
+    function addMovedLink($fromRel, $toRel)
+    {
+        $from = publicRel($fromRel);
+        $to = publicRel($toRel);
+        $links = readData('moved');
+        foreach ($links as $old => $new)
+            if ($new === $from)
+                $links[$old] = $to;
+        $links[$from] = $to;
+        unset($links[$to]);
+        writeData('moved', $links);
+    }
+
+    // after a move or rename the links follow the file, or everything in the folder
+    function followMovedLinks($fromRel, $toRel)
+    {
+        $from = publicRel($fromRel);
+        $to = publicRel($toRel);
+        $links = readData('moved');
+        $changed = false;
+        foreach ($links as $old => $new) {
+            if ($new === $from || strpos($new, $from . '/') === 0) {
+                $links[$old] = $to . substr($new, strlen($from));
+                $changed = true;
+            }
+        }
+        if ($changed)
+            writeData('moved', $links);
+    }
+
+    // a picture that is not there: on to where it went, or a 404
+    function sendMovedLink($rel)
+    {
+        $to = readData('moved')[trim((string)$rel, '/')] ?? null;
+        if ($to === null) {
+            http_response_code(404);
+            return;
+        }
+
+        header('Cache-Control: public, max-age=3600');
+        header('Location: ' . siteRoot() . 'i/' . implode('/', array_map('rawurlencode', explode('/', $to))), true, 302);
+    }
+
+    // A picture of the gallery as WebP when that is at least WEBP_MIN_SAVING
+    // smaller: [the new name, the old size, the new size], or why it stays
+    function changeToWebp($full, $rel)
+    {
+        $name = basename($rel);
+        $ext = extensionOf($name);
+        $isGif = $ext === 'gif';
+        if (!is_file($full) || !in_array($ext, WEBP_SOURCE_TYPES, true))
+            return 'zamieniać można PNG, JPG i GIF';
+        if (!($isGif ? canConvertGifToWebp() : canConvertToWebp()))
+            return $isGif ? 'serwer nie umie zamieniać GIF-ów, brak gif2webp' : 'serwer nie umie zapisać WebP';
+
+        $dir = dirname($full);
+        $tmp = $dir . '/.webp-' . getmypid() . '.webp';
+        $size = filesize($full);
+        if (!($isGif ? gifToWebp($full, $tmp) : convertToWebp($full, $tmp))) {
+            @unlink($tmp);
+            return 'nie udało się zamienić';
+        }
+        clearstatcache();
+        $newSize = filesize($tmp);
+        if ($newSize > $size * (1 - WEBP_MIN_SAVING)) {
+            @unlink($tmp);
+            return 'WebP nie wyszedłby wyraźnie mniejszy, ' . formatSize($size) . ' → ' . formatSize($newSize);
+        }
+
+        // the WebP keeps the date of the picture, so it stays where it was in the folder
+        $target = freeName($dir, pathinfo($name, PATHINFO_FILENAME) . '.webp');
+        $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
+        $hashes = readData('hashes');
+        $source = fileHash($full, $rel, $hashes);
+        if (!@rename($tmp, $dir . '/' . $target)) {
+            @unlink($tmp);
+            return 'nie udało się zapisać WebP';
+        }
+        @chmod($dir . '/' . $target, 0644);
+        @touch($dir . '/' . $target, filemtime($full));
+        if (!moveToTrash($full, $rel)) {
+            @unlink($dir . '/' . $target);
+            return 'nie udało się przenieść oryginału do kosza';
+        }
+
+        dropHashes($rel);
+        recordHash($dir . '/' . $target, $targetRel, $source);
+        addMovedLink($rel, $targetRel);
+
+        return [$target, $size, $newSize];
+    }
+
     // ---- Trash ------------------------------------------------------------------
     // Deleted files and folders go to inc/data/trash/<id>/ for TRASH_DAYS days;
     // the admin panel restores them or deletes them for good. inc/ is not
@@ -1732,6 +1833,22 @@
                     reply(count($rotated) > 0, $message . ' Pominięto (obracać można obrazki PNG, JPG i WebP bez animacji): ' . implode(', ', $skipped) . '.', 400);
                 reply(true, $message);
 
+            case 'webp':
+                $changed = [];
+                $skipped = [];
+                foreach (postedItems($base) as $item) {
+                    $result = changeToWebp($item[0], $item[1]);
+                    if (is_array($result))
+                        $changed[] = galleryPath($item[1]) . ' na ' . $result[0] . ' (' . formatSize($result[1]) . ' → ' . formatSize($result[2]) . ')';
+                    else
+                        $skipped[] = basename($item[1]) . ' (' . $result . ')';
+                }
+
+                if ($changed)
+                    addHistory('webp', 'Zamieniono na WebP, oryginały do kosza: ' . implode(', ', $changed) . '.');
+                reply(true, $changed ? 'Zamieniono na WebP ' . countLabel(count($changed)) . '.' : '', 200,
+                    ['changed' => count($changed), 'skipped' => $skipped]);
+
             case 'duplicates':
                 $hash = strtolower((string)($_POST['hash'] ?? ''));
                 if (!preg_match('/^[0-9a-f]{64}$/', $hash))
@@ -1776,6 +1893,7 @@
                 if (!@rename($full, dirname($full) . '/' . $name))
                     reply(false, 'Nie udało się zmienić nazwy.', 500);
                 moveHashes($rel, ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/'));
+                followMovedLinks($rel, ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/'));
 
                 done('rename', 'Zmieniono nazwę ' . galleryPath($rel) . ' na ' . $name . '.');
 
@@ -1799,6 +1917,7 @@
                     } else {
                         $moved[] = galleryPath($item[1]);
                         moveHashes($item[1], ltrim($target[1] . '/' . $name, '/'));
+                        followMovedLinks($item[1], ltrim($target[1] . '/' . $name, '/'));
                     }
                 }
 

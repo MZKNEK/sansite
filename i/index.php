@@ -18,6 +18,14 @@
         exit;
     }
 
+    // i/<file>.png|jpg|gif that is not there (nginx sends these here too): the
+    // old link of a picture changed to WebP goes on to it, anything else is a 404
+    $requested = rawurldecode((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
+    if (strpos($requested, siteRoot() . 'i/') === 0 && preg_match('/\.(?:png|jpe?g|gif)$/i', $requested)) {
+        sendMovedLink(substr($requested, strlen(siteRoot() . 'i/')));
+        exit;
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST')
         handlePost($base);
 
@@ -271,6 +279,9 @@
           <button type="button" class="admin-btn" id="act-move"<?=$admin ? '' : ' hidden'?>>Przenieś</button>
           <button type="button" class="admin-btn" id="act-rotate-left" title="Obróć w lewo (PNG, JPG, WebP)">&#8634; Obróć</button>
           <button type="button" class="admin-btn" id="act-rotate-right" title="Obróć w prawo (PNG, JPG, WebP)">Obróć &#8635;</button>
+<?php if ($admin && canConvertToWebp()): ?>
+          <button type="button" class="admin-btn" id="act-webp" title="PNG, JPG i GIF zapisuje jako WebP, gdy wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%. Oryginał trafia do kosza, a jego stary link otwiera WebP.">Na WebP</button>
+<?php endif; ?>
 <?php if (canZip()): ?>
           <button type="button" class="admin-btn" id="act-zip">Pobierz ZIP</button>
 <?php endif; ?>
@@ -502,7 +513,7 @@
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 <?php if ($manage): ?>
-  <script src="../js/explorer-admin.js?v=9"></script>
+  <script src="../js/explorer-admin.js?v=10"></script>
 <?php endif; ?>
 </body>
 

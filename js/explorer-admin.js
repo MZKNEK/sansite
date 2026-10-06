@@ -345,6 +345,7 @@
     var images = picked().filter(rotatable).length;
     document.getElementById('act-rotate-left').disabled = images === 0;
     document.getElementById('act-rotate-right').disabled = images === 0;
+    if (webpButton) webpButton.disabled = picked().filter(webpable).length === 0;
     if (zipButton) zipButton.disabled = n === 0;
   }
 
@@ -408,6 +409,47 @@
 
   document.getElementById('act-rotate-left').addEventListener('click', function () { rotate('left'); });
   document.getElementById('act-rotate-right').addEventListener('click', function () { rotate('right'); });
+
+  // ---- Change to WebP (gallery admins) ----
+  // One picture per request, as a big GIF takes a while; the server keeps the
+  // WebP only when it is smaller and moves the original to the trash.
+
+  var webpButton = document.getElementById('act-webp');
+
+  function webpable(tile) {
+    return tile.classList.contains('file') && /\.(png|jpe?g|gif)$/i.test(tile.dataset.rel);
+  }
+
+  if (webpButton) {
+    webpButton.addEventListener('click', function () {
+      var tiles = picked().filter(webpable);
+      if (!tiles.length) return;
+      if (!window.confirm('Zamienić na WebP: ' + describe(tiles) + '? Oryginały trafią do kosza, a ich stare linki będą otwierać WebP. '
+        + 'Te, które jako WebP nie wyjdą wyraźnie mniejsze, zostaną bez zmian.')) return;
+
+      var changed = 0;
+      var skipped = [];
+      webpButton.disabled = true;
+      tiles.reduce(function (previous, tile, i) {
+        return previous.then(function () {
+          gallery.toast('Zamieniam na WebP ' + (i + 1) + ' z ' + tiles.length + '…');
+          return post({ action: 'webp', items: [tile.dataset.rel] }).then(function (result) {
+            if (!result.ok) skipped.push((tile.dataset.title || tile.dataset.rel) + ' (' + result.message + ')');
+            changed += result.changed || 0;
+            skipped = skipped.concat(result.skipped || []);
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        var message = changed ? 'Zamieniono na WebP ' + countLabel(changed) + ', oryginały są w koszu.' : 'Nic nie zamieniono.';
+        if (skipped.length) message += ' Bez zmian: ' + skipped.join(', ') + '.';
+        if (changed) reloadWith(message, skipped.length > 0);
+        else {
+          gallery.toast(message, true);
+          webpButton.disabled = false;
+        }
+      });
+    });
+  }
 
   // ---- ZIP of the picked items ----
 
