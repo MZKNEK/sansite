@@ -1751,13 +1751,27 @@
         return $items;
     }
 
-    // what an account itself deleted from its folder, for it to bring back or
-    // drop for good: the trash items whose path is in its folder
+    // what an account itself deleted from its folder, for it to bring back: the
+    // trash items whose path is in its folder and that it did not take out of
+    // its own trash (hideTrashItem(); the panel still sees those)
     function ownTrashItems($id)
     {
         return array_filter(trashItems(), function ($item) use ($id) {
-            return inUserFolder($item['from'] ?? '', $id);
+            return empty($item['hidden']) && inUserFolder($item['from'] ?? '', $id);
         });
+    }
+
+    // An account with a folder of its own takes an item out of its own trash: the
+    // entry disappears for it, but the file stays for TRASH_DAYS and the panel
+    // can still bring it back.
+    function hideTrashItem($id)
+    {
+        $items = readData('trash');
+        if (!isset($items[$id]))
+            return false;
+        $items[$id]['hidden'] = time();
+
+        return writeData('trash', $items);
     }
 
     function moveToTrash($full, $rel)
@@ -2080,11 +2094,19 @@
                 $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
                 if (!$item)
                     reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
-                if (!galleryIsAdmin() && !inUserFolder($item['from'] ?? '', siteUser()['id']))
+                // a gallery admin drops it for good; an account with a folder of
+                // its own only takes the entry out of its own trash, the file
+                // stays and the panel can still bring it back
+                if (galleryIsAdmin()) {
+                    if (!deleteFromTrash((string)$_POST['item']))
+                        reply(false, 'Nie udało się usunąć.', 500);
+                    done('purge', 'Usunięto na zawsze ' . galleryPath($item['from']) . ' (z kosza).');
+                }
+                if (!inUserFolder($item['from'] ?? '', siteUser()['id']))
                     reply(false, 'Możesz usuwać tylko rzeczy ze swojego folderu.', 403);
-                if (!deleteFromTrash((string)$_POST['item']))
-                    reply(false, 'Nie udało się usunąć.', 500);
-                done('purge', 'Usunięto na zawsze ' . galleryPath($item['from']) . ' (z kosza).');
+                if (!hideTrashItem((string)$_POST['item']))
+                    reply(false, 'Nie udało się usunąć z kosza.', 500);
+                done('trash-hide', 'Usunięto z kosza ' . galleryPath($item['from']) . ' (plik zostaje do ' . TRASH_DAYS . ' dni, administrator może go przywrócić).');
 
             case 'share':
                 $dir = resolvePath($base, $_POST['dir'] ?? '', true);

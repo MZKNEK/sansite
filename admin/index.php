@@ -1299,7 +1299,7 @@
               <b><?=e($item['name'])?><?=!empty($item['folder']) ? '/' : ''?></b>
               <code><?=e(galleryPath($item['from']))?></code>
             </span>
-            <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(ago($item['deleted'] ?? 0))?><?=empty($item['by']) ? '' : ' przez ' . e($item['by'])?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
+            <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(ago($item['deleted'] ?? 0))?><?=empty($item['by']) ? '' : ' przez ' . e($item['by'])?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?><?=empty($item['hidden']) ? '' : ' &middot; <b>użytkownik usunął je ze swojego kosza</b>'?></span>
             <span class="login-actions">
 <?php if ($kind): ?>
               <button type="button" class="admin-btn small trash-peek" data-item="<?=e($id)?>" data-kind="<?=$kind?>" aria-expanded="false">Podgląd</button>

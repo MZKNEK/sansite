@@ -272,7 +272,7 @@
         <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(date('d.m.Y H:i', $item['deleted'] ?? 0))?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
         <span class="trash-actions">
           <button type="button" class="admin-btn" data-action="restore" data-item="<?=e($itemId)?>">Przywróć</button>
-          <button type="button" class="admin-btn danger" data-action="trash-delete" data-item="<?=e($itemId)?>" data-confirm="Usunąć na zawsze <?=e($item['name'])?>? Tego nie da się cofnąć.">Usuń na zawsze</button>
+          <button type="button" class="admin-btn danger" data-action="trash-delete" data-item="<?=e($itemId)?>" data-confirm="Usunąć <?=e($item['name'])?> z kosza? Plik zostanie jeszcze przez <?=TRASH_DAYS?> dni; administrator może go przywrócić.">Usuń z kosza</button>
         </span>
       </div>
 <?php endforeach; endif; ?>
