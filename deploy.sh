@@ -63,6 +63,7 @@ else
 fi
 
 # files deleted from the repository since the last deploy
+deleted=""
 if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
     deleted=$(git diff --name-only --no-renames --diff-filter=D "$previous" HEAD)
     if [ -n "$deleted" ]; then
@@ -80,6 +81,8 @@ fi
 # so they go on their own when they changed since the last deploy: to their
 # place, then nginx -t; a configuration that does not pass is rolled back and
 # the deploy stops, so a broken file never stays behind.
+config_files=()
+config_dests=()
 if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
     changed_config=$(git diff --name-only --diff-filter=ACMR "$previous" HEAD -- server/nginx/ server/wiki/nginx-og.conf)
 else
@@ -156,7 +159,13 @@ fi
 
 # the marker, and for the panel the commit's date and subject
 if [ "$dry_run" -eq 1 ]; then
-    echo "[dry-run] Zapisałbym znacznik wdrożenia $(git log -1 --format='%h') w $marker. Nic nie wysłano."
+    # how much would go: the files of the commit that git archive keeps (the
+    # export-ignored ones are already out of it), the deletions and the rules
+    site_count=$(git archive --format=tar HEAD | tar -tf - | wc -l | tr -d ' ')
+    deleted_count=$(printf '%s\n' "$deleted" | sed '/^$/d' | wc -l | tr -d ' ')
+    nginx_note=""
+    [ ${#config_files[@]} -gt 0 ] && nginx_note=" (nginx -t i reload)"
+    echo "[dry-run] Podsumowanie: plików strony $site_count, do usunięcia $deleted_count, reguł nginx ${#config_files[@]}$nginx_note. Znacznik $(git log -1 --format='%h') nie został zapisany, nic nie wysłano."
 else
     git log -1 --format='%H%n%cI%n%s' \
         | ssh "$target" "mkdir -p '$root/inc/data' && echo '$commit' > '$marker' && cat > '$root/inc/data/deployed-info' && chown www-data:www-data '$root/inc/data' '$marker' '$root/inc/data/deployed-info'"
