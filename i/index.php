@@ -564,7 +564,7 @@
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=99112c750d"></script>
+  <script src="../js/explorer-admin.js?v=d43ba1fcc4"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>
