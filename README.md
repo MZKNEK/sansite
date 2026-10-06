@@ -63,7 +63,7 @@ The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (serve
 The site runs on nginx with PHP-FPM, currently Ubuntu with PHP 8.1. Required packages:
 
 ```bash
-apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip php8.1-curl webp ffmpeg
+apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip php8.1-curl webp ffmpeg imagemagick
 ```
 
 - `php8.1-gd` makes thumbnails and reads PNG and JPG for the change to WebP.
