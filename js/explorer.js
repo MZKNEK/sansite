@@ -245,6 +245,7 @@ window.SanakanGallery = (function () {
   var stageEl = document.getElementById('viewer-stage');
   var panning = null;
   var panMoved = false;
+  var panStartedOnBackground = false;
 
   // the box the picture is centred in, without the stage's padding
   function stageBox() {
@@ -314,7 +315,14 @@ window.SanakanGallery = (function () {
 
   // once zoomed, dragging moves the picture; a real drag does not close the viewer
   stageEl.addEventListener('pointerdown', function (e) {
-    if (zoom.scale <= 1 || e.button !== 0 || e.target.closest('button')) return;
+    // setPointerCapture sends the click that follows to the stage, so remember
+    // where the press began: only one on the background closes the viewer
+    panStartedOnBackground = e.target === stageEl;
+    if (e.target.closest('button')) return;
+    // no native picture drag and no text selection while dragging
+    e.preventDefault();
+    if (zoom.scale <= 1 || e.button !== 0) return;
+
     panning = { x: e.clientX, y: e.clientY, ox: zoom.x, oy: zoom.y };
     panMoved = false;
     try {
@@ -432,10 +440,11 @@ window.SanakanGallery = (function () {
   document.getElementById('viewer-prev').addEventListener('click', function () { step(-1); });
   document.getElementById('viewer-next').addEventListener('click', function () { step(1); });
 
-  // a click on the dark background closes the viewer, unless it ended a drag
+  // a click on the dark background closes the viewer, unless it ended a drag or
+  // began on the picture (setPointerCapture moves its click onto the stage)
   stageEl.addEventListener('click', function (e) {
     if (panMoved) { panMoved = false; return; }
-    if (e.target === this) close();
+    if (panStartedOnBackground && e.target === this) close();
   });
 
   // full link to the picture, e.g. to paste on Discord
