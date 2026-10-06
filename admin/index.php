@@ -29,7 +29,7 @@
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
         'galleryUploaders' => ['Własne foldery w galerii', 'Dodają zdjęcia tylko do swojego folderu i/' . USERS_DIR . '/ID-nick i tylko jego widzą (oprócz nich administratorzy galerii). Do '
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
-            . ' MB, zawsze zapisywane jako WebP. Folder zostaje po odebraniu dostępu.'],
+            . ' MB, zapisywane jako WebP, gdy wychodzi wyraźnie mniejszy. Folder zostaje po odebraniu dostępu.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
 

@@ -5,7 +5,7 @@
     //
     // Besides the viewers and the admins, an account can get a folder of its
     // own, i/users/<id>-<nick>, and see only that one: it adds pictures there,
-    // always saved as WebP, and renames, turns and deletes them, up to a number
+    // saved as WebP when that is smaller, and renames, turns and deletes them, up to a number
     // of files set per account in the panel (USER_FILES_DEFAULT without one),
     // USER_FILE_MAX_BYTES each and USER_TOTAL_MAX_BYTES in all. Nobody but the
     // gallery admins sees the folders of others. In links such a folder is
@@ -28,6 +28,8 @@
     const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm'];
     // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
+    // how much smaller a WebP has to be to replace the original, 0.05 is 5%
+    const WEBP_MIN_SAVING = 0.05;
     const WEBP_QUALITY = 90;
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
@@ -1847,9 +1849,9 @@
                 reply(false, $name . ': w folderze jest już ' . $count . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . '. Usuń któreś, żeby dodać nowe.', 409);
         }
 
-        // "change to WebP" ticked in the page; the original stays when that is not
-        // possible or when the WebP would not be smaller. In the folder of an
-        // account always WebP, also when bigger, and nothing else.
+        // "change to WebP" ticked in the page, always in the folder of an account;
+        // the original stays when the WebP is not at least WEBP_MIN_SAVING smaller,
+        // and when it cannot be made (in the folder of an account that is an error)
         $note = '';
         if (($own || ($_POST['webp'] ?? '') === '1') && in_array(extensionOf($name), WEBP_SOURCE_TYPES, true)) {
             $isGif = extensionOf($name) === 'gif';
@@ -1870,8 +1872,8 @@
                     if ($own)
                         reply(false, $name . ': nie udało się zamienić na WebP.', 500);
                     $note = ' Nie udało się zamienić na WebP, zostawiono oryginał.';
-                } else if (!$own && filesize($path) >= $file['size']) {
-                    $note = ' WebP wyszedłby większy (' . formatSize(filesize($path)) . '), zostawiono oryginał.';
+                } else if (filesize($path) > $file['size'] * (1 - WEBP_MIN_SAVING)) {
+                    $note = ' WebP nie wyszedłby wyraźnie mniejszy (' . formatSize(filesize($path)) . '), zostawiono oryginał.';
                     @unlink($path);
                 } else {
                     @chmod($path, 0644);
