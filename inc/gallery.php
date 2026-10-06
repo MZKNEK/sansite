@@ -778,9 +778,10 @@
         return $folder === null ? $rel : $folder . ($match[2] ?? '');
     }
 
-    // A file of the folder of an account for its link, i/u/<token>/<name>:
-    // anyone with the link gets it, as with every file of the gallery, but
-    // nobody can work out the link from the account's ID.
+    // A file of the folder of an account for its link, i/u/<token>/<name> or in
+    // a subfolder, i/u/<token>/<folder>/<name>: anyone with the link gets it,
+    // as with every file of the gallery, but nobody can work out the link from
+    // the account's ID.
     function sendUserFile($base, $rel)
     {
         $file = resolvePath($base, $rel, false);
