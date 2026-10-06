@@ -18,9 +18,16 @@
         exit;
     }
 
+    // i/private/<file>: a file of the private folder, given out only to those
+    // who may see it (nginx sends these here too, server/nginx/sanakan.conf)
+    $requested = rawurldecode((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
+    if (strpos($requested, siteRoot() . 'i/' . PRIVATE_DIR . '/') === 0) {
+        sendPrivateFile($base, substr($requested, strlen(siteRoot() . 'i/')));
+        exit;
+    }
+
     // i/<file>.png|jpg|gif that is not there (nginx sends these here too): the
     // old link of a picture changed to WebP goes on to it, anything else is a 404
-    $requested = rawurldecode((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
     if (strpos($requested, siteRoot() . 'i/') === 0 && preg_match('/\.(?:png|jpe?g|gif)$/i', $requested)) {
         sendMovedLink(substr($requested, strlen(siteRoot() . 'i/')));
         exit;

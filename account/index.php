@@ -90,6 +90,8 @@
             $limit = userFilesLimit($id);
             $access[] = ['Własny folder w galerii', true, 'do ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', widzisz go tylko ty i administratorzy galerii, ' . $why('galleryUploaders')];
         }
+        if (canSeePrivateGalleryId($id))
+            $access[] = ['Prywatny folder w galerii', true, isPanelAdminId($id) ? 'jako administrator panelu' : $why('galleryPrivate')];
         if (isPanelAdminId($id))
             $access[] = ['Dokumentacja API', true, 'jako administrator panelu'];
         else if (inAccessList('apiViewers', $id, true))

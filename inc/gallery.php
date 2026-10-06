@@ -45,6 +45,9 @@
     // links say instead: u/<the folder's token>
     const USERS_DIR = 'users';
     const USERS_URL = 'u';
+    // the folder only the panel admins and the GALLERY_PRIVATE list see, and
+    // whose files nginx never gives straight from the disk
+    const PRIVATE_DIR = 'private';
     const USER_FILES_DEFAULT = 10;
     const USER_FILES_MAX = 1000;
     const USER_FILE_MAX_BYTES = 10485760;
@@ -292,12 +295,16 @@
         return $last >= 2 && $last <= 4 && ($lastTwo < 12 || $lastTwo > 14) ? $few : $many;
     }
 
-    // visible entries of a folder: no hidden files and no index.php in the top folder
+    // visible entries of a folder: no hidden files, no index.php in the top
+    // folder, and there the folders of the accounts and the private folder only
+    // for those who may see them
     function listNames($dirPath, $dirRel)
     {
         $names = [];
         foreach (scandir($dirPath) ?: [] as $name) {
-            if ($name[0] === '.' || ($dirRel === '' && ($name === 'index.php' || ($name === USERS_DIR && !galleryIsAdmin()))))
+            if ($name[0] === '.' || ($dirRel === '' && ($name === 'index.php'
+                    || ($name === USERS_DIR && !galleryIsAdmin())
+                    || ($name === PRIVATE_DIR && !galleryCanSeePrivate()))))
                 continue;
             $names[] = $name;
         }
@@ -658,10 +665,22 @@
         return $user !== null && isGalleryAdminId($user['id']);
     }
 
+    function galleryCanSeePrivate()
+    {
+        $user = siteUser();
+        return $user !== null && canSeePrivateGalleryId($user['id']);
+    }
+
     // the folders of the accounts, or something in one of them
     function inUsersDir($rel)
     {
         return $rel === USERS_DIR || strpos($rel, USERS_DIR . '/') === 0;
+    }
+
+    // the private folder, or something in it
+    function inPrivateDir($rel)
+    {
+        return $rel === PRIVATE_DIR || strpos($rel, PRIVATE_DIR . '/') === 0;
     }
 
     // a path is $folder or inside it
@@ -670,11 +689,15 @@
         return $rel === $folder || strpos($rel, $folder . '/') === 0;
     }
 
-    // Whether the visitor may see a folder or a file: the gallery admins
-    // everything, the viewers all but the folders of the accounts, an account
-    // with a folder of its own that folder, anyone the folders shared with it.
+    // Whether the visitor may see a folder or a file: the private folder only
+    // those who may see it (the panel admins and the GALLERY_PRIVATE list), the
+    // gallery admins everything else, the viewers all but the folders of the
+    // accounts, an account with a folder of its own that folder, anyone the
+    // folders shared with it.
     function galleryCanSee($base, $rel)
     {
+        if (inPrivateDir($rel))
+            return galleryCanSeePrivate();
         if (galleryIsAdmin())
             return true;
         foreach (galleryHomes($base) as $home)
@@ -767,6 +790,21 @@
         }
 
         sendMedia($file[0], 'public, max-age=86400');
+    }
+
+    // A file of the private folder for its link, i/private/<name>: only those
+    // who may see the folder get it, everyone else a 404. Unlike the rest of
+    // the gallery, nginx never gives these files straight from the disk
+    // (server/nginx/sanakan.conf sends them to i/index.php).
+    function sendPrivateFile($base, $rel)
+    {
+        $file = resolvePath($base, $rel, false);
+        if (!$file || !inPrivateDir($file[1]) || !galleryCanSee($base, $file[1])) {
+            http_response_code(404);
+            return;
+        }
+
+        sendMedia($file[0], 'private, max-age=3600');
     }
 
     // a picture or film as it is, 404 for any other file

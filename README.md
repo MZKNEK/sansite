@@ -169,13 +169,14 @@ Fill `inc/config.php` with the Discord application details (https://discord.com/
 | `GALLERY_ADMINS` | Accounts that may view the gallery and manage its files. The panel can add more |
 | `GALLERY_VIEWERS` | Accounts that may only view the gallery. The panel can add more; `true` lets in any Discord account |
 | `GALLERY_UPLOADERS` | Optional: accounts with a folder of their own in the gallery. The panel can add more; `true` lets in nobody |
+| `GALLERY_PRIVATE` | Optional: accounts that may see the private folder `i/private`. The panel can add more; `PANEL_ADMINS` always can |
 | `API_VIEWERS` | Accounts that may read the API documentation in `/api/`. The panel can add more, and `PANEL_ADMINS` always can; `true` lets in any Discord account |
 | `BOT_APP_KEY` | Key of the site's application in the bot API, sent as `x-app-key`; it needs the Info right (Site covers it too). With it the site reads the roles of the logged-in account (`/api/User/discord/{id}/permissions`) and the moderator and debug commands (`/api/Info/commands/private`). Without it neither happens, and the panel's server card says so |
 | `BOT_HEARTBEAT_SECRET` | Optional: the secret the bot sends its report to `/alive/` with (`Heartbeat` in the bot's `Config.json`: `Url` `https://sanakan.pl/alive/` with the slash at the end, the same `Secret`). The bot sends it every minute (up to 3 tries when the site does not answer). While a report is less than 90 s old the bot check uses it instead of `api/health`; once one is missing it asks `api/health` every minute until the reports come again, so the site sees the bot also when its API cannot be reached, and asks the API only when the reports stop. Without it `/alive/` answers 404 |
 
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_LIST` | Optional: blocking addresses in Cloudflare from the panel (below) |
 
-Without `inc/config.php` the gallery, the API documentation and the panel stay closed. Direct links to the pictures in `i/` always work.
+Without `inc/config.php` the gallery, the API documentation and the panel stay closed. Direct links to the pictures in `i/` always work, except in `i/private/`.
 
 ### Blocking in Cloudflare
 

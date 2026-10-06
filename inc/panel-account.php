@@ -35,7 +35,7 @@
         // what it may open: [label, yes, where from, list to add to or take from]
         $access = [];
         $access[] = ['Panel administratora', isPanelAdminId($id), isPanelAdminId($id) ? 'inc/config.php (PANEL_ADMINS)' : '', null];
-        foreach (['galleryAdmins' => 'Admin galerii', 'galleryViewers' => 'Ogląda galerię', 'galleryUploaders' => 'Własny folder w galerii', 'apiViewers' => 'Dokumentacja API'] as $list => $label) {
+        foreach (['galleryAdmins' => 'Admin galerii', 'galleryViewers' => 'Ogląda galerię', 'galleryUploaders' => 'Własny folder w galerii', 'galleryPrivate' => 'Prywatny folder w galerii', 'apiViewers' => 'Dokumentacja API'] as $list => $label) {
             $config = configList(ACCESS_LISTS[$list]);
             $entry = panelList($list)[$id] ?? null;
             if ($config === true)
@@ -50,6 +50,8 @@
                 $access[] = [$label, true, 'przez rolę na serwerze bota', $list];
             else if ($list === 'galleryViewers' && isGalleryAdminId($id))
                 $access[] = [$label, true, 'jako admin galerii', null];
+            else if ($list === 'galleryPrivate' && isPanelAdminId($id))
+                $access[] = [$label, true, 'jako właściciel strony (panel)', null];
             else
                 $access[] = [$label, false, '', $list];
         }

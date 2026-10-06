@@ -38,6 +38,7 @@
         'galleryAdmins' => 'GALLERY_ADMINS',
         'galleryViewers' => 'GALLERY_VIEWERS',
         'galleryUploaders' => 'GALLERY_UPLOADERS',
+        'galleryPrivate' => 'GALLERY_PRIVATE',
         'apiViewers' => 'API_VIEWERS'
     ];
 
@@ -246,6 +247,14 @@
         $test = testRights($id);
 
         return isset($test['gallery']) ? in_array($test['gallery'], ['uploader', 'viewer-uploader'], true) : inAccessList('galleryUploaders', $id, false);
+    }
+
+    // the private folder of the gallery, i/private (inc/gallery.php): the panel
+    // admins and the GALLERY_PRIVATE list; gallery admins and viewers do not get
+    // it just for that
+    function canSeePrivateGalleryId($id)
+    {
+        return isPanelAdminId($id) || inAccessList('galleryPrivate', $id, false);
     }
 
     // a role counts as the bot said it last; siteRoles() asks again for the logged-in account

@@ -40,6 +40,12 @@
         // '345678901234567890',
     ];
 
+    // Accounts that may see the private folder of the gallery, i/private (the
+    // panel can add more). Administratorzy panelu widzą je zawsze. Optional.
+    const GALLERY_PRIVATE = [
+        // '456789012345678901',
+    ];
+
     // Accounts that may read the API documentation in api/ (the panel can add
     // more, and PANEL_ADMINS always can); true lets in anyone logged in with Discord.
     const API_VIEWERS = [

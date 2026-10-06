@@ -20,6 +20,7 @@
         'galleryAdmins' => 'administratorzy galerii',
         'galleryViewers' => 'oglądający galerię',
         'galleryUploaders' => 'własny folder w galerii',
+        'galleryPrivate' => 'prywatny folder w galerii',
         'apiViewers' => 'dostęp do API'
     ];
 
@@ -30,6 +31,7 @@
         'galleryUploaders' => ['Własne foldery w galerii', 'Dodają zdjęcia tylko do swojego folderu i/' . USERS_DIR . '/ID-nick i tylko jego widzą (oprócz nich administratorzy galerii). Do '
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
             . ' MB, zapisywane jako WebP, gdy wychodzi wyraźnie mniejszy. Folder zostaje po odebraniu dostępu.'],
+        'galleryPrivate' => ['Prywatny folder galerii', 'Widzą i/' . PRIVATE_DIR . '. Administratorzy panelu zawsze, reszta z tej listy. Pliki nie otwierają się bezpośrednim linkiem.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
 
@@ -925,6 +927,9 @@
             $cells['gallery'] = ['—', '', 'Nie widzi galerii'];
         }
 
+        if (canSeePrivateGalleryId($id))
+            $details[] = ['Prywatny folder', $join('widzi i/' . PRIVATE_DIR, isPanelAdminId($id) ? 'właściciel strony (panel)' : accessFrom('galleryPrivate', $id, $logins))];
+
         $folder = userFolder($galleryDir, $id);
         [$files, $bytes] = $folder !== null ? folderUse($galleryDir . '/' . $folder) : [0, 0];
         if (isGalleryUploaderId($id)) {
@@ -1253,6 +1258,9 @@
 <?php endif; ?>
 <?php if (!isGalleryAdminId($id)): ?>
                 <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
+<?php endif; ?>
+<?php if (!canSeePrivateGalleryId($id)): ?>
+                <button type="button" class="admin-btn small" data-action="grant" data-list="galleryPrivate" data-id="<?=e($id)?>">+ Prywatny folder</button>
 <?php endif; ?>
 <?php if (!canViewApiId($id)): ?>
                 <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ API</button>
