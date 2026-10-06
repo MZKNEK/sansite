@@ -44,7 +44,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/` and the API documentation |
 | `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
-| `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
+| `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), `nginx-og.conf` for its nginx site (its link preview picture and purple), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:
@@ -99,7 +99,16 @@ ssh sanakan 'nginx -t && systemctl reload nginx'
 
 The wiki (Wiki.js 2, `/var/www/wiki` on the same server, without Docker) gets the site's look by hand, from `server/wiki/`:
 
-- `theme.css` goes into its Administration → Theme → Code Injection → CSS Override, `head.html` into Head HTML Injection. Wiki.js 2 writes its `og:image` empty, so `head.html` also gives every page the link preview picture `https://sanakan.pl/wiki-og.png`.
+- `theme.css` goes into its Administration → Theme → Code Injection → CSS Override, `head.html` into Head HTML Injection. Wiki.js 2 writes its `og:image` empty and its blue `theme-color` before anything injected, and Discord takes those first ones, so nginx replaces them with the link preview picture `https://sanakan.pl/wiki-og.png` and the site's purple: `nginx-og.conf` goes into the wiki's nginx site, in the location with `proxy_pass` to Wiki.js, next to its other `proxy_set_header` lines:
+
+```bash
+scp server/wiki/nginx-og.conf sanakan:/etc/nginx/snippets/wiki-og.conf
+ssh sanakan 'grep -ln "wiki.sanakan.pl" /etc/nginx/sites-enabled/*'   # the wiki's site
+# there, in the location with proxy_pass:  include snippets/wiki-og.conf;
+ssh sanakan 'nginx -t && systemctl reload nginx'
+```
+
+Discord keeps a preview it has made for a while; a link with something added, e.g. `https://wiki.sanakan.pl/?1`, shows the new one at once.
 - `assets/` holds the site's icon in the sizes Wiki.js uses and its manifest; they go over the wiki's own files, with the originals kept in `/root/wiki-assets-original/`. A Wiki.js update brings its own icons back, so this is repeated after one:
 
 ```bash
