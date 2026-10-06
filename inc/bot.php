@@ -37,9 +37,11 @@
     // cron refreshes the state every minute, so a page asks the API itself only
     // when it is older than this (cron late or stopped)
     const BOT_STALE_AFTER = 150;
-    // the bot sends its report every minute; one older than this is not used,
-    // and api/health is asked instead
-    const BOT_HEARTBEAT_FRESH = 150;
+    // The bot sends its report every minute, trying up to 3 times in about 20 s
+    // when the site does not answer. Once the last one is older than this, one
+    // report is missing: the bot check (cron, every minute) asks api/health
+    // instead, and goes back to the reports when they come again.
+    const BOT_HEARTBEAT_FRESH = 90;
     // the addresses the reports came from are kept this long, and noted again
     // at most this often
     const BOT_ADDRESS_KEEP = 90 * 86400;
@@ -645,6 +647,29 @@
         return botReadHealth($health);
     }
 
+    // ---- Shinden and the database ----------------------------------------------------
+    // Whether they answered the bot, by its report, at every check while the
+    // bot is up, each in a 24 h history of its own, "time ok [ms]". Without
+    // the bot nothing is known about them, so those checks are missing.
+    const BOT_DEPENDENCIES = ['shinden' => 'shinden-history.txt', 'database' => 'database-history.txt'];
+
+    function botRecordDependencies($health, $now)
+    {
+        foreach (BOT_DEPENDENCIES as $key => $name) {
+            if (!isset($health[$key]['ok']))
+                continue;
+            $ok = (bool)$health[$key]['ok'];
+            $ms = $ok && isset($health[$key]['latencyMs']) ? (int)$health[$key]['latencyMs'] : null;
+            botRecordCheck($ok, $now, $ms, null, $name);
+        }
+    }
+
+    // the checks of 'shinden' or 'database' in the last 24 h, as botHistory() gives them
+    function botDependencyHistory($key)
+    {
+        return botHistory(BOT_DEPENDENCIES[$key]);
+    }
+
     // ---- The bot API -----------------------------------------------------------------
     // Whether the bot API answers from outside, apart from whether the bot
     // works: after every report the bot sends to alive/ the site asks
@@ -950,6 +975,8 @@
         // a Shinden that did not answer has no answer time
         $shinden = $online && !empty($health['shinden']['ok']) && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
         $uptime = botRecordCheck($online, $now, $online ? $ms : null, $shinden);
+        if ($online)
+            botRecordDependencies($health, $now);
         botRecordDay($online, $now);
         botRecordIncident($online, $now);
 

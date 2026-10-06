@@ -199,6 +199,26 @@
         return $checks ? percent($up, $checks) : '–';
     }
 
+    // a 24 h bar of a history of its own (the bot API, Shinden, the database),
+    // with the percent of answered checks
+    function historyBar($name, $history)
+    {
+        ob_start();
+?>
+
+        <div class="bar">
+          <div class="bar-head"><span><?=e($name)?>, ostatnie 24 godziny</span><b><?=e(historyUptime($history))?></b></div>
+          <div class="timeline" aria-label="Dostępność: <?=e($name)?> w ostatnich 24 godzinach, po 15 minut">
+<?php foreach (botTimeline($history) as $part): ?>
+            <span class="<?=$part['state'] ?? 'none'?>" title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . timelineLabel($part))?>"></span>
+<?php endforeach; ?>
+          </div>
+          <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
+        </div>
+<?php
+        return ob_get_clean();
+    }
+
     // availability over the parts that had checks, or a dash
     function partsUptime($parts)
     {
@@ -352,18 +372,13 @@
 <?php if ($shindenAverage !== null): ?>
 <?=timesChart('Czas odpowiedzi Shindena', $shindenTimes, $shindenAverage)?>
 <?php endif; ?>
-<?php if ($apiHistory): ?>
-
-        <div class="bar">
-          <div class="bar-head"><span>API bota, ostatnie 24 godziny</span><b><?=e(historyUptime($apiHistory))?></b></div>
-          <div class="timeline" aria-label="Dostępność API bota w ostatnich 24 godzinach, po 15 minut">
-<?php foreach (botTimeline($apiHistory) as $part): ?>
-            <span class="<?=$part['state'] ?? 'none'?>" title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . timelineLabel($part))?>"></span>
+<?php foreach (['shinden' => 'Shinden', 'database' => 'Baza danych'] as $key => $name): ?>
+<?php if ($dependency = botDependencyHistory($key)): ?>
+<?=historyBar($name, $dependency)?>
+<?php endif; ?>
 <?php endforeach; ?>
-          </div>
-          <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
-        </div>
-
+<?php if ($apiHistory): ?>
+<?=historyBar('API bota', $apiHistory)?>
 <?=timesChart('Czas odpowiedzi API bota', botResponseTimes($apiHistory), averageResponse($apiHistory))?>
 <?php endif; ?>
 
