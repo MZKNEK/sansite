@@ -254,6 +254,10 @@
     // it just for that
     function canSeePrivateGalleryId($id)
     {
+        $test = testRights($id);
+        if (isset($test['private']))
+            return $test['private'];
+
         return isPanelAdminId($id) || inAccessList('galleryPrivate', $id, false);
     }
 
@@ -268,8 +272,9 @@
     // ---- Trying other rights ------------------------------------------------------
     // A panel admin can take other rights for a while and see the live site as
     // an account with them does: with or without the panel, as anyone in the
-    // gallery, with or without the API list, with any role on the bot's server
-    // (which decides the API and the private commands). Kept in its session,
+    // gallery, with or without the private folder, with or without the API list,
+    // with any role on the bot's server (which decides the API and the private
+    // commands). Kept in its session,
     // for its own account only, until TEST_MINUTES are over or it goes back with
     // the bar every page shows meanwhile (accountMenuHtml(), account.php).
     // Its real place in PANEL_ADMINS decides whether it may; nothing else changes.
@@ -327,6 +332,8 @@
             $parts[] = 'panel: ' . ($test['panel'] ? 'tak' : 'nie');
         if (isset($test['gallery']))
             $parts[] = 'galeria: ' . TEST_GALLERY[$test['gallery']];
+        if (isset($test['private']))
+            $parts[] = 'prywatna galeria: ' . ($test['private'] ? 'tak' : 'nie');
         if (isset($test['api']))
             $parts[] = 'lista API: ' . ($test['api'] ? 'tak' : 'nie');
         if (isset($test['role']))

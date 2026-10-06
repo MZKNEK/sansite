@@ -559,15 +559,17 @@
             case 'test-rights':
                 $panel = (string)($_POST['panel'] ?? '');
                 $gallery = (string)($_POST['gallery'] ?? '');
+                $private = (string)($_POST['private'] ?? '');
                 $api = (string)($_POST['api'] ?? '');
                 $role = (string)($_POST['role'] ?? '');
                 $minutes = (int)($_POST['minutes'] ?? 0);
-                if (!in_array($panel, ['', '0'], true) || ($gallery !== '' && !isset(TEST_GALLERY[$gallery])) || !in_array($api, ['', '0', '1'], true)
-                        || ($role !== '' && $role !== TEST_ROLE_OUT && !isset(BOT_ROLES[$role])) || !in_array($minutes, TEST_MINUTES, true))
+                if (!in_array($panel, ['', '0', '1'], true) || ($gallery !== '' && !isset(TEST_GALLERY[$gallery])) || !in_array($private, ['', '0', '1'], true)
+                        || !in_array($api, ['', '0', '1'], true) || ($role !== '' && $role !== TEST_ROLE_OUT && !isset(BOT_ROLES[$role])) || !in_array($minutes, TEST_MINUTES, true))
                     reply(false, 'Złe ustawienie podglądu, odśwież stronę.', 400);
                 $rights = array_filter([
-                    'panel' => $panel === '' ? null : false,
+                    'panel' => $panel === '' ? null : $panel === '1',
                     'gallery' => $gallery === '' ? null : $gallery,
+                    'private' => $private === '' ? null : $private === '1',
                     'api' => $api === '' ? null : $api === '1',
                     'role' => $role === '' ? null : $role
                 ], function ($value) { return $value !== null; });
@@ -1135,22 +1137,25 @@
 <?php endif; ?>
         <form class="test-form" data-action="test-rights">
           <label>Panel
-            <select name="panel"><option value="">bez zmian</option><option value="0">bez panelu</option></select>
+            <select name="panel"><option value="">bez zmian</option><option value="1" selected>z panelem</option><option value="0">bez panelu</option></select>
           </label>
           <label>Galeria
             <select name="gallery"><option value="">bez zmian</option>
 <?php foreach (TEST_GALLERY as $key => $label): ?>
-              <option value="<?=e($key)?>"><?=e($label)?></option>
+              <option value="<?=e($key)?>"<?=$key === 'admin' ? ' selected' : ''?>><?=e($label)?></option>
 <?php endforeach; ?>
             </select>
           </label>
+          <label>Prywatna galeria
+            <select name="private"><option value="">bez zmian</option><option value="1" selected>tak</option><option value="0">nie</option></select>
+          </label>
           <label>Lista API
-            <select name="api"><option value="">bez zmian</option><option value="1">na liście</option><option value="0">poza listą</option></select>
+            <select name="api"><option value="">bez zmian</option><option value="1" selected>na liście</option><option value="0">poza listą</option></select>
           </label>
           <label>Rola na serwerze bota
             <select name="role"><option value="">bez zmian</option>
 <?php foreach (BOT_ROLES as $key => [$level, $badgeLabel, $name]): ?>
-              <option value="<?=e($key)?>"><?=e($name)?> (LV.<?=$level?>)</option>
+              <option value="<?=e($key)?>"<?=$key === 'dev' ? ' selected' : ''?>><?=e($name)?> (LV.<?=$level?>)</option>
 <?php endforeach; ?>
               <option value="<?=TEST_ROLE_OUT?>">poza serwerem</option>
             </select>
@@ -1158,7 +1163,7 @@
           <label>Na
             <select name="minutes">
 <?php foreach (TEST_MINUTES as $minutes): ?>
-              <option value="<?=$minutes?>"<?=$minutes === 60 ? ' selected' : ''?>><?=$minutes < 60 ? $minutes . ' min' : ($minutes / 60) . ' godz.'?></option>
+              <option value="<?=$minutes?>"<?=$minutes === 15 ? ' selected' : ''?>><?=$minutes < 60 ? $minutes . ' min' : ($minutes / 60) . ' godz.'?></option>
 <?php endforeach; ?>
             </select>
           </label>
@@ -1520,15 +1525,17 @@
 <?php if ($cfItems): ?>
 
         <h3 class="diag-title">Zablokowane w Cloudflare <span class="muted"><?=count($cfItems)?> na liście <?=e(CLOUDFLARE_LIST)?></span></h3>
-        <ul class="diag-blocked">
+        <div class="diag-scroll">
+          <ul class="diag-blocked">
 <?php foreach ($cfItems as $item): ?>
-          <li>
-            <code><?=e($item['ip'])?></code>
-            <span><?=e($item['comment'])?><?=$item['created'] ? ' <span class="muted">' . e(date('d.m.Y H:i', $item['created'])) . '</span>' : ''?></span>
-            <button type="button" class="admin-btn small" data-action="cf-unblock" data-item="<?=e($item['id'])?>" data-ip="<?=e($item['ip'])?>" data-confirm="<?=e('Odblokować ' . $item['ip'] . '?')?>">Odblokuj</button>
-          </li>
+            <li>
+              <code><?=e($item['ip'])?></code>
+              <span><?=e($item['comment'])?><?=$item['created'] ? ' <span class="muted">' . e(date('d.m.Y H:i', $item['created'])) . '</span>' : ''?></span>
+              <button type="button" class="admin-btn small" data-action="cf-unblock" data-item="<?=e($item['id'])?>" data-ip="<?=e($item['ip'])?>" data-confirm="<?=e('Odblokować ' . $item['ip'] . '?')?>">Odblokuj</button>
+            </li>
 <?php endforeach; ?>
-        </ul>
+          </ul>
+        </div>
 <?php endif; ?>
 <?php if ($diagPages): ?>
 
@@ -1542,9 +1549,11 @@
 <?php if ($diagSlow): ?>
 
         <h3 class="diag-title">Wolne zapytania PHP <span class="muted">ostatnie z dziennika slowlog</span></h3>
+        <div class="diag-scroll">
 <?php foreach ($diagSlow as $entry): ?>
-        <pre class="diag-slow"><?=e($entry)?></pre>
+          <pre class="diag-slow"><?=e($entry)?></pre>
 <?php endforeach; ?>
+        </div>
 <?php endif; ?>
 
         <h3 class="diag-title">Ustawienie</h3>
