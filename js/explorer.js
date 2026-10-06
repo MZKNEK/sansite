@@ -354,6 +354,18 @@ window.SanakanGallery = (function () {
   stageEl.addEventListener('pointerup', endPan);
   stageEl.addEventListener('pointercancel', endPan);
 
+  // A drag must not reach the film's own play/pause (its click toggles it); a
+  // plain click still does. The press on the media is stopped too, so it does
+  // not close the viewer.
+  [image, video].forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      if (!panMoved) return;
+      panMoved = false;
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+
   // a double click on the media goes back to fit
   stageEl.addEventListener('dblclick', function (e) {
     if (media.hidden) return;
