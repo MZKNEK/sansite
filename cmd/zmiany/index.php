@@ -72,9 +72,9 @@
   <link rel="icon" href="../../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
-  <link href="../../css/fonts.css?v=2" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=33" type="text/css" rel="stylesheet" />
-  <link href="../style.css?v=14" type="text/css" rel="stylesheet" />
+  <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
+  <link href="../style.css?v=480e91d648" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="cmd-page">
@@ -129,8 +129,8 @@
 <?php endforeach; ?>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
-  <script src="../../js/account.js?v=1"></script>
-  <script src="../../js/netsphere.js?v=2"></script>
+  <script src="../../js/account.js?v=c8dfe2b1f3"></script>
+  <script src="../../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 
 </html>

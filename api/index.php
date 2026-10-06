@@ -42,9 +42,9 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
-  <link href="../css/fonts.css?v=2" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=33" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=12" type="text/css" rel="stylesheet" />
+  <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=d6be3bbe06" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -92,9 +92,9 @@
 <?php else: ?>
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
-  <script src="../js/explorer.js?v=10"></script>
-  <script src="../js/account.js?v=1"></script>
-  <script src="../js/netsphere.js?v=2"></script>
+  <script src="../js/explorer.js?v=3c66b63ead"></script>
+  <script src="../js/account.js?v=c8dfe2b1f3"></script>
+  <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 
 </html>
@@ -109,10 +109,10 @@
   <meta charset="UTF-8">
 <?=metaTags('API', $description, '/api/', 'api')?>
   <title>API &middot; Sanakan</title>
-  <link href="../css/fonts.css?v=2" type="text/css" rel="stylesheet" />
-  <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=33" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=17" >
+  <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=0044961588" >
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=b8670e6394" />
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -201,12 +201,12 @@
 
 <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
-<script src="./swagger-ui-bundle.js?v=1"> </script>
-<script src="./swagger-ui-standalone-preset.js?v=1"> </script>
-<script src="./search.js?v=2"> </script>
-<script src="../js/account.js?v=1"></script>
-<script src="./init.js?v=1"></script>
-<script src="../js/netsphere.js?v=2"></script>
+<script src="./swagger-ui-bundle.js?v=421cb6eadf"> </script>
+<script src="./swagger-ui-standalone-preset.js?v=3ddf89e422"> </script>
+<script src="./search.js?v=96cd06455f"> </script>
+<script src="../js/account.js?v=c8dfe2b1f3"></script>
+<script src="./init.js?v=9e46400eb6"></script>
+<script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

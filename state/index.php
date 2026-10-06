@@ -24,10 +24,10 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
-  <link href="../css/fonts.css?v=2" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=33" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=12" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=10" type="text/css" rel="stylesheet" />
+  <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=d6be3bbe06" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
@@ -54,7 +54,7 @@
     <p class="state-note">Strona odświeża się sama co 10 minut.</p>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
-  <script src="../js/netsphere.js?v=2"></script>
+  <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 
 </html>

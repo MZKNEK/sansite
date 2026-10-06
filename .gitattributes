@@ -2,6 +2,7 @@
 deploy.sh export-ignore
 README.md export-ignore
 server/ export-ignore
+tools/ export-ignore
 .gitignore export-ignore
 .gitattributes export-ignore
 
