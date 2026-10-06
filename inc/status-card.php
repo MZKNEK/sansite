@@ -34,8 +34,9 @@
         return number_format((int)$n, 0, ',', ' ');
     }
 
-    // The bot's own report (api/health) in four boxes: Discord, database, Shinden, commands
-    function healthDetails($health)
+    // The bot's own report (api/health) in boxes: Discord, database, Shinden,
+    // commands, and the bot API as the site sees it ($api from botApiLast())
+    function healthDetails($health, $api = null)
     {
         $discord = $health['discord'] ?? [];
         $database = $health['database'] ?? [];
@@ -72,6 +73,13 @@
             <span>godzina: <?=e(formatCount($shinden['requestsHour'] ?? 0))?> zapytań, błędy <?=e($percent($shinden['errorRateHour'] ?? 0))?></span>
           </div>
 <?php endif; ?>
+<?php if ($api): ?>
+          <div class="health-box <?=$api[1] ? 'ok' : 'fail'?>">
+            <h3>API bota</h3>
+            <b><?=$api[1] ? 'odpowiada' . ($api[2] !== null ? ' &middot; ' . e(milliseconds($api[2])) : '') : 'nie odpowiada'?></b>
+            <span>sprawdzone <?=e(ago($api[0]))?> z tej strony</span>
+          </div>
+<?php endif; ?>
 <?php if ($commands): ?>
           <div class="health-box <?=!empty($commands['rejected5min']) ? 'warn' : 'ok'?>">
             <h3>Polecenia</h3>
@@ -105,12 +113,7 @@
     // the outage overlaps a planned break
     function plannedIncident($incident)
     {
-        $end = $incident[1] ?? time();
-        foreach (botMaintenanceWindows() as $window)
-            if ($incident[0] < $window['to'] && $end >= $window['from'])
-                return true;
-
-        return false;
+        return $incident[4] ?? botIncidentPlanned($incident[0], $incident[1]);
     }
 
     function ago($time)
@@ -176,6 +179,24 @@
 
         return $label . ': ' . percent($part['up'], $part['checks']) . ' (' . $part['checks'] . ' '
             . plural($part['checks'], 'sprawdzenie', 'sprawdzenia', 'sprawdzeń') . ')';
+    }
+
+    // the percent of answered checks in a 24 h history, planned breaks not
+    // counted, or a dash
+    function historyUptime($history)
+    {
+        $windows = botMaintenanceWindows();
+        $checks = 0;
+        $up = 0;
+        foreach ($history as $check) {
+            if (botInMaintenance($check[0], $windows))
+                continue;
+            $checks++;
+            if ($check[1])
+                $up++;
+        }
+
+        return $checks ? percent($up, $checks) : '–';
     }
 
     // availability over the parts that had checks, or a dash
@@ -284,6 +305,8 @@
         $history = botHistory();
         $days = botDailyParts(DAYS_SHOWN);
         $health = botHealth();
+        $apiHistory = botApiHistory();
+        $apiDays = botDailyParts(DAYS_SHOWN, 'api-days.json');
         $shindenTimes = botResponseTimes($history, 3);
         $shindenAverage = averageResponse($history, 3);
         // the same days as the bar; planned breaks are listed but not counted
@@ -292,10 +315,10 @@
         $downtime = 0;
         foreach (botIncidents($days[0]['from']) as $incident) {
             $planned = plannedIncident($incident);
-            $incidents[] = [$incident[0], $incident[1], $planned];
+            $incidents[] = [$incident[0], $incident[1], $planned, $incident[2], $incident[3]];
             if (!$planned) {
                 $unplanned++;
-                $downtime += ($incident[1] ?? time()) - max($incident[0], $days[0]['from']);
+                $downtime += $incident[3];
             }
         }
         // the planned ones are listed too, so the header says how many of them there are
@@ -313,7 +336,7 @@
 <?php endif; ?>
           </div>
         </div>
-<?=$health ? healthDetails($health) : ''?>
+<?=$health ? healthDetails($health, botApiLast()) : ''?>
 
         <div class="bar">
           <div class="bar-head"><span>Ostatnie 24 godziny</span><b><?=e(str_replace('.', ',', $state['uptime']))?>%</b></div>
@@ -329,6 +352,20 @@
 <?php if ($shindenAverage !== null): ?>
 <?=timesChart('Czas odpowiedzi Shindena', $shindenTimes, $shindenAverage)?>
 <?php endif; ?>
+<?php if ($apiHistory): ?>
+
+        <div class="bar">
+          <div class="bar-head"><span>API bota, ostatnie 24 godziny</span><b><?=e(historyUptime($apiHistory))?></b></div>
+          <div class="timeline" aria-label="Dostępność API bota w ostatnich 24 godzinach, po 15 minut">
+<?php foreach (botTimeline($apiHistory) as $part): ?>
+            <span class="<?=$part['state'] ?? 'none'?>" title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . timelineLabel($part))?>"></span>
+<?php endforeach; ?>
+          </div>
+          <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
+        </div>
+
+<?=timesChart('Czas odpowiedzi API bota', botResponseTimes($apiHistory), averageResponse($apiHistory))?>
+<?php endif; ?>
 
         <div class="bar">
           <div class="bar-head"><span>Ostatnie <?=DAYS_SHOWN?> dni</span><b><?=e(partsUptime($days))?></b></div>
@@ -339,6 +376,18 @@
           </div>
           <div class="bar-ends"><span><?=e(date('d.m', $days[0]['from']))?></span><span>dziś</span></div>
         </div>
+<?php if (array_sum(array_column($apiDays, 'checks'))): ?>
+
+        <div class="bar">
+          <div class="bar-head"><span>API bota, ostatnie <?=DAYS_SHOWN?> dni</span><b><?=e(partsUptime($apiDays))?></b></div>
+          <div class="timeline days" aria-label="Dostępność API bota w ostatnich <?=DAYS_SHOWN?> dniach, po dniu">
+<?php foreach ($apiDays as $part): ?>
+            <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
+<?php endforeach; ?>
+          </div>
+          <div class="bar-ends"><span><?=e(date('d.m', $apiDays[0]['from']))?></span><span>dziś</span></div>
+        </div>
+<?php endif; ?>
 
         <div class="timeline-legend">
           <span><i class="ok"></i>działał <i class="warn"></i>częściowo <i class="fail"></i>nie działał <i class="planned"></i>przerwa techniczna <i class="none"></i>brak sprawdzeń</span>
@@ -351,7 +400,7 @@
 <?php else: ?>
           <ul class="incident-list">
 <?php foreach (array_slice($incidents, 0, INCIDENTS_SHOWN) as $incident): ?>
-            <li class="<?=$incident[2] ? 'planned' : ''?><?=$incident[1] === null ? ' ongoing' : ''?>"><span><?=e(incidentTime($incident))?><?=$incident[2] ? ' <small>przerwa techniczna</small>' : ''?></span><b><?=e(duration(($incident[1] ?? time()) - $incident[0]))?></b></li>
+            <li class="<?=$incident[2] ? 'planned' : ''?><?=$incident[1] === null ? ' ongoing' : ''?>"><span><?=e(incidentTime($incident))?><?=$incident[2] ? ' <small>przerwa techniczna</small>' : ''?><?=$incident[3] > 1 ? ' <small>' . $incident[3] . ' ' . plural($incident[3], 'przerwa', 'przerwy', 'przerw') . ' w działaniu</small>' : ''?></span><b<?=$incident[3] > 1 ? ' title="' . e('od początku do końca ' . duration(($incident[1] ?? time()) - $incident[0]) . ', bez odpowiedzi łącznie ' . duration($incident[4])) . '"' : ''?>><?=e(duration($incident[4]))?></b></li>
 <?php endforeach; ?>
           </ul>
 <?php if (count($incidents) > INCIDENTS_SHOWN): ?>

@@ -53,6 +53,13 @@
     // the moderator and debug commands on cmd/. Without it neither happens.
     const BOT_APP_KEY = '';
 
+    // Secret the bot sends its report to alive/ with, every minute (Heartbeat
+    // in the bot's Config.json: Url https://sanakan.pl/alive/, the same Secret).
+    // While the reports come the site does not ask the bot API for its state,
+    // and sees the bot also when the API cannot be reached. Without it alive/
+    // answers 404 and the site asks the API every minute, as before.
+    const BOT_HEARTBEAT_SECRET = '';
+
     // Optional: blocking addresses in Cloudflare from the panel (inc/cloudflare.php,
     // README). A token with Account Filter Lists: Edit, the account ID (domain
     // overview in Cloudflare, right column) and the name of the IP list that a

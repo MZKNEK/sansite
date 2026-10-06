@@ -8,7 +8,8 @@
     // gets anyone blocked, and a scanning tool's user agent alone does not either.
     //
     // Never blocked automatically: local addresses and Cloudflare's, the
-    // addresses logged-in accounts came from, and the crawlers of search
+    // addresses logged-in accounts came from, the bot's (its reports to
+    // alive/ come from there, inc/bot.php), and the crawlers of search
     // engines and known research scanners (Google, Bing, Censys, Shodan...)
     // whose address really is theirs: its reverse DNS gives a name under
     // AUTO_BLOCK_TRUSTED and that name leads back to the address, which a
@@ -124,7 +125,7 @@
             if (count($scanner['probes']) < AUTO_BLOCK_PROBES || $scanner['last'] < $now - 86400)
                 continue;
             $target = cloudflareTarget($ip);
-            if ($target === null || diagIsCloudflare($ip) || accountsAtAddress($ip, $addresses)
+            if ($target === null || diagIsCloudflare($ip) || accountsAtAddress($ip, $addresses) || botIsAddress($ip)
                     || isset($state['blocked'][$target]) || isset($released[$target]) || isset($state['trusted'][$target]) || isset($state['failed'][$target]))
                 continue;
 

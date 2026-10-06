@@ -17,23 +17,41 @@
     // 404, the command list is the check, as before. With the site's key
     // (BOT_APP_KEY, inc/auth.php) the moderator and debug commands are fetched
     // as often as the public ones, for the accounts that may see them on cmd/.
+    // The bot also sends the same report here itself every minute (alive/, with
+    // BOT_HEARTBEAT_SECRET); while that is fresh the API is not asked for it, so
+    // the site sees the bot also when its API cannot be reached, and asks
+    // api/health only when the reports stop coming.
     require_once __DIR__ . '/auth.php';
 
     const BOT_HEALTH_URL = 'https://api.sanakan.pl/api/health';
     const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
     const BOT_PRIVATE_URL = 'https://api.sanakan.pl/api/Info/commands/private';
+    const BOT_API_ALIVE_URL = 'https://api.sanakan.pl/api/alive';
+    // the bot API is asked at most this often after the bot's reports
+    const BOT_API_CHECK_EVERY = 50;
+    // a failed API check this recent makes the bot "idle" with an issue
+    const BOT_API_ISSUE_FOR = 300;
     // with api/health the command list (cmd/ and its changes) is fetched only this often
     const BOT_COMMANDS_TTL = 600;
     const BOT_CACHE_TTL = 60;
     // cron refreshes the state every minute, so a page asks the API itself only
     // when it is older than this (cron late or stopped)
     const BOT_STALE_AFTER = 150;
+    // the bot sends its report every minute; one older than this is not used,
+    // and api/health is asked instead
+    const BOT_HEARTBEAT_FRESH = 150;
+    // the addresses the reports came from are kept this long, and noted again
+    // at most this often
+    const BOT_ADDRESS_KEEP = 90 * 86400;
+    const BOT_ADDRESS_NOTE_EVERY = 3600;
     const BOT_HISTORY_SPAN = 86400;
     const BOT_MIN_UPTIME = 99.0;
     const BOT_DAYS_KEEP = 400;
     const BOT_INCIDENTS_KEEP = 200;
     const BOT_MAINTENANCE_KEEP = 100;
     const BOT_CHANGES_KEEP = 300;
+    // outages less than this apart are shown as one
+    const BOT_INCIDENT_MERGE = 1800;
 
     // days, months and the times on the pages follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');
@@ -75,10 +93,10 @@
     // dropped) and returns the percent of online checks in it. $ms is the
     // Discord ping (the API answer time without api/health) and $shinden the
     // answer time of Shinden, null when unknown.
-    function botRecordCheck($online, $now, $ms = null, $shinden = null)
+    function botRecordCheck($online, $now, $ms = null, $shinden = null, $name = 'status-history.txt')
     {
         $history = [];
-        $fp = @fopen(botFile('status-history.txt'), 'c+');
+        $fp = @fopen(botFile($name), 'c+');
         $locked = $fp !== false && flock($fp, LOCK_EX);
 
         if ($locked) {
@@ -168,9 +186,9 @@
     // only when the history does not reach back to midnight (the day the clocks
     // go back has 25 hours) the check is added instead. The first time, every
     // day the history reaches is filled from it.
-    function botRecordDay($online, $now)
+    function botRecordDay($online, $now, $name = 'days.json', $historyName = 'status-history.txt')
     {
-        $fp = @fopen(botFile('days.json'), 'c+');
+        $fp = @fopen(botFile($name), 'c+');
         if ($fp === false || !flock($fp, LOCK_EX)) {
             if ($fp !== false)
                 fclose($fp);
@@ -181,7 +199,7 @@
         $first = !is_array($days);
         $days = $first ? [] : $days;
         $today = date('Y-m-d', $now);
-        $history = botHistory();
+        $history = botHistory($historyName);
         $whole = isset($history[0]) && $history[0][0] - 120 <= strtotime('today', $now);
 
         if ($first || $whole) {
@@ -210,17 +228,17 @@
         fclose($fp);
     }
 
-    function botDays()
+    function botDays($name = 'days.json')
     {
-        $days = json_decode((string)@file_get_contents(botFile('days.json')), true);
+        $days = json_decode((string)@file_get_contents(botFile($name)), true);
 
         return is_array($days) ? $days : [];
     }
 
     // The last $count days, oldest first; each is ['from' => time, 'checks', 'up']
-    function botDailyParts($count)
+    function botDailyParts($count, $name = 'days.json')
     {
-        $days = botDays();
+        $days = botDays($name);
         $parts = [];
         for ($i = $count - 1; $i >= 0; $i--) {
             $from = strtotime('today -' . $i . ' days');
@@ -276,15 +294,50 @@
             $incidents[$last][1] = $time;
     }
 
-    // outages that lasted into the time since $since or still last, newest first
-    function botIncidents($since)
+    // the outages as they were recorded, [start, end or null], oldest first
+    function botRawIncidents()
     {
         $incidents = json_decode((string)@file_get_contents(botFile('incidents.json')), true);
-        if (!is_array($incidents))
-            return [];
+
+        return is_array($incidents) ? $incidents : [];
+    }
+
+    // whether an outage overlaps a planned break
+    function botIncidentPlanned($start, $end, $windows = null)
+    {
+        $end = $end ?? time();
+        foreach ($windows ?? botMaintenanceWindows() as $window)
+            if ($start < $window['to'] && $end >= $window['from'])
+                return true;
+
+        return false;
+    }
+
+    // Outages that lasted into the time since $since or still last, newest first,
+    // as [start, end or null, how many outages, seconds down since $since,
+    // planned]. Outages less than BOT_INCIDENT_MERGE apart are one, the time the
+    // bot answered between them not counted as down; a planned break and an
+    // outage outside it stay apart.
+    function botIncidents($since)
+    {
+        $windows = botMaintenanceWindows();
+        $now = time();
+        $merged = [];
+        foreach (botRawIncidents() as [$start, $end]) {
+            $planned = botIncidentPlanned($start, $end, $windows);
+            $down = max(0, ($end ?? $now) - max($start, $since));
+            $last = count($merged) - 1;
+            if ($last >= 0 && $merged[$last][1] !== null && $start - $merged[$last][1] <= BOT_INCIDENT_MERGE && $merged[$last][4] === $planned) {
+                $merged[$last][1] = $end;
+                $merged[$last][2]++;
+                $merged[$last][3] += $down;
+            } else {
+                $merged[] = [$start, $end, 1, $down, $planned];
+            }
+        }
 
         $recent = [];
-        foreach ($incidents as $incident)
+        foreach ($merged as $incident)
             if ($incident[1] === null || $incident[1] > $since)
                 $recent[] = $incident;
 
@@ -530,9 +583,10 @@
     // when the outage going on now started, or null while the bot answers
     function botDownSince()
     {
-        $incidents = botIncidents(0);
+        $incidents = botRawIncidents();
+        $last = end($incidents);
 
-        return isset($incidents[0]) && $incidents[0][1] === null ? $incidents[0][0] : null;
+        return $last !== false && $last[1] === null ? $last[0] : null;
     }
 
     // " od 14:05 (23 min)" for a bot that does not answer, otherwise empty
@@ -546,10 +600,10 @@
     }
 
     // the checks of the last 24 h as [time, online, milliseconds], oldest first
-    function botHistory()
+    function botHistory($name = 'status-history.txt')
     {
         $history = [];
-        $lines = @file(botFile('status-history.txt'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $lines = @file(botFile($name), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
         foreach ($lines as $line) {
             $check = botParseCheck($line);
             if ($check && $check[0] > time() - BOT_HISTORY_SPAN)
@@ -579,17 +633,150 @@
     // this bot has no api/health yet. Not answering at all means offline.
     function botAskHealth()
     {
-        [$body, $status] = botFetch(BOT_HEALTH_URL);
-        if ($body === false && $status === 0)
-            return [false, null, null];
+        [$body, $status, $ms] = botFetch(BOT_HEALTH_URL);
+        $health = $body === false ? null : @json_decode((string)$body, true);
+        $answered = is_array($health) && isset($health['status']);
+        // an answer of the bot itself means its API works
+        botApiRecord($answered || $status === 404, $ms, time());
 
-        $health = @json_decode((string)$body, true);
-        if (!is_array($health) || !isset($health['status']))
+        if (!$answered)
             return $status === 404 ? null : [false, null, null];
 
+        return botReadHealth($health);
+    }
+
+    // ---- The bot API -----------------------------------------------------------------
+    // Whether the bot API answers from outside, apart from whether the bot
+    // works: after every report the bot sends to alive/ the site asks
+    // api/alive (at most every BOT_API_CHECK_EVERY), and while the reports do
+    // not come the bot check's own api/health request counts. Every check goes
+    // to a 24 h history of its own, "time up [ms]", and is counted per day, as
+    // the bot's checks are.
+
+    function botApiRecord($up, $ms, $now)
+    {
+        botWriteFile(botFile('api-checked.txt'), (string)$now);
+        botRecordCheck($up, $now, $up ? $ms : null, null, 'api-history.txt');
+        botRecordDay($up, $now, 'api-days.json', 'api-history.txt');
+    }
+
+    // asks api/alive, when it was not asked in the last BOT_API_CHECK_EVERY
+    function botApiCheck($now)
+    {
+        $lock = @fopen(botFile('api.lock'), 'c');
+        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock !== false)
+                fclose($lock);
+            return;
+        }
+
+        if ($now - (int)@file_get_contents(botFile('api-checked.txt')) >= BOT_API_CHECK_EVERY) {
+            [$body, $status, $ms] = botFetch(BOT_API_ALIVE_URL);
+            botApiRecord($status === 200 && trim((string)$body) === 'ok', $ms, $now);
+        }
+        fclose($lock);
+    }
+
+    // the checks of the bot API in the last 24 h, as botHistory() gives them
+    function botApiHistory()
+    {
+        return botHistory('api-history.txt');
+    }
+
+    // the last API check as [time, answered, ms or null], or null when never
+    function botApiLast()
+    {
+        $history = botApiHistory();
+
+        return $history ? end($history) : null;
+    }
+
+    // the API did not answer its last check, made less than BOT_API_ISSUE_FOR ago
+    function botApiDown($now)
+    {
+        $last = botApiLast();
+
+        return $last !== null && !$last[1] && $now - $last[0] < BOT_API_ISSUE_FOR;
+    }
+
+    // [online, Discord ping, health data] of a health report
+    function botReadHealth($health)
+    {
         $online = $health['status'] !== 'down' && ($health['discord']['state'] ?? '') === 'Connected';
 
         return [$online, $online ? (int)($health['discord']['latencyMs'] ?? 0) : null, $health];
+    }
+
+    // the secret the bot sends its reports to alive/ with, or '' without one
+    function botHeartbeatSecret()
+    {
+        authConfigured();
+
+        return defined('BOT_HEARTBEAT_SECRET') ? (string)BOT_HEARTBEAT_SECRET : '';
+    }
+
+    // a report the bot sent to alive/, kept as ['received' => time, 'health' => report]
+    function botSaveHeartbeat($health, $now)
+    {
+        botWriteFile(botFile('heartbeat.json'), json_encode(['received' => $now, 'health' => $health]));
+    }
+
+    // The addresses the bot's reports came from, as [ip => last time]. They are
+    // never blocked, by the panel or automatically (inc/autoblock.php).
+    function botAddresses()
+    {
+        $addresses = json_decode((string)@file_get_contents(botFile('addresses.json')), true);
+
+        return is_array($addresses) ? $addresses : [];
+    }
+
+    function botNoteAddress($ip, $now)
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false)
+            return;
+
+        $addresses = botAddresses();
+        if (isset($addresses[$ip]) && $now - $addresses[$ip] < BOT_ADDRESS_NOTE_EVERY)
+            return;
+
+        $addresses[$ip] = $now;
+        foreach ($addresses as $address => $time)
+            if ($time < $now - BOT_ADDRESS_KEEP)
+                unset($addresses[$address]);
+        arsort($addresses);
+        botWriteFile(botFile('addresses.json'), json_encode($addresses));
+    }
+
+    // whether the bot's reports came from this address (or its IPv6 /64)
+    function botIsAddress($ip)
+    {
+        foreach (array_keys(botAddresses()) as $address)
+            if (sameAddress($ip, (string)$address))
+                return true;
+
+        return false;
+    }
+
+    // when the bot last sent its report, or null when never
+    function botHeartbeatTime()
+    {
+        $beat = json_decode((string)@file_get_contents(botFile('heartbeat.json')), true);
+
+        return isset($beat['received']) ? (int)$beat['received'] : null;
+    }
+
+    // the report the bot sent less than BOT_HEARTBEAT_FRESH ago, as botAskHealth
+    // gives it, or null when there is none that fresh
+    function botHeartbeatReport($now)
+    {
+        if (botHeartbeatSecret() === '')
+            return null;
+
+        $beat = json_decode((string)@file_get_contents(botFile('heartbeat.json')), true);
+        if (!isset($beat['received'], $beat['health']['status']) || $now - (int)$beat['received'] >= BOT_HEARTBEAT_FRESH)
+            return null;
+
+        return botReadHealth($beat['health']);
     }
 
     // the command list from the API: [answered with commands, milliseconds]; kept for cmd/
@@ -737,7 +924,7 @@
             }
         }
 
-        $report = botAskHealth();
+        $report = botHeartbeatReport($now) ?? botAskHealth();
         if ($report === null) {
             // a bot without api/health: getting the command list means it is up
             @unlink(botFile('health.json'));
@@ -750,19 +937,25 @@
             else
                 @unlink(botFile('health.json'));
 
-            $commands = botFile('commands.json');
-            if ($online && (!is_file($commands) || $now - filemtime($commands) >= BOT_COMMANDS_TTL))
-                botFetchCommands($now);
+            // a failed try keeps the last list and waits as long, so an API out
+            // of reach is not asked every minute while the reports keep coming
+            $tried = botFile('commands-tried.txt');
+            $last = max((int)@filemtime(botFile('commands.json')), (int)@filemtime($tried));
+            if ($online && $now - $last >= BOT_COMMANDS_TTL && !botFetchCommands($now)[0])
+                botWriteFile($tried, (string)$now);
         }
         if ($online)
             botFetchPrivateCommands($now);
 
-        $shinden = $online && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
+        // a Shinden that did not answer has no answer time
+        $shinden = $online && !empty($health['shinden']['ok']) && isset($health['shinden']['latencyMs']) ? (int)$health['shinden']['latencyMs'] : null;
         $uptime = botRecordCheck($online, $now, $online ? $ms : null, $shinden);
         botRecordDay($online, $now);
         botRecordIncident($online, $now);
 
         $issues = $online ? botIssues($health) : [];
+        if ($online && botApiDown($now))
+            $issues[] = 'API bota nie odpowiada';
         if (!$online)
             $status = 'offline';
         else if ($issues || $uptime < BOT_MIN_UPTIME)

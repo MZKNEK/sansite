@@ -183,11 +183,13 @@
     }
 
     // Why an address must not be blocked, or null: it is the one this admin
-    // uses now, or one an account of the panel came from. $owners from accountsAtAddress().
+    // uses now, the bot's, or one an account of the panel came from. $owners from accountsAtAddress().
     function protectedAddress($ip, $owners, $logins)
     {
         if (sameAddress($ip, $_SERVER['REMOTE_ADDR'] ?? ''))
             return 'to twój obecny adres';
+        if (botIsAddress($ip))
+            return 'to adres bota (z niego przychodzi heartbeat)';
         foreach ($owners as $id => $owner)
             if (realPanelAdminId($id))
                 return 'z tego adresu korzysta konto panelu ' . ($logins[$id]['name'] ?? $id);
@@ -850,6 +852,7 @@
         $thumbBytes = array_sum(array_map('filesize', $thumbFiles));
         $specFile = botFile('swagger.json');
         $privateTime = botPrivateCommandsTime();
+        $heartbeatLast = botHeartbeatTime();
         $system = systemStats();
 
         // availability of the site (inc/diag.php): the rounds of 24 h, failures, traffic of the last hour
@@ -1697,6 +1700,14 @@
               ? '<b class="warn">brak BOT_APP_KEY</b> w <code>inc/config.php</code>: bez niego strona nie zna ról z serwera bota i nie pokazuje poleceń moderatorskich'
               : 'ustawiony; role znane dla ' . count($knownRoles) . ' ' . plural(count($knownRoles), 'konta', 'kont', 'kont') . ', polecenia moderatorskie '
                   . ($privateTime ? 'pobrane ' . e(ago($privateTime)) : '<b class="warn">jeszcze nie pobrane</b> (klucz musi mieć uprawnienie Info)')?></dd>
+
+          <dt>Heartbeat bota</dt>
+          <dd><?=botHeartbeatSecret() === ''
+              ? '<b class="warn">brak BOT_HEARTBEAT_SECRET</b> w <code>inc/config.php</code>: strona sama pyta API bota co minutę, a gdy API jest nieosiągalne, bot wygląda na wyłączonego'
+              : ($heartbeatLast === null
+                  ? '<b class="warn">bot jeszcze nic nie wysłał</b> na <code>/alive/</code> (Heartbeat w jego Config.json, ten sam sekret)'
+                  : (time() - $heartbeatLast < BOT_HEARTBEAT_FRESH ? 'działa' : '<b class="warn">nie przychodzi</b>, strona pyta API bota') . ': ostatni ' . e(ago($heartbeatLast))
+                      . (botAddresses() ? '; adres bota (chroniony przed blokadą): ' . e(implode(', ', array_keys(botAddresses()))) : ''))?></dd>
 
           <dt>Zapis danych</dt>
           <dd><?=dataWritable() ? 'inc/data: OK' : '<b class="warn">brak prawa zapisu</b>: ' . e(dataError())?></dd>
