@@ -46,6 +46,8 @@
     }
 
     const LARGEST_SHOWN = 10;
+    // pictures and films a folder in the trash shows at most
+    const TRASH_PREVIEW_MAX = 60;
     const REPO_URL = 'https://github.com/MZKNEK/sansite';
 
     // files and bytes in a folder and its subfolders
@@ -736,6 +738,29 @@
 
     $user = siteUser();
     $allowed = $user !== null && isPanelAdminId($user['id']);
+
+    // ?kosz=ID shows what is in the trash: the file itself, &plik=... a file
+    // of a folder, &pliki the pictures and films of a folder
+    if (isset($_GET['kosz'])) {
+        if (!$allowed) {
+            http_response_code(403);
+            exit;
+        }
+        if (isset($_GET['pliki'])) {
+            list($files, $count) = trashFolderMedia((string)$_GET['kosz'], TRASH_PREVIEW_MAX);
+            reply(true, '', 200, ['files' => array_map(function ($file) {
+                return ['path' => $file[0], 'size' => formatSize($file[1]), 'video' => isVideo($file[0])];
+            }, $files), 'count' => $count]);
+        }
+
+        $file = trashFile((string)$_GET['kosz'], (string)($_GET['plik'] ?? ''));
+        if ($file)
+            sendMedia($file[0], 'private, max-age=3600');
+        else
+            http_response_code(404);
+        exit;
+    }
+
     $flash = takeFlash();
     // the login page itself is a 200, as Discord shows no link preview for a 401
     if (!$allowed)
@@ -1251,6 +1276,7 @@
         <div class="trash">
 <?php foreach ($trash as $id => $item):
         $daysLeft = max(0, (int)ceil((($item['deleted'] ?? 0) + TRASH_DAYS * 86400 - time()) / 86400));
+        $kind = !empty($item['folder']) ? 'folder' : (isImage($item['name']) ? 'image' : (isVideo($item['name']) ? 'video' : null));
 ?>
           <div class="trash-row">
             <span class="trash-name">
@@ -1259,9 +1285,15 @@
             </span>
             <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(ago($item['deleted'] ?? 0))?><?=empty($item['by']) ? '' : ' przez ' . e($item['by'])?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
             <span class="login-actions">
+<?php if ($kind): ?>
+              <button type="button" class="admin-btn small trash-peek" data-item="<?=e($id)?>" data-kind="<?=$kind?>" aria-expanded="false">Podgląd</button>
+<?php endif; ?>
               <button type="button" class="admin-btn small" data-action="restore" data-item="<?=e($id)?>">Przywróć</button>
               <button type="button" class="admin-btn small danger" data-action="trash-delete" data-item="<?=e($id)?>" data-confirm="Usunąć na zawsze <?=e(galleryPath($item['from']))?>? Tego nie da się cofnąć.">Usuń na zawsze</button>
             </span>
+<?php if ($kind): ?>
+            <div class="trash-preview" hidden></div>
+<?php endif; ?>
           </div>
 <?php endforeach; ?>
         </div>

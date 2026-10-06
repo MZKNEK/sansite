@@ -306,6 +306,92 @@
     });
   }
 
+  // ---- The trash -------------------------------------------------------------------
+  // "Podgląd" opens a row to the picture or film, or to those of a folder; they
+  // load only the first time it opens, from index.php?kosz=ID.
+  function trashUrl(id, path) {
+    return 'index.php?kosz=' + encodeURIComponent(id) + (path ? '&plik=' + encodeURIComponent(path) : '');
+  }
+
+  function trashMedia(url, video, small) {
+    var media = document.createElement(video ? 'video' : 'img');
+    media.src = url;
+    if (video) {
+      media.preload = 'metadata';
+      media.muted = small;
+      media.controls = !small;
+    } else {
+      media.alt = '';
+      media.loading = 'lazy';
+    }
+    return media;
+  }
+
+  function trashNote(preview, text) {
+    var note = document.createElement('p');
+    note.className = 'hint';
+    note.textContent = text;
+    preview.appendChild(note);
+  }
+
+  function fillTrashPreview(button, preview) {
+    var id = button.dataset.item;
+    if (button.dataset.kind !== 'folder') {
+      var link = document.createElement('a');
+      link.href = trashUrl(id);
+      link.target = '_blank';
+      link.className = 'trash-full';
+      link.appendChild(trashMedia(link.href, button.dataset.kind === 'video', false));
+      preview.appendChild(link);
+      return;
+    }
+
+    trashNote(preview, 'Wczytywanie…');
+    fetch(trashUrl(id) + '&pliki').then(function (res) {
+      return res.json();
+    }).then(function (result) {
+      preview.textContent = '';
+      if (!result.files.length) {
+        trashNote(preview, 'W folderze nie ma obrazków ani filmów.');
+        return;
+      }
+      var grid = document.createElement('div');
+      grid.className = 'trash-grid';
+      result.files.forEach(function (file) {
+        var tile = document.createElement('a');
+        tile.href = trashUrl(id, file.path);
+        tile.target = '_blank';
+        tile.title = file.path + ' · ' + file.size;
+        tile.appendChild(trashMedia(tile.href, file.video, true));
+        grid.appendChild(tile);
+      });
+      preview.appendChild(grid);
+      if (result.count > result.files.length)
+        trashNote(preview, 'Pokazano ' + result.files.length + ' z ' + result.count + ' plików.');
+    }).catch(function () {
+      preview.textContent = '';
+      delete preview.dataset.filled;
+      trashNote(preview, 'Nie udało się wczytać zawartości folderu.');
+    });
+  }
+
+  document.querySelectorAll('.trash-peek').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var preview = button.closest('.trash-row').querySelector('.trash-preview');
+      var open = button.getAttribute('aria-expanded') !== 'true';
+      if (open && !preview.dataset.filled) {
+        preview.dataset.filled = '1';
+        preview.textContent = '';
+        fillTrashPreview(button, preview);
+      }
+      if (!open)
+        preview.querySelectorAll('video').forEach(function (video) { video.pause(); });
+      preview.hidden = !open;
+      button.setAttribute('aria-expanded', open ? 'true' : 'false');
+      button.textContent = open ? 'Zwiń' : 'Podgląd';
+    });
+  });
+
   // buttons: the action is in data-action, its fields in the other data-* attributes
   // (data-confirm asks first)
   document.querySelectorAll('button[data-action]').forEach(function (button) {

@@ -25,6 +25,7 @@
     const THUMBLESS_MAX_BYTES = 1500000;
     const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
     const VIDEO_TYPES = ['webm'];
+    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm'];
     // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
     const WEBP_QUALITY = 90;
@@ -735,17 +736,28 @@
     function sendUserFile($base, $rel)
     {
         $file = resolvePath($base, $rel, false);
-        $types = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm'];
-        if (!$file || !inUsersDir($file[1]) || !isset($types[extensionOf($file[1])])) {
+        if (!$file || !inUsersDir($file[1])) {
             http_response_code(404);
             return;
         }
 
-        $time = filemtime($file[0]);
-        $size = filesize($file[0]);
+        sendMedia($file[0], 'public, max-age=86400');
+    }
+
+    // a picture or film as it is, 404 for any other file
+    function sendMedia($path, $cache)
+    {
+        $type = MEDIA_MIME[extensionOf($path)] ?? null;
+        if ($type === null || !is_file($path)) {
+            http_response_code(404);
+            return;
+        }
+
+        $time = filemtime($path);
+        $size = filesize($path);
         $etag = '"' . dechex($time) . '-' . dechex($size) . '"';
-        header('Content-Type: ' . $types[extensionOf($file[1])]);
-        header('Cache-Control: public, max-age=86400');
+        header('Content-Type: ' . $type);
+        header('Cache-Control: ' . $cache);
         header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
         header('ETag: ' . $etag);
         header('X-Content-Type-Options: nosniff');
@@ -754,7 +766,7 @@
             return;
         }
         header('Content-Length: ' . $size);
-        readfile($file[0]);
+        readfile($path);
     }
 
     // the folder of the logged-in account when it may have one, made the first time
@@ -1503,6 +1515,60 @@
         unset($items[$id]);
 
         return writeData('trash', $items);
+    }
+
+    // [full path, path inside the item] of a picture or film in the trash: the
+    // item itself ($rel '') or, for a folder, a file inside it; or null
+    function trashFile($id, $rel)
+    {
+        $items = readData('trash');
+        if (!preg_match('/^\d{14}-[0-9a-f]{8}$/', (string)$id) || !isset($items[$id]))
+            return null;
+
+        $item = trashDir() . '/' . $id . '/' . $items[$id]['name'];
+        $rel = trim(str_replace('\\', '/', (string)$rel), '/');
+        if (empty($items[$id]['folder'])) {
+            $file = $rel === '' && is_file($item) ? [$item, ''] : null;
+        } else {
+            $dir = realpath($item);
+            $file = $dir === false || $rel === '' ? null : resolvePath(str_replace('\\', '/', $dir), $rel, false);
+        }
+
+        return $file && (isImage($file[0]) || isVideo($file[0])) ? $file : null;
+    }
+
+    // the pictures and films of a folder in the trash, [path inside it, size],
+    // at most $limit of them, and how many there are
+    function trashFolderMedia($id, $limit)
+    {
+        $items = readData('trash');
+        if (!isset($items[$id]) || empty($items[$id]['folder']))
+            return [[], 0];
+
+        $dir = realpath(trashDir() . '/' . $id . '/' . $items[$id]['name']);
+        if ($dir === false)
+            return [[], 0];
+
+        $files = [];
+        $count = 0;
+        $walk = function ($path, $rel) use (&$walk, &$files, &$count, $limit) {
+            $names = @scandir($path) ?: [];
+            natcasesort($names);
+            foreach ($names as $name) {
+                if ($name[0] === '.')
+                    continue;
+                $full = $path . '/' . $name;
+                if (is_dir($full)) {
+                    $walk($full, $rel . $name . '/');
+                } elseif (isImage($name) || isVideo($name)) {
+                    if ($count++ < $limit)
+                        $files[] = [$rel . $name, (int)@filesize($full)];
+                }
+            }
+        };
+        $walk(str_replace('\\', '/', $dir), '');
+
+        return [$files, $count];
     }
 
     // what has been in the trash longer than TRASH_DAYS goes for good
