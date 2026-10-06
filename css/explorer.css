@@ -385,16 +385,22 @@ main.content {
     padding: 2px 12px 6px;
 }
 
+/* flex, not grid: a grid row sized by its content makes max-height: 100% on
+   the picture indefinite, so a very large one would not fit the screen */
 .viewer-stage {
     position: relative;
     flex: 1;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-height: 0;
     padding: 16px 72px;
 }
 
 .viewer-img {
+    display: block;
+    min-width: 0;
+    min-height: 0;
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;

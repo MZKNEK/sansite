@@ -191,6 +191,29 @@ window.SanakanGallery = (function () {
   var image = document.getElementById('viewer-img');
   var video = document.getElementById('viewer-video');
   var loading = document.getElementById('viewer-loading');
+
+  // The volume set in the viewer is kept, so a film does not blast at full
+  // volume every time; half is a calmer start than the browser's full.
+  var VOLUME_KEY = 'gallery-volume';
+
+  function savedVolume() {
+    try {
+      var value = parseFloat(localStorage.getItem(VOLUME_KEY));
+      if (isFinite(value) && value >= 0 && value <= 1) return value;
+    } catch (err) {
+      // no storage, the default stands
+    }
+    return 0.5;
+  }
+
+  video.volume = savedVolume();
+  video.addEventListener('volumechange', function () {
+    try {
+      localStorage.setItem(VOLUME_KEY, String(video.volume));
+    } catch (err) {
+      // not remembered then
+    }
+  });
   var nameEl = document.getElementById('viewer-name');
   var detailsEl = document.getElementById('viewer-details');
   var openLink = document.getElementById('viewer-open');
