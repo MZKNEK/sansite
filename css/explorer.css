@@ -344,6 +344,7 @@ main.content {
 
 .viewer-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
@@ -361,6 +362,16 @@ main.content {
 
 .viewer-btn:hover {
     background: rgba(155, 89, 182, 0.2);
+    color: #fff;
+}
+
+.viewer-btn.danger {
+    border-color: rgba(217, 83, 79, 0.6);
+    color: #e57373;
+}
+
+.viewer-btn.danger:hover {
+    background: rgba(217, 83, 79, 0.25);
     color: #fff;
 }
 

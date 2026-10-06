@@ -26,7 +26,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=11" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 

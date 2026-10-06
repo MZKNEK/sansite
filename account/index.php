@@ -128,7 +128,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=11" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=20" type="text/css" rel="stylesheet" />
 </head>
@@ -289,7 +289,7 @@
 <?php else: ?>
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
-  <script src="../js/explorer.js?v=9"></script>
+  <script src="../js/explorer.js?v=10"></script>
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 </body>

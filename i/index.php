@@ -167,7 +167,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=10" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=11" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -382,6 +382,10 @@
         <span class="viewer-details" id="viewer-details"></span>
       </div>
       <div class="viewer-actions">
+<?php if ($manage): ?>
+        <button type="button" class="viewer-btn" id="viewer-rename" title="Zmień nazwę (F2)">Zmień nazwę</button>
+        <button type="button" class="viewer-btn danger" id="viewer-delete" title="Usuń do kosza (Delete)">Usuń</button>
+<?php endif; ?>
         <button type="button" class="viewer-btn" id="viewer-copy">Kopiuj link</button>
         <a class="viewer-btn" id="viewer-open" href="#" target="_blank" rel="noopener">Otwórz</a>
         <button type="button" class="viewer-btn viewer-close" id="viewer-close" aria-label="Zamknij">&times;</button>
@@ -509,11 +513,11 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=9"></script>
+  <script src="../js/explorer.js?v=10"></script>
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 <?php if ($manage): ?>
-  <script src="../js/explorer-admin.js?v=10"></script>
+  <script src="../js/explorer-admin.js?v=11"></script>
 <?php endif; ?>
 </body>
 

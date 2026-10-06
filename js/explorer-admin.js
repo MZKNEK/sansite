@@ -58,9 +58,11 @@
     });
   }
 
-  // the page reloads after a change and shows the result
-  function reloadWith(message, error) {
+  // the page reloads after a change and shows the result, with the search and
+  // sorting kept, and the picture $openRel (if any) open in the viewer again
+  function reloadWith(message, error, openRel) {
     gallery.flashAfterReload(message, error);
+    gallery.keepView(openRel);
     location.reload();
   }
 
@@ -484,32 +486,38 @@
 
   var renameDialog = document.getElementById('dlg-rename');
   var renameForm = document.getElementById('form-rename');
+  // what the dialog renames, and whether the viewer shows it again afterwards
+  var renaming = null;
+  var renameReopens = false;
 
-  document.getElementById('act-rename').addEventListener('click', function () {
-    var tiles = picked();
-    if (tiles.length !== 1) return;
-    var current = tiles[0].dataset.rel.split('/').pop();
+  function askRename(tile, reopen) {
+    renaming = tile;
+    renameReopens = reopen;
+    var current = tile.dataset.rel.split('/').pop();
 
-    document.getElementById('rename-what').textContent = folderLabel(tiles[0].dataset.rel);
+    document.getElementById('rename-what').textContent = folderLabel(tile.dataset.rel);
     renameForm.elements.name.value = current;
     dialogError(renameDialog, '');
     renameDialog.showModal();
 
     // the name without the extension is selected, ready to type over
-    var dot = tiles[0].classList.contains('folder') ? -1 : current.lastIndexOf('.');
+    var dot = tile.classList.contains('folder') ? -1 : current.lastIndexOf('.');
     renameForm.elements.name.setSelectionRange(0, dot > 0 ? dot : current.length);
+  }
+
+  document.getElementById('act-rename').addEventListener('click', function () {
+    var tiles = picked();
+    if (tiles.length === 1) askRename(tiles[0], false);
   });
 
   renameForm.addEventListener('submit', function (e) {
     e.preventDefault();
+    var rel = renaming.dataset.rel;
+    var name = renameForm.elements.name.value.trim();
     busy(renameDialog, true);
-    post({
-      action: 'rename',
-      items: [picked()[0].dataset.rel],
-      name: renameForm.elements.name.value.trim()
-    }).then(function (result) {
+    post({ action: 'rename', items: [rel], name: name }).then(function (result) {
       busy(renameDialog, false);
-      if (result.ok) reloadWith(result.message);
+      if (result.ok) reloadWith(result.message, false, renameReopens ? rel.slice(0, rel.lastIndexOf('/') + 1) + name : null);
       else dialogError(renameDialog, result.message);
     });
   });
@@ -563,10 +571,14 @@
 
   var deleteDialog = document.getElementById('dlg-delete');
   var deleteForm = document.getElementById('form-delete');
+  // what the dialog deletes, and the picture the viewer shows afterwards
+  var deleting = [];
+  var deleteThenOpen = null;
 
-  function askDelete() {
-    var tiles = picked();
+  function askDelete(tiles, thenOpen) {
     if (!tiles.length) return;
+    deleting = tiles;
+    deleteThenOpen = thenOpen;
     var folders = tiles.filter(function (tile) { return tile.classList.contains('folder'); }).length;
 
     document.getElementById('delete-what').textContent = 'Usunąć ' + countLabel(tiles.length) + ': ' + describe(tiles) + '?' +
@@ -575,26 +587,59 @@
     deleteDialog.showModal();
   }
 
-  document.getElementById('act-delete').addEventListener('click', askDelete);
+  document.getElementById('act-delete').addEventListener('click', function () {
+    askDelete(picked(), null);
+  });
 
   deleteForm.addEventListener('submit', function (e) {
     e.preventDefault();
     busy(deleteDialog, true);
-    post({ action: 'delete', items: picked().map(function (tile) { return tile.dataset.rel; }) }).then(function (result) {
+    post({ action: 'delete', items: deleting.map(function (tile) { return tile.dataset.rel; }) }).then(function (result) {
       busy(deleteDialog, false);
-      if (result.ok) reloadWith(result.message);
+      if (result.ok) reloadWith(result.message, false, deleteThenOpen);
       else dialogError(deleteDialog, result.message);
     });
   });
 
-  // Esc leaves picking, Delete asks to delete what is picked
+  // ---- The picture open in the viewer ----
+  // renamed or deleted on its own, without picking it; the viewer comes back
+  // with it renamed, or with the next picture after a delete
+
+  function renameViewed() {
+    var tile = gallery.viewing();
+    if (tile) askRename(tile, true);
+  }
+
+  function deleteViewed() {
+    var tile = gallery.viewing();
+    if (!tile) return;
+    var list = gallery.pictures();
+    var index = list.indexOf(tile);
+    var next = list[index + 1] || list[index - 1];
+    askDelete([tile], next ? next.dataset.rel : null);
+  }
+
+  document.getElementById('viewer-rename').addEventListener('click', renameViewed);
+  document.getElementById('viewer-delete').addEventListener('click', deleteViewed);
+
+  // Esc leaves picking, Delete asks to delete what is picked; in the viewer
+  // Delete and F2 delete or rename the picture shown
   document.addEventListener('keydown', function (e) {
-    if (!selecting || document.querySelector('dialog[open]') || !document.getElementById('viewer').hidden) return;
+    if (document.querySelector('dialog[open]')) return;
     var tag = document.activeElement && document.activeElement.tagName;
     if (tag === 'INPUT' || tag === 'SELECT') return;
 
+    if (!document.getElementById('viewer').hidden) {
+      if (e.key === 'Delete') deleteViewed();
+      else if (e.key === 'F2') {
+        e.preventDefault();
+        renameViewed();
+      }
+      return;
+    }
+    if (!selecting) return;
     if (e.key === 'Escape') setSelecting(false);
-    else if (e.key === 'Delete') askDelete();
+    else if (e.key === 'Delete') askDelete(picked(), null);
   });
 
   updateSelection();

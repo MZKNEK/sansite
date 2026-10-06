@@ -106,8 +106,10 @@ window.SanakanGallery = (function () {
   // Sorting: folders always first; names A-Z, newest first, biggest first
   var collator = new Intl.Collator('pl', { numeric: true, sensitivity: 'base' });
   var sortButtons = document.querySelectorAll('.sort button');
+  var sortKey = 'name';
 
   function sortBy(key) {
+    sortKey = key;
     tiles.sort(function (a, b) {
       var folderA = a.classList.contains('folder'), folderB = b.classList.contains('folder');
       if (folderA !== folderB) return folderA ? -1 : 1;
@@ -314,6 +316,9 @@ window.SanakanGallery = (function () {
   }
 
   document.addEventListener('keydown', function (e) {
+    // a dialog over the viewer (rename, delete) gets the keys for itself
+    if (document.querySelector('dialog[open]')) return;
+
     if (!viewer.hidden) {
       if (e.key === 'Escape') close();
       else if (e.key === 'ArrowLeft') step(-1);
@@ -334,4 +339,44 @@ window.SanakanGallery = (function () {
       location.href = up.href;
     }
   });
+
+  // A change (explorer-admin.js) reloads the page; what was typed into the
+  // search, the sorting and the picture to show in the viewer ($openRel, or
+  // none) wait for it, so the visitor is back where they were
+  var VIEW_KEY = 'gallery-view';
+
+  function keepView(openRel) {
+    try {
+      sessionStorage.setItem(VIEW_KEY, JSON.stringify({
+        url: location.href,
+        search: input ? input.value : '',
+        sort: sortKey,
+        open: openRel || null
+      }));
+    } catch (err) {
+      // without storage the page comes back as it loads
+    }
+  }
+
+  try {
+    var kept = JSON.parse(sessionStorage.getItem(VIEW_KEY) || 'null');
+    sessionStorage.removeItem(VIEW_KEY);
+    if (kept && kept.url === location.href) {
+      if (input && kept.search) {
+        input.value = kept.search;
+        filter();
+      }
+      if (kept.sort && kept.sort !== 'name') sortBy(kept.sort);
+      var reopen = kept.open && pictures().filter(function (tile) { return tile.dataset.rel === kept.open; })[0];
+      if (reopen) open(reopen);
+    }
+  } catch (err) {
+    // nothing kept
+  }
+
+  window.SanakanGallery.keepView = keepView;
+  window.SanakanGallery.viewing = function () {
+    return viewer.hidden ? null : current;
+  };
+  window.SanakanGallery.pictures = pictures;
 })();
