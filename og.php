@@ -191,7 +191,7 @@
         // noise over the second, fifth and last letter
         mt_srand(11);
         foreach ([1, 4, 6] as $letter) {
-            $left = 80 + textWidth(OG_BOLD, $size, mb_substr($title, 0, $letter) . 'X', $spacing) - textWidth(OG_BOLD, $size, 'X');
+            $left = 80 + textWidth(OG_BOLD, $size, implode('', array_slice(ogChars($title), 0, $letter)) . 'X', $spacing) - textWidth(OG_BOLD, $size, 'X');
             for ($y = 136; $y < 200; $y += 8)
                 for ($x = $left - 6; $x < $left + 50; $x += 8)
                     if (mt_rand(0, 4))

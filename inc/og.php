@@ -77,7 +77,20 @@
     function ogHead($img, $tag, $title)
     {
         text($img, OG_MONO, 20, 80, 112, color($img, '#b670d3'), $tag, 6);
-        text($img, OG_BOLD, 64, 80, 196, color($img, '#efe2f7'), mb_strtoupper($title, 'UTF-8'), 18);
+        text($img, OG_BOLD, 64, 80, 196, color($img, '#efe2f7'), ogUpper($title), 18);
+    }
+
+    // The server has no mbstring extension (see cutText() in inc/auth.php), so
+    // the letters of a UTF-8 string are counted and cut with preg instead...
+    function ogChars($string)
+    {
+        return preg_split('//u', $string, -1, PREG_SPLIT_NO_EMPTY);
+    }
+
+    // ...and the Polish letters are made capital by hand
+    function ogUpper($string)
+    {
+        return strtr(strtoupper($string), ['ą' => 'Ą', 'ć' => 'Ć', 'ę' => 'Ę', 'ł' => 'Ł', 'ń' => 'Ń', 'ó' => 'Ó', 'ś' => 'Ś', 'ź' => 'Ź', 'ż' => 'Ż']);
     }
 
     // ...a line in big letters under it, after a status dot or not...
@@ -138,7 +151,7 @@
         if (textWidth($font, $size, $text) <= $max)
             return $text;
         while ($text !== '' && textWidth($font, $size, $text . '…') > $max)
-            $text = mb_substr($text, 0, -1);
+            $text = implode('', array_slice(ogChars($text), 0, -1));
 
         return rtrim($text) . '…';
     }
@@ -148,7 +161,7 @@
     {
         $box = imagettfbbox($size * OG_SCALE, 0, $font, $string);
 
-        return ($box[2] - $box[0] + (mb_strlen($string) - 1) * $spacing * OG_SCALE) / OG_SCALE;
+        return ($box[2] - $box[0] + (count(ogChars($string)) - 1) * $spacing * OG_SCALE) / OG_SCALE;
     }
 
     // text with extra space between the letters, like the HUD titles; $x, $y and
@@ -157,7 +170,7 @@
     {
         $size *= OG_SCALE;
         $spacing *= OG_SCALE;
-        $chars = preg_split('//u', $string, -1, PREG_SPLIT_NO_EMPTY);
+        $chars = ogChars($string);
 
         // where each letter starts: the width of what comes before it, measured up
         // to a following "X", so narrow signs and spaces get their full advance

@@ -703,7 +703,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=30" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=16" type="text/css" rel="stylesheet" />
@@ -1340,7 +1340,7 @@
 
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
-  <script src="../js/netsphere.js?v=1"></script>
+  <script src="../js/netsphere.js?v=2"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=4"></script>
 <?php endif; ?>

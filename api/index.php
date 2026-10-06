@@ -22,8 +22,9 @@
     $user = siteUser();
     $allowed = apiCanView();
     $flash = takeFlash();
+    // the login page itself is a 200, as Discord shows no link preview for a 401
     if (!$allowed)
-        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
+        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 200));
     $request = $user && !$allowed ? pendingRequest('api', $user['id']) : null;
     $csrf = $user ? siteCsrf() : '';
     $description = 'Dokumentacja API bota Sanakan: endpointy, parametry i odpowiedzi.';
@@ -42,7 +43,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=30" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
@@ -93,7 +94,7 @@
 <?php endif; ?>
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
-  <script src="../js/netsphere.js?v=1"></script>
+  <script src="../js/netsphere.js?v=2"></script>
 </body>
 
 </html>
@@ -110,7 +111,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=30" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=31" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=16" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -205,7 +206,7 @@
 <script src="./search.js?v=2"> </script>
 <script src="../js/account.js?v=1"></script>
 <script src="./init.js?v=1"></script>
-<script src="../js/netsphere.js?v=1"></script>
+<script src="../js/netsphere.js?v=2"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

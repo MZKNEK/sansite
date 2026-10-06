@@ -1207,6 +1207,9 @@ a.hud-corners:hover {
 
 .ns-log {
     min-height: 168px;
+    max-height: min(56vh, 420px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .ns-line {
@@ -1274,6 +1277,112 @@ a.hud-corners:hover {
     font-size: 13px;
     color: rgba(240, 196, 194, 0.85);
     animation: ns-in 0.2s ease-out;
+}
+
+.ns-cmd {
+    margin: 12px 0 4px;
+    overflow-wrap: anywhere;
+    color: #fff;
+}
+
+.ns-out {
+    margin: 0 0 4px;
+    overflow-wrap: anywhere;
+    color: rgba(220, 221, 222, 0.85);
+}
+
+/* a label with its value on the right, as the lines of the scan */
+.ns-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+}
+
+.ns-row b {
+    font-weight: normal;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.ns-row span {
+    margin-left: auto;
+    letter-spacing: 0.05em;
+}
+
+/* the help and the places: two columns, both on the left */
+.ns-help {
+    flex-wrap: nowrap;
+}
+
+.ns-help b {
+    flex: 0 0 16ch;
+    color: var(--accent-light);
+}
+
+.ns-help span {
+    min-width: 0;
+    margin-left: 0;
+}
+
+@media (max-width: 480px) {
+    .ns-help b {
+        flex-basis: 12ch;
+    }
+}
+
+/* the terminal's first line, set apart from the verdict */
+.ns-note + .ns-out {
+    margin-top: 14px;
+}
+
+.ns-out.dim,
+.ns-out .dim {
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.ns-out.ok,
+.ns-out .ok {
+    color: #5fd38d;
+}
+
+.ns-out.warn,
+.ns-out .warn {
+    color: #f0b232;
+}
+
+.ns-out.bad,
+.ns-out .bad {
+    color: #e86262;
+}
+
+.ns-prompt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(155, 89, 182, 0.3);
+    animation: ns-in 0.2s ease-out;
+}
+
+.ns-prompt:focus-within {
+    border-top-color: rgba(182, 112, 211, 0.8);
+}
+
+.ns-sign {
+    color: var(--accent-light);
+}
+
+/* 16px, or phones zoom in on the prompt */
+.ns-prompt input {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    font: 16px "Share Tech Mono", monospace;
+    color: #fff;
+    caret-color: var(--accent-light);
 }
 
 .ns-close {
@@ -1352,6 +1461,7 @@ body.ns-open {
     .ns-line,
     .ns-verdict,
     .ns-note,
+    .ns-prompt,
     .ns-overlay.alarm .ns-box {
         animation: none;
     }

@@ -48,8 +48,9 @@
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
+    // the login page itself is a 200, as Discord shows no link preview for a 401
     if ($locked)
-        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 401));
+        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 200));
 
     $dir = $locked ? [$base, ''] : resolvePath($base, $requested, true);
     $notFound = $dir === null;
@@ -121,7 +122,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=30" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
 </head>
 
@@ -410,7 +411,7 @@
 
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
-  <script src="../js/netsphere.js?v=1"></script>
+  <script src="../js/netsphere.js?v=2"></script>
 <?php if ($admin): ?>
   <script src="../js/explorer-admin.js?v=8"></script>
 <?php endif; ?>
