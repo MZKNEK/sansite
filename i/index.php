@@ -441,7 +441,7 @@
     <div class="viewer-stage" id="viewer-stage">
       <button type="button" class="viewer-nav prev hud-corners" id="viewer-prev" aria-label="Poprzedni">&larr;</button>
       <img class="viewer-img" id="viewer-img" alt="" draggable="false" />
-      <video class="viewer-img" id="viewer-video" controls loop playsinline hidden></video>
+      <video class="viewer-img" id="viewer-video" controls loop playsinline draggable="false" hidden></video>
       <span class="viewer-loading" id="viewer-loading">Wczytywanie&hellip;</span>
       <button type="button" class="viewer-nav next hud-corners" id="viewer-next" aria-label="Następny">&rarr;</button>
     </div>
@@ -560,7 +560,7 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=e6d92d4468"></script>
+  <script src="../js/explorer.js?v=99248fd4de"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
