@@ -236,7 +236,7 @@
     <div class="toolbar" id="toolbar">
       <label class="search hud-corners">
         <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
-        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie, Enter: <?=$whole ? 'w całej galerii' : 'we wszystkich twoich folderach'?>" aria-label="Szukaj po nazwie"
+        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie, Enter: <?=$whole ? 'w całej galerii' : ($user ? 'we wszystkich twoich folderach' : 'w całym udostępnionym folderze')?>" aria-label="Szukaj po nazwie"
                value="<?=e($query)?>" data-dir="<?=e(publicRel($dirRel))?>" data-searching="<?=$searching ? '1' : '0'?>" />
         <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
       </label>
