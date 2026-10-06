@@ -730,6 +730,9 @@
         return is_int($limit) && $limit > 0 ? $limit : USER_FILES_DEFAULT;
     }
 
+    // the random name a folder of an account goes by in links, i/u/<token>
+    const USER_TOKEN = '[0-9a-f]{16}';
+
     // the folder of an account, "users/<id>-<nick>", found by the ID alone as the
     // nick can change; null while it has none
     function userFolder($base, $id)
@@ -770,12 +773,24 @@
     // and back: u/<token>/... is the folder of its account as it is on the disk
     function privateRel($base, $rel)
     {
-        if (!preg_match('~^' . USERS_URL . '/([0-9a-f]{16})(/.*)?$~', $rel, $match))
+        if (!preg_match('~^' . USERS_URL . '/(' . USER_TOKEN . ')(/.*)?$~', $rel, $match))
             return $rel;
         $id = array_search($match[1], userTokens(), true);
         $folder = $id === false ? null : userFolder($base, (string)$id);
 
         return $folder === null ? $rel : $folder . ($match[2] ?? '');
+    }
+
+    // The rel of a file of an account's folder from a request path,
+    // /i/u/<token>/<file> or /i/u/<token>/<folder>/<file>, or null. The three
+    // places that know how those links look (publicRel(), privateRel() and this
+    // one) sit together, so the format lives in one place.
+    function userLinkRel($uri)
+    {
+        if (!preg_match('~/' . USERS_URL . '/(' . USER_TOKEN . '(?:/[^/]+)+)$~', (string)parse_url((string)$uri, PHP_URL_PATH), $match))
+            return null;
+
+        return USERS_URL . '/' . rawurldecode($match[1]);
     }
 
     // A file of the folder of an account for its link, i/u/<token>/<name> or in

@@ -14,8 +14,8 @@
     // i/u/<token>/<file> or in a subfolder, i/u/<token>/<folder>/<file>: a file
     // of the folder of an account, by the random name of its link (nginx sends
     // these here, server/nginx/sanakan.conf)
-    if (preg_match('~/' . USERS_URL . '/([0-9a-f]{16}(?:/[^/]+)+)$~', (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), $match)) {
-        sendUserFile($base, USERS_URL . '/' . rawurldecode($match[1]));
+    if (($linkRel = userLinkRel($_SERVER['REQUEST_URI'] ?? '')) !== null) {
+        sendUserFile($base, $linkRel);
         exit;
     }
 
