@@ -244,16 +244,17 @@
     }
 
     // A 24 h line chart for the server card from diagUsage(): [average, most,
-    // title] per part, the values in percent of the chart's height, null where
-    // nothing was measured. The average is a line, with a band up to the most
-    // of the part ('band', for the processor, whose short peaks matter) or a
-    // fill below it ('area', for memory, which changes slowly). Every part has
-    // a column with its title for the mouse; $axis labels the top and middle.
-    function usageChart($title, $summary, $kind, $points, $axis)
+    // title] per part in percent, null where nothing was measured; $top is the
+    // percent at the top of the chart. The average is a line, with a band up to
+    // the most of the part ('band', for the processor, whose short peaks
+    // matter) or a fill below it ('area', for memory, which changes slowly).
+    // Every part has a column with its title for the mouse; $axis labels the
+    // top and middle.
+    function usageChart($title, $summary, $kind, $points, $top, $axis)
     {
         $count = count($points);
         $x = function ($i) use ($count) { return round(($i + 0.5) * 1000 / $count, 1); };
-        $y = function ($value) { return round(100 - min(100, max(0, $value)), 1); };
+        $y = function ($value) use ($top) { return round(100 - min(100, max(0, 100 * $value / $top)), 1); };
 
         // runs of measured parts: the line breaks where nothing was measured
         $runs = [];
@@ -320,10 +321,21 @@
                     . ' · czekanie na dysk ' . decimal($part['io']) . '% · zabrane przez hosta ' . decimal($part['st']) . '%'
                     . ($part['load'] !== null ? ' · obciążenie do ' . decimal($part['load'], 2) : '')];
         $measured = array_filter(array_column($parts, 'cpu'), 'is_numeric');
+        $most = max(array_column($parts, 'cpuPeak')) ?? 0;
         $summary = $measured ? 'średnio ' . decimal(array_sum($measured) / count($measured)) . '% &middot; najwięcej '
-            . decimal(max(array_column($parts, 'cpuPeak'))) . '% w 10 s' : 'brak pomiarów';
+            . decimal($most) . '% w 10 s' : 'brak pomiarów';
 
-        return '<div class="usage-cpu">' . usageChart('Procesor, 24 godziny', $summary, 'band', $points, ['100%', '50%']) . '</div>';
+        // a quiet server uses a few percent, which would lie flat at the bottom
+        // of 100%: the top is the first of these at or above the most of the day
+        $top = 100;
+        foreach ([5, 10, 20, 25, 50] as $step)
+            if ($most <= $step) {
+                $top = $step;
+                break;
+            }
+        $percent = function ($value) { return str_replace('.', ',', (string)round($value, 1)) . '%'; };
+
+        return '<div class="usage-cpu">' . usageChart('Procesor, 24 godziny', $summary, 'band', $points, $top, [$percent($top), $percent($top / 2)]) . '</div>';
     }
 
     // memory in use of the last 24 h from the rounds of inc/diag.php
@@ -337,7 +349,7 @@
         $summary = $measured ? 'średnio ' . e(formatSize(array_sum($measured) / count($measured))) . ' &middot; najwięcej '
             . e(formatSize(max(array_column($parts, 'memPeak')))) . ' z ' . e(formatSize($total)) : 'brak pomiarów';
 
-        return '<div class="usage-mem">' . usageChart('Pamięć RAM, 24 godziny', $summary, 'area', $points, [formatSize($total), formatSize($total / 2)]) . '</div>';
+        return '<div class="usage-mem">' . usageChart('Pamięć RAM, 24 godziny', $summary, 'area', $points, 100, [formatSize($total), formatSize($total / 2)]) . '</div>';
     }
 
     // An address in a list: a lookup in AbuseIPDB, the country, whether it is a
