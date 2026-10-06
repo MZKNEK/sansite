@@ -997,7 +997,7 @@
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=46e1dc16c3" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=1a0ef1ce51" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=30a7fe9e7b" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1039,10 +1039,17 @@
 <?php elseif ($searchQuery !== null): ?>
 <?php searchPage($search); ?>
 <?php else: ?>
-    <div class="panel-grid">
+    <div class="admin-layout">
+      <nav class="admin-nav" id="admin-nav" aria-label="Sekcje panelu"></nav>
+      <div class="panel-grid">
+
+<?php $alertCount = count($requests ?: []) + ($cronLate ? 1 : 0); ?>
+<?php if ($alertCount): ?>
+      <h2 class="panel-section" data-section="wymaga" data-label="Wymaga uwagi" data-count="<?=$alertCount?>">Wymaga uwagi</h2>
+<?php endif; ?>
 
 <?php if ($cronLate): ?>
-      <section class="card wide alarm" role="alert">
+      <section class="card wide alarm" role="alert" data-state="warn" data-sum="<?=e($cronLast === null ? 'brak' : ago($cronLast))?>">
         <h2><i>!</i>Cron nie sprawdza bota</h2>
         <p><?=$cronLast === null
             ? 'Automatyczne sprawdzanie jeszcze ani razu nie zadziałało.'
@@ -1053,7 +1060,7 @@
 <?php endif; ?>
 
 <?php if ($requests): ?>
-      <section class="card wide requests">
+      <section class="card wide requests" data-state="warn" data-sum="<?=count($requests)?>">
         <h2><i>+</i>Prośby o dostęp</h2>
         <p class="hint">Konta, które zalogowały się do galerii albo do API bez dostępu i o niego poprosiły.</p>
         <ul class="people">
@@ -1080,6 +1087,8 @@
         </ul>
       </section>
 <?php endif; ?>
+
+      <h2 class="panel-section" data-section="przeglad" data-label="Przegląd">Przegląd</h2>
 
       <section class="card wide">
         <h2><i>01</i>Status bota</h2>
@@ -1116,6 +1125,8 @@
           </div>
         </form>
       </section>
+
+      <h2 class="panel-section" data-section="dostep" data-label="Dostęp i konta">Dostęp i konta</h2>
 
       <section class="card">
         <h2><i>02</i>Dostęp do panelu</h2>
@@ -1211,7 +1222,7 @@
       </section>
 <?php endforeach; ?>
 
-      <section class="card wide">
+      <section class="card wide" data-sum="<?=count($logins)?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Ostatnie logowania</h2>
         <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowy poziom to najwyższa rola na serwerze bota (wszystkie w dymku), odświeżana, gdy konto odwiedza stronę; galerii nie daje. Kolumny to dostępy na stronie, jaśniejsze mocniejsze; strzałka na końcu wiersza pokazuje, skąd są, i przyciski do nadania nowych.</p>
 <?php if (!$logins): ?>
@@ -1283,7 +1294,9 @@
         </p>
       </section>
 
-      <section class="card wide">
+      <h2 class="panel-section" data-section="galeria" data-label="Galeria">Galeria</h2>
+
+      <section class="card wide" data-sum="<?=count($trash)?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Kosz</h2>
         <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.</p>
 <?php if (!$trash): ?>
@@ -1317,7 +1330,7 @@
 <?php endif; ?>
       </section>
 
-      <section class="card wide">
+      <section class="card wide" data-sum="<?=count($shares)?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Udostępnione linki</h2>
         <p class="hint">Foldery galerii udostępnione linkiem: każdy, kto go ma, ogląda je i pobiera bez logowania. Tworzy się je w galerii przyciskiem „Udostępnij” w folderze.</p>
 <?php if (!$shares): ?>
@@ -1340,7 +1353,7 @@
 <?php endif; ?>
       </section>
 
-      <section class="card wide">
+      <section class="card wide" data-sum="<?=$stats['files']?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Galeria w liczbach</h2>
         <div class="stats-summary">
           <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
@@ -1406,7 +1419,9 @@
 <?php endif; ?>
       </section>
 
-      <section class="card wide diag">
+      <h2 class="panel-section" data-section="serwer" data-label="Serwer">Serwer</h2>
+
+      <section class="card wide diag" data-sum="<?=count($diagEpisodes)?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Dostępność strony</h2>
         <p class="hint">Co 10 sekund serwer pyta stronę przez Cloudflare, tak jak odwiedzający, i bezpośrednio u siebie, z pominięciem Cloudflare, a dla porównania wiki. Obok zapisuje ruch z dziennika nginx. Gdy strona nie działa tylko przez Cloudflare (522), połączenia nie dochodzą do serwera. Gdy nie działa też na serwerze, zatyka się nginx albo PHP. Pomiary z <?=DIAG_KEEP_DAYS?> dni, pokazane 24 godziny.</p>
 <?php if (!$diagRounds): ?>
@@ -1759,6 +1774,7 @@
         </dl>
       </section>
 
+      </div>
     </div>
 <?php endif; ?>
   </main>
@@ -1774,7 +1790,7 @@
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=2f2eb97eac"></script>
+  <script src="../js/admin.js?v=33afd05621"></script>
 <?php endif; ?>
 </body>
 

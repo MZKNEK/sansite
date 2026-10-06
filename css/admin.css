@@ -1453,3 +1453,245 @@ a.who-name:hover {
 .own-profile .server + .hint {
     margin-top: 14px;
 }
+
+/* ---- Layout, sticky nav, folded cards, alerts ---- */
+
+.admin-layout {
+    margin-top: 32px;
+}
+
+.admin-layout .panel-grid {
+    margin-top: 0;
+}
+
+.admin-layout.has-nav {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 26px;
+    align-items: start;
+}
+
+.admin-nav {
+    position: sticky;
+    top: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.admin-layout.has-nav .admin-nav {
+    display: flex;
+}
+
+.admin-nav .nav-filter {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 13px Lato, sans-serif;
+    outline: 0;
+}
+
+.admin-nav .nav-filter:focus {
+    border-color: var(--accent);
+}
+
+.admin-nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-left: 2px solid transparent;
+    color: rgba(220, 221, 222, 0.65);
+    text-decoration: none;
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.admin-nav a:hover {
+    color: #fff;
+    background: rgba(155, 89, 182, 0.12);
+}
+
+.admin-nav a.active {
+    border-color: var(--accent-light);
+    color: #efe2f7;
+    background: rgba(155, 89, 182, 0.16);
+}
+
+.admin-nav .dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3fca7a;
+}
+
+.admin-nav .dot.warn {
+    background: #f0b232;
+    animation: nav-pulse 1.6s infinite;
+}
+
+@keyframes nav-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+.admin-nav .n {
+    margin-left: auto;
+    color: #f0b232;
+}
+
+.panel-section {
+    grid-column: 1 / -1;
+    margin: 26px 0 0;
+    font: 13px "Sanakan Mono", monospace;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(220, 221, 222, 0.55);
+    scroll-margin-top: 80px;
+}
+
+.panel-grid > .panel-section:first-child {
+    margin-top: 0;
+}
+
+/* a card folds to its title; a colored left edge says how it stands */
+.card.collapsible {
+    border-left: 3px solid rgba(155, 89, 182, 0.3);
+}
+
+.card[data-state="ok"] {
+    border-left-color: #3fca7a;
+}
+
+.card[data-state="warn"] {
+    border-left-color: #f0b232;
+}
+
+.card[data-state="bad"] {
+    border-left-color: #e57373;
+}
+
+.card.collapsible > h2 {
+    cursor: pointer;
+}
+
+.card.collapsible.collapsed > :not(h2) {
+    display: none;
+}
+
+.card h2::after {
+    order: 1;
+}
+
+.card h2 .card-sum {
+    order: 2;
+    margin-left: 14px;
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    letter-spacing: 0;
+    text-transform: none;
+    color: rgba(220, 221, 222, 0.6);
+    white-space: nowrap;
+}
+
+.card h2 .card-chev,
+.diag-sub > summary .card-chev {
+    flex: none;
+    order: 3;
+    width: 8px;
+    height: 8px;
+    margin-left: 12px;
+    border-right: 2px solid var(--accent-light);
+    border-bottom: 2px solid var(--accent-light);
+    transform: rotate(45deg);
+    transition: transform 0.2s;
+}
+
+.card.collapsible:not(.collapsed) h2 .card-chev,
+.diag-sub[open] > summary .card-chev {
+    transform: rotate(-135deg);
+}
+
+/* the floating button that points at the alerts */
+.admin-fab {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 15px;
+    border: 1px solid rgba(240, 178, 50, 0.6);
+    background: rgba(20, 14, 2, 0.95);
+    color: #f0b232;
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.admin-fab[hidden] {
+    display: none;
+}
+
+.admin-fab:hover {
+    background: rgba(240, 178, 50, 0.18);
+}
+
+/* the diagnostics card folded into sub-accordions */
+.diag-sub {
+    margin-top: 8px;
+    border: 1px solid rgba(155, 89, 182, 0.18);
+}
+
+.diag-sub > summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.diag-sub > summary::-webkit-details-marker {
+    display: none;
+}
+
+.diag-sub > summary .diag-title {
+    flex: 1;
+    margin: 0;
+}
+
+.diag-sub[open] > summary {
+    border-bottom: 1px solid rgba(155, 89, 182, 0.18);
+}
+
+.diag-sub > .diag-subbody {
+    padding: 12px 14px;
+}
+
+.panel-hidden {
+    display: none !important;
+}
+
+/* a click on a section link glides instead of jumping */
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+@media only screen and (max-width: 900px) {
+    .admin-layout.has-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-nav {
+        position: static;
+    }
+}

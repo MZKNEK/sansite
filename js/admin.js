@@ -448,3 +448,207 @@
     });
   });
 })();
+
+// The panel's own layout: a sticky section nav with a card filter, cards folded
+// to their title (with a short summary), a floating button that points at the
+// alerts, and the diagnostics card folded into sub-accordions. It builds on the
+// markup the panel prints, so the page still works without it.
+(function () {
+  try {
+    var layout = document.querySelector('.admin-layout');
+    var grid = layout ? layout.querySelector('.panel-grid') : null;
+    var nav = document.getElementById('admin-nav');
+    if (!layout || !grid || !nav) return;
+
+    var sections = Array.prototype.slice.call(grid.querySelectorAll(':scope > .panel-section'));
+    var cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > .card'));
+
+    function setOpen(card, open) {
+      card.classList.toggle('collapsed', !open);
+      var head = card.querySelector(':scope > h2');
+      if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      try { localStorage.setItem('panel-open-' + card.dataset.key, open ? '1' : '0'); } catch (e) {}
+    }
+
+    // fold each card to its title
+    cards.forEach(function (card, i) {
+      var head = card.querySelector(':scope > h2');
+      if (!head) return;
+      card.classList.add('collapsible');
+      card.dataset.key = card.dataset.key || 'c' + i;
+
+      if (card.dataset.sum) {
+        var sum = document.createElement('span');
+        sum.className = 'card-sum';
+        sum.textContent = card.dataset.sum;
+        head.appendChild(sum);
+      }
+      var chev = document.createElement('span');
+      chev.className = 'card-chev';
+      chev.setAttribute('aria-hidden', 'true');
+      head.appendChild(chev);
+
+      head.setAttribute('role', 'button');
+      head.setAttribute('tabindex', '0');
+
+      var open = card.dataset.state === 'warn' || card.dataset.state === 'bad';
+      try { var saved = localStorage.getItem('panel-open-' + card.dataset.key); if (saved !== null) open = saved === '1'; } catch (e) {}
+      setOpen(card, open);
+
+      function flip() { setOpen(card, card.classList.contains('collapsed')); }
+      head.addEventListener('click', flip);
+      head.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          flip();
+        }
+      });
+    });
+
+    // fold the diagnostics card into sub-accordions
+    var diag = grid.querySelector(':scope > .card.diag');
+    if (diag) {
+      var titles = Array.prototype.slice.call(diag.querySelectorAll(':scope > h3.diag-title'));
+      titles.forEach(function (h3) {
+        var details = document.createElement('details');
+        details.className = 'diag-sub';
+        var summary = document.createElement('summary');
+        var body = document.createElement('div');
+        body.className = 'diag-subbody';
+        details.appendChild(summary);
+        details.appendChild(body);
+        diag.insertBefore(details, h3);
+        summary.appendChild(h3);
+        var chev = document.createElement('span');
+        chev.className = 'card-chev';
+        chev.setAttribute('aria-hidden', 'true');
+        summary.appendChild(chev);
+
+        var node = details.nextSibling;
+        while (node) {
+          var next = node.nextSibling;
+          if (node.nodeType === 1 && node.tagName === 'H3' && node.classList.contains('diag-title')) break;
+          body.appendChild(node);
+          node = next;
+        }
+      });
+      var first = diag.querySelector('.diag-sub');
+      if (first) first.open = true;
+    }
+
+    // build the section nav
+    if (!sections.length) return;
+    var filter = document.createElement('input');
+    filter.type = 'search';
+    filter.className = 'nav-filter';
+    filter.placeholder = 'Filtruj karty…';
+    filter.setAttribute('aria-label', 'Filtruj karty');
+    nav.appendChild(filter);
+
+    var links = [];
+    sections.forEach(function (h, i) {
+      h.id = 'sec-' + (h.dataset.section || i);
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      var dot = document.createElement('span');
+      dot.className = 'dot' + (h.dataset.count ? ' warn' : '');
+      a.appendChild(dot);
+      a.appendChild(document.createTextNode(h.dataset.label || h.textContent));
+      if (h.dataset.count) {
+        var n = document.createElement('span');
+        n.className = 'n';
+        n.textContent = h.dataset.count;
+        a.appendChild(n);
+      }
+      nav.appendChild(a);
+      links.push(a);
+    });
+    layout.classList.add('has-nav');
+
+    // the active item follows the scroll position, and a click sets it at once
+    function sectionTop(h) {
+      return h.getBoundingClientRect().top + window.scrollY;
+    }
+
+    function updateActive() {
+      var at = window.scrollY + 140;
+      var current = sections[0];
+      for (var i = 0; i < sections.length; i++) {
+        if (sectionTop(sections[i]) <= at) current = sections[i];
+      }
+      // at the very bottom the last section is the one in view
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4)
+        current = sections[sections.length - 1];
+      links.forEach(function (a) {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current.id);
+      });
+    }
+
+    // A click sets the item at once. While the page glides there the highlight
+    // stays put; the spy takes over again only once the scroll has settled, so
+    // it never jumps between sections on the way.
+    var navLock = false;
+    var navTimer = null;
+
+    links.forEach(function (a) {
+      a.addEventListener('click', function () {
+        navLock = true;
+        links.forEach(function (o) { o.classList.toggle('active', o === a); });
+      });
+    });
+
+    window.addEventListener('scroll', function () {
+      if (navLock) {
+        if (navTimer) clearTimeout(navTimer);
+        navTimer = setTimeout(function () {
+          navLock = false;
+          updateActive();
+        }, 140);
+        return;
+      }
+      updateActive();
+    }, { passive: true });
+    updateActive();
+
+    // the filter hides cards that do not match, and sections left empty
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      cards.forEach(function (c) {
+        var head = c.querySelector('h2');
+        var text = head ? head.textContent.toLowerCase() : '';
+        c.classList.toggle('panel-hidden', q !== '' && text.indexOf(q) === -1);
+      });
+      sections.forEach(function (h, i) {
+        var next = sections[i + 1];
+        var any = false;
+        var node = h.nextElementSibling;
+        while (node && node !== next) {
+          if (node.classList.contains('card') && !node.classList.contains('panel-hidden')) {
+            any = true;
+            break;
+          }
+          node = node.nextElementSibling;
+        }
+        h.classList.toggle('panel-hidden', !any);
+      });
+    });
+
+    // a floating button points at the alerts once the page is scrolled
+    var alerts = sections.filter(function (h) { return h.dataset.section === 'wymaga'; })[0];
+    if (alerts) {
+      var count = parseInt(alerts.dataset.count || '0', 10);
+      var word = count === 1 ? 'alert' : (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'alerty' : 'alertów');
+      var fab = document.createElement('a');
+      fab.className = 'admin-fab';
+      fab.href = '#' + alerts.id;
+      fab.textContent = '\u26A0 ' + count + ' ' + word + ' · pokaż';
+      fab.hidden = true;
+      document.body.appendChild(fab);
+      var updateFab = function () { fab.hidden = window.scrollY <= 180; };
+      window.addEventListener('scroll', updateFab, { passive: true });
+      updateFab();
+    }
+  } catch (err) {
+    // the panel still works without the extra layout
+  }
+})();
