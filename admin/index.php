@@ -10,6 +10,7 @@
     require_once __DIR__ . '/../inc/system.php';
     require __DIR__ . '/../inc/diag.php';
     require __DIR__ . '/../inc/cloudflare.php';
+    require __DIR__ . '/../inc/autoblock.php';
     require __DIR__ . '/../inc/meta.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
@@ -18,6 +19,7 @@
     const LIST_LABELS = [
         'galleryAdmins' => 'administratorzy galerii',
         'galleryViewers' => 'oglądający galerię',
+        'galleryUploaders' => 'własny folder w galerii',
         'apiViewers' => 'dostęp do API'
     ];
 
@@ -25,6 +27,9 @@
     const LIST_CARDS = [
         'galleryAdmins' => ['Administratorzy galerii', 'Oglądają galerię i dodają, przenoszą oraz usuwają pliki.'],
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
+        'galleryUploaders' => ['Własne foldery w galerii', 'Dodają zdjęcia tylko do swojego folderu i/' . USERS_DIR . '/ID-nick i tylko jego widzą (oprócz nich administratorzy galerii). Do '
+            . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
+            . ' MB, zawsze zapisywane jako WebP. Folder zostaje po odebraniu dostępu.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
 
@@ -420,7 +425,9 @@
             $html .= '<li style="--share: ' . share($scanner['n'], $most) . '">'
                 . diagIpCell($scanner['ip'], $scanner['cc'], $scanner['reason'], $marks)
                 . '<span class="diag-count">' . formatCount($scanner['n']) . '</span>'
-                . '<span class="diag-agent"><span>' . e($scanner['reason']) . ' &middot; ' . e(date('d.m H:i', $scanner['first']))
+                . '<span class="diag-agent"><span>' . e($scanner['reason'])
+                    . (count($scanner['probes']) > 1 ? ' <span class="muted" title="' . e(implode(' ', $scanner['probes'])) . '">(' . count($scanner['probes']) . ' takich ścieżek)</span>' : '')
+                    . ' &middot; ' . e(date('d.m H:i', $scanner['first']))
                     . ($scanner['last'] - $scanner['first'] >= 60 ? '–' . e(date($sameDay ? 'H:i' : 'd.m H:i', $scanner['last'])) : '') . '</span>'
                 . '<span title="' . e($scanner['ua']) . '">' . e($scanner['ua'] !== '' ? $scanner['ua'] : 'bez user agenta') . '</span>'
                 . '<code title="' . e(implode(' ', $paths)) . '">' . e(implode(' ', array_slice($paths, 0, 3))) . '</code></span>'
@@ -516,6 +523,32 @@
                 if (!writeData('access', $access))
                     reply(false, dataError(), 500);
                 done('access', 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
+
+            case 'upload-limit':
+                if (!preg_match('/^\d{17,20}$/', $id))
+                    reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
+                $limit = (int)($_POST['limit'] ?? 0);
+                if ($limit < 1 || $limit > USER_FILES_MAX)
+                    reply(false, 'Limit to od 1 do ' . USER_FILES_MAX . ' zdjęć.', 400);
+                $access = readData('access');
+                if ($limit === USER_FILES_DEFAULT)
+                    unset($access['uploadLimits'][$id]);
+                else
+                    $access['uploadLimits'][$id] = $limit;
+                if (!writeData('access', $access))
+                    reply(false, dataError(), 500);
+                done('access', 'Limit zdjęć we własnym folderze ' . accountLabel($id, $logins) . ': ' . $limit . '.');
+
+            case 'share-revoke':
+                $token = (string)($_POST['token'] ?? '');
+                $shares = readData('shares');
+                if (!isset($shares[$token]['rel']))
+                    reply(false, 'Tego linku już nie ma, odśwież stronę.', 404);
+                $rel = $shares[$token]['rel'];
+                unset($shares[$token]);
+                if (!writeData('shares', $shares))
+                    reply(false, dataError(), 500);
+                done('share', 'Wyłączono link do ' . galleryPath($rel) . '.');
 
             case 'request-dismiss':
                 $for = (string)($_POST['for'] ?? '');
@@ -646,7 +679,20 @@
                 $error = cloudflareUnblock($item);
                 if ($error !== null)
                     reply(false, $error, 502);
-                done('cloudflare', 'Odblokowano w Cloudflare ' . cutText(trim((string)($_POST['ip'] ?? '')), 60) . '.');
+                // not blocked again by the automatic blocking
+                $ip = cutText(trim((string)($_POST['ip'] ?? '')), 60);
+                if ($ip !== '')
+                    autoBlockReleased($ip);
+                done('cloudflare', 'Odblokowano w Cloudflare ' . $ip . '.');
+
+            case 'auto-block':
+                if (!cloudflareConfigured())
+                    reply(false, 'Blokowanie w Cloudflare nie jest ustawione.', 503);
+                $settings = readData('settings');
+                $settings['autoBlock'] = ($_POST['on'] ?? '') === '1';
+                if (!writeData('settings', $settings))
+                    reply(false, dataError(), 500);
+                done('cloudflare', $settings['autoBlock'] ? 'Włączono automatyczne blokowanie skanerów w Cloudflare.' : 'Wyłączono automatyczne blokowanie skanerów w Cloudflare.');
 
             case 'trash-empty':
                 $removed = 0;
@@ -771,11 +817,14 @@
         if (cloudflareConfigured())
             [$cfItems, $cfError] = cloudflareBlocked();
         $diagMarks = diagMarks($diagScanners, $cfItems);
+        $autoBlock = readData('autoblock');
         $diagCron = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-site.php'))
             . " > /dev/null 2>&1' > /etc/cron.d/sanakan-site";
 
         purgeTrash();
         $trash = trashItems();
+        $shares = activeShares();
+        uasort($shares, function ($a, $b) { return $b['created'] <=> $a['created']; });
         $history = historyEntries(100);
     }
 
@@ -818,7 +867,7 @@
   <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=17" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=18" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -891,6 +940,7 @@
               <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ Dostęp do API</button>
 <?php else: ?>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
+              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>">+ Własny folder</button>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
 <?php endif; ?>
               <button type="button" class="admin-btn small danger" data-action="request-dismiss" data-for="<?=e($request['for'])?>" data-id="<?=e($id)?>" data-confirm="Odrzucić prośbę <?=e(accountLabel($id, $logins))?> o dostęp do <?=e(REQUEST_LABELS[$request['for']])?>?">Odrzuć</button>
@@ -949,7 +999,7 @@
 
 <?php $number = 3; foreach ($lists as $list => $info): ?>
       <section class="card">
-        <h2><i>0<?=$number++?></i><?=e(LIST_CARDS[$list][0])?></h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i><?=e(LIST_CARDS[$list][0])?></h2>
         <p class="hint"><?=e(LIST_CARDS[$list][1])?></p>
 <?php if ($info['everyone']): ?>
         <p class="everyone">Każde konto Discord (<code><?=e(ACCESS_LISTS[$list])?> = true</code> w konfiguracji).</p>
@@ -988,7 +1038,7 @@
 <?php endforeach; ?>
 
       <section class="card wide">
-        <h2><i>06</i>Ostatnie logowania</h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Ostatnie logowania</h2>
         <p class="hint">Każdy, kto zalogował się przez Discord w galerii, w API albo w panelu, także bez dostępu. Stąd najłatwiej komuś go nadać. Kolorowy poziom to najwyższa rola na serwerze bota (wszystkie w dymku), odświeżana, gdy konto odwiedza stronę; galerii nie daje. Ikony to dostępy na stronie: galeria (jasna: admin galerii), panel i API.</p>
 <?php if (!$logins): ?>
         <p class="nobody">Nikt się jeszcze nie logował.</p>
@@ -1004,7 +1054,9 @@
         if (isGalleryAdminId($id))
             $access[] = accessIcon('gallery', 'Admin galerii: ogląda i zarządza plikami', true);
         else if (canViewGalleryId($id))
-            $access[] = accessIcon('gallery', 'Ogląda galerię');
+            $access[] = accessIcon('gallery', 'Ogląda galerię' . (isGalleryUploaderId($id) ? ' i ma własny folder' : ''));
+        else if (isGalleryUploaderId($id))
+            $access[] = accessIcon('gallery', 'Własny folder w galerii');
         if (isPanelAdminId($id))
             $access[] = accessIcon('panel', 'Panel administratora');
         if (canViewApiId($id))
@@ -1027,6 +1079,9 @@
 <?php if (!canViewGalleryId($id)): ?>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
 <?php endif; ?>
+<?php if (!isGalleryAdminId($id) && !isGalleryUploaderId($id)): ?>
+              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>">+ Własny folder</button>
+<?php endif; ?>
 <?php if (!isGalleryAdminId($id)): ?>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
 <?php endif; ?>
@@ -1045,7 +1100,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>07</i>Kosz</h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Kosz</h2>
         <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.</p>
 <?php if (!$trash): ?>
         <p class="nobody">Kosz jest pusty.</p>
@@ -1072,7 +1127,30 @@
       </section>
 
       <section class="card wide">
-        <h2><i>08</i>Galeria w liczbach</h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Udostępnione linki</h2>
+        <p class="hint">Foldery galerii udostępnione linkiem: każdy, kto go ma, ogląda je i pobiera bez logowania. Tworzy się je w galerii przyciskiem „Udostępnij” w folderze.</p>
+<?php if (!$shares): ?>
+        <p class="nobody">Żaden folder nie jest udostępniony.</p>
+<?php else: ?>
+        <div class="trash">
+<?php foreach ($shares as $token => $share): $shareUrl = SITE_URL . $root . 'i/?s=' . $token; ?>
+          <div class="trash-row">
+            <span class="trash-name">
+              <a href="<?=e($root . 'i/' . folderUrl($share['rel']))?>"><b><?=e(galleryPath($share['rel']))?></b></a>
+              <code class="share-link"><?=e($shareUrl)?></code>
+            </span>
+            <span class="trash-info">od <?=e(ago($share['created']))?><?=($share['name'] ?? '') !== '' ? ', ' . e($share['name']) : ''?> &middot; <?=$share['expires'] === null ? 'bez końca' : 'do ' . e(date('d.m.Y H:i', $share['expires']))?><?=resolvePath($galleryDir, $share['rel'], true) ? '' : ' &middot; <b class="warn">folderu już nie ma</b>'?></span>
+            <span class="login-actions">
+              <button type="button" class="admin-btn small danger" data-action="share-revoke" data-token="<?=e($token)?>" data-confirm="<?=e('Wyłączyć link do ' . galleryPath($share['rel']) . '? Kto go ma, przestanie widzieć folder.')?>">Wyłącz</button>
+            </span>
+          </div>
+<?php endforeach; ?>
+        </div>
+<?php endif; ?>
+      </section>
+
+      <section class="card wide">
+        <h2><i><?=sprintf('%02d', $number++)?></i>Galeria w liczbach</h2>
         <div class="stats-summary">
           <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
           <span><b><?=e(formatSize($stats['bytes']))?></b> razem</span>
@@ -1120,7 +1198,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>09</i>Historia zmian</h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Historia zmian</h2>
         <p class="hint">Ostatnie zmiany w galerii i w panelu: kto, kiedy i co.</p>
 <?php if (!$history): ?>
         <p class="nobody">Jeszcze nic się nie zmieniło.</p>
@@ -1138,7 +1216,7 @@
       </section>
 
       <section class="card wide diag">
-        <h2><i>10</i>Dostępność strony</h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Dostępność strony</h2>
         <p class="hint">Co 10 sekund serwer pyta stronę przez Cloudflare, tak jak odwiedzający, i bezpośrednio u siebie, z pominięciem Cloudflare, a dla porównania wiki. Obok zapisuje ruch z dziennika nginx. Gdy strona nie działa tylko przez Cloudflare (522), połączenia nie dochodzą do serwera. Gdy nie działa też na serwerze, zatyka się nginx albo PHP. Pomiary z <?=DIAG_KEEP_DAYS?> dni, pokazane 24 godziny.</p>
 <?php if (!$diagRounds): ?>
         <p class="nobody">Jeszcze nie ma pomiarów. Ustawienie serwera opisuje lista niżej.</p>
@@ -1227,6 +1305,24 @@
 
         <h3 class="diag-title">Skanery w ostatnich <?=DIAG_KEEP_DAYS?> dniach<?=$diagScanners ? ' <span class="muted">' . count($diagScanners) . ' ' . plural(count($diagScanners), 'adres', 'adresy', 'adresów') . ', ' . formatCount(array_sum(array_column($diagScanners, 'n'))) . ' zapytań</span>' : ''?></h3>
         <p class="hint">Adresy, które pytały o to, czego na tej stronie nie ma (<code>/.env</code>, <code>/wp-*</code>, obce pliki <code>.php</code>, kopie zapasowe), albo przedstawiły się jako narzędzie do skanowania. Liczone są wszystkie ich zapytania od pierwszego takiego.</p>
+<?php if (cloudflareConfigured()): $autoOn = autoBlockEnabled(); ?>
+        <form class="auto-block" data-action="auto-block">
+          <label class="admin-check"><input type="checkbox" name="on" value="1"<?=$autoOn ? ' checked' : ''?> /> Blokuj skanery w Cloudflare automatycznie</label>
+          <button type="submit" class="admin-btn small">Zapisz</button>
+        </form>
+        <p class="hint">Co minutę blokowany jest adres, który w ciągu doby zapytał o co najmniej <?=AUTO_BLOCK_PROBES?> różne ścieżki, o które nikt tu nie pyta; sam user agent skanera nie wystarcza. Nigdy: adresy, z których logowały się konta, Cloudflare i adresy lokalne, prawdziwe roboty wyszukiwarek i znane skanery badawcze (Google, Bing, Censys, Shodan i inne, sprawdzone w DNS w obie strony, więc podszywający się pod nie odpadają). Adres odblokowany ręcznie nie wraca na listę sam. Automatyczne blokady znikają po <?=AUTO_BLOCK_DAYS?> dniach.</p>
+<?php if ($autoBlock): $autoBlocked = $autoBlock['blocked'] ?? []; $autoTrusted = $autoBlock['trusted'] ?? []; ?>
+        <p class="hint">
+          Zablokowane automatycznie: <b><?=count($autoBlocked)?></b><?=$autoBlocked ? ', ostatnio ' . e(ago(max(array_column($autoBlocked, 0)))) : ''?>
+<?php if ($autoTrusted): ?>
+          &middot; pominięte jako zaufane: <span title="<?=e(implode(', ', array_map(function ($target, $entry) { return $target . ' ' . $entry[0]; }, array_keys($autoTrusted), $autoTrusted)))?>"><?=count($autoTrusted)?> (<?=e(implode(', ', array_slice(array_unique(array_map(function ($entry) { return preg_replace('/^.*?([^.]+\.[^.]+)$/', '$1', $entry[0]); }, $autoTrusted)), 0, 4)))?>)</span>
+<?php endif; ?>
+<?php if (!empty($autoBlock['error']) && $autoBlock['error'][0] > time() - 86400): ?>
+          &middot; <b class="warn">ostatni błąd <?=e(ago($autoBlock['error'][0]))?>: <?=e($autoBlock['error'][1])?></b>
+<?php endif; ?>
+        </p>
+<?php endif; ?>
+<?php endif; ?>
 <?php if (!$diagScanners): ?>
         <p class="nobody">Żadnych skanerów.</p>
 <?php else: ?>
@@ -1306,8 +1402,8 @@
       </section>
 
       <section class="card wide">
-        <h2><i>11</i>Zasoby serwera</h2>
-        <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. Wykresy są z pomiarów co 10 sekund (karta 10): linia to średnia z 5 minut, a jaśniejsze pasmo nad nią przy procesorze sięga najbardziej zajętych 10 sekund z tego czasu. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Zasoby serwera</h2>
+        <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. Wykresy są z pomiarów co 10 sekund (karta „Dostępność strony”): linia to średnia z 5 minut, a jaśniejsze pasmo nad nią przy procesorze sięga najbardziej zajętych 10 sekund z tego czasu. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
 <?php if ($system['cpu'] === null && $system['memory'] === null): ?>
         <p class="nobody">Brak danych: serwer nie ma <code>/proc</code> (to nie Linux) albo PHP nie może go czytać (<code>open_basedir</code>).</p>
 <?php else:
@@ -1381,7 +1477,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>12</i>Serwer</h2>
+        <h2><i><?=sprintf('%02d', $number++)?></i>Serwer</h2>
         <dl class="server">
           <dt>PHP</dt>
           <dd><?=e(PHP_VERSION)?></dd>

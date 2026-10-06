@@ -58,6 +58,8 @@
     const DIAG_SCANNERS_KEEP = 3000;
     // pages per hour kept for the PHP times, the most asked
     const DIAG_PAGES_KEEP = 100;
+    // different paths no visitor asks for kept per scanner
+    const DIAG_PROBES_KEEP = 20;
 
     // the same ranges as set_real_ip_from in server/nginx/sanakan.conf
     const CLOUDFLARE_RANGES = [
@@ -285,6 +287,14 @@
         return cutText($path === '' ? (string)$uri : $path, 100);
     }
 
+    // a path no visitor of this site asks for: secrets, other software, a PHP
+    // file the site does not have
+    function diagProbePath($path)
+    {
+        return preg_match(DIAG_SCANNER_PATHS, $path)
+            || (preg_match('~\.php$~i', $path) && !in_array(strtolower($path), SITE_PHP_FILES, true));
+    }
+
     // why a logged request looks like a scanner, or null
     function diagScannerReason($request, $path)
     {
@@ -294,8 +304,7 @@
         // nginx logs no address for a request it could not read (e.g. https on port 80)
         if ($path === '' && (int)($request['s'] ?? 0) === 400)
             return 'zepsute zapytanie';
-        if (preg_match(DIAG_SCANNER_PATHS, $path)
-                || (preg_match('~\.php$~i', $path) && !in_array(strtolower($path), SITE_PHP_FILES, true)))
+        if (diagProbePath($path))
             return 'szuka ' . $path;
 
         return null;
@@ -375,6 +384,8 @@
             $ips[$ip]['paths'][$path] = ($ips[$ip]['paths'][$path] ?? 0) + 1;
             if (!isset($ips[$ip]['reason']) && ($reason = diagScannerReason($r, $path)) !== null)
                 $ips[$ip]['reason'] = $reason;
+            if (diagProbePath($path))
+                $ips[$ip]['probes'][$path] = true;
 
             if ($php) {
                 $ms = diagUpstreamMs($r['ut']);
@@ -424,7 +435,9 @@
 
     // Adds the requests of this round to the scanners: of the addresses that
     // looked like one now, and of those seen as one before. Kept per address as
-    // [requests, first seen, last seen, country, user agent, why, [path => requests]].
+    // [requests, first seen, last seen, country, user agent, why, [path => requests],
+    // [different paths no visitor asks for, up to DIAG_PROBES_KEEP]]; the last
+    // tell a scanner for sure (inc/autoblock.php).
     function diagRecordScanners($ips, $now)
     {
         diagUpdate('scanners.json', function ($scanners) use ($ips, $now) {
@@ -432,13 +445,16 @@
                 $ip = (string)$ip;
                 if (!isset($info['reason']) && !isset($scanners[$ip]))
                     continue;
-                $known = $scanners[$ip] ?? [0, $now, $now, $info['cc'], $info['ua'], $info['reason'], []];
+                $known = ($scanners[$ip] ?? [0, $now, $now, $info['cc'], $info['ua'], $info['reason'], []]) + [7 => []];
                 $known[0] += $info['n'];
                 $known[2] = $now;
                 foreach ($info['paths'] as $path => $n)
                     $known[6][$path] = ($known[6][$path] ?? 0) + $n;
                 arsort($known[6]);
                 $known[6] = array_slice($known[6], 0, 5, true);
+                foreach (array_keys($info['probes'] ?? []) as $path)
+                    if (count($known[7]) < DIAG_PROBES_KEEP && !in_array((string)$path, $known[7], true))
+                        $known[7][] = (string)$path;
                 $scanners[$ip] = $known;
             }
 
@@ -985,8 +1001,11 @@
     {
         $scanners = json_decode((string)@file_get_contents(diagDir() . '/scanners.json'), true);
         $list = [];
-        foreach (is_array($scanners) ? $scanners : [] as $ip => [$n, $first, $last, $cc, $ua, $reason, $paths])
-            $list[(string)$ip] = ['ip' => (string)$ip, 'n' => $n, 'first' => $first, 'last' => $last, 'cc' => $cc, 'ua' => $ua, 'reason' => $reason, 'paths' => $paths];
+        foreach (is_array($scanners) ? $scanners : [] as $ip => $scanner) {
+            [$n, $first, $last, $cc, $ua, $reason, $paths] = $scanner;
+            $list[(string)$ip] = ['ip' => (string)$ip, 'n' => $n, 'first' => $first, 'last' => $last, 'cc' => $cc, 'ua' => $ua, 'reason' => $reason, 'paths' => $paths,
+                'probes' => $scanner[7] ?? []];
+        }
         uasort($list, function ($a, $b) { return $b['n'] <=> $a['n']; });
 
         return $list;

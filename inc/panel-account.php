@@ -5,7 +5,8 @@
     // hours, the devices it is logged in on (each can be logged out), the
     // addresses it came from in the last ADDRESS_KEEP_DAYS days (whether one is
     // a scanner or blocked in Cloudflare, and the other accounts that came from
-    // the same ones), what it did in the gallery, its requests for access, and
+    // the same ones), its own folder in the gallery and how full it is, what it
+    // did in the gallery, its requests for access, and
     // the history of what it changed and what was changed for it.
     // admin/index.php includes it after the login check and has the helpers;
     // $profile is ready before the page starts, profilePage() writes the cards.
@@ -34,7 +35,7 @@
         // what it may open: [label, yes, where from, list to add to or take from]
         $access = [];
         $access[] = ['Panel administratora', isPanelAdminId($id), isPanelAdminId($id) ? 'inc/config.php (PANEL_ADMINS)' : '', null];
-        foreach (['galleryAdmins' => 'Admin galerii', 'galleryViewers' => 'Ogląda galerię', 'apiViewers' => 'Dokumentacja API'] as $list => $label) {
+        foreach (['galleryAdmins' => 'Admin galerii', 'galleryViewers' => 'Ogląda galerię', 'galleryUploaders' => 'Własny folder w galerii', 'apiViewers' => 'Dokumentacja API'] as $list => $label) {
             $config = configList(ACCESS_LISTS[$list]);
             $entry = panelList($list)[$id] ?? null;
             if ($config === true)
@@ -62,6 +63,10 @@
         // its changes in the gallery counted, with the files it added
         [$history, $gallery, $uploads] = accountActivity($id, true, PROFILE_HISTORY_SHOWN, PROFILE_UPLOADS_SHOWN);
 
+        // its folder in the gallery, also after the access was taken back
+        $galleryBase = str_replace('\\', '/', dirname(__DIR__)) . '/i';
+        $folder = userFolder($galleryBase, $id);
+
         $scanners = diagScanners();
         [$cfItems, $cfError] = cloudflareConfigured() ? cloudflareBlocked() : [null, null];
         $lastAddress = $own ? reset($own)[1] : 0;
@@ -83,6 +88,9 @@
             'devices' => accountDevices($id),
             'gallery' => $gallery,
             'uploads' => $uploads,
+            'folder' => $folder,
+            'folderUse' => $folder !== null ? folderUse($galleryBase . '/' . $folder) : [0, 0],
+            'filesLimit' => userFilesLimit($id),
             'marks' => diagMarks($scanners, $cfItems),
             'cfError' => $cfError,
             'logins' => $logins
@@ -151,6 +159,22 @@
 <?php endif; ?>
           </dd>
 <?php endforeach; ?>
+<?php if ($p['folder'] !== null || isGalleryUploaderId($id)): ?>
+          <dt>Własny folder</dt>
+          <dd>
+            <?=$p['folder'] !== null ? '<a href="' . e(siteRoot() . 'i/' . folderUrl($p['folder'])) . '">' . e(galleryPath($p['folder'])) . '</a>' : '<span class="muted">powstanie przy pierwszym wejściu do galerii</span>'?>
+            &middot; <?=$p['folderUse'][0]?> z <?=$p['filesLimit']?> <?=plural($p['filesLimit'], 'zdjęcia', 'zdjęć', 'zdjęć')?> &middot; <?=e(formatSize($p['folderUse'][1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?>
+          </dd>
+          <dt>Limit zdjęć</dt>
+          <dd>
+            <form class="grant upload-limit" data-action="upload-limit">
+              <input type="hidden" name="id" value="<?=e($id)?>" />
+              <input type="text" name="limit" inputmode="numeric" pattern="\d{1,4}" value="<?=$p['filesLimit']?>" aria-label="Limit zdjęć" required />
+              <button type="submit" class="admin-btn small">Zapisz</button>
+              <span class="muted">domyślnie <?=USER_FILES_DEFAULT?>, każde do <?=e(formatSize(USER_FILE_MAX_BYTES))?></span>
+            </form>
+          </dd>
+<?php endif; ?>
 <?php foreach ($p['requests'] as $request): ?>
           <dt>Prośba o dostęp do <?=e(REQUEST_LABELS[$request['for']])?></dt>
           <dd>

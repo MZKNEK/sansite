@@ -60,6 +60,11 @@ main.content {
     color: rgba(220, 221, 222, 0.55);
 }
 
+/* the folders of an account that sees only some: its own and the shared ones */
+.ex-meta a {
+    color: var(--accent-light);
+}
+
 .notice {
     max-width: 640px;
     margin: 24px auto 0;

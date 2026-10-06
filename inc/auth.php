@@ -8,6 +8,7 @@
     //   PANEL_ADMINS     may open the admin panel
     //   GALLERY_ADMINS   may view and manage the gallery
     //   GALLERY_VIEWERS  may view the gallery (true lets in anyone with Discord)
+    //   GALLERY_UPLOADERS get a folder of their own in the gallery and see only it
     //   API_VIEWERS      may read the API documentation (the panel admins always can)
     //   BOT_APP_KEY      the site's key to the bot API (x-app-key with Info rights)
     // With the key the bot also says the account's roles on its Discord server:
@@ -36,6 +37,7 @@
     const ACCESS_LISTS = [
         'galleryAdmins' => 'GALLERY_ADMINS',
         'galleryViewers' => 'GALLERY_VIEWERS',
+        'galleryUploaders' => 'GALLERY_UPLOADERS',
         'apiViewers' => 'API_VIEWERS'
     ];
 
@@ -133,12 +135,13 @@
         return dataDir() . '/history.log';
     }
 
-    function addHistory($action, $text)
+    // $who names who did it when no account did, e.g. a cron job
+    function addHistory($action, $text, $who = null)
     {
         if (!is_dir(dataDir()))
             @mkdir(dataDir(), 0750, true);
 
-        $user = siteUser();
+        $user = $who === null ? siteUser() : ['id' => '', 'name' => $who];
         $line = json_encode([
             'time' => time(),
             'id' => $user['id'] ?? '',
@@ -218,6 +221,12 @@
     function canViewGalleryId($id)
     {
         return isGalleryAdminId($id) || inAccessList('galleryViewers', $id, true);
+    }
+
+    // a folder of its own in the gallery (inc/gallery.php); never everyone
+    function isGalleryUploaderId($id)
+    {
+        return inAccessList('galleryUploaders', $id, false);
     }
 
     // a role counts as the bot said it last; siteRoles() asks again for the logged-in account

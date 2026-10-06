@@ -3,6 +3,18 @@
     // thumbnails, who may view and manage it, and adding, moving and deleting
     // files. The Discord login is in inc/auth.php, shared with the admin panel.
     //
+    // Besides the viewers and the admins, an account can get a folder of its
+    // own, i/users/<id>-<nick>, and see only that one: it adds pictures there,
+    // always saved as WebP, and renames, turns and deletes them, up to a number
+    // of files set per account in the panel (USER_FILES_DEFAULT without one),
+    // USER_FILE_MAX_BYTES each and USER_TOTAL_MAX_BYTES in all. Nobody but the
+    // gallery admins sees the folders of others. In links such a folder is
+    // u/<token>, a random name, so the account's ID stays out of them; its
+    // files are given out by PHP for those links, and nginx gives nothing from
+    // i/users/ straight from the disk. A gallery admin can also share
+    // a folder by a link that works without a login, for some days or until it
+    // is taken back in the panel.
+    //
     // Thumbnails are made with GD and cached. Without GD small pictures are
     // shown as they are, and big ones (some GIFs have tens of MB) get a
     // placeholder and load only when opened.
@@ -21,6 +33,16 @@
     const ZIP_MAX_BYTES = 1073741824;
     const ROTATE_TYPES = ['png', 'jpg', 'jpeg', 'webp'];
     const MAX_NAME_LENGTH = 150;
+    // the folders of the accounts with one, right in the top folder, and what
+    // links say instead: u/<the folder's token>
+    const USERS_DIR = 'users';
+    const USERS_URL = 'u';
+    const USER_FILES_DEFAULT = 10;
+    const USER_FILES_MAX = 1000;
+    const USER_FILE_MAX_BYTES = 10485760;
+    const USER_TOTAL_MAX_BYTES = 104857600;
+    // what a shared link can last, in days; 0 is until it is taken back
+    const SHARE_DAYS = [1, 7, 30, 0];
 
     require_once __DIR__ . '/auth.php';
 
@@ -30,7 +52,7 @@
     // realpath() also resolves "..", so nothing outside this folder can be reached
     function resolvePath($base, $rel, $wantDir)
     {
-        $rel = trim(str_replace('\\', '/', (string)$rel), '/');
+        $rel = privateRel($base, trim(str_replace('\\', '/', (string)$rel), '/'));
         $full = realpath($base . ($rel === '' ? '' : '/' . $rel));
         if ($full === false)
             return null;
@@ -164,12 +186,12 @@
     // URL of a file relative to this folder, every part encoded on its own
     function fileUrl($rel)
     {
-        return implode('/', array_map('rawurlencode', explode('/', $rel)));
+        return implode('/', array_map('rawurlencode', explode('/', publicRel($rel))));
     }
 
     function folderUrl($rel)
     {
-        return $rel === '' ? './' : '?p=' . rawurlencode($rel);
+        return $rel === '' ? './' : '?p=' . rawurlencode(publicRel($rel));
     }
 
     // a frame of a video can be a thumbnail
@@ -182,9 +204,9 @@
     function thumbUrl($rel, $full)
     {
         if (isVideo($rel))
-            return canThumbVideo() ? '?thumb=' . rawurlencode($rel) . '&v=' . filemtime($full) : null;
+            return canThumbVideo() ? '?thumb=' . rawurlencode(publicRel($rel)) . '&v=' . filemtime($full) : null;
         if (hasGd())
-            return '?thumb=' . rawurlencode($rel) . '&v=' . filemtime($full);
+            return '?thumb=' . rawurlencode(publicRel($rel)) . '&v=' . filemtime($full);
 
         return filesize($full) <= THUMBLESS_MAX_BYTES ? fileUrl($rel) : null;
     }
@@ -266,7 +288,7 @@
     {
         $names = [];
         foreach (scandir($dirPath) ?: [] as $name) {
-            if ($name[0] === '.' || ($dirRel === '' && $name === 'index.php'))
+            if ($name[0] === '.' || ($dirRel === '' && ($name === 'index.php' || ($name === USERS_DIR && !galleryIsAdmin()))))
                 continue;
             $names[] = $name;
         }
@@ -384,14 +406,18 @@
         ];
     }
 
-    // Folders and files anywhere in the gallery with every word of the query in
-    // their name, as [folders, files, whether there were more than SEARCH_LIMIT]
+    // Folders and files anywhere the account sees with every word of the query
+    // in their name, as [folders, files, whether there were more than SEARCH_LIMIT]
     function searchGallery($base, $query)
     {
         $words = preg_split('/\s+/', lower(trim($query)), -1, PREG_SPLIT_NO_EMPTY);
         $found = ['folders' => [], 'files' => [], 'more' => false];
-        if ($words)
+        if ($words && galleryCanView())
             searchFolder($base, '', $words, $found, 0);
+        // its own folder and the shared ones, where the search above did not go
+        foreach ($words ? galleryHomes($base) : [] as $home)
+            if (!$found['more'] && !(galleryCanView() && !inUsersDir($home)))
+                searchFolder($base . '/' . $home, $home, $words, $found, 1);
 
         return [$found['folders'], $found['files'], $found['more']];
     }
@@ -590,6 +616,242 @@
     {
         $user = siteUser();
         return $user !== null && isGalleryAdminId($user['id']);
+    }
+
+    // the folders of the accounts, or something in one of them
+    function inUsersDir($rel)
+    {
+        return $rel === USERS_DIR || strpos($rel, USERS_DIR . '/') === 0;
+    }
+
+    // a path is $folder or inside it
+    function inFolder($rel, $folder)
+    {
+        return $rel === $folder || strpos($rel, $folder . '/') === 0;
+    }
+
+    // Whether the visitor may see a folder or a file: the gallery admins
+    // everything, the viewers all but the folders of the accounts, an account
+    // with a folder of its own that folder, anyone the folders shared with it.
+    function galleryCanSee($base, $rel)
+    {
+        if (galleryIsAdmin())
+            return true;
+        foreach (galleryHomes($base) as $home)
+            if (inFolder($rel, $home))
+                return true;
+
+        return !inUsersDir($rel) && galleryCanView();
+    }
+
+    // The folders a visitor who does not see the whole gallery starts from: its
+    // own folder first, then the ones shared with it.
+    function galleryHomes($base)
+    {
+        return array_values(array_unique(array_filter(array_merge([ownFolder($base)], sessionShares($base)), 'is_string')));
+    }
+
+    // ---- Folders of their own -----------------------------------------------------
+
+    function galleryIsUploader()
+    {
+        $user = siteUser();
+        return $user !== null && isGalleryUploaderId($user['id']);
+    }
+
+    // how many files an account may keep in its folder, as set in the panel
+    function userFilesLimit($id)
+    {
+        $limit = readData('access')['uploadLimits'][(string)$id] ?? null;
+
+        return is_int($limit) && $limit > 0 ? $limit : USER_FILES_DEFAULT;
+    }
+
+    // the folder of an account, "users/<id>-<nick>", found by the ID alone as the
+    // nick can change; null while it has none
+    function userFolder($base, $id)
+    {
+        foreach (@scandir($base . '/' . USERS_DIR) ?: [] as $name)
+            if (($name === (string)$id || strpos($name, $id . '-') === 0) && is_dir($base . '/' . USERS_DIR . '/' . $name))
+                return USERS_DIR . '/' . $name;
+
+        return null;
+    }
+
+    // [id => token] of the folders of the accounts (inc/data/user-folders.json);
+    // with $id that account gets one when it has none yet
+    function userTokens($id = null)
+    {
+        static $tokens = null;
+        if ($tokens === null)
+            $tokens = readData('user-folders');
+        if ($id !== null && !isset($tokens[$id]))
+            updateDataFile('user-folders.json', function ($data) use ($id, &$tokens) {
+                $data[$id] = $data[$id] ?? bin2hex(random_bytes(8));
+                return $tokens = $data;
+            });
+
+        return $tokens;
+    }
+
+    // a path as links show it: users/<id>-<nick>/... is u/<token>/...
+    function publicRel($rel)
+    {
+        if (!preg_match('~^' . USERS_DIR . '/(\d+)(?:-[^/]*)?(/.*)?$~', $rel, $match))
+            return $rel;
+        $token = userTokens($match[1])[$match[1]] ?? null;
+
+        return $token === null ? $rel : USERS_URL . '/' . $token . ($match[2] ?? '');
+    }
+
+    // and back: u/<token>/... is the folder of its account as it is on the disk
+    function privateRel($base, $rel)
+    {
+        if (!preg_match('~^' . USERS_URL . '/([0-9a-f]{16})(/.*)?$~', $rel, $match))
+            return $rel;
+        $id = array_search($match[1], userTokens(), true);
+        $folder = $id === false ? null : userFolder($base, (string)$id);
+
+        return $folder === null ? $rel : $folder . ($match[2] ?? '');
+    }
+
+    // A file of the folder of an account for its link, i/u/<token>/<name>:
+    // anyone with the link gets it, as with every file of the gallery, but
+    // nobody can work out the link from the account's ID.
+    function sendUserFile($base, $rel)
+    {
+        $file = resolvePath($base, $rel, false);
+        $types = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm'];
+        if (!$file || !inUsersDir($file[1]) || !isset($types[extensionOf($file[1])])) {
+            http_response_code(404);
+            return;
+        }
+
+        $time = filemtime($file[0]);
+        $size = filesize($file[0]);
+        $etag = '"' . dechex($time) . '-' . dechex($size) . '"';
+        header('Content-Type: ' . $types[extensionOf($file[1])]);
+        header('Cache-Control: public, max-age=86400');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
+        header('ETag: ' . $etag);
+        header('X-Content-Type-Options: nosniff');
+        if (trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
+            http_response_code(304);
+            return;
+        }
+        header('Content-Length: ' . $size);
+        readfile($file[0]);
+    }
+
+    // the folder of the logged-in account when it may have one, made the first time
+    function ownFolder($base)
+    {
+        static $known = [];
+        if (array_key_exists($base, $known))
+            return $known[$base];
+
+        $user = siteUser();
+        if ($user === null || !isGalleryUploaderId($user['id']))
+            return $known[$base] = null;
+
+        $rel = userFolder($base, $user['id']);
+        if ($rel === null) {
+            // the nick only as far as a name in the gallery may have it
+            $nick = trim(cutText(preg_replace('/[\/\\\\:*?"<>|\x00-\x1F]+/', '', (string)($user['name'] ?? '')), 40));
+            $rel = USERS_DIR . '/' . $user['id'] . (ltrim($nick, '.') !== '' ? '-' . ltrim($nick, '.') : '');
+            if (!is_dir($base . '/' . USERS_DIR))
+                @mkdir($base . '/' . USERS_DIR, 0755);
+            if (!@mkdir($base . '/' . $rel, 0755) && !is_dir($base . '/' . $rel))
+                return $known[$base] = null;
+            addHistory('mkdir', 'Utworzono własny folder ' . galleryPath($rel) . '.');
+        }
+
+        return $known[$base] = $rel;
+    }
+
+    // files right in a folder and their bytes: [count, bytes]
+    function folderUse($dirPath)
+    {
+        $count = 0;
+        $bytes = 0;
+        foreach (scandir($dirPath) ?: [] as $name)
+            if ($name[0] !== '.' && is_file($dirPath . '/' . $name)) {
+                $count++;
+                $bytes += filesize($dirPath . '/' . $name);
+            }
+
+        return [$count, $bytes];
+    }
+
+    // a file just saved in the folder of an account goes away again when the
+    // folder would hold more than USER_TOTAL_MAX_BYTES with it
+    function checkUserTotal($dirPath, $path, $name)
+    {
+        clearstatcache();
+        [, $bytes] = folderUse($dirPath);
+        if ($bytes <= USER_TOTAL_MAX_BYTES)
+            return;
+
+        $free = max(0, USER_TOTAL_MAX_BYTES - ($bytes - filesize($path)));
+        @unlink($path);
+        reply(false, $name . ': nie mieści się, w folderze zostało ' . formatSize($free) . ' wolnego z ' . formatSize(USER_TOTAL_MAX_BYTES) . '. Usuń coś, żeby zrobić miejsce.', 413);
+    }
+
+    // ---- Shared links ---------------------------------------------------------------
+    // inc/data/shares.json: [token => ['rel', 'by' (id), 'name' (whose), 'created',
+    // 'expires' (null: until taken back)]]. Opening the link (i/?s=token) puts
+    // its token in the visitor's session, so the folder's pages, thumbnails and
+    // ZIP open without a login.
+
+    // the shares still valid, expired ones dropped
+    function activeShares()
+    {
+        return array_filter(readData('shares'), function ($share) {
+            return is_array($share) && isset($share['rel']) && ($share['expires'] === null || $share['expires'] > time());
+        });
+    }
+
+    // a new link for a folder, $days from SHARE_DAYS: its token, or null
+    function createShare($rel, $days, $user)
+    {
+        $shares = activeShares();
+        $token = bin2hex(random_bytes(12));
+        $shares[$token] = ['rel' => $rel, 'by' => $user['id'], 'name' => $user['name'], 'created' => time(),
+            'expires' => $days > 0 ? time() + $days * 86400 : null];
+
+        return writeData('shares', $shares) ? $token : null;
+    }
+
+    // the folders shared with this visitor, by the tokens in its session
+    function sessionShares($base)
+    {
+        static $known = [];
+        if (array_key_exists($base, $known))
+            return $known[$base];
+        if (!sessionExists())
+            return $known[$base] = [];
+
+        siteSession();
+        $shares = activeShares();
+        $folders = [];
+        foreach ((array)($_SESSION['gallery_shares'] ?? []) as $token)
+            if (isset($shares[$token]) && resolvePath($base, $shares[$token]['rel'], true))
+                $folders[] = $shares[$token]['rel'];
+
+        return $known[$base] = array_values(array_unique($folders));
+    }
+
+    // i/?s=token: the shared folder from now on in this session; the folder, or null
+    function openShare($base, $token)
+    {
+        $share = activeShares()[(string)$token] ?? null;
+        if ($share === null || !resolvePath($base, $share['rel'], true))
+            return null;
+
+        siteSession();
+        $_SESSION['gallery_shares'] = array_values(array_unique(array_merge((array)($_SESSION['gallery_shares'] ?? []), [(string)$token])));
+
+        return $share['rel'];
     }
 
     // ---- Changes ------------------------------------------------------------
@@ -942,13 +1204,22 @@
             zipCollect($full . '/' . $name, $local . '/' . $name, [], $files, $bytes, $depth + 1);
     }
 
+    // the name of a folder or file in a ZIP; the folder of an account without its ID
+    function zipFolderName($rel)
+    {
+        $name = basename($rel);
+
+        return dirname($rel) === USERS_DIR ? (preg_replace('/^\d+-?/', '', $name) ?: 'folder') : $name;
+    }
+
     // gallery items ([full path, rel] each) as what sendZip() takes: the top
     // folder is "i" and loses its index.php, the others keep their own name
     function galleryZipRoots($items)
     {
         $roots = [];
         foreach ($items as $item)
-            $roots[] = [$item[0], $item[1] === '' ? 'i' : basename($item[1]), $item[1] === '' ? ['index.php'] : []];
+            $roots[] = [$item[0], $item[1] === '' ? 'i' : zipFolderName($item[1]),
+                $item[1] === '' ? (galleryIsAdmin() ? ['index.php'] : ['index.php', USERS_DIR]) : []];
 
         return $roots;
     }
@@ -1032,7 +1303,7 @@
 
     // where in the gallery a file with this content already is; only files of the
     // same size get hashed, so this stays quick
-    function findDuplicates($base, $size, $hash)
+    function findDuplicates($base, $size, $hash, $from = '')
     {
         $cache = readData('hashes');
         $before = $cache;
@@ -1053,7 +1324,7 @@
                     $matches[] = galleryPath($rel);
             }
         };
-        $walk($base, '', 0);
+        $walk($from === '' ? $base : $base . '/' . $from, $from, 0);
 
         if ($cache !== $before)
             writeData('hashes', $cache);
@@ -1214,13 +1485,14 @@
     }
 
     // the items picked in the page, each as [full path, rel]; the top folder itself
-    // cannot be one, and when none of them is in the gallery nothing is done
+    // cannot be one, nor what the visitor does not see, and when none of them is
+    // in the gallery nothing is done
     function postedItems($base)
     {
         $items = [];
         foreach ((array)($_POST['items'] ?? []) as $rel) {
             $item = resolveAny($base, $rel);
-            if ($item && $item[1] !== '')
+            if ($item && $item[1] !== '' && galleryCanSee($base, $item[1]))
                 $items[] = $item;
         }
 
@@ -1250,15 +1522,28 @@
             handleAccessRequest('gallery', galleryCanView(), $_POST['back'] ?? '');
 
         if ($action === 'zip') {
-            if (!galleryCanView())
+            if (!galleryCanView() && !galleryHomes($base))
                 reply(false, 'To konto nie ma dostępu do galerii.', 403);
-            $dir = trim((string)($_POST['dir'] ?? ''), '/');
-            sendZip(galleryZipRoots(postedItems($base)), ($dir === '' ? 'galeria' : basename($dir)) . ' - wybrane.zip',
+            $dir = resolvePath($base, $_POST['dir'] ?? '', true);
+            sendZip(galleryZipRoots(postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : zipFolderName($dir[1])) . ' - wybrane.zip',
                 localBack($_POST['back'] ?? ''));
         }
 
-        if (!galleryIsAdmin())
-            reply(false, 'To konto nie może zarządzać galerią.', 403);
+        // an account with a folder of its own changes only what is in it, and
+        // there only adds, renames, turns and deletes pictures
+        if (!galleryIsAdmin()) {
+            $own = ownFolder($base);
+            if ($own === null)
+                reply(false, 'To konto nie może zarządzać galerią.', 403);
+            if (!in_array($action, ['upload', 'delete', 'rotate', 'rename', 'duplicates'], true))
+                reply(false, 'W swoim folderze możesz dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
+            if ($action === 'upload' && (resolvePath($base, $_POST['dir'] ?? '', true)[1] ?? null) !== $own)
+                reply(false, 'Możesz dodawać zdjęcia tylko do swojego folderu.', 403);
+            if (isset($_POST['items']))
+                foreach (postedItems($base) as $item)
+                    if (strpos($item[1], $own . '/') !== 0)
+                        reply(false, 'Możesz zmieniać tylko pliki w swoim folderze.', 403);
+        }
 
         switch ($action) {
 
@@ -1322,7 +1607,24 @@
                 $hash = strtolower((string)($_POST['hash'] ?? ''));
                 if (!preg_match('/^[0-9a-f]{64}$/', $hash))
                     reply(false, 'Zły skrót pliku.', 400);
-                reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash)]);
+                // an account with a folder of its own only hears about that folder
+                $from = galleryIsAdmin() ? '' : ownFolder($base);
+                reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash, $from)]);
+
+            case 'share':
+                $dir = resolvePath($base, $_POST['dir'] ?? '', true);
+                $days = (int)($_POST['days'] ?? -1);
+                if (!$dir)
+                    reply(false, 'Nie ma takiego folderu.', 404);
+                if ($dir[1] === '' || $dir[1] === USERS_DIR)
+                    reply(false, 'Udostępnić można jeden folder, nie całą galerię ani wszystkie foldery kont.', 400);
+                if (!in_array($days, SHARE_DAYS, true))
+                    reply(false, 'Zły czas ważności linku.', 400);
+                $token = createShare($dir[1], $days, siteUser());
+                if ($token === null)
+                    reply(false, 'Nie udało się zapisać linku.', 500);
+                addHistory('share', 'Udostępniono linkiem ' . galleryPath($dir[1]) . ($days ? ' na ' . $days . ' ' . plural($days, 'dzień', 'dni', 'dni') : ' bez końca') . '.');
+                reply(true, 'Link gotowy.', 200, ['token' => $token]);
 
             case 'rename':
                 $items = postedItems($base);
@@ -1405,12 +1707,28 @@
         if (isVideo($name) ? !isWebm($file['tmp_name']) : !@getimagesize($file['tmp_name']))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
 
+        // an account with a folder of its own: only pictures, within its limits
+        $own = !galleryIsAdmin();
+        if ($own) {
+            if (isVideo($name))
+                reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
+            if ($file['size'] > USER_FILE_MAX_BYTES)
+                reply(false, $name . ': zdjęcie jest za duże (' . formatSize($file['size']) . ', limit ' . formatSize(USER_FILE_MAX_BYTES) . ').', 413);
+            [$count] = folderUse($dir[0]);
+            $limit = userFilesLimit(siteUser()['id']);
+            if ($count >= $limit)
+                reply(false, $name . ': w folderze jest już ' . $count . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . '. Usuń któreś, żeby dodać nowe.', 409);
+        }
+
         // "change to WebP" ticked in the page; the original stays when that is not
-        // possible or when the WebP would not be smaller
+        // possible or when the WebP would not be smaller. In the folder of an
+        // account always WebP, also when bigger, and nothing else.
         $note = '';
-        if (($_POST['webp'] ?? '') === '1' && in_array(extensionOf($name), WEBP_SOURCE_TYPES, true)) {
+        if (($own || ($_POST['webp'] ?? '') === '1') && in_array(extensionOf($name), WEBP_SOURCE_TYPES, true)) {
             $isGif = extensionOf($name) === 'gif';
             if (!($isGif ? canConvertGifToWebp() : canConvertToWebp())) {
+                if ($own)
+                    reply(false, $name . ': ' . ($isGif ? 'serwer nie umie teraz zamienić GIF-a na WebP, dodaj PNG, JPG albo WebP.' : 'serwer nie umie teraz zapisać WebP, spróbuj później.'), 503);
                 $note = $isGif
                     ? ' Serwer nie umie zamieniać GIF-ów na animowane WebP (brak gif2webp), zostawiono GIF.'
                     : ' Serwer nie umie zapisać WebP, zostawiono oryginał.';
@@ -1421,12 +1739,17 @@
                 clearstatcache();
 
                 if (!$converted) {
+                    @unlink($path);
+                    if ($own)
+                        reply(false, $name . ': nie udało się zamienić na WebP.', 500);
                     $note = ' Nie udało się zamienić na WebP, zostawiono oryginał.';
-                } else if (filesize($path) >= $file['size']) {
+                } else if (!$own && filesize($path) >= $file['size']) {
                     $note = ' WebP wyszedłby większy (' . formatSize(filesize($path)) . '), zostawiono oryginał.';
                     @unlink($path);
                 } else {
                     @chmod($path, 0644);
+                    if ($own)
+                        checkUserTotal($dir[0], $path, $name);
                     recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
                     $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
                     done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
@@ -1440,6 +1763,8 @@
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
+        if ($own)
+            checkUserTotal($dir[0], $dir[0] . '/' . $target, $name);
         $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
         recordHash($dir[0] . '/' . $target, ltrim($dir[1] . '/' . $target, '/'), $stripped ? $sentHash : null);
 

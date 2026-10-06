@@ -2,28 +2,47 @@
     // Gallery of this folder: browses the subfolders and shows the pictures as
     // a grid of thumbnails with a viewer. It needs a Discord login: accounts in
     // GALLERY_ADMINS (inc/config.php) can also add, move and delete files, the
-    // ones in GALLERY_VIEWERS can look. Only this file is in git; the pictures
-    // live on the server (see .gitignore). The logic is in inc/gallery.php.
+    // ones in GALLERY_VIEWERS can look, the ones in GALLERY_UPLOADERS see and
+    // fill only a folder of their own. A shared link (?s=) opens one folder
+    // without a login. Only this file is in git; the pictures live on the
+    // server (see .gitignore). The logic is in inc/gallery.php.
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/meta.php';
 
     $base = str_replace('\\', '/', __DIR__);
 
+    // i/u/<token>/<file>: a file of the folder of an account, by the random
+    // name of its link (nginx sends these here, server/nginx/sanakan.conf)
+    if (preg_match('~/' . USERS_URL . '/([0-9a-f]{16}/[^/]+)$~', (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), $match)) {
+        sendUserFile($base, USERS_URL . '/' . rawurldecode($match[1]));
+        exit;
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST')
         handlePost($base);
+
+    // ?s=token: a shared link, its folder opens from now on in this session
+    if (isset($_GET['s'])) {
+        $shared = openShare($base, $_GET['s']);
+        if ($shared === null)
+            setFlash('Ten link wygasł albo został wyłączony.');
+        header('Location: ' . ($shared === null ? './' : folderUrl($shared)), true, 303);
+        exit;
+    }
 
     // ?zip&p=folder: the whole folder as one ZIP
     if (isset($_GET['zip'])) {
         $zipDir = resolvePath($base, $_GET['p'] ?? '', true);
-        if (!galleryCanView() || !$zipDir) {
-            http_response_code(galleryCanView() ? 404 : 403);
+        if (!$zipDir || !galleryCanSee($base, $zipDir[1])) {
+            http_response_code($zipDir || !galleryCanView() ? 403 : 404);
             exit;
         }
-        sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : basename($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
+        sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : zipFolderName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
     }
 
     if (isset($_GET['thumb'])) {
-        $canView = galleryCanView();
+        $thumb = resolvePath($base, $_GET['thumb'], false);
+        $canView = $thumb && galleryCanSee($base, $thumb[1]);
         // PHP locks the session file until the request ends; closed, the many
         // thumbnails of one page do not wait for each other in line
         if (session_status() === PHP_SESSION_ACTIVE)
@@ -31,7 +50,7 @@
         if ($canView)
             sendThumb($base, $_GET['thumb']);
         else
-            http_response_code(403);
+            http_response_code($thumb ? 403 : 404);
         exit;
     }
 
@@ -41,10 +60,14 @@
 
     // without access the page only offers the login; the folder is not even read
     $user = siteUser();
-    $locked = !galleryCanView();
+    // its own folder and the shared ones, for who does not see the whole gallery
+    $homes = galleryHomes($base);
+    $whole = galleryCanView();
+    $locked = !$whole && !$homes;
     // an account without access can ask for it; one request at a time
     $request = $user && $locked ? pendingRequest('gallery', $user['id']) : null;
     $admin = !$locked && galleryIsAdmin();
+    $own = $admin ? null : ownFolder($base);
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
@@ -52,13 +75,21 @@
     if ($locked)
         http_response_code(!authConfigured() ? 503 : ($user ? 403 : 200));
 
+    // what the visitor does not see is not there; without the whole gallery
+    // it starts in its own or a shared folder
     $dir = $locked ? [$base, ''] : resolvePath($base, $requested, true);
-    $notFound = $dir === null;
-    if ($notFound) {
-        http_response_code(404);
-        $dir = [$base, ''];
+    if (!$locked && $dir && !galleryCanSee($base, $dir[1]))
+        $dir = null;
+    $notFound = $dir === null && !($requested === '' && !$whole);
+    if ($dir === null) {
+        if ($notFound)
+            http_response_code(404);
+        $dir = $whole || $locked ? [$base, ''] : resolvePath($base, $homes[0], true);
     }
     list($dirPath, $dirRel) = $dir;
+    // the visitor may change things here: an admin anywhere, an account in its own folder
+    $manage = $admin || ($own !== null && $dirRel === $own);
+    $ownUse = $manage && !$admin ? folderUse($dirPath) : null;
 
     // ?q= searches the whole gallery; ?p= then is the folder the search started from
     $query = trim((string)($_GET['q'] ?? ''));
@@ -81,20 +112,23 @@
     }
     $totalBytes = array_sum(array_column($files, 'size'));
 
+    // the folders on the way here, as links where the visitor may go
     $crumbs = [];
     $path = '';
     foreach ($dirRel === '' ? [] : explode('/', $dirRel) as $part) {
         $path = ltrim($path . '/' . $part, '/');
-        $crumbs[] = ['name' => $part, 'rel' => $path];
+        $crumbs[] = ['name' => $part, 'rel' => $path, 'open' => galleryCanSee($base, $path)];
     }
 
-    // the first tile: one folder up, or back from the search results; null in the top folder
+    // the first tile: one folder up, or back from the search results; null in
+    // the top folder and where the folder up is not the visitor's to see
     $parent = null;
     if ($searching) {
         $parent = ['url' => folderUrl($dirRel), 'label' => 'Wróć do: ' . galleryPath($dirRel)];
     } else if ($dirRel !== '') {
         $parentRel = strpos($dirRel, '/') === false ? '' : substr($dirRel, 0, strrpos($dirRel, '/'));
-        $parent = ['url' => folderUrl($parentRel), 'label' => 'Wyżej: ' . galleryPath($parentRel)];
+        if (galleryCanSee($base, $parentRel))
+            $parent = ['url' => folderUrl($parentRel), 'label' => 'Wyżej: ' . galleryPath($parentRel)];
     }
 
     $summary = [];
@@ -107,6 +141,8 @@
         $summary[] = formatSize($totalBytes);
     if ($moreFound)
         $summary[] = 'pokazano pierwsze ' . SEARCH_LIMIT;
+    if (!$admin && in_array($dirRel, sessionShares($base), true) && $dirRel !== $own)
+        $summary[] = 'udostępnione linkiem';
 
 ?>
 <!DOCTYPE html>
@@ -123,7 +159,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=10" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -139,13 +175,28 @@
       <h1 class="hud-title">Galeria</h1>
 <?php if (!$locked): ?>
       <nav class="crumbs" aria-label="Ścieżka">
+<?php if ($whole): ?>
         <a href="./">i</a>
+<?php else: ?>
+        <span>i</span>
+<?php endif; ?>
 <?php foreach ($crumbs AS $crumb): ?>
         <span aria-hidden="true">/</span>
+<?php if ($crumb['open']): ?>
         <a href="<?=e(folderUrl($crumb['rel']))?>"><?=e($crumb['name'])?></a>
+<?php else: ?>
+        <span><?=e($crumb['name'])?></span>
+<?php endif; ?>
 <?php endforeach; ?>
       </nav>
       <p class="ex-meta"><?=e(implode(' · ', $summary))?></p>
+<?php if (count($homes) > 1 || ($whole && $own !== null)): ?>
+      <p class="ex-meta">Twoje foldery:
+<?php foreach ($homes as $i => $home): ?>
+        <?=$i ? '&middot; ' : ''?><a href="<?=e(folderUrl($home))?>"><?=e($home === $own ? 'własny, ' . basename($home) : 'udostępniony, ' . galleryPath($home))?></a>
+<?php endforeach; ?>
+      </p>
+<?php endif; ?>
 <?php endif; ?>
     </header>
 
@@ -178,15 +229,15 @@
 <?php else: ?>
 
 <?php if ($notFound): ?>
-    <p class="notice">Nie ma takiego folderu, poniżej jest główny folder galerii.</p>
+    <p class="notice"><?=$whole ? 'Nie ma takiego folderu, poniżej jest główny folder galerii.' : 'Nie ma tu takiego folderu, poniżej jest ' . ($dirRel === $own ? 'twój folder' : 'udostępniony folder') . '.'?></p>
 <?php endif; ?>
 
-<?php if ($folders || $files || $admin): ?>
+<?php if ($folders || $files || $manage): ?>
     <div class="toolbar" id="toolbar">
       <label class="search hud-corners">
         <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
-        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie, Enter: w całej galerii" aria-label="Szukaj po nazwie"
-               value="<?=e($query)?>" data-dir="<?=e($dirRel)?>" data-searching="<?=$searching ? '1' : '0'?>" />
+        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie, Enter: <?=$whole ? 'w całej galerii' : 'we wszystkich twoich folderach'?>" aria-label="Szukaj po nazwie"
+               value="<?=e($query)?>" data-dir="<?=e(publicRel($dirRel))?>" data-searching="<?=$searching ? '1' : '0'?>" />
         <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
       </label>
       <div class="sort" role="group" aria-label="Sortowanie">
@@ -195,26 +246,29 @@
         <button type="button" data-sort="size" aria-pressed="false">Rozmiar</button>
       </div>
 <?php if (!$searching && ($folders || $files) && canZip()): ?>
-      <a class="admin-btn zip-btn" href="?zip&amp;p=<?=e(rawurlencode($dirRel))?>" title="Cały folder <?=e(galleryPath($dirRel))?> razem z podfolderami, do <?=e(formatSize(ZIP_MAX_BYTES))?>">Pobierz folder (ZIP)</a>
+      <a class="admin-btn zip-btn" href="?zip&amp;p=<?=e(rawurlencode(publicRel($dirRel)))?>" title="Cały folder <?=e(galleryPath($dirRel))?> razem z podfolderami, do <?=e(formatSize(ZIP_MAX_BYTES))?>">Pobierz folder (ZIP)</a>
 <?php endif; ?>
-<?php if ($admin): ?>
+<?php if ($manage): ?>
       <div class="admin-bar" id="admin-bar">
 <?php if (!$searching): ?>
-        <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj pliki</button>
-        <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', array_merge(IMAGE_TYPES, VIDEO_TYPES)))?>" hidden />
-<?php if (canConvertToWebp()): ?>
+        <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
+        <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $admin ? array_merge(IMAGE_TYPES, VIDEO_TYPES) : IMAGE_TYPES))?>" hidden />
+<?php if ($admin && canConvertToWebp()): ?>
         <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, GIF-y jako animowane (gdy serwer ma gif2webp). Gdy WebP nie wyjdzie mniejszy, zostaje oryginał. Filmy zostają bez zmian.">
           <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP
         </label>
 <?php endif; ?>
-        <button type="button" class="admin-btn" id="act-mkdir">Nowy folder</button>
+        <button type="button" class="admin-btn" id="act-mkdir"<?=$admin ? '' : ' hidden'?>>Nowy folder</button>
+<?php if ($admin && $dirRel !== '' && $dirRel !== USERS_DIR): ?>
+        <button type="button" class="admin-btn" id="act-share" title="Link, który otwiera ten folder bez logowania">Udostępnij</button>
+<?php endif; ?>
 <?php endif; ?>
         <button type="button" class="admin-btn" id="act-select" aria-pressed="false">Zaznacz</button>
         <span class="admin-selection" id="admin-selection" hidden>
           <span class="admin-count" id="admin-count"></span>
           <button type="button" class="admin-btn" id="act-select-all">Wszystkie</button>
           <button type="button" class="admin-btn" id="act-rename">Zmień nazwę</button>
-          <button type="button" class="admin-btn" id="act-move">Przenieś</button>
+          <button type="button" class="admin-btn" id="act-move"<?=$admin ? '' : ' hidden'?>>Przenieś</button>
           <button type="button" class="admin-btn" id="act-rotate-left" title="Obróć w lewo (PNG, JPG, WebP)">&#8634; Obróć</button>
           <button type="button" class="admin-btn" id="act-rotate-right" title="Obróć w prawo (PNG, JPG, WebP)">Obróć &#8635;</button>
 <?php if (canZip()): ?>
@@ -222,8 +276,10 @@
 <?php endif; ?>
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
-<?php if (!$searching): ?>
+<?php if (!$searching && $admin): ?>
         <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+<?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> każde zapisują się jako WebP, bez metadanych (np. miejsca zrobienia). Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -244,9 +300,9 @@
       </a>
 <?php endif; ?>
 <?php foreach ($folders AS $folder): ?>
-      <a class="tile folder hud-corners" href="<?=e(folderUrl($folder['rel']))?>" data-rel="<?=e($folder['rel'])?>" data-name="<?=e(lower($folder['name']))?>" data-date="<?=$folder['mtime']?>" data-size="-1">
+      <a class="tile folder hud-corners" href="<?=e(folderUrl($folder['rel']))?>" data-rel="<?=e(publicRel($folder['rel']))?>" data-name="<?=e(lower($folder['name']))?>" data-date="<?=$folder['mtime']?>" data-size="-1">
         <span class="thumb">
-<?php if ($admin): ?>
+<?php if ($manage): ?>
           <span class="check" aria-hidden="true"></span>
 <?php endif; ?>
 <?php if ($folder['previews']): ?>
@@ -269,12 +325,12 @@
       </a>
 <?php endforeach; ?>
 <?php foreach ($files AS $file): ?>
-      <a class="tile file hud-corners" href="<?=e(fileUrl($file['rel']))?>" target="_blank" rel="noopener" data-rel="<?=e($file['rel'])?>"
+      <a class="tile file hud-corners" href="<?=e(fileUrl($file['rel']))?>" target="_blank" rel="noopener" data-rel="<?=e(publicRel($file['rel']))?>"
          data-name="<?=e(lower($file['name']))?>" data-date="<?=$file['mtime']?>" data-size="<?=$file['size']?>"
          data-kind="<?=$file['kind']?>" data-title="<?=e($file['name'])?>"
          data-details="<?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size']), date('d.m.Y', $file['mtime'])])))?>">
         <span class="thumb">
-<?php if ($admin): ?>
+<?php if ($manage): ?>
           <span class="check" aria-hidden="true"></span>
 <?php endif; ?>
 <?php if ($file['thumb']): ?>
@@ -300,7 +356,7 @@
     </div>
 
 <?php if (!$folders && !$files): ?>
-    <p class="empty"><?=$searching ? 'Nic nie znaleziono w całej galerii.' : 'Ten folder jest pusty.' . ($admin ? ' Przeciągnij tu pliki, wklej obrazek (Ctrl+V) albo użyj „Dodaj pliki”.' : '')?></p>
+    <p class="empty"><?=$searching ? 'Nic nie znaleziono' . ($whole ? ' w całej galerii.' : '.') : 'Ten folder jest pusty.' . ($manage ? ' Przeciągnij tu ' . ($admin ? 'pliki' : 'zdjęcia') . ', wklej obrazek (Ctrl+V) albo użyj „Dodaj ' . ($admin ? 'pliki' : 'zdjęcia') . '”.' : '')?></p>
 <?php endif; ?>
     <p class="empty" id="ex-no-results" hidden>Brak pasujących plików.</p>
 <?php endif; ?>
@@ -336,7 +392,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-<?php if ($admin): ?>
+<?php if ($manage): ?>
   <div class="drop" id="drop" hidden>
     <div class="drop-box hud-corners">Upuść pliki, żeby dodać je do <?=e($dirRel === '' ? 'i' : 'i/' . $dirRel)?></div>
   </div>
@@ -385,6 +441,27 @@
     </form>
   </dialog>
 
+<?php if ($admin): ?>
+  <dialog class="ex-dialog" id="dlg-share">
+    <form id="form-share">
+      <h2>Udostępnij folder</h2>
+      <p>Każdy, kto ma link, zobaczy <?=e(galleryPath($dirRel))?> z podfolderami i pobierze je, także bez logowania. Wyłączyć go można w panelu.</p>
+      <select name="days" aria-label="Jak długo link działa">
+        <option value="1">na 1 dzień</option>
+        <option value="7" selected>na 7 dni</option>
+        <option value="30">na 30 dni</option>
+        <option value="0">bez końca, do wyłączenia</option>
+      </select>
+      <input type="text" name="link" readonly hidden aria-label="Link" />
+      <p class="dialog-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="admin-btn" data-close>Zamknij</button>
+        <button type="submit" class="admin-btn primary">Utwórz link</button>
+      </div>
+    </form>
+  </dialog>
+<?php endif; ?>
+
   <dialog class="ex-dialog" id="dlg-delete">
     <form id="form-delete">
       <h2>Usuń</h2>
@@ -398,22 +475,34 @@
     </form>
   </dialog>
 
+<?php
+    $fileLimit = $admin ? uploadLimit() : min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES);
+    // an account in its own folder moves nothing anywhere
+    $moveTo = $admin ? allFolders($base) : [];
+    // the paths go as links show them; the folders of the accounts get their real name for the labels
+    $labels = [];
+    foreach (array_merge($moveTo, [$dirRel]) as $rel)
+        if (publicRel($rel) !== $rel)
+            $labels[publicRel($rel)] = $rel;
+?>
   <script type="application/json" id="gallery-data"><?=json_encode([
       // no single folder to upload to in the search results
-      'dir' => $searching ? null : $dirRel,
+      'dir' => $searching ? null : publicRel($dirRel),
       'csrf' => siteCsrf(),
-      'folders' => allFolders($base),
-      'uploadLimit' => uploadLimit(),
-      'uploadLimitLabel' => formatSize(uploadLimit()),
-      'types' => array_merge(IMAGE_TYPES, VIDEO_TYPES)
+      'folders' => array_map('publicRel', $moveTo),
+      'labels' => (object)$labels,
+      'uploadLimit' => $fileLimit,
+      'uploadLimitLabel' => formatSize($fileLimit),
+      'types' => $admin ? array_merge(IMAGE_TYPES, VIDEO_TYPES) : IMAGE_TYPES,
+      'shareUrl' => SITE_URL . siteRoot() . 'i/?s='
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
   <script src="../js/explorer.js?v=8"></script>
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
-<?php if ($admin): ?>
-  <script src="../js/explorer-admin.js?v=8"></script>
+<?php if ($manage): ?>
+  <script src="../js/explorer-admin.js?v=9"></script>
 <?php endif; ?>
 </body>
 

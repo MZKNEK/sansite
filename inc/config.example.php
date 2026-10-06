@@ -33,6 +33,13 @@
         // '234567890123456789',
     ];
 
+    // Accounts with a folder of their own in the gallery, i/users/<id>-<nick>:
+    // they see only that one and add pictures there (the panel can add more,
+    // and sets how many pictures each may keep). Optional.
+    const GALLERY_UPLOADERS = [
+        // '345678901234567890',
+    ];
+
     // Accounts that may read the API documentation in api/ (the panel can add
     // more, and PANEL_ADMINS always can); true lets in anyone logged in with Discord.
     const API_VIEWERS = [

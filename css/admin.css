@@ -778,6 +778,30 @@ a.who-name:hover {
     color: rgba(182, 112, 211, 0.75);
 }
 
+/* a shared link, picked whole with one click to copy */
+.trash-name code.share-link {
+    user-select: all;
+}
+
+/* the photo limit of an account with a folder of its own, in its profile */
+.upload-limit {
+    align-items: center;
+}
+
+.upload-limit input[name="limit"] {
+    flex: 0 0 80px;
+    font-family: "JetBrains Mono", Consolas, monospace;
+}
+
+/* turning the automatic blocking of scanners on and off */
+.auto-block {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin: 10px 0 4px;
+}
+
 .trash-info {
     font-size: 13px;
     color: rgba(220, 221, 222, 0.55);
@@ -849,8 +873,10 @@ a.who-name:hover {
     overflow-wrap: anywhere;
 }
 
-/* Availability of the site: three 24 h bars close together, the failures and
-   the addresses that sent most requests */
+.server dd a {
+    color: var(--accent-light);
+}
+
 /* processor and memory of 24 h: the average of every 5 minutes as a line,
    with a band up to the busiest 10 s for the processor, filled below for memory */
 .usage {
@@ -940,6 +966,8 @@ a.who-name:hover {
     background: rgba(220, 221, 222, 0.08);
 }
 
+/* Availability of the site: three 24 h bars close together, the failures and
+   the addresses that sent most requests */
 .diag .bar {
     margin-top: 12px;
 }

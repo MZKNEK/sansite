@@ -1,5 +1,6 @@
-// Managing the gallery in i/ (loaded only for logged-in admins): adding,
-// moving and deleting files and new folders
+// Managing the gallery in i/ (loaded for the gallery admins, and for an
+// account in its own folder, where the server allows less): adding, moving
+// and deleting files, new folders and shared links
 (function () {
   var data = JSON.parse(document.getElementById('gallery-data').textContent);
   var grid = document.getElementById('grid');
@@ -16,7 +17,11 @@
     return n + ' ' + plural(n, 'element', 'elementy', 'elementów');
   }
 
+  // "i/..." as the gallery names a path; links have u/<token> for the folder of an account
   function folderLabel(rel) {
+    Object.keys(data.labels).forEach(function (link) {
+      if (rel === link || rel.indexOf(link + '/') === 0) rel = data.labels[link] + rel.slice(link.length);
+    });
     return rel === '' ? 'i' : 'i/' + rel;
   }
 
@@ -263,6 +268,53 @@
         busy(mkdirDialog, false);
         if (result.ok) reloadWith(result.message);
         else dialogError(mkdirDialog, result.message);
+      });
+    });
+  }
+
+  // ---- Share ----
+
+  // a link that opens the folder without a login; the second press of the
+  // button copies the link the first one made
+  var shareButton = document.getElementById('act-share');
+  if (shareButton) {
+    var shareDialog = document.getElementById('dlg-share');
+    var shareForm = document.getElementById('form-share');
+    var shareSubmit = shareForm.querySelector('button[type="submit"]');
+
+    shareButton.addEventListener('click', function () {
+      shareForm.reset();
+      shareForm.elements.link.hidden = true;
+      shareForm.elements.days.hidden = false;
+      shareSubmit.textContent = 'Utwórz link';
+      dialogError(shareDialog, '');
+      shareDialog.showModal();
+    });
+
+    shareForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var link = shareForm.elements.link;
+      if (!link.hidden) {
+        link.select();
+        var copied = navigator.clipboard && window.isSecureContext
+          ? navigator.clipboard.writeText(link.value)
+          : Promise.resolve(document.execCommand('copy'));
+        copied.then(function () {
+          shareSubmit.textContent = 'Skopiowano';
+        });
+        return;
+      }
+
+      busy(shareDialog, true);
+      post({ action: 'share', dir: data.dir, days: shareForm.elements.days.value }).then(function (result) {
+        busy(shareDialog, false);
+        if (!result.ok) return dialogError(shareDialog, result.message);
+        link.value = data.shareUrl + result.token;
+        link.hidden = false;
+        shareForm.elements.days.hidden = true;
+        shareSubmit.textContent = 'Kopiuj link';
+        link.focus();
+        link.select();
       });
     });
   }
