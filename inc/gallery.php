@@ -689,6 +689,13 @@
         return $rel === $folder || strpos($rel, $folder . '/') === 0;
     }
 
+    // whether a path is in the folder of the account with this ID, whatever its
+    // nick is now (the folder follows a new nick, a trash entry keeps the old name)
+    function inUserFolder($rel, $id)
+    {
+        return preg_match('~^' . USERS_DIR . '/' . preg_quote((string)$id, '~') . '(?:-|/|$)~', (string)$rel) === 1;
+    }
+
     // Whether the visitor may see a folder or a file: the private folder only
     // those who may see it (the panel admins and the GALLERY_PRIVATE list), the
     // gallery admins everything else, the viewers all but the folders of the
@@ -1633,6 +1640,15 @@
         return $items;
     }
 
+    // what an account itself deleted from its folder, for it to bring back or
+    // drop for good: the trash items whose path is in its folder
+    function ownTrashItems($id)
+    {
+        return array_filter(trashItems(), function ($item) use ($id) {
+            return inUserFolder($item['from'] ?? '', $id);
+        });
+    }
+
     function moveToTrash($full, $rel)
     {
         $id = date('YmdHis') . '-' . bin2hex(random_bytes(4));
@@ -1838,7 +1854,7 @@
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
-            if (!in_array($action, ['upload', 'delete', 'rotate', 'rename', 'duplicates'], true))
+            if (!in_array($action, ['upload', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete'], true))
                 reply(false, 'W swoim folderze możesz dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
             if ($action === 'upload' && (resolvePath($base, $_POST['dir'] ?? '', true)[1] ?? null) !== $own)
                 reply(false, 'Możesz dodawać zdjęcia tylko do swojego folderu.', 403);
@@ -1888,7 +1904,7 @@
 
                 if ($trashed)
                     addHistory('delete', 'Do kosza: ' . implode(', ', $trashed) . '.');
-                $message = 'Przeniesiono do kosza ' . countLabel(count($trashed)) . ' (na ' . TRASH_DAYS . ' dni, przywracanie w panelu).';
+                $message = 'Przeniesiono do kosza ' . countLabel(count($trashed)) . ' (na ' . TRASH_DAYS . ' dni, można je przywrócić w koszu).';
                 if ($failed)
                     reply(false, $message . ' Nie udało się: ' . implode(', ', $failed) . '.', 500);
                 reply(true, $message);
@@ -1935,6 +1951,29 @@
                 // an account with a folder of its own only hears about that folder
                 $from = galleryIsAdmin() ? '' : ownFolder($base);
                 reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash, $from)]);
+
+            // the trash of the account's own folder, in the gallery (the panel
+            // does the same for everything); a non-admin only its own entries
+            case 'restore':
+                $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
+                if (!$item)
+                    reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
+                if (!galleryIsAdmin() && !inUserFolder($item['from'] ?? '', siteUser()['id']))
+                    reply(false, 'Możesz przywracać tylko rzeczy ze swojego folderu.', 403);
+                $where = restoreFromTrash($base, (string)$_POST['item']);
+                if ($where === null)
+                    reply(false, 'Nie udało się przywrócić ' . $item['name'] . '.', 500);
+                done('restore', 'Przywrócono z kosza ' . galleryPath($where) . '.');
+
+            case 'trash-delete':
+                $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
+                if (!$item)
+                    reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
+                if (!galleryIsAdmin() && !inUserFolder($item['from'] ?? '', siteUser()['id']))
+                    reply(false, 'Możesz usuwać tylko rzeczy ze swojego folderu.', 403);
+                if (!deleteFromTrash((string)$_POST['item']))
+                    reply(false, 'Nie udało się usunąć.', 500);
+                done('purge', 'Usunięto na zawsze ' . galleryPath($item['from']) . ' (z kosza).');
 
             case 'share':
                 $dir = resolvePath($base, $_POST['dir'] ?? '', true);

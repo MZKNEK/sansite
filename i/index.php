@@ -84,6 +84,10 @@
     $request = $user && $locked ? pendingRequest('gallery', $user['id']) : null;
     $admin = !$locked && galleryIsAdmin();
     $own = $admin ? null : ownFolder($base);
+    // the account's own trash (?kosz=1): what it deleted from its folder, to
+    // bring back or drop for good without asking a gallery admin
+    $ownTrash = $own === null ? [] : ownTrashItems((string)$user['id']);
+    $showTrash = $own !== null && isset($_GET['kosz']);
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
@@ -159,6 +163,8 @@
         $summary[] = 'pokazano pierwsze ' . SEARCH_LIMIT;
     if (!$admin && in_array($dirRel, sessionShares($base), true) && $dirRel !== $own)
         $summary[] = 'udostępnione linkiem';
+    if ($showTrash)
+        $summary = ['Kosz: ' . count($ownTrash) . ' ' . plural(count($ownTrash), 'element', 'elementy', 'elementów')];
 
 ?>
 <!DOCTYPE html>
@@ -175,7 +181,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=d6be3bbe06" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=ae04ac0eb4" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -244,6 +250,30 @@
     </section>
 <?php else: ?>
 
+<?php if ($showTrash): ?>
+    <div class="toolbar" id="toolbar">
+      <a class="admin-btn" href="<?=e(folderUrl($own))?>">&larr; Wróć do folderu</a>
+      <span class="admin-hint">Usunięte z twojego folderu; po <?=TRASH_DAYS?> dniach znikają na zawsze.</span>
+    </div>
+    <div class="gallery-trash" id="trash-list" data-csrf="<?=e(siteCsrf())?>">
+<?php if (!$ownTrash): ?>
+      <p class="empty">Kosz jest pusty.</p>
+<?php else: foreach ($ownTrash as $itemId => $item): $daysLeft = max(0, TRASH_DAYS - intdiv(time() - ($item['deleted'] ?? 0), 86400)); ?>
+      <div class="trash-row">
+        <span class="trash-name">
+          <b><?=e($item['name'])?></b>
+          <code><?=e(displayPath($item['from'] ?? ''))?></code>
+        </span>
+        <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(date('d.m.Y H:i', $item['deleted'] ?? 0))?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
+        <span class="trash-actions">
+          <button type="button" class="admin-btn" data-action="restore" data-item="<?=e($itemId)?>">Przywróć</button>
+          <button type="button" class="admin-btn danger" data-action="trash-delete" data-item="<?=e($itemId)?>" data-confirm="Usunąć na zawsze <?=e($item['name'])?>? Tego nie da się cofnąć.">Usuń na zawsze</button>
+        </span>
+      </div>
+<?php endforeach; endif; ?>
+    </div>
+<?php else: ?>
+
 <?php if ($notFound): ?>
     <p class="notice"><?=$whole ? 'Nie ma takiego folderu, poniżej jest główny folder galerii.' : 'Nie ma tu takiego folderu, poniżej jest ' . ($dirRel === $own ? 'twój folder' : 'udostępniony folder') . '.'?></p>
 <?php endif; ?>
@@ -275,6 +305,9 @@
         </label>
 <?php endif; ?>
         <button type="button" class="admin-btn" id="act-mkdir"<?=$admin ? '' : ' hidden'?>>Nowy folder</button>
+<?php if (!$admin): ?>
+        <a class="admin-btn" href="?kosz=1" title="Rzeczy usunięte z twojego folderu">Kosz<?=$ownTrash ? ' (' . count($ownTrash) . ')' : ''?></a>
+<?php endif; ?>
 <?php if ($admin && $dirRel !== '' && $dirRel !== USERS_DIR): ?>
         <button type="button" class="admin-btn" id="act-share" title="Link, który otwiera ten folder bez logowania">Udostępnij</button>
 <?php endif; ?>
@@ -379,6 +412,7 @@
 <?php endif; ?>
     <p class="empty" id="ex-no-results" hidden>Brak pasujących plików.</p>
 <?php endif; ?>
+<?php endif; ?>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
@@ -415,7 +449,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-<?php if ($manage): ?>
+<?php if ($manage && !$showTrash): ?>
   <div class="drop" id="drop" hidden>
     <div class="drop-box hud-corners">Upuść pliki, żeby dodać je do <?=e(displayPath($dirRel))?></div>
   </div>
@@ -489,7 +523,7 @@
     <form id="form-delete">
       <h2>Usuń</h2>
       <p id="delete-what"></p>
-      <p class="dialog-warning">Trafią do kosza na <?=TRASH_DAYS?> dni; przywrócić je można w panelu administratora.</p>
+      <p class="dialog-warning">Trafią do kosza na <?=TRASH_DAYS?> dni; przywrócić je można w koszu.</p>
       <p class="dialog-error" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="admin-btn" data-close>Anuluj</button>
@@ -524,8 +558,11 @@
   <script src="../js/explorer.js?v=3c66b63ead"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
-<?php if ($manage): ?>
+<?php if ($manage && !$showTrash): ?>
   <script src="../js/explorer-admin.js?v=99112c750d"></script>
+<?php endif; ?>
+<?php if ($showTrash): ?>
+  <script src="../js/gallery-trash.js?v=3f8e29c453"></script>
 <?php endif; ?>
 </body>
 

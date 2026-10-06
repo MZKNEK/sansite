@@ -825,3 +825,55 @@ body.selecting .tile.up {
     letter-spacing: 0.1em;
     text-decoration: none;
 }
+
+/* The trash of an account's own folder (i/?kosz=1), rows like the panel's */
+.gallery-trash .trash-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 10px 2px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+}
+
+.gallery-trash .trash-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.gallery-trash .trash-name b {
+    overflow: hidden;
+    font: 700 14px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-trash .trash-name code {
+    overflow-wrap: anywhere;
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: rgba(182, 112, 211, 0.75);
+}
+
+.gallery-trash .trash-info {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.gallery-trash .trash-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+    .gallery-trash .trash-row {
+        grid-template-columns: 1fr;
+    }
+
+    .gallery-trash .trash-actions {
+        justify-content: flex-start;
+    }
+}
