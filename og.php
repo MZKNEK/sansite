@@ -22,6 +22,8 @@
     ];
     // as long as cmd/ marks a command new or changed
     const OG_NEW_DAYS = 14;
+    // the changes listed on the picture of cmd/zmiany
+    const OG_CHANGE_ROWS = 4;
 
     $page = $_GET['p'] ?? 'home';
     if (!isset(OG_PAGES[$page]))
@@ -100,22 +102,37 @@
     }
 
     // The latest changes in the commands, newest first: when, what kind, which
-    // command and what in it, with the sum of the last 30 days above them
+    // command and what about it (a new one's description, the new text of what
+    // changed, a removed one's module), with the sum of the last 30 days above.
+    // New commands of those 30 days always get a row, the rest go to the newest
+    // other changes.
     function drawChanges($file)
     {
         botState();
         $index = json_decode((string)@file_get_contents(botFile('commands-index.json')), true)['commands'] ?? [];
-        $rows = [];
+        $new = [];
+        $other = [];
         foreach (botCommandChanges() as $change) {
-            foreach ($change['added'] as $key)
-                $rows[] = [$change['time'], 'nowe', $key, $index[$key]['module'] ?? ''];
-            foreach ($change['changed'] as $key => $fields)
-                $rows[] = [$change['time'], 'zmienione', (string)$key, implode(', ', array_map(function ($field) { return COMMAND_FIELDS[$field] ?? $field; }, array_keys($fields)))];
-            foreach ($change['removed'] as $key)
-                $rows[] = [$change['time'], 'usunięte', $key, $change['gone'][$key]['module'] ?? ''];
-            if (count($rows) >= 4)
+            $recent = $change['time'] >= time() - 30 * 86400;
+            if (!$recent && count($other) >= OG_CHANGE_ROWS)
                 break;
+            foreach ($change['added'] as $key)
+                if ($recent)
+                    $new[] = [$change['time'], 'nowe', $key, '', $index[$key]['description'] ?? ($index[$key]['module'] ?? '')];
+            foreach ($change['changed'] as $key => $fields) {
+                // the first field that changed, as COMMAND_FIELDS lists them, with its new text
+                $field = array_values(array_intersect(array_keys(COMMAND_FIELDS), array_keys($fields)))[0] ?? array_key_first($fields);
+                $other[] = [$change['time'], 'zmienione', (string)$key, (COMMAND_FIELDS[$field] ?? $field) . ':', (string)($fields[$field][1] ?? '')];
+            }
+            foreach ($change['removed'] as $key)
+                $other[] = [$change['time'], 'usunięte', $key, '', $change['gone'][$key]['module'] ?? ''];
         }
+        // newest first again; on the same time new before changed before removed,
+        // as they were collected
+        $rows = array_slice($new, 0, OG_CHANGE_ROWS);
+        $rows = array_merge($rows, array_slice($other, 0, OG_CHANGE_ROWS - count($rows)));
+        $order = ['nowe' => 0, 'zmienione' => 1, 'usunięte' => 2];
+        usort($rows, function ($a, $b) use ($order) { return [$b[0], $order[$a[1]]] <=> [$a[0], $order[$b[1]]]; });
         [$added, $changed, $removed] = recentChanges(30);
         $since = botCommandsWatchedSince();
 
@@ -131,13 +148,18 @@
         ogLine($img, $parts ? implode(', ', $parts) . ' w 30 dni' : ($rows ? 'Bez zmian w ostatnich 30 dniach' : 'Lista poleceń się nie zmieniła'));
 
         $kinds = ['nowe' => '#23a55a', 'zmienione' => '#f0b232', 'usunięte' => '#d9534f'];
-        foreach (array_slice($rows, 0, 4) as $i => [$time, $kind, $key, $what]) {
+        foreach ($rows as $i => [$time, $kind, $key, $label, $what]) {
             $y = 362 + $i * 50;
             text($img, OG_MONO, 22, 80, $y, color($img, '#dcddde', 50), date('d.m', $time));
             imagefilledrectangle($img, 170 * OG_SCALE, ($y - 25) * OG_SCALE, 300 * OG_SCALE, ($y + 9) * OG_SCALE, color($img, $kinds[$kind], 95));
             text($img, OG_BOLD, 17, 235 - textWidth(OG_BOLD, 17, $kind) / 2, $y - 2, color($img, $kinds[$kind]), $kind);
             text($img, OG_BOLD, 26, 322, $y, color($img, '#efe2f7'), $key);
             $x = 322 + textWidth(OG_BOLD, 26, $key) + 18;
+            // "opis:" in the accent colour, so it reads as what changed, not as the text
+            if ($label !== '' && $x < OG_WIDTH - 140) {
+                text($img, OG_REGULAR, 22, $x, $y, color($img, '#b670d3'), $label);
+                $x += textWidth(OG_REGULAR, 22, $label) + 8;
+            }
             if ($what !== '' && $x < OG_WIDTH - 140)
                 text($img, OG_REGULAR, 22, $x, $y, color($img, '#dcddde', 50), ogFit(OG_REGULAR, 22, $what, OG_WIDTH - 80 - $x));
         }

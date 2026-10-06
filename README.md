@@ -22,7 +22,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | Path | Contents |
 |---|---|
 | `index.html`, `404.html` | Home page and the 404 page |
-| `og.php`, `inc/og.php` | Link preview pictures (`og:image`) of the pages, drawn with GD: the home page the logo with the bot's live Discord status dot (kept a minute); the commands their number, modules and the latest changes (10 minutes); the gallery, the API and the privacy notice a drawing without any data (a day). `state/og.php` draws the status one (availability, outages, version, the other sites) with the same code |
+| `og.php`, `inc/og.php` | Link preview pictures (`og:image`) of the pages, drawn with GD: the home page the logo with the bot's live Discord status dot (kept a minute); the commands their number and modules, their change history the latest changes with the new text of what changed, new commands of the last 30 days always among them (10 minutes); the gallery, the API and the privacy notice a drawing without any data (a day). `state/og.php` draws the status one (availability, outages, version, the other sites) with the same code |
 | `sanakan-og.png` | The home page's picture without the status dot, sent when GD cannot draw |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/`, `account/` | Subpages |
 | `status.php` | Bot status for the home page |
