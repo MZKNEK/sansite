@@ -88,6 +88,11 @@
     // bring back or drop for good without asking a gallery admin
     $ownTrash = $own === null ? [] : ownTrashItems((string)$user['id']);
     $showTrash = $own !== null && isset($_GET['kosz']);
+    // what an upload may be: the images (AVIF included), the HEIC and HEIF the
+    // server can write as WebP, and for a gallery admin the films too
+    $uploadTypes = array_merge(IMAGE_TYPES, canConvertHeif() ? CONVERT_IMAGE_TYPES : []);
+    if ($admin)
+        $uploadTypes = array_merge($uploadTypes, VIDEO_TYPES);
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
@@ -298,7 +303,7 @@
       <div class="admin-bar" id="admin-bar">
 <?php if (!$searching): ?>
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
-        <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $admin ? array_merge(IMAGE_TYPES, VIDEO_TYPES) : IMAGE_TYPES))?>" hidden />
+        <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $uploadTypes))?>" hidden />
 <?php if ($admin && (canConvertToWebp() || canConvertVideo())): ?>
         <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia). Gdy nowy plik nie wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%, zostaje oryginał.">
           <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP/WebM
@@ -331,7 +336,7 @@
 <?php if (!$searching && $admin): ?>
         <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Filmy MP4 zapisują się jako WebM, gdy wyjdzie wyraźnie mniejszy. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
-        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> każde zapisują się jako WebP, gdy wychodzi wyraźnie mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> każde zapisują się jako WebP, gdy wychodzi wyraźnie mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -550,7 +555,7 @@
       'labels' => (object)$labels,
       'uploadLimit' => $fileLimit,
       'uploadLimitLabel' => formatSize($fileLimit),
-      'types' => $admin ? array_merge(IMAGE_TYPES, VIDEO_TYPES) : IMAGE_TYPES,
+      'types' => $uploadTypes,
       'shareUrl' => SITE_URL . siteRoot() . 'i/?s='
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>

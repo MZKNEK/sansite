@@ -23,13 +23,16 @@
     // asked again (503), in seconds; waiting holds a PHP-FPM worker
     const THUMB_WAIT = 5;
     const THUMBLESS_MAX_BYTES = 1500000;
-    const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+    const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'];
     const VIDEO_TYPES = ['webm', 'mp4'];
-    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'webm' => 'video/webm', 'mp4' => 'video/mp4'];
+    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif', 'webm' => 'video/webm', 'mp4' => 'video/mp4'];
     // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];
     // an MP4 becomes WebM under the same rule as WebP: only when it is smaller
     const VIDEO_SOURCE_TYPES = ['mp4'];
+    // formats a browser cannot be counted on to show: a HEIC or HEIF is always
+    // written as WebP on upload (an AVIF follows the WebP rule instead)
+    const CONVERT_IMAGE_TYPES = ['heic', 'heif'];
     // how much smaller a WebP has to be to replace the original, 0.02 is 2%
     const WEBP_MIN_SAVING = 0.02;
     // cwebp at 95 with sharp_yuv keeps lines free of colour noise at about a
@@ -121,6 +124,27 @@
     function isVideoContent($name, $path)
     {
         return extensionOf($name) === 'mp4' ? isMp4($path) : isWebm($path);
+    }
+
+    // a HEIC, HEIF or AVIF: ISO base media with a still-image brand in its
+    // "ftyp" box (an MP4 has a video brand there instead)
+    function isHeifImage($path)
+    {
+        $head = (string)@file_get_contents($path, false, null, 0, 12);
+        if (strlen($head) < 12 || substr($head, 4, 4) !== 'ftyp')
+            return false;
+
+        return in_array(substr($head, 8, 4), ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1', 'avif', 'avis'], true);
+    }
+
+    // whether an upload's content matches what its name promises
+    function isImageContent($name, $path)
+    {
+        $ext = extensionOf($name);
+        if ($ext === 'avif' || in_array($ext, CONVERT_IMAGE_TYPES, true))
+            return isHeifImage($path);
+
+        return (bool)@getimagesize($path);
     }
 
     function canConvertToWebp()
@@ -234,6 +258,43 @@
         @unlink($tmp);
 
         return false;
+    }
+
+    // a HEIC, HEIF or AVIF as WebP: ImageMagick (through libheif, keeping the
+    // orientation), or ffmpeg; false when neither can
+    function heifToWebp($source, $target)
+    {
+        $tmp = dirname($target) . '/.heif-' . getmypid() . '.webp';
+        foreach (['magick', 'convert'] as $name) {
+            $tool = findTool($name);
+            if (!$tool)
+                continue;
+            @unlink($tmp);
+            if (runTool($tool, [$source, '-auto-orient', '-quality', '90', $tmp], TOOL_TIMEOUT) && @filesize($tmp) > 0) {
+                $ok = @rename($tmp, $target);
+                @unlink($tmp);
+                return $ok;
+            }
+        }
+
+        $ffmpeg = findTool('ffmpeg');
+        if ($ffmpeg) {
+            @unlink($tmp);
+            if (runTool($ffmpeg, ['-v', 'error', '-y', '-i', $source, '-frames:v', '1', $tmp], TOOL_TIMEOUT) && @filesize($tmp) > 0) {
+                $ok = @rename($tmp, $target);
+                @unlink($tmp);
+                return $ok;
+            }
+        }
+        @unlink($tmp);
+
+        return false;
+    }
+
+    // whether the server can write a HEIC or HEIF (and so accept one at all)
+    function canConvertHeif()
+    {
+        return findTool('magick') !== null || findTool('convert') !== null || findTool('ffmpeg') !== null;
     }
 
     function hasGd()
@@ -381,6 +442,9 @@
             case IMAGETYPE_PNG: $img = @imagecreatefrompng($source); break;
             case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($source); break;
             case IMAGETYPE_GIF: $img = @imagecreatefromgif($source); break;
+            case IMAGETYPE_AVIF:
+                $img = function_exists('imagecreatefromavif') ? @imagecreatefromavif($source) : false;
+                break;
             case IMAGETYPE_WEBP:
                 $img = false;
                 if (!function_exists('imagecreatefromwebp'))
@@ -1061,8 +1125,8 @@
             return 'Nazwa nie może zawierać znaków / \\ : * ? " < > |';
         if (strlen($name) > MAX_NAME_LENGTH)
             return 'Nazwa jest za długa.';
-        if ($isFile && !isImage($name) && !isVideo($name))
-            return 'Można dodawać tylko obrazki i filmy: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES)) . '.';
+        if ($isFile && !isImage($name) && !isVideo($name) && !in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true))
+            return 'Można dodawać tylko obrazki i filmy: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES, CONVERT_IMAGE_TYPES)) . '.';
 
         return null;
     }
@@ -2117,7 +2181,7 @@
             reply(false, $name . ': ' . $error, 400);
 
         // the extension alone is not enough, the content has to match it
-        if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !@getimagesize($file['tmp_name']))
+        if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name']))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
 
         // an account with a folder of its own: only pictures, within its limits
@@ -2137,6 +2201,51 @@
         // the original stays when the WebP is not at least WEBP_MIN_SAVING smaller,
         // and when it cannot be made (in the folder of an account that is an error)
         $note = '';
+
+        // a HEIC or HEIF cannot be counted on to show in a browser, so it is
+        // always written as WebP; when that cannot be done the upload is refused
+        if (in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true)) {
+            if (!canConvertHeif())
+                reply(false, $name . ': serwer nie umie zamienić HEIC/HEIF na WebP (brak imagemagick lub ffmpeg). Dodaj plik jako JPG, PNG albo WebP.', 503);
+            $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
+            $path = $dir[0] . '/' . $target;
+            if (!heifToWebp($file['tmp_name'], $path)) {
+                @unlink($path);
+                reply(false, $name . ': nie udało się zamienić na WebP. Dodaj plik jako JPG, PNG albo WebP.', 500);
+            }
+            @chmod($path, 0644);
+            if ($own)
+                checkUserTotal($dir[0], $path, $name);
+            recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
+            $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
+            done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
+                'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
+        }
+
+        // an AVIF as WebP when "change" is on and that comes out smaller, as a
+        // PNG does; the original AVIF stays otherwise
+        if (extensionOf($name) === 'avif' && ($own || ($_POST['webp'] ?? '') === '1')) {
+            $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
+            $path = $dir[0] . '/' . $target;
+            $converted = function_exists('imagecreatefromavif') ? convertToWebp($file['tmp_name'], $path) : heifToWebp($file['tmp_name'], $path);
+            clearstatcache();
+            if (!$converted) {
+                @unlink($path);
+                $note = ' Nie udało się zamienić AVIF na WebP, zostawiono AVIF.';
+            } else if (filesize($path) > $file['size'] * (1 - WEBP_MIN_SAVING)) {
+                $note = ' WebP nie wyszedłby wyraźnie mniejszy (' . formatSize(filesize($path)) . '), zostawiono AVIF.';
+                @unlink($path);
+            } else {
+                @chmod($path, 0644);
+                if ($own)
+                    checkUserTotal($dir[0], $path, $name);
+                recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
+                $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
+                done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
+                    'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
+            }
+        }
+
         if (($own || ($_POST['webp'] ?? '') === '1') && in_array(extensionOf($name), WEBP_SOURCE_TYPES, true)) {
             $isGif = extensionOf($name) === 'gif';
             if (!($isGif ? canConvertGifToWebp() : canConvertToWebp())) {
