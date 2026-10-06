@@ -793,6 +793,43 @@ a.who-name:hover {
     font-family: "JetBrains Mono", Consolas, monospace;
 }
 
+/* trying other rights: one field per right, the button below */
+.test-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px 12px;
+    align-items: end;
+}
+
+.test-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.test-form select {
+    padding: 7px 8px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 13px Lato, sans-serif;
+}
+
+.test-form select:focus {
+    border-color: var(--accent-light);
+    outline: none;
+}
+
+.test-now {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    font-size: 13px;
+}
+
 /* turning the automatic blocking of scanners on and off */
 .auto-block {
     display: flex;

@@ -303,6 +303,50 @@ body.gbe-shot main.hero {
    js/account.js): the account as a button, its avatar ringed in the colour of
    its role, and below it a menu in HUD corners with the places it may open,
    logging out and a dim line with the role and the ID */
+/* trying other rights (inc/auth.php): a bar at the bottom of every page */
+.test-bar {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    z-index: 40;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 10px 14px;
+    border: 1px solid #f0b232;
+    background: rgba(26, 22, 12, 0.96);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    font: 13px Lato, sans-serif;
+    color: rgba(240, 225, 190, 0.9);
+}
+
+.test-bar b {
+    margin-right: 6px;
+    color: #f0b232;
+}
+
+.test-bar form {
+    margin: 0;
+}
+
+.test-bar button {
+    padding: 6px 12px;
+    border: 1px solid #f0b232;
+    background: transparent;
+    color: #f0b232;
+    font: 600 12px Lato, sans-serif;
+    cursor: pointer;
+}
+
+.test-bar button:hover {
+    background: rgba(240, 178, 50, 0.15);
+}
+
 .account-menu {
     --role: var(--accent-light);
     position: relative;

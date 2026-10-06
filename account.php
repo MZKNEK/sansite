@@ -3,12 +3,21 @@
     // here): the account menu of the top right corner (accountMenuHtml() in
     // inc/auth.php) and whether the account may read the API. ?login starts the
     // login and comes back to the home page. A POST with the CSRF token logs
-    // out; every page's account menu sends it here, with the page to go back to.
+    // out, or ends trying other rights (the bar of testRights()); every page's
+    // account menu sends it here, with the page to go back to.
     require __DIR__ . '/inc/auth.php';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (authConfigured() && siteUser() && checkCsrf() && ($_POST['action'] ?? '') === 'logout')
-            logout();
+        $action = (string)($_POST['action'] ?? '');
+        if (authConfigured() && siteUser() && checkCsrf()) {
+            if ($action === 'logout')
+                logout();
+            if ($action === 'test-off' && testRights() !== null) {
+                setTestRights(null);
+                addHistory('test', 'Koniec podglądu z innymi uprawnieniami.');
+                setFlash('Wróciły twoje prawdziwe uprawnienia.');
+            }
+        }
         header('Location: ' . localPath($_POST['back'] ?? ''), true, 303);
         exit;
     }

@@ -206,33 +206,124 @@
         return in_array((string)$id, $config, true) || isset(panelList($list)[(string)$id]);
     }
 
-    function isPanelAdminId($id)
+    // in PANEL_ADMINS, whatever rights the account is trying meanwhile
+    function realPanelAdminId($id)
     {
         $config = configList('PANEL_ADMINS');
 
         return $config !== true && in_array((string)$id, $config, true);
     }
 
+    // The rights below are the ones the account is trying (testRights()) when
+    // it is, for its own account only, and its real ones otherwise.
+
+    function isPanelAdminId($id)
+    {
+        $test = testRights($id);
+
+        return isset($test['panel']) ? $test['panel'] : realPanelAdminId($id);
+    }
+
     function isGalleryAdminId($id)
     {
-        return inAccessList('galleryAdmins', $id, false);
+        $test = testRights($id);
+
+        return isset($test['gallery']) ? $test['gallery'] === 'admin' : inAccessList('galleryAdmins', $id, false);
     }
 
     function canViewGalleryId($id)
     {
+        $test = testRights($id);
+        if (isset($test['gallery']))
+            return in_array($test['gallery'], ['viewer', 'viewer-uploader', 'admin'], true);
+
         return isGalleryAdminId($id) || inAccessList('galleryViewers', $id, true);
     }
 
     // a folder of its own in the gallery (inc/gallery.php); never everyone
     function isGalleryUploaderId($id)
     {
-        return inAccessList('galleryUploaders', $id, false);
+        $test = testRights($id);
+
+        return isset($test['gallery']) ? in_array($test['gallery'], ['uploader', 'viewer-uploader'], true) : inAccessList('galleryUploaders', $id, false);
     }
 
     // a role counts as the bot said it last; siteRoles() asks again for the logged-in account
     function canViewApiId($id)
     {
-        return isPanelAdminId($id) || inAccessList('apiViewers', $id, true) || hasBotRole($id, API_ROLES);
+        $test = testRights($id);
+
+        return isPanelAdminId($id) || (isset($test['api']) ? $test['api'] : inAccessList('apiViewers', $id, true)) || hasBotRole($id, API_ROLES);
+    }
+
+    // ---- Trying other rights ------------------------------------------------------
+    // A panel admin can take other rights for a while and see the live site as
+    // an account with them does: with or without the panel, as anyone in the
+    // gallery, with or without the API list, with any role on the bot's server
+    // (which decides the API and the private commands). Kept in its session,
+    // for its own account only, until TEST_MINUTES are over or it goes back with
+    // the bar every page shows meanwhile (accountMenuHtml(), account.php).
+    // Its real place in PANEL_ADMINS decides whether it may; nothing else changes.
+
+    const TEST_MINUTES = [15, 60, 240];
+    const TEST_GALLERY = [
+        'none' => 'bez dostępu',
+        'viewer' => 'oglądający',
+        'uploader' => 'tylko własny folder',
+        'viewer-uploader' => 'oglądający z własnym folderem',
+        'admin' => 'admin galerii'
+    ];
+    // a role on the bot's server, or none there at all
+    const TEST_ROLE_OUT = 'out';
+
+    // ['panel' => bool, 'gallery' => key of TEST_GALLERY, 'api' => bool, 'role'
+    // => key of BOT_ROLES or TEST_ROLE_OUT, 'until' => time; each one null for
+    // the real one] the logged-in account is trying, or null; with $id only
+    // when that is its account. $reset reads the session again.
+    function testRights($id = null, $reset = false)
+    {
+        static $rights = false;
+        if ($rights === false || $reset) {
+            $rights = null;
+            if (sessionExists()) {
+                siteSession();
+                $test = $_SESSION['test_rights'] ?? null;
+                $owner = (string)($_SESSION['gallery_user']['id'] ?? '');
+                if (is_array($test) && $owner !== '' && ($test['until'] ?? 0) > time() && realPanelAdminId($owner))
+                    $rights = $test + ['id' => $owner];
+            }
+        }
+        if ($rights === null || ($id !== null && (string)$id !== $rights['id']))
+            return null;
+
+        return $rights;
+    }
+
+    // starts trying $rights (as testRights() gives them) for $minutes, or with null stops
+    function setTestRights($rights, $minutes = 0)
+    {
+        siteSession();
+        if ($rights === null)
+            unset($_SESSION['test_rights']);
+        else
+            $_SESSION['test_rights'] = $rights + ['until' => time() + $minutes * 60];
+        testRights(null, true);
+    }
+
+    // what is being tried, e.g. "panel: nie · galeria: oglądający"
+    function testRightsText($test)
+    {
+        $parts = [];
+        if (isset($test['panel']))
+            $parts[] = 'panel: ' . ($test['panel'] ? 'tak' : 'nie');
+        if (isset($test['gallery']))
+            $parts[] = 'galeria: ' . TEST_GALLERY[$test['gallery']];
+        if (isset($test['api']))
+            $parts[] = 'lista API: ' . ($test['api'] ? 'tak' : 'nie');
+        if (isset($test['role']))
+            $parts[] = 'rola: ' . ($test['role'] === TEST_ROLE_OUT ? 'poza serwerem' : BOT_ROLES[$test['role']][2]);
+
+        return $parts ? implode(' · ', $parts) : 'prawdziwe uprawnienia';
     }
 
     function canSeePrivateCommandsId($id)
@@ -286,6 +377,15 @@
     // the bot was never asked; $refresh asks it again when the answer is old.
     function botRoles($id, $refresh = false)
     {
+        // a role being tried: only that one, on the server or off it
+        $test = testRights($id);
+        if (isset($test['role'])) {
+            $roles = ['onGuild' => $test['role'] !== TEST_ROLE_OUT];
+            foreach (array_keys(BOT_ROLES) as $role)
+                $roles[$role] = $role === $test['role'];
+            return $roles;
+        }
+
         $id = (string)$id;
         $entry = readData('roles')[$id] ?? null;
         $age = time() - max($entry['checked'] ?? 0, $entry['tried'] ?? 0);
@@ -423,6 +523,17 @@
             . '<button type="submit" class="account-out">' . $icon('logout') . 'Wyloguj</button></form>'
             . '<div class="account-scan">' . ($badge ? '<em>LV.' . $badge['level'] . ' ' . $badge['label'] . '</em> · ' : '') . 'ID ' . $text($user['id']) . '</div>'
             . '</div></div>';
+
+        // other rights being tried: a bar at the bottom of every page, with the way back
+        $test = testRights($user['id']);
+        if ($test !== null)
+            $html .= '<div class="test-bar" role="status"><span><b>Podgląd z innymi uprawnieniami</b> ' . $text(testRightsText($test))
+                . ' · do ' . date('H:i', $test['until']) . '</span>'
+                . '<form method="post" action="' . $text($root . 'account.php') . '">'
+                . '<input type="hidden" name="csrf" value="' . $text(siteCsrf()) . '" />'
+                . '<input type="hidden" name="action" value="test-off" />'
+                . '<input type="hidden" name="back" value="' . $text(localPath($back)) . '" />'
+                . '<button type="submit">Wróć do swoich</button></form></div>';
 
         return $html;
     }

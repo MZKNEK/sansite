@@ -187,7 +187,7 @@
         if (sameAddress($ip, $_SERVER['REMOTE_ADDR'] ?? ''))
             return 'to twój obecny adres';
         foreach ($owners as $id => $owner)
-            if (isPanelAdminId($id))
+            if (realPanelAdminId($id))
                 return 'z tego adresu korzysta konto panelu ' . ($logins[$id]['name'] ?? $id);
 
         return null;
@@ -550,6 +550,31 @@
                     reply(false, dataError(), 500);
                 done('share', 'Wyłączono link do ' . galleryPath($rel) . '.');
 
+            case 'test-rights':
+                $panel = (string)($_POST['panel'] ?? '');
+                $gallery = (string)($_POST['gallery'] ?? '');
+                $api = (string)($_POST['api'] ?? '');
+                $role = (string)($_POST['role'] ?? '');
+                $minutes = (int)($_POST['minutes'] ?? 0);
+                if (!in_array($panel, ['', '0'], true) || ($gallery !== '' && !isset(TEST_GALLERY[$gallery])) || !in_array($api, ['', '0', '1'], true)
+                        || ($role !== '' && $role !== TEST_ROLE_OUT && !isset(BOT_ROLES[$role])) || !in_array($minutes, TEST_MINUTES, true))
+                    reply(false, 'Złe ustawienie podglądu, odśwież stronę.', 400);
+                $rights = array_filter([
+                    'panel' => $panel === '' ? null : false,
+                    'gallery' => $gallery === '' ? null : $gallery,
+                    'api' => $api === '' ? null : $api === '1',
+                    'role' => $role === '' ? null : $role
+                ], function ($value) { return $value !== null; });
+                if (!$rights)
+                    reply(false, 'Wybierz, co zmienić.', 400);
+                setTestRights($rights, $minutes);
+                done('test', 'Podgląd z innymi uprawnieniami na ' . $minutes . ' min: ' . testRightsText($rights) . '.',
+                    'Podgląd włączony do ' . date('H:i', time() + $minutes * 60) . '. Pasek na dole każdej strony przywraca twoje uprawnienia.');
+
+            case 'test-off':
+                setTestRights(null);
+                done('test', 'Koniec podglądu z innymi uprawnieniami.', 'Wróciły twoje prawdziwe uprawnienia.');
+
             case 'request-dismiss':
                 $for = (string)($_POST['for'] ?? '');
                 $requests = readData('requests');
@@ -746,7 +771,7 @@
         $knownRoles = readData('roles');
         $apiByRole = [];
         foreach ($knownRoles as $id => $known) {
-            if (isPanelAdminId($id))
+            if (realPanelAdminId($id))
                 continue;
             foreach (API_ROLES as $role) {
                 if (!empty($known['roles'][$role])) {
@@ -864,7 +889,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=32" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=18" type="text/css" rel="stylesheet" />
@@ -997,7 +1022,48 @@
         <p class="hint">Listę zmienia się w <code>inc/config.php</code> (<code>PANEL_ADMINS</code>), panel nie może nadawać dostępu do samego siebie.</p>
       </section>
 
-<?php $number = 3; foreach ($lists as $list => $info): ?>
+<?php $number = 3; $test = testRights($user['id']); ?>
+      <section class="card">
+        <h2><i><?=sprintf('%02d', $number++)?></i>Podgląd z innymi uprawnieniami</h2>
+        <p class="hint">Na chwilę zmienia twoje uprawnienia na całej stronie, żeby zobaczyć ją na żywo tak, jak widzi ją konto z takimi. Tylko twoje konto i tylko w tej sesji; pasek na dole każdej strony pokazuje, co jest zmienione, i przywraca twoje. Panel daje też API, więc API przez rolę na serwerze sprawdzisz bez panelu.</p>
+<?php if ($test): ?>
+        <p class="test-now">Teraz: <b><?=e(testRightsText($test))?></b> do <?=e(date('H:i', $test['until']))?>
+          <button type="button" class="admin-btn small" data-action="test-off">Wróć do swoich</button></p>
+<?php endif; ?>
+        <form class="test-form" data-action="test-rights">
+          <label>Panel
+            <select name="panel"><option value="">bez zmian</option><option value="0">bez panelu</option></select>
+          </label>
+          <label>Galeria
+            <select name="gallery"><option value="">bez zmian</option>
+<?php foreach (TEST_GALLERY as $key => $label): ?>
+              <option value="<?=e($key)?>"><?=e($label)?></option>
+<?php endforeach; ?>
+            </select>
+          </label>
+          <label>Lista API
+            <select name="api"><option value="">bez zmian</option><option value="1">na liście</option><option value="0">poza listą</option></select>
+          </label>
+          <label>Rola na serwerze bota
+            <select name="role"><option value="">bez zmian</option>
+<?php foreach (BOT_ROLES as $key => [$level, $badgeLabel, $name]): ?>
+              <option value="<?=e($key)?>"><?=e($name)?> (LV.<?=$level?>)</option>
+<?php endforeach; ?>
+              <option value="<?=TEST_ROLE_OUT?>">poza serwerem</option>
+            </select>
+          </label>
+          <label>Na
+            <select name="minutes">
+<?php foreach (TEST_MINUTES as $minutes): ?>
+              <option value="<?=$minutes?>"<?=$minutes === 60 ? ' selected' : ''?>><?=$minutes < 60 ? $minutes . ' min' : ($minutes / 60) . ' godz.'?></option>
+<?php endforeach; ?>
+            </select>
+          </label>
+          <button type="submit" class="admin-btn primary">Włącz podgląd</button>
+        </form>
+      </section>
+
+<?php foreach ($lists as $list => $info): ?>
       <section class="card">
         <h2><i><?=sprintf('%02d', $number++)?></i><?=e(LIST_CARDS[$list][0])?></h2>
         <p class="hint"><?=e(LIST_CARDS[$list][1])?></p>
