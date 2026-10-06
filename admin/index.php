@@ -243,6 +243,103 @@
         return $html . '</div><div class="bar-ends"><span>24 h temu</span><span>teraz</span></div></div>';
     }
 
+    // A 24 h line chart for the server card from diagUsage(): [average, most,
+    // title] per part, the values in percent of the chart's height, null where
+    // nothing was measured. The average is a line, with a band up to the most
+    // of the part ('band', for the processor, whose short peaks matter) or a
+    // fill below it ('area', for memory, which changes slowly). Every part has
+    // a column with its title for the mouse; $axis labels the top and middle.
+    function usageChart($title, $summary, $kind, $points, $axis)
+    {
+        $count = count($points);
+        $x = function ($i) use ($count) { return round(($i + 0.5) * 1000 / $count, 1); };
+        $y = function ($value) { return round(100 - min(100, max(0, $value)), 1); };
+
+        // runs of measured parts: the line breaks where nothing was measured
+        $runs = [];
+        $run = [];
+        foreach ($points as $i => $point) {
+            if ($point[0] !== null) {
+                $run[] = $i;
+                continue;
+            }
+            if ($run)
+                $runs[] = $run;
+            $run = [];
+        }
+        if ($run)
+            $runs[] = $run;
+
+        $line = '';
+        $fill = '';
+        foreach ($runs as $run) {
+            $average = '';
+            foreach ($run as $n => $i)
+                $average .= ($n ? 'L' : 'M') . $x($i) . ' ' . $y($points[$i][0]);
+            $line .= $average;
+            if ($kind === 'band') {
+                foreach ($run as $n => $i)
+                    $fill .= ($n ? 'L' : 'M') . $x($i) . ' ' . $y($points[$i][1]);
+                foreach (array_reverse($run) as $i)
+                    $fill .= 'L' . $x($i) . ' ' . $y($points[$i][0]);
+                $fill .= 'Z';
+            } else
+                $fill .= $average . 'L' . $x(end($run)) . ' 100L' . $x($run[0]) . ' 100Z';
+        }
+
+        $html = '<div class="bar"><div class="bar-head"><span>' . e($title) . '</span><b>' . $summary . '</b></div>'
+            . '<div class="usage-plot" role="img" aria-label="' . e($title . ', ' . html_entity_decode($summary)) . '">'
+            . '<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">'
+            . '<path class="usage-grid" d="M0 0H1000M0 50H1000" />'
+            . ($kind === 'area'
+                ? '<defs><linearGradient id="usage-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" /><stop offset="1" /></linearGradient></defs>'
+                    . '<path d="' . $fill . '" fill="url(#usage-fade)" />'
+                : '<path class="usage-band" d="' . $fill . '" />')
+            . '<path class="usage-line" d="' . $line . '" /></svg>'
+            . '<span class="usage-axis">' . e($axis[0]) . '</span><span class="usage-axis middle">' . e($axis[1]) . '</span>'
+            . '<div class="usage-columns">';
+        foreach ($points as $point)
+            $html .= '<span title="' . e($point[2]) . '"></span>';
+
+        return $html . '</div></div><div class="bar-ends"><span>24 h temu</span><span>teraz</span></div></div>';
+    }
+
+    // "14:05-14:10: " for a part of diagUsage()
+    function usageTime($part, $parts)
+    {
+        return date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + intdiv(86400, count($parts))) . ': ';
+    }
+
+    // processor use of the last 24 h from the rounds of inc/diag.php
+    function cpuChart($parts)
+    {
+        $points = [];
+        foreach ($parts as $part)
+            $points[] = $part['cpu'] === null ? [null, null, usageTime($part, $parts) . 'brak pomiarów'] : [$part['cpu'], $part['cpuPeak'],
+                usageTime($part, $parts) . 'średnio ' . decimal($part['cpu']) . '%, najwięcej ' . decimal($part['cpuPeak']) . '% w 10 s'
+                    . ' · czekanie na dysk ' . decimal($part['io']) . '% · zabrane przez hosta ' . decimal($part['st']) . '%'
+                    . ($part['load'] !== null ? ' · obciążenie do ' . decimal($part['load'], 2) : '')];
+        $measured = array_filter(array_column($parts, 'cpu'), 'is_numeric');
+        $summary = $measured ? 'średnio ' . decimal(array_sum($measured) / count($measured)) . '% &middot; najwięcej '
+            . decimal(max(array_column($parts, 'cpuPeak'))) . '% w 10 s' : 'brak pomiarów';
+
+        return '<div class="usage-cpu">' . usageChart('Procesor, 24 godziny', $summary, 'band', $points, ['100%', '50%']) . '</div>';
+    }
+
+    // memory in use of the last 24 h from the rounds of inc/diag.php
+    function memoryChart($parts, $total)
+    {
+        $points = [];
+        foreach ($parts as $part)
+            $points[] = $part['mem'] === null ? [null, null, usageTime($part, $parts) . 'brak pomiarów'] : [100 * $part['mem'] / $total, null,
+                usageTime($part, $parts) . 'średnio ' . formatSize($part['mem']) . ', najwięcej ' . formatSize($part['memPeak']) . ' z ' . formatSize($total)];
+        $measured = array_filter(array_column($parts, 'mem'), 'is_numeric');
+        $summary = $measured ? 'średnio ' . e(formatSize(array_sum($measured) / count($measured))) . ' &middot; najwięcej '
+            . e(formatSize(max(array_column($parts, 'memPeak')))) . ' z ' . e(formatSize($total)) : 'brak pomiarów';
+
+        return '<div class="usage-mem">' . usageChart('Pamięć RAM, 24 godziny', $summary, 'area', $points, [formatSize($total), formatSize($total / 2)]) . '</div>';
+    }
+
     // An address in a list: a lookup in AbuseIPDB, the country, whether it is a
     // scanner, the accounts that came from it (links to their profiles), and
     // whether Cloudflare blocks it, or a button to block it there. Never a
@@ -709,7 +806,7 @@
   <link href="../css/style.css?v=31" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=16" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=17" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1198,7 +1295,7 @@
 
       <section class="card wide">
         <h2><i>11</i>Zasoby serwera</h2>
-        <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
+        <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. Wykresy są z pomiarów co 10 sekund (karta 10): linia to średnia z 5 minut, a jaśniejsze pasmo nad nią przy procesorze sięga najbardziej zajętych 10 sekund z tego czasu. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
 <?php if ($system['cpu'] === null && $system['memory'] === null): ?>
         <p class="nobody">Brak danych: serwer nie ma <code>/proc</code> (to nie Linux) albo PHP nie może go czytać (<code>open_basedir</code>).</p>
 <?php else:
@@ -1237,6 +1334,14 @@
 <?php else: ?>
           <?=meter('OPcache', 0, 1, 'wyłączony', 'PHP kompiluje każdy skrypt przy każdym wejściu; włącz <code>opcache.enable</code>')?>
 
+<?php endif; ?>
+        </div>
+<?php endif; ?>
+<?php if ($diagRounds): $usage = diagUsage($diagRounds, $system['memory']['total'] ?? 0); ?>
+        <div class="usage">
+<?=cpuChart($usage)?>
+<?php if ($system['memory']): ?>
+<?=memoryChart($usage, $system['memory']['total'])?>
 <?php endif; ?>
         </div>
 <?php endif; ?>

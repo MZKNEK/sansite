@@ -11,8 +11,9 @@
     // counters (connections dropped on a full accept queue), the connections of
     // nginx, the PHP-FPM pool (busy workers, waiting requests), and the requests
     // since the round before from the site's nginx log, with the addresses that
-    // sent most of them. Kept DIAG_KEEP_DAYS days in inc/data/diag/, one JSON
-    // line per round, one file per day.
+    // sent most of them, and the use of the processor and memory. Kept
+    // DIAG_KEEP_DAYS days in inc/data/diag/, one JSON line per round, one file
+    // per day.
     //
     // From the same log come two summaries kept apart from the rounds: the
     // scanners (addresses asking for paths no visitor of this site asks for, or
@@ -553,6 +554,9 @@
                 $round['ld'] = is_array($load) ? round($load[0], 2) : null;
                 $memory = systemMemory();
                 $round['mem'] = $memory ? (int)round($memory['available'] / 1048576) : null;
+                // the processor's counters since boot, turned into use between two rounds when read back
+                $cpu = systemCpuTimes();
+                $round['cpu'] = $cpu ? ['all' => $cpu['total'], 'idle' => $cpu['idle'], 'io' => $cpu['iowait'], 'st' => $cpu['steal']] : null;
                 $round['log'] = diagReadLog();
                 $rounds[$launched++] = $round;
                 $next += DIAG_INTERVAL;
@@ -693,6 +697,70 @@
 
         foreach ($parts as &$part)
             $part['state'] = !$part['rounds'] ? null : ($part['fail'] ? 'fail' : ($part['slow'] ? 'warn' : 'ok'));
+
+        return $parts;
+    }
+
+    // The processor and memory of the last 24 h in parts of $step seconds:
+    // processor use in percent, the average of the part and of its busiest
+    // 10 s, the shares of waiting for the disk and of time taken by the host,
+    // the highest load; memory in use in bytes of $memoryTotal, average and
+    // most. Null where nothing was measured.
+    function diagUsage($rounds, $memoryTotal, $step = 300)
+    {
+        $count = intdiv(86400, $step);
+        $start = (int)(floor(time() / $step) * $step) - ($count - 1) * $step;
+        $sums = [];
+        for ($i = 0; $i < $count; $i++)
+            $sums[$i] = ['all' => 0, 'busy' => 0, 'io' => 0, 'st' => 0, 'cpuPeak' => null, 'mem' => 0, 'memRounds' => 0, 'memPeak' => null, 'load' => null];
+
+        $previous = null;
+        foreach ($rounds as $round) {
+            $cpu = $round['cpu'] ?? null;
+            $i = $round['t'] >= $start ? intdiv($round['t'] - $start, $step) : -1;
+            if ($i >= 0 && $i < $count) {
+                $sum = &$sums[$i];
+                // the time since the round before, unless rounds are missing in
+                // between or the server restarted (the counters start again)
+                if ($cpu && $previous && $round['t'] - $previous['t'] <= 6 * DIAG_INTERVAL
+                    && ($all = $cpu['all'] - $previous['cpu']['all']) > 0 && $cpu['idle'] >= $previous['cpu']['idle']) {
+                    $idle = $cpu['idle'] - $previous['cpu']['idle'];
+                    $io = $cpu['io'] - $previous['cpu']['io'];
+                    $busy = max(0, $all - $idle - $io);
+                    $sum['all'] += $all;
+                    $sum['busy'] += $busy;
+                    $sum['io'] += $io;
+                    $sum['st'] += $cpu['st'] - $previous['cpu']['st'];
+                    $sum['cpuPeak'] = max($sum['cpuPeak'] ?? 0, 100 * $busy / $all);
+                }
+                if (isset($round['mem'])) {
+                    $used = max(0, $memoryTotal - $round['mem'] * 1048576);
+                    $sum['mem'] += $used;
+                    $sum['memRounds']++;
+                    $sum['memPeak'] = max($sum['memPeak'] ?? 0, $used);
+                }
+                if (isset($round['ld']))
+                    $sum['load'] = max($sum['load'] ?? 0, $round['ld']);
+                unset($sum);
+            }
+            if ($cpu)
+                $previous = $round;
+        }
+
+        $parts = [];
+        foreach ($sums as $i => $sum) {
+            $share = function ($key) use ($sum) { return $sum['all'] ? 100 * $sum[$key] / $sum['all'] : null; };
+            $parts[] = [
+                'from' => $start + $i * $step,
+                'cpu' => $share('busy'),
+                'cpuPeak' => $sum['cpuPeak'],
+                'io' => $share('io'),
+                'st' => $share('st'),
+                'load' => $sum['load'],
+                'mem' => $sum['memRounds'] ? $sum['mem'] / $sum['memRounds'] : null,
+                'memPeak' => $sum['memPeak']
+            ];
+        }
 
         return $parts;
     }

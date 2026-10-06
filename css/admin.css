@@ -851,6 +851,95 @@ a.who-name:hover {
 
 /* Availability of the site: three 24 h bars close together, the failures and
    the addresses that sent most requests */
+/* processor and memory of 24 h: the average of every 5 minutes as a line,
+   with a band up to the busiest 10 s for the processor, filled below for memory */
+.usage {
+    margin: -6px 0 22px;
+}
+
+.usage .bar {
+    margin-top: 12px;
+}
+
+.usage-cpu {
+    --usage: #a66fd0;
+}
+
+.usage-mem {
+    --usage: #2fa294;
+}
+
+.usage-plot {
+    position: relative;
+    height: 72px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.25);
+}
+
+.usage-plot svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.usage-grid {
+    fill: none;
+    stroke: rgba(220, 221, 222, 0.07);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.usage-line {
+    fill: none;
+    stroke: var(--usage);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.usage-band {
+    fill: var(--usage);
+    fill-opacity: 0.2;
+}
+
+.usage-plot stop {
+    stop-color: var(--usage);
+    stop-opacity: 0.5;
+}
+
+.usage-plot stop + stop {
+    stop-opacity: 0.04;
+}
+
+.usage-axis {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translateY(3px);
+    font: 10px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.35);
+    pointer-events: none;
+}
+
+.usage-axis.middle {
+    top: 50%;
+}
+
+/* a column per 5 minutes with its numbers in the title */
+.usage-columns {
+    position: absolute;
+    inset: 0;
+    display: flex;
+}
+
+.usage-columns span {
+    flex: 1;
+}
+
+.usage-columns span:hover {
+    background: rgba(220, 221, 222, 0.08);
+}
+
 .diag .bar {
     margin-top: 12px;
 }
