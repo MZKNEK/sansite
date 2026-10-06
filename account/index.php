@@ -84,8 +84,12 @@
             $access[] = ['Galeria', true, 'oglądanie i zarządzanie plikami, ' . $why('galleryAdmins')];
         else if (canViewGalleryId($id))
             $access[] = ['Galeria', true, 'oglądanie, ' . $why('galleryViewers')];
-        else
+        else if (!isGalleryUploaderId($id))
             $access[] = ['Galeria', false, ''];
+        if (!isGalleryAdminId($id) && isGalleryUploaderId($id)) {
+            $limit = userFilesLimit($id);
+            $access[] = ['Własny folder w galerii', true, 'do ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', widzisz go tylko ty i administratorzy galerii, ' . $why('galleryUploaders')];
+        }
         if (isPanelAdminId($id))
             $access[] = ['Dokumentacja API', true, 'jako administrator panelu'];
         else if (inAccessList('apiViewers', $id, true))

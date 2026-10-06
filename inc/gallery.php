@@ -376,7 +376,7 @@
         }
 
         return [
-            'name' => basename($rel),
+            'name' => displayName($rel),
             'rel' => $rel,
             'count' => count($inside),
             'mtime' => filemtime($full),
@@ -862,11 +862,12 @@
         return $rel === '' ? 'i' : 'i/' . $rel;
     }
 
-    // a change went fine: it goes to the history, then the page gets the answer
+    // a change went fine: it goes to the history, then the page gets the answer,
+    // where the folders of the accounts go by the nick alone (displayPath())
     function done($action, $history, $message = null)
     {
         addHistory($action, $history);
-        reply(true, $message ?? $history);
+        reply(true, $message ?? preg_replace('~i/' . USERS_DIR . '/\d+-(?=[^/])~', 'i/' . USERS_DIR . '/', $history));
     }
 
     function reply($ok, $message, $status = 200, $extra = [])
@@ -1204,12 +1205,23 @@
             zipCollect($full . '/' . $name, $local . '/' . $name, [], $files, $bytes, $depth + 1);
     }
 
-    // the name of a folder or file in a ZIP; the folder of an account without its ID
-    function zipFolderName($rel)
+    // the name the gallery shows for a folder or file, and gives it in a ZIP:
+    // the folder of an account by its nick alone, without the ID
+    function displayName($rel)
     {
         $name = basename($rel);
 
-        return dirname($rel) === USERS_DIR ? (preg_replace('/^\d+-?/', '', $name) ?: 'folder') : $name;
+        return dirname($rel) === USERS_DIR ? (preg_replace('/^\d+-?/', '', $name) ?: 'bez nicku') : $name;
+    }
+
+    // a path as the gallery shows it, "i/users/Sniku/a.webp"; galleryPath()
+    // keeps the real one for the history
+    function displayPath($rel)
+    {
+        if (preg_match('~^(' . USERS_DIR . '/[^/]+)(/.*)?$~', $rel, $match))
+            $rel = USERS_DIR . '/' . displayName($match[1]) . ($match[2] ?? '');
+
+        return galleryPath($rel);
     }
 
     // gallery items ([full path, rel] each) as what sendZip() takes: the top
@@ -1218,7 +1230,7 @@
     {
         $roots = [];
         foreach ($items as $item)
-            $roots[] = [$item[0], $item[1] === '' ? 'i' : zipFolderName($item[1]),
+            $roots[] = [$item[0], $item[1] === '' ? 'i' : displayName($item[1]),
                 $item[1] === '' ? (galleryIsAdmin() ? ['index.php'] : ['index.php', USERS_DIR]) : []];
 
         return $roots;
@@ -1525,7 +1537,7 @@
             if (!galleryCanView() && !galleryHomes($base))
                 reply(false, 'To konto nie ma dostępu do galerii.', 403);
             $dir = resolvePath($base, $_POST['dir'] ?? '', true);
-            sendZip(galleryZipRoots(postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : zipFolderName($dir[1])) . ' - wybrane.zip',
+            sendZip(galleryZipRoots(postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : displayName($dir[1])) . ' - wybrane.zip',
                 localBack($_POST['back'] ?? ''));
         }
 
@@ -1544,6 +1556,12 @@
                     if (strpos($item[1], $own . '/') !== 0)
                         reply(false, 'Możesz zmieniać tylko pliki w swoim folderze.', 403);
         }
+
+        // the folder of an account goes by its ID in the name, so it keeps it and stays where it is
+        if (in_array($action, ['rename', 'move'], true) && isset($_POST['items']))
+            foreach (postedItems($base) as $item)
+                if (dirname($item[1]) === USERS_DIR || $item[1] === USERS_DIR)
+                    reply(false, 'Folderu konta (' . displayPath($item[1]) . ') nie da się przenieść ani zmienić mu nazwy: nazwa idzie za kontem.', 400);
 
         switch ($action) {
 

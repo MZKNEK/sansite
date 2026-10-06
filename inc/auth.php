@@ -503,7 +503,8 @@
 
         // the account's own profile for everyone, the rest only where it may go
         $places = [['profile', 'Profil', 'account/']];
-        if (canViewGalleryId($user['id']))
+        // also for an account that sees only a folder of its own, where i/ opens it
+        if (canViewGalleryId($user['id']) || isGalleryUploaderId($user['id']))
             $places[] = ['gallery', 'Galeria', 'i/'];
         if (isPanelAdminId($user['id']))
             $places[] = ['panel', 'Panel', 'admin/'];

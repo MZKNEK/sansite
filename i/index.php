@@ -37,7 +37,7 @@
             http_response_code($zipDir || !galleryCanView() ? 403 : 404);
             exit;
         }
-        sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : zipFolderName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
+        sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : displayName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
     }
 
     if (isset($_GET['thumb'])) {
@@ -117,18 +117,18 @@
     $path = '';
     foreach ($dirRel === '' ? [] : explode('/', $dirRel) as $part) {
         $path = ltrim($path . '/' . $part, '/');
-        $crumbs[] = ['name' => $part, 'rel' => $path, 'open' => galleryCanSee($base, $path)];
+        $crumbs[] = ['name' => displayName($path), 'rel' => $path, 'open' => galleryCanSee($base, $path)];
     }
 
     // the first tile: one folder up, or back from the search results; null in
     // the top folder and where the folder up is not the visitor's to see
     $parent = null;
     if ($searching) {
-        $parent = ['url' => folderUrl($dirRel), 'label' => 'Wróć do: ' . galleryPath($dirRel)];
+        $parent = ['url' => folderUrl($dirRel), 'label' => 'Wróć do: ' . displayPath($dirRel)];
     } else if ($dirRel !== '') {
         $parentRel = strpos($dirRel, '/') === false ? '' : substr($dirRel, 0, strrpos($dirRel, '/'));
         if (galleryCanSee($base, $parentRel))
-            $parent = ['url' => folderUrl($parentRel), 'label' => 'Wyżej: ' . galleryPath($parentRel)];
+            $parent = ['url' => folderUrl($parentRel), 'label' => 'Wyżej: ' . displayPath($parentRel)];
     }
 
     $summary = [];
@@ -153,7 +153,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="author" content="Sniku" />
 <?=metaTags('Galeria', 'Galeria obrazków bota Sanakan, dostęp po zalogowaniu przez Discord.', '/i/', 'i')?>
-  <title><?=e($searching ? 'Szukaj: ' . $query : ($dirRel === '' ? 'Galeria' : 'i/' . $dirRel))?> &middot; Sanakan</title>
+  <title><?=e($searching ? 'Szukaj: ' . $query : ($dirRel === '' ? 'Galeria' : displayPath($dirRel)))?> &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -193,7 +193,7 @@
 <?php if (count($homes) > 1 || ($whole && $own !== null)): ?>
       <p class="ex-meta">Twoje foldery:
 <?php foreach ($homes as $i => $home): ?>
-        <?=$i ? '&middot; ' : ''?><a href="<?=e(folderUrl($home))?>"><?=e($home === $own ? 'własny, ' . basename($home) : 'udostępniony, ' . galleryPath($home))?></a>
+        <?=$i ? '&middot; ' : ''?><a href="<?=e(folderUrl($home))?>"><?=e($home === $own ? 'własny, ' . displayName($home) : 'udostępniony, ' . displayPath($home))?></a>
 <?php endforeach; ?>
       </p>
 <?php endif; ?>
@@ -246,7 +246,7 @@
         <button type="button" data-sort="size" aria-pressed="false">Rozmiar</button>
       </div>
 <?php if (!$searching && ($folders || $files) && canZip()): ?>
-      <a class="admin-btn zip-btn" href="?zip&amp;p=<?=e(rawurlencode(publicRel($dirRel)))?>" title="Cały folder <?=e(galleryPath($dirRel))?> razem z podfolderami, do <?=e(formatSize(ZIP_MAX_BYTES))?>">Pobierz folder (ZIP)</a>
+      <a class="admin-btn zip-btn" href="?zip&amp;p=<?=e(rawurlencode(publicRel($dirRel)))?>" title="Cały folder <?=e(displayPath($dirRel))?> razem z podfolderami, do <?=e(formatSize(ZIP_MAX_BYTES))?>">Pobierz folder (ZIP)</a>
 <?php endif; ?>
 <?php if ($manage): ?>
       <div class="admin-bar" id="admin-bar">
@@ -319,7 +319,7 @@
           <span class="name"><svg class="name-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5V18a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18V9a1.5 1.5 0 0 0-1.5-1.5h-8L9.5 5h-5A1.5 1.5 0 0 0 3 6.5z" /></svg><?=e($folder['name'])?></span>
           <span class="info"><?=$folder['count']?> <?=plural($folder['count'], 'element', 'elementy', 'elementów')?></span>
 <?php if ($searching): ?>
-          <span class="where" title="<?=e(galleryPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?>"><?=e(galleryPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?></span>
+          <span class="where" title="<?=e(displayPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?>"><?=e(displayPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?></span>
 <?php endif; ?>
         </span>
       </a>
@@ -348,7 +348,7 @@
           <span class="name" title="<?=e($file['name'])?>"><?=e($file['name'])?></span>
           <span class="info"><?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size'])])))?></span>
 <?php if ($searching): ?>
-          <span class="where" title="<?=e(galleryPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?>"><?=e(galleryPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?></span>
+          <span class="where" title="<?=e(displayPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?>"><?=e(displayPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?></span>
 <?php endif; ?>
         </span>
       </a>
@@ -394,7 +394,7 @@
 
 <?php if ($manage): ?>
   <div class="drop" id="drop" hidden>
-    <div class="drop-box hud-corners">Upuść pliki, żeby dodać je do <?=e($dirRel === '' ? 'i' : 'i/' . $dirRel)?></div>
+    <div class="drop-box hud-corners">Upuść pliki, żeby dodać je do <?=e(displayPath($dirRel))?></div>
   </div>
 
   <div class="progress" id="progress" hidden>
@@ -405,7 +405,7 @@
   <dialog class="ex-dialog" id="dlg-mkdir">
     <form id="form-mkdir">
       <h2>Nowy folder</h2>
-      <p>W folderze <?=e($dirRel === '' ? 'i' : 'i/' . $dirRel)?></p>
+      <p>W folderze <?=e(displayPath($dirRel))?></p>
       <input type="text" name="name" maxlength="150" autocomplete="off" spellcheck="false" placeholder="Nazwa folderu" required />
       <p class="dialog-error" hidden></p>
       <div class="dialog-actions">
@@ -445,7 +445,7 @@
   <dialog class="ex-dialog" id="dlg-share">
     <form id="form-share">
       <h2>Udostępnij folder</h2>
-      <p>Każdy, kto ma link, zobaczy <?=e(galleryPath($dirRel))?> z podfolderami i pobierze je, także bez logowania. Wyłączyć go można w panelu.</p>
+      <p>Każdy, kto ma link, zobaczy <?=e(displayPath($dirRel))?> z podfolderami i pobierze je, także bez logowania. Wyłączyć go można w panelu.</p>
       <select name="days" aria-label="Jak długo link działa">
         <option value="1">na 1 dzień</option>
         <option value="7" selected>na 7 dni</option>
@@ -479,11 +479,11 @@
     $fileLimit = $admin ? uploadLimit() : min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES);
     // an account in its own folder moves nothing anywhere
     $moveTo = $admin ? allFolders($base) : [];
-    // the paths go as links show them; the folders of the accounts get their real name for the labels
+    // the paths go as links show them; the folders of the accounts get the name the gallery shows for the labels
     $labels = [];
     foreach (array_merge($moveTo, [$dirRel]) as $rel)
         if (publicRel($rel) !== $rel)
-            $labels[publicRel($rel)] = $rel;
+            $labels[publicRel($rel)] = substr(displayPath($rel), 2);
 ?>
   <script type="application/json" id="gallery-data"><?=json_encode([
       // no single folder to upload to in the search results
