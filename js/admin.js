@@ -477,7 +477,22 @@
       card.classList.add('collapsible');
       card.dataset.key = card.dataset.key || 'c' + i;
 
-      if (card.dataset.sum) {
+      if (card.dataset.clock) {
+        // a state dot and the server's clock, kept in step with the card's own
+        var dot = document.createElement('span');
+        dot.className = 'card-dot' + (card.dataset.state === 'warn' ? ' warn' : card.dataset.state === 'bad' ? ' bad' : '');
+        dot.setAttribute('aria-hidden', 'true');
+        head.appendChild(dot);
+
+        var time = document.createElement('span');
+        time.className = 'card-sum card-clock';
+        head.appendChild(time);
+
+        var source = card.querySelector('.server-clock-now');
+        var mirror = function () { if (source) time.textContent = source.textContent; };
+        mirror();
+        setInterval(mirror, 1000);
+      } else if (card.dataset.sum) {
         var sum = document.createElement('span');
         sum.className = 'card-sum';
         sum.textContent = card.dataset.sum;
@@ -545,10 +560,26 @@
     filter.setAttribute('aria-label', 'Filtruj karty');
     nav.appendChild(filter);
 
+    // the cards under each section heading, for a two-level nav
+    var groups = [];
+    var group = null;
+    Array.prototype.forEach.call(grid.children, function (node) {
+      if (node.classList.contains('panel-section')) {
+        group = { section: node, cards: [] };
+        groups.push(group);
+      } else if (node.classList.contains('card') && group) {
+        group.cards.push(node);
+      }
+    });
+
     var links = [];
-    sections.forEach(function (h, i) {
+    var cardLinks = [];
+
+    groups.forEach(function (g, i) {
+      var h = g.section;
       h.id = 'sec-' + (h.dataset.section || i);
       var a = document.createElement('a');
+      a.className = 'nav-section';
       a.href = '#' + h.id;
       var dot = document.createElement('span');
       dot.className = 'dot' + (h.dataset.count ? ' warn' : '');
@@ -562,6 +593,35 @@
       }
       nav.appendChild(a);
       links.push(a);
+
+      if (!g.cards.length) return;
+      var sub = document.createElement('div');
+      sub.className = 'nav-sub';
+      g.cards.forEach(function (card) {
+        var head = card.querySelector('h2');
+        if (!head) return;
+        card.id = 'card-' + card.dataset.key;
+
+        var title = head.cloneNode(true);
+        ['i', '.card-sum', '.card-dot', '.card-chev'].forEach(function (sel) {
+          var el = title.querySelector(sel);
+          if (el) el.remove();
+        });
+
+        var ca = document.createElement('a');
+        ca.className = 'nav-card';
+        ca.href = '#' + card.id;
+        ca.dataset.card = card.dataset.key;
+        ca.textContent = title.textContent.trim();
+        ca.addEventListener('click', function () {
+          // a card opened from the menu comes unfolded, so its content is there
+          card.classList.remove('collapsed');
+          navLock = true;
+        });
+        sub.appendChild(ca);
+        cardLinks.push(ca);
+      });
+      nav.appendChild(sub);
     });
     layout.classList.add('has-nav');
 
@@ -571,14 +631,17 @@
     }
 
     function updateActive() {
-      var at = window.scrollY + 140;
+      // the line just below the top, where a section heading lands when clicked
+      var at = window.scrollY + 80;
       var current = sections[0];
       for (var i = 0; i < sections.length; i++) {
         if (sectionTop(sections[i]) <= at) current = sections[i];
       }
       // at the very bottom the last section is the one in view
-      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4)
+      var pageHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      if (window.innerHeight + window.scrollY >= pageHeight - 4)
         current = sections[sections.length - 1];
+
       links.forEach(function (a) {
         a.classList.toggle('active', a.getAttribute('href') === '#' + current.id);
       });
@@ -630,6 +693,13 @@
           node = node.nextElementSibling;
         }
         h.classList.toggle('panel-hidden', !any);
+      });
+      cardLinks.forEach(function (ca) {
+        var card = document.getElementById(ca.getAttribute('href').slice(1));
+        ca.classList.toggle('panel-hidden', !!card && card.classList.contains('panel-hidden'));
+      });
+      nav.querySelectorAll('.nav-sub').forEach(function (sub) {
+        sub.classList.toggle('panel-hidden', !sub.querySelector('.nav-card:not(.panel-hidden)'));
       });
     });
 

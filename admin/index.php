@@ -997,7 +997,7 @@
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=46e1dc16c3" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=30a7fe9e7b" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=17bf9a344d" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1090,7 +1090,8 @@
 
       <h2 class="panel-section" data-section="przeglad" data-label="Przegląd">Przegląd</h2>
 
-      <section class="card wide">
+<?php $botStateNow = botState(); $botStatus = shownStatus($botStateNow); ?>
+      <section class="card wide" data-clock="1" data-state="<?=$botStatus === 'online' ? 'ok' : ($botStatus === 'offline' ? 'bad' : 'warn')?>">
         <h2><i>01</i>Status bota</h2>
 <?=statusSummary()?>
 <?php $clock = serverClock(); ?>
@@ -1128,18 +1129,8 @@
 
       <h2 class="panel-section" data-section="dostep" data-label="Dostęp i konta">Dostęp i konta</h2>
 
-      <section class="card">
-        <h2><i>02</i>Dostęp do panelu</h2>
-        <ul class="people">
-<?php foreach ($panelAdmins === true ? [] : $panelAdmins as $id): ?>
-          <li><?=accountCell($id, $logins)?><span class="badge-config" title="Ustawione w inc/config.php">config</span></li>
-<?php endforeach; ?>
-        </ul>
-        <p class="hint">Listę zmienia się w <code>inc/config.php</code> (<code>PANEL_ADMINS</code>), panel nie może nadawać dostępu do samego siebie.</p>
-      </section>
-
-<?php $number = 3; $test = testRights($user['id']); ?>
-      <section class="card">
+<?php $number = 2; $test = testRights($user['id']); ?>
+      <section class="card wide" data-sum="<?=$test ? 'włączony' : 'wyłączony'?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Podgląd z innymi uprawnieniami</h2>
         <p class="hint">Na chwilę zmienia twoje uprawnienia na całej stronie, żeby zobaczyć ją na żywo tak, jak widzi ją konto z takimi. Tylko twoje konto i tylko w tej sesji; pasek na dole każdej strony pokazuje, co jest zmienione, i przywraca twoje. Panel daje też API, więc API przez rolę na serwerze sprawdzisz bez panelu.</p>
 <?php if ($test): ?>
@@ -1182,8 +1173,18 @@
         </form>
       </section>
 
+      <section class="card" data-sum="<?=$panelAdmins === true ? 'wszyscy' : count($panelAdmins)?>">
+        <h2><i><?=sprintf('%02d', $number++)?></i>Dostęp do panelu</h2>
+        <ul class="people">
+<?php foreach ($panelAdmins === true ? [] : $panelAdmins as $id): ?>
+          <li><?=accountCell($id, $logins)?><span class="badge-config" title="Ustawione w inc/config.php">config</span></li>
+<?php endforeach; ?>
+        </ul>
+        <p class="hint">Listę zmienia się w <code>inc/config.php</code> (<code>PANEL_ADMINS</code>), panel nie może nadawać dostępu do samego siebie.</p>
+      </section>
+
 <?php foreach ($lists as $list => $info): ?>
-      <section class="card">
+      <section class="card" data-sum="<?=$info['everyone'] ? 'wszyscy' : count($info['entries'])?>">
         <h2><i><?=sprintf('%02d', $number++)?></i><?=e(LIST_CARDS[$list][0])?></h2>
         <p class="hint"><?=e(LIST_CARDS[$list][1])?></p>
 <?php if ($info['everyone']): ?>
@@ -1401,7 +1402,7 @@
 <?php endif; ?>
       </section>
 
-      <section class="card wide">
+      <section class="card wide" data-sum="<?=$history ? e(ago($history[0]['time'] ?? 0)) : 'brak'?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Historia zmian</h2>
         <p class="hint">Ostatnie zmiany w galerii i w panelu: kto, kiedy i co.</p>
 <?php if (!$history): ?>
@@ -1611,7 +1612,14 @@
         </dl>
       </section>
 
-      <section class="card wide">
+<?php
+$serverSum = [];
+if ($system['cpu'])
+    $serverSum[] = decimal($system['cpu']['busy']) . '% CPU';
+if ($system['memory'])
+    $serverSum[] = formatSize($system['memory']['total'] - $system['memory']['available']) . ' RAM';
+?>
+      <section class="card wide" data-sum="<?=$serverSum ? implode(' · ', $serverSum) : 'brak danych'?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Zasoby serwera</h2>
         <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. Wykresy są z pomiarów co 10 sekund (karta „Dostępność strony”): linia to średnia z 5 minut, a jaśniejsze pasmo nad nią przy procesorze sięga najbardziej zajętych 10 sekund z tego czasu. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
 <?php if ($system['cpu'] === null && $system['memory'] === null): ?>
@@ -1686,7 +1694,13 @@
         </div>
       </section>
 
-      <section class="card wide">
+<?php
+$serverProblems = 0;
+foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), canConvertVideo(), canConvertHeif(), canZip(), !$cronLate, botAppKey() !== '', botHeartbeatSecret() !== '', dataWritable()] as $ok)
+    if (!$ok)
+        $serverProblems++;
+?>
+      <section class="card wide" data-state="<?=$serverProblems ? 'warn' : 'ok'?>" data-sum="<?=$serverProblems ? $serverProblems . ' ' . plural($serverProblems, 'problem', 'problemy', 'problemów') : 'wszystko jest'?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Serwer</h2>
         <dl class="server">
           <dt>PHP</dt>
@@ -1790,7 +1804,7 @@
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=33afd05621"></script>
+  <script src="../js/admin.js?v=7b8d802b60"></script>
 <?php endif; ?>
 </body>
 

@@ -1503,7 +1503,7 @@ a.who-name:hover {
     gap: 8px;
     padding: 9px 12px;
     border-left: 2px solid transparent;
-    color: rgba(220, 221, 222, 0.65);
+    color: rgba(228, 224, 232, 0.82);
     text-decoration: none;
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
@@ -1513,13 +1513,13 @@ a.who-name:hover {
 
 .admin-nav a:hover {
     color: #fff;
-    background: rgba(155, 89, 182, 0.12);
+    background: rgba(155, 89, 182, 0.14);
 }
 
 .admin-nav a.active {
     border-color: var(--accent-light);
-    color: #efe2f7;
-    background: rgba(155, 89, 182, 0.16);
+    color: #fff;
+    background: rgba(155, 89, 182, 0.22);
 }
 
 .admin-nav .dot {
@@ -1543,6 +1543,42 @@ a.who-name:hover {
 .admin-nav .n {
     margin-left: auto;
     color: #f0b232;
+}
+
+/* the cards of a section, under its link */
+/* the categories stand out, the cards under them sit back on a guide line */
+.admin-nav .nav-section {
+    margin-top: 6px;
+    color: #f2e9f8;
+}
+
+.admin-nav .nav-sub {
+    display: flex;
+    flex-direction: column;
+    margin: 0 0 8px 13px;
+    border-left: 1px solid rgba(155, 89, 182, 0.35);
+}
+
+.admin-nav .nav-card {
+    padding: 5px 12px 5px 13px;
+    border-left: 0;
+    color: rgba(190, 168, 208, 0.78);
+    font: 12px/1.45 "JetBrains Mono", Consolas, monospace;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.admin-nav .nav-card:hover {
+    color: #fff;
+    background: rgba(155, 89, 182, 0.12);
+}
+
+/* a long nav scrolls on its own */
+.admin-nav {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
 }
 
 .panel-section {
@@ -1588,9 +1624,27 @@ a.who-name:hover {
     order: 1;
 }
 
-.card h2 .card-sum {
+.card h2 .card-dot {
     order: 2;
+    flex: none;
+    width: 9px;
+    height: 9px;
     margin-left: 14px;
+    border-radius: 50%;
+    background: #3fca7a;
+}
+
+.card h2 .card-dot.warn {
+    background: #f0b232;
+}
+
+.card h2 .card-dot.bad {
+    background: #e57373;
+}
+
+.card h2 .card-sum {
+    order: 3;
+    margin-left: 8px;
     font: 12px "JetBrains Mono", Consolas, monospace;
     letter-spacing: 0;
     text-transform: none;
@@ -1601,7 +1655,7 @@ a.who-name:hover {
 .card h2 .card-chev,
 .diag-sub > summary .card-chev {
     flex: none;
-    order: 3;
+    order: 4;
     width: 8px;
     height: 8px;
     margin-left: 12px;
