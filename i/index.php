@@ -498,7 +498,7 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=8"></script>
+  <script src="../js/explorer.js?v=9"></script>
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 <?php if ($manage): ?>

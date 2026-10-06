@@ -164,6 +164,26 @@ window.SanakanGallery = (function () {
     });
   });
 
+  // A thumbnail the server did not make in time (it makes one at a time and
+  // says 503 while busy) is asked for again, a few times, later each time.
+  // Errors do not bubble, so they are caught on the way down; the ones from
+  // before this script ran are found by the empty pictures they left.
+  function retryThumb(img) {
+    var tries = Number(img.dataset.tries || 0);
+    if (tries >= 4 || img.src.indexOf('thumb=') === -1) return;
+    img.dataset.tries = tries + 1;
+    setTimeout(function () {
+      img.src = img.src.replace(/&retry=\d+$/, '') + '&retry=' + (tries + 1);
+    }, 1500 * Math.pow(2, tries));
+  }
+
+  document.addEventListener('error', function (e) {
+    if (e.target.tagName === 'IMG' && e.target.closest('.thumb')) retryThumb(e.target);
+  }, true);
+  document.querySelectorAll('.thumb img').forEach(function (img) {
+    if (img.complete && img.getAttribute('src') && img.naturalWidth === 0) retryThumb(img);
+  });
+
   // Viewer: pictures and videos open in place, other files open in a new tab
   var viewer = document.getElementById('viewer');
   var image = document.getElementById('viewer-img');

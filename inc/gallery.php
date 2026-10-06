@@ -19,6 +19,9 @@
     // shown as they are, and big ones (some GIFs have tens of MB) get a
     // placeholder and load only when opened.
     const THUMB_SIZE = 360;
+    // how long a thumbnail waits for the one being made before it asks to be
+    // asked again (503), in seconds; waiting holds a PHP-FPM worker
+    const THUMB_WAIT = 5;
     const THUMBLESS_MAX_BYTES = 1500000;
     const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
     const VIDEO_TYPES = ['webm'];
@@ -553,9 +556,20 @@
             // One thumbnail at a time: GD holds the whole picture in memory and the
             // server has one core, so a folder full of new pictures must not make
             // them all at once. A request that waited may find its thumbnail made.
+            // It waits only THUMB_WAIT seconds: the requests of a whole folder
+            // waiting in line would take every worker of the small PHP-FPM pool,
+            // so the rest is asked again by the page (js/explorer.js).
             $lock = @fopen(thumbsDir() . '/.lock', 'c');
-            if ($lock !== false)
-                flock($lock, LOCK_EX);
+            for ($waited = 0; $lock !== false && !flock($lock, LOCK_EX | LOCK_NB); $waited++) {
+                if ($waited >= THUMB_WAIT * 10) {
+                    fclose($lock);
+                    http_response_code(503);
+                    header('Retry-After: 2');
+                    header('Cache-Control: no-store');
+                    return;
+                }
+                usleep(100000);
+            }
             clearstatcache(true, $cache);
             if (!is_file($cache))
                 makeThumb($file[0], $cache);

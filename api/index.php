@@ -92,7 +92,7 @@
 <?php else: ?>
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
-  <script src="../js/explorer.js?v=8"></script>
+  <script src="../js/explorer.js?v=9"></script>
   <script src="../js/account.js?v=1"></script>
   <script src="../js/netsphere.js?v=2"></script>
 </body>
