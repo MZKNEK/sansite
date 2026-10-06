@@ -115,7 +115,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="author" content="Sniku" />
-<?=metaTags('Galeria · Sanakan', 'Galeria obrazków bota Sanakan, dostęp po zalogowaniu przez Discord.', '/i/')?>
+<?=metaTags('Galeria', 'Galeria obrazków bota Sanakan, dostęp po zalogowaniu przez Discord.', '/i/', 'i')?>
   <title><?=e($searching ? 'Szukaj: ' . $query : ($dirRel === '' ? 'Galeria' : 'i/' . $dirRel))?> &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />

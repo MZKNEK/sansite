@@ -1,15 +1,16 @@
 <?php
     // Link previews (Open Graph): what Discord and other apps show for a pasted
-    // link: title, description, the logo (or a big picture of the page's own,
-    // $image as [url, width, height]) and the purple stripe (theme-color).
-    // A null $description leaves out the text and the site name, so the
-    // preview is only the title and the picture. The static page index.html
-    // has such tags written out by hand.
+    // link: the site name, a short title (the page's name), description, a big
+    // picture (og.php, or $image as [url, width, height]) and the purple stripe
+    // (theme-color). A null $description leaves out the text and the site
+    // name, so the preview is only the title and the picture. The static pages
+    // index.html and privacy/ have such tags written out by hand.
     const SITE_URL = 'https://sanakan.pl';
 
-    function metaTags($title, $description, $path, $image = null)
+    // $page is the picture's name in og.php
+    function metaTags($title, $description, $path, $page, $image = null)
     {
-        $image = $image ?? [SITE_URL . '/sanakan.jpg', 500, 500];
+        $image = $image ?? [SITE_URL . '/og.php?p=' . $page, 1200, 630];
         $tags = [];
         if ($description !== null)
             $tags[] = ['name', 'description', $description];

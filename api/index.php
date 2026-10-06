@@ -36,7 +36,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<?=metaTags('API · Sanakan', $description, '/api/')?>
+<?=metaTags('API', $description, '/api/', 'api')?>
   <title>API &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -106,7 +106,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-<?=metaTags('API · Sanakan', $description, '/api/')?>
+<?=metaTags('API', $description, '/api/', 'api')?>
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=1" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=1" >

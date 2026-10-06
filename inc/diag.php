@@ -46,7 +46,7 @@
     // a weak spot (a new PHP file of the site goes here too)
     const SITE_PHP_FILES = [
         '/account.php', '/status.php', '/admin/index.php', '/api/index.php', '/api/read_swagger.php',
-        '/cmd/index.php', '/cmd/zmiany/index.php', '/i/index.php', '/state/index.php', '/state/og.php'
+        '/cmd/index.php', '/cmd/zmiany/index.php', '/i/index.php', '/state/index.php', '/state/og.php', '/og.php'
     ];
     // paths no visitor of this site asks for: secrets, other software's admin
     // pages, backups

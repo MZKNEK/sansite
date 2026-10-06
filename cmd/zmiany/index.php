@@ -66,7 +66,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<?=metaTags('Zmiany w poleceniach · Sanakan', 'Nowe, zmienione i usunięte polecenia bota Sanakan.', '/cmd/zmiany/')?>
+<?=metaTags('Zmiany', 'Nowe, zmienione i usunięte polecenia bota Sanakan.', '/cmd/zmiany/', 'zmiany')?>
   <meta name="author" content="Sniku" />
   <title>Zmiany w poleceniach &middot; Sanakan</title>
   <link rel="icon" href="../../favicon.ico" sizes="32x32" />

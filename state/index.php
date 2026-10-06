@@ -18,7 +18,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<?=metaTags('Status · Sanakan', null, '/state/', [SITE_URL . '/state/og.php?v=' . intdiv(time(), 300), 1200, 630])?>
+<?=metaTags('Status', 'Bot ' . statusLabel(botState()) . '. Dostępność, ping do Discorda i awarie z ostatnich ' . DAYS_SHOWN . ' dni.', '/state/', null, [SITE_URL . '/state/og.php?v=' . intdiv(time(), 300), 1200, 630])?>
   <meta http-equiv="refresh" content="600" />
   <title>Status &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
