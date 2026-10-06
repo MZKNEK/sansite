@@ -995,7 +995,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=83b29d8a9b" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=0e528d4cdc" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=1a0ef1ce51" type="text/css" rel="stylesheet" />
 </head>
@@ -1137,25 +1137,25 @@
 <?php endif; ?>
         <form class="test-form" data-action="test-rights">
           <label>Panel
-            <select name="panel"><option value="">bez zmian</option><option value="1" selected>z panelem</option><option value="0">bez panelu</option></select>
+            <select name="panel"><option value="">bez zmian</option><option value="1">z panelem</option><option value="0" selected>bez panelu</option></select>
           </label>
           <label>Galeria
             <select name="gallery"><option value="">bez zmian</option>
 <?php foreach (TEST_GALLERY as $key => $label): ?>
-              <option value="<?=e($key)?>"<?=$key === 'admin' ? ' selected' : ''?>><?=e($label)?></option>
+              <option value="<?=e($key)?>"<?=$key === 'none' ? ' selected' : ''?>><?=e($label)?></option>
 <?php endforeach; ?>
             </select>
           </label>
           <label>Prywatna galeria
-            <select name="private"><option value="">bez zmian</option><option value="1" selected>tak</option><option value="0">nie</option></select>
+            <select name="private"><option value="">bez zmian</option><option value="1">tak</option><option value="0" selected>nie</option></select>
           </label>
           <label>Lista API
-            <select name="api"><option value="">bez zmian</option><option value="1" selected>na liście</option><option value="0">poza listą</option></select>
+            <select name="api"><option value="">bez zmian</option><option value="1">na liście</option><option value="0" selected>poza listą</option></select>
           </label>
           <label>Rola na serwerze bota
             <select name="role"><option value="">bez zmian</option>
 <?php foreach (BOT_ROLES as $key => [$level, $badgeLabel, $name]): ?>
-              <option value="<?=e($key)?>"<?=$key === 'dev' ? ' selected' : ''?>><?=e($name)?> (LV.<?=$level?>)</option>
+              <option value="<?=e($key)?>"<?=$key === 'user' ? ' selected' : ''?>><?=e($name)?> (LV.<?=$level?>)</option>
 <?php endforeach; ?>
               <option value="<?=TEST_ROLE_OUT?>">poza serwerem</option>
             </select>

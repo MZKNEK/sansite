@@ -417,6 +417,9 @@ main.content {
 .viewer-nav {
     position: absolute;
     top: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 48px;
     height: 48px;
     margin-top: -24px;
