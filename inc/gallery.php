@@ -1016,12 +1016,35 @@
         return [$count, $bytes];
     }
 
+    // files in a folder and all its subfolders, and their bytes: [count, bytes]
+    function treeUse($dirPath)
+    {
+        $count = 0;
+        $bytes = 0;
+        $walk = function ($path) use (&$walk, &$count, &$bytes) {
+            foreach (scandir($path) ?: [] as $name) {
+                if ($name[0] === '.')
+                    continue;
+                $full = $path . '/' . $name;
+                if (is_dir($full) && !is_link($full)) {
+                    $walk($full);
+                } else if (is_file($full)) {
+                    $count++;
+                    $bytes += filesize($full);
+                }
+            }
+        };
+        $walk($dirPath);
+
+        return [$count, $bytes];
+    }
+
     // a file just saved in the folder of an account goes away again when the
-    // folder would hold more than USER_TOTAL_MAX_BYTES with it
+    // folder, subfolders included, would hold more than USER_TOTAL_MAX_BYTES with it
     function checkUserTotal($dirPath, $path, $name)
     {
         clearstatcache();
-        [, $bytes] = folderUse($dirPath);
+        [, $bytes] = treeUse($dirPath);
         if ($bytes <= USER_TOTAL_MAX_BYTES)
             return;
 
@@ -1979,10 +2002,14 @@
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
-            if (!in_array($action, ['upload', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete'], true))
-                reply(false, 'W swoim folderze możesz dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
-            if ($action === 'upload' && (resolvePath($base, $_POST['dir'] ?? '', true)[1] ?? null) !== $own)
-                reply(false, 'Możesz dodawać zdjęcia tylko do swojego folderu.', 403);
+            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete'], true))
+                reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
+            // new folders and uploads go only inside its own folder, subfolders included
+            if (in_array($action, ['upload', 'mkdir'], true)) {
+                $dir = resolvePath($base, $_POST['dir'] ?? '', true);
+                if (!$dir || !inFolder($dir[1], $own))
+                    reply(false, $action === 'mkdir' ? 'Możesz tworzyć foldery tylko w swoim folderze.' : 'Możesz dodawać zdjęcia tylko do swojego folderu.', 403);
+            }
             if (isset($_POST['items']))
                 foreach (postedItems($base) as $item)
                     if (strpos($item[1], $own . '/') !== 0)
@@ -2206,14 +2233,16 @@
         if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name']))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
 
-        // an account with a folder of its own: only pictures, within its limits
+        // an account with a folder of its own: only pictures, within its limits,
+        // counted over its whole folder with the subfolders
         $own = !galleryIsAdmin();
+        $ownDir = $own ? $base . '/' . ownFolder($base) : null;
         if ($own) {
             if (isVideo($name))
                 reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
             if ($file['size'] > USER_FILE_MAX_BYTES)
                 reply(false, $name . ': zdjęcie jest za duże (' . formatSize($file['size']) . ', limit ' . formatSize(USER_FILE_MAX_BYTES) . ').', 413);
-            [$count] = folderUse($dir[0]);
+            [$count] = treeUse($ownDir);
             $limit = userFilesLimit(siteUser()['id']);
             if ($count >= $limit)
                 reply(false, $name . ': w folderze jest już ' . $count . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . '. Usuń któreś, żeby dodać nowe.', 409);
@@ -2237,7 +2266,7 @@
             }
             @chmod($path, 0644);
             if ($own)
-                checkUserTotal($dir[0], $path, $name);
+                checkUserTotal($ownDir, $path, $name);
             recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
             $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
             done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
@@ -2260,7 +2289,7 @@
             } else {
                 @chmod($path, 0644);
                 if ($own)
-                    checkUserTotal($dir[0], $path, $name);
+                    checkUserTotal($ownDir, $path, $name);
                 recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
                 $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
                 done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
@@ -2293,7 +2322,7 @@
                 } else {
                     @chmod($path, 0644);
                     if ($own)
-                        checkUserTotal($dir[0], $path, $name);
+                        checkUserTotal($ownDir, $path, $name);
                     recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
                     $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
                     done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
@@ -2319,7 +2348,7 @@
                     } else {
                         @chmod($path, 0644);
                         if ($own)
-                            checkUserTotal($dir[0], $path, $name);
+                            checkUserTotal($ownDir, $path, $name);
                         recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
                         $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
                         done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
@@ -2338,7 +2367,7 @@
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
         if ($own)
-            checkUserTotal($dir[0], $dir[0] . '/' . $target, $name);
+            checkUserTotal($ownDir, $dir[0] . '/' . $target, $name);
         $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
         recordHash($dir[0] . '/' . $target, ltrim($dir[1] . '/' . $target, '/'), $stripped ? $sentHash : null);
 

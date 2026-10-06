@@ -91,7 +91,7 @@
             'gallery' => $gallery,
             'uploads' => $uploads,
             'folder' => $folder,
-            'folderUse' => $folder !== null ? folderUse($galleryBase . '/' . $folder) : [0, 0],
+            'folderUse' => $folder !== null ? treeUse($galleryBase . '/' . $folder) : [0, 0],
             'filesLimit' => userFilesLimit($id),
             'marks' => diagMarks($scanners, $cfItems),
             'cfError' => $cfError,

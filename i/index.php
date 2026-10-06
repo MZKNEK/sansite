@@ -113,8 +113,8 @@
     }
     list($dirPath, $dirRel) = $dir;
     // the visitor may change things here: an admin anywhere, an account in its own folder
-    $manage = $admin || ($own !== null && $dirRel === $own);
-    $ownUse = $manage && !$admin ? folderUse($dirPath) : null;
+    $manage = $admin || ($own !== null && inFolder($dirRel, $own));
+    $ownUse = $manage && !$admin && $own !== null ? treeUse($base . '/' . $own) : null;
 
     // ?q= searches the whole gallery; ?p= then is the folder the search started from
     $query = trim((string)($_GET['q'] ?? ''));
@@ -309,7 +309,7 @@
           <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP/WebM
         </label>
 <?php endif; ?>
-        <button type="button" class="admin-btn" id="act-mkdir"<?=$admin ? '' : ' hidden'?>>Nowy folder</button>
+        <button type="button" class="admin-btn" id="act-mkdir">Nowy folder</button>
 <?php if (!$admin): ?>
         <a class="admin-btn" href="?kosz=1" title="Rzeczy usunięte z twojego folderu">Kosz<?=$ownTrash ? ' (' . count($ownTrash) . ')' : ''?></a>
 <?php endif; ?>
