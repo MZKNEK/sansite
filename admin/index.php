@@ -1680,6 +1680,16 @@
           <dt>Miniatury filmów</dt>
           <dd><?=canThumbVideo() ? 'ffmpeg: ' . e(findTool('ffmpeg')) : '<b class="warn">brak ffmpeg</b>: filmy w galerii nie mają miniatur, kafelek wczytuje cały film. Instalacja: <code>apt-get install -y ffmpeg</code>'?></dd>
 
+          <dt>MP4 → WebM</dt>
+          <dd><?=canConvertVideo() ? 'ffmpeg: ' . e(findTool('ffmpeg')) : '<b class="warn">brak ffmpeg</b>: MP4 zostaje MP4. Instalacja: <code>apt-get install -y ffmpeg</code>'?></dd>
+
+          <dt>HEIC/HEIF → WebP</dt>
+          <dd><?php $heif = findTool('magick') ?: findTool('convert') ?: findTool('ffmpeg'); ?>
+<?=canConvertHeif() ? 'obraz zapisuje ' . e(basename($heif)) . ': ' . e($heif) : '<b class="warn">brak imagemagick i ffmpeg</b>: zdjęcia HEIC z telefonu nie zostaną przyjęte. Instalacja: <code>apt-get install -y imagemagick</code>'?></dd>
+
+          <dt>AVIF</dt>
+          <dd><?=function_exists('imagecreatefromavif') ? 'czyta GD' : (findTool('magick') || findTool('convert') || findTool('ffmpeg') ? 'przez imagemagick lub ffmpeg' : '<b class="warn">brak obsługi AVIF</b>: plik się wyświetli, ale bez miniatury. Instalacja: <code>apt-get install -y imagemagick</code>')?></dd>
+
           <dt>Pobieranie ZIP</dt>
           <dd><?=canZip() ? 'włączone' : '<b class="warn">brak modułu ZIP</b>: przyciski pobierania są ukryte. Instalacja: <code>apt-get install -y php8.1-zip &amp;&amp; systemctl restart php8.1-fpm</code>'?></dd>
 

@@ -9,13 +9,21 @@
 # with ssh and tar:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
+#   ./deploy.sh --dry-run sanakan        only show what would be sent, changed
+#                                        and reloaded, writing nothing
 # sanakan.pl goes through Cloudflare, which lets no SSH through, so the target
 # is the server's own address, best as a host alias in ~/.ssh/config (see the
 # README). With an SSH key there is no password prompt; without one ssh asks a
 # few times, and a few wrong passwords in a row can get the address banned.
 set -euo pipefail
 
-target=${1:?"Użycie: ./deploy.sh użytkownik@serwer [folder strony, domyślnie /var/www/html]"}
+dry_run=0
+if [ "${1:-}" = "--dry-run" ]; then
+    dry_run=1
+    shift
+fi
+
+target=${1:?"Użycie: ./deploy.sh [--dry-run] użytkownik@serwer [folder strony, domyślnie /var/www/html]"}
 root=${2:-/var/www/html}
 cd "$(dirname "$0")"
 
@@ -38,14 +46,21 @@ fi
 
 commit=$(git rev-parse HEAD)
 marker="$root/inc/data/deployed-commit"
+if [ "$dry_run" -eq 1 ]; then
+    echo "[dry-run] Odczyt znacznika z serwera (tylko czytanie), żeby pokazać zmiany."
+fi
 previous=$(ssh "$target" "cat '$marker' 2>/dev/null || true")
 
-echo "Wysyłanie $(git log -1 --format='%h %s') do $target:$root"
-# autocrlf off: the server gets the LF line endings that are in the repository;
-# --no-overwrite-dir keeps the owners and rights of folders already there (i/ must
-# stay writable by the web server)
-git -c core.autocrlf=false archive --format=tar HEAD \
-    | ssh "$target" "tar -x -C '$root' --no-same-owner --no-overwrite-dir"
+if [ "$dry_run" -eq 1 ]; then
+    echo "[dry-run] Wysłałbym $(git log -1 --format='%h %s') do $target:$root"
+else
+    echo "Wysyłanie $(git log -1 --format='%h %s') do $target:$root"
+    # autocrlf off: the server gets the LF line endings that are in the repository;
+    # --no-overwrite-dir keeps the owners and rights of folders already there (i/ must
+    # stay writable by the web server)
+    git -c core.autocrlf=false archive --format=tar HEAD \
+        | ssh "$target" "tar -x -C '$root' --no-same-owner --no-overwrite-dir"
+fi
 
 # files deleted from the repository since the last deploy
 if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
@@ -53,7 +68,9 @@ if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
     if [ -n "$deleted" ]; then
         echo "Usuwanie z serwera plików usuniętych z repozytorium:"
         echo "$deleted" | sed 's/^/  /'
-        printf '%s\n' "$deleted" | ssh "$target" "cd '$root' && xargs -d '\n' rm -f --"
+        if [ "$dry_run" -eq 0 ]; then
+            printf '%s\n' "$deleted" | ssh "$target" "cd '$root' && xargs -d '\n' rm -f --"
+        fi
     fi
 elif [ -n "$previous" ]; then
     echo "Poprzednio wdrożonego commita $previous nie ma w tym repozytorium, usuniętych plików nie sprawdzam."
@@ -85,7 +102,7 @@ if [ -n "$changed_config" ]; then
         fi
     done <<< "$changed_config"
 
-    if [ ${#config_files[@]} -gt 0 ]; then
+    if [ ${#config_files[@]} -gt 0 ] && [ "$dry_run" -eq 0 ]; then
         # each file goes next to its place under a temporary name, so the whole
         # configuration can be tested before anything is replaced
         i=0
@@ -132,10 +149,16 @@ for dest in "$@"; do
 done
 echo "Reguły nginx wgrane i przeładowane."
 REMOTE
+    elif [ ${#config_files[@]} -gt 0 ]; then
+        echo "[dry-run] Wysłałbym je, uruchomił nginx -t i przeładował nginx (przy błędzie wycofanie i stop)."
     fi
 fi
 
 # the marker, and for the panel the commit's date and subject
-git log -1 --format='%H%n%cI%n%s' \
-    | ssh "$target" "mkdir -p '$root/inc/data' && echo '$commit' > '$marker' && cat > '$root/inc/data/deployed-info' && chown www-data:www-data '$root/inc/data' '$marker' '$root/inc/data/deployed-info'"
-echo "Gotowe: $(git log -1 --format='%h')"
+if [ "$dry_run" -eq 1 ]; then
+    echo "[dry-run] Zapisałbym znacznik wdrożenia $(git log -1 --format='%h') w $marker. Nic nie wysłano."
+else
+    git log -1 --format='%H%n%cI%n%s' \
+        | ssh "$target" "mkdir -p '$root/inc/data' && echo '$commit' > '$marker' && cat > '$root/inc/data/deployed-info' && chown www-data:www-data '$root/inc/data' '$marker' '$root/inc/data/deployed-info'"
+    echo "Gotowe: $(git log -1 --format='%h')"
+fi
