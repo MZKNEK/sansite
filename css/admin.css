@@ -102,29 +102,50 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px 18px;
+    gap: 12px 20px;
     margin-top: 14px;
-    font-size: 14px;
 }
 
 .quality-form label {
     display: flex;
     align-items: center;
     gap: 8px;
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-light);
 }
 
 .quality-form input[type="number"] {
-    width: 4.5em;
-    padding: 7px 8px;
+    width: 4.4em;
+    height: 36px;
+    padding: 0 10px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
+    border-radius: 0;
+    background: rgba(8, 9, 9, 0.55);
     color: var(--text);
-    font: 14px "JetBrains Mono", Consolas, monospace;
+    font: 15px "JetBrains Mono", Consolas, monospace;
+    text-align: center;
     outline: 0;
+    appearance: textfield;
+    -moz-appearance: textfield;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.quality-form input[type="number"]:hover {
+    border-color: rgba(var(--accent-light-rgb), 0.7);
 }
 
 .quality-form input[type="number"]:focus {
-    border-color: var(--accent);
+    border-color: var(--accent-light);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+}
+
+/* no system spinners; they do not fit the site's fields */
+.quality-form input[type="number"]::-webkit-outer-spin-button,
+.quality-form input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* Date and time in the Polish way (js/admin.js): a text field and a calendar */
