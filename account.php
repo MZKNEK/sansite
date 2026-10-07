@@ -38,7 +38,7 @@
     if ($user !== null) {
         $badge = roleBadge(siteRoles());
         setcookie('hud', hudMode($user['id']), time() + 31536000, '/');
-        setcookie('hudrole', $badge['key'] ?? '', time() + 31536000, '/');
+        setcookie('hudrole', hudColorKey($user['id'], $badge), time() + 31536000, '/');
     }
     echo json_encode($user === null ? [
         'login' => authConfigured()
@@ -46,6 +46,6 @@
         'menu' => accountMenuHtml($user, siteRoles(), siteRoot()),
         'api' => canViewApiId($user['id']),
         'hud' => hudMode($user['id']),
-        'role' => roleBadge(siteRoles())['key'] ?? '',
+        'role' => hudColorKey($user['id'], $badge),
         'flash' => takeFlash()
     ], JSON_UNESCAPED_UNICODE);

@@ -46,7 +46,9 @@
             }
         } else if (($_POST['action'] ?? '') === 'hud') {
             $mode = (string)($_POST['hud'] ?? '');
-            if (!isset(HUD_MODES[$mode]) || !setHudMode($user['id'], $mode)) {
+            // the colour is a panel admin's choice; others keep their own role
+            $color = isPanelAdminId($user['id']) ? (string)($_POST['hudcolor'] ?? 'own') : 'own';
+            if (!setHud($user['id'], $mode, $color)) {
                 setFlash('Nie udało się zapisać wyglądu, spróbuj później.');
             } else {
                 addHistory('hud', 'Zmieniono wygląd na: ' . HUD_MODES[$mode] . '.');
@@ -140,7 +142,7 @@
   <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=c27e4788b6" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=7fb6ed8e67" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -294,13 +296,29 @@
         <form method="post" action="./" class="hud-form">
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="hud" />
-<?php $hudNow = hudMode($id); foreach (HUD_MODES as $key => $label): ?>
-          <label class="hud-choice">
-            <input type="radio" name="hud" value="<?=e($key)?>" data-hud-choice<?=$hudNow === $key ? ' checked' : ''?> />
-            <span class="hud-swatch hud-<?=e($key)?>"></span>
-            <span><?=e($label)?></span>
-          </label>
+<?php $hudNow = hudMode($id); $colorNow = hudColor($id); ?>
+          <div class="hud-group">
+            <b class="hud-label">Wariant</b>
+<?php foreach (HUD_MODES as $key => $label): ?>
+            <label class="hud-choice">
+              <input type="radio" name="hud" value="<?=e($key)?>" data-hud-choice<?=$hudNow === $key ? ' checked' : ''?> />
+              <span class="hud-swatch hud-<?=e($key)?>"></span>
+              <span><?=e($label)?></span>
+            </label>
 <?php endforeach; ?>
+          </div>
+<?php if (isPanelAdminId($id)): ?>
+          <div class="hud-group">
+            <b class="hud-label">Kolor <span class="muted">— administrator panelu może wybrać dowolny</span></b>
+<?php foreach (HUD_COLORS as $key => $label): $hex = $key === 'own' ? (HUD_COLOR_HEX[$badge['key'] ?? ''] ?? '#b670d3') : HUD_COLOR_HEX[$key]; ?>
+            <label class="hud-choice">
+              <input type="radio" name="hudcolor" value="<?=e($key)?>" data-hud-color<?=$colorNow === $key ? ' checked' : ''?> />
+              <span class="hud-swatch" style="background: <?=e($hex)?>"></span>
+              <span><?=e($label)?></span>
+            </label>
+<?php endforeach; ?>
+          </div>
+<?php endif; ?>
           <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
         </form>
       </section>
@@ -318,7 +336,7 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=b0c463f9b6"></script>
-  <script src="../js/hud.js?v=88d070fcff"></script>
+  <script src="../js/hud.js?v=31f5973ee3"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>

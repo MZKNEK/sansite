@@ -27,4 +27,13 @@
       if (input.checked) root.setAttribute('data-hud', input.value);
     });
   });
+
+  // the colour of the HUD (a panel admin picks any role, or its own)
+  Array.prototype.forEach.call(document.querySelectorAll('[data-hud-color]'), function (input) {
+    input.addEventListener('change', function () {
+      if (!input.checked) return;
+      var key = input.value === 'own' ? root.getAttribute('data-hud-own') : input.value;
+      root.className = key ? 'role-' + key : '';
+    });
+  });
 })();

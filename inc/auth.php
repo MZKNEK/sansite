@@ -558,39 +558,90 @@
         'full'    => 'Cały HUD w kolorze roli'
     ];
 
-    // the mode of an account, 'default' when it never picked one
-    function hudMode($id)
-    {
-        $mode = readData('hud')[(string)$id] ?? 'default';
+    // the colours a panel admin may put on the HUD: its own role, or any of the
+    // roles (and the grey of an account off the server)
+    const HUD_COLORS = [
+        'own'       => 'Moja rola',
+        'dev'       => 'DEV',
+        'admin'     => 'ADMIN',
+        'semiAdmin' => 'SEMI-ADMIN',
+        'tester'    => 'TESTER',
+        'moderator' => 'MOD',
+        'user'      => 'USER',
+        'out'       => 'Poza serwerem'
+    ];
 
-        return isset(HUD_MODES[$mode]) ? $mode : 'default';
+    // every role colour as a hex, for the swatches in the profile
+    const HUD_COLOR_HEX = [
+        'dev' => '#4fd1c5', 'admin' => '#e86262', 'semiAdmin' => '#f0a35e', 'tester' => '#e8d36a',
+        'moderator' => '#5fd38d', 'user' => '#b670d3', 'out' => '#80848e', 'none' => '#80848e'
+    ];
+
+    // what an account picked: the mode and the colour, both with a safe default.
+    // The first format kept only the mode, so a plain string still reads as one.
+    function hudPrefs($id)
+    {
+        $entry = readData('hud')[(string)$id] ?? null;
+        if (is_string($entry))
+            $entry = ['mode' => $entry];
+        $entry = is_array($entry) ? $entry : [];
+
+        $mode = $entry['mode'] ?? 'default';
+        $color = $entry['color'] ?? 'own';
+
+        return [
+            'mode' => isset(HUD_MODES[$mode]) ? $mode : 'default',
+            'color' => isset(HUD_COLORS[$color]) ? $color : 'own'
+        ];
     }
 
-    function setHudMode($id, $mode)
+    function hudMode($id)
     {
-        if (!isset(HUD_MODES[$mode]))
+        return hudPrefs($id)['mode'];
+    }
+
+    function hudColor($id)
+    {
+        return hudPrefs($id)['color'];
+    }
+
+    // the colour key that ends up on the page: the picked one, or the account's
+    // own role; '' when nothing is known about the account
+    function hudColorKey($id, $badge)
+    {
+        $color = hudColor($id);
+
+        return $color === 'own' ? (string)($badge['key'] ?? '') : $color;
+    }
+
+    function setHud($id, $mode, $color)
+    {
+        if (!isset(HUD_MODES[$mode]) || !isset(HUD_COLORS[$color]))
             return false;
 
         $all = readData('hud');
-        if ($mode === 'default')
+        if ($mode === 'default' && $color === 'own')
             unset($all[(string)$id]);
         else
-            $all[(string)$id] = $mode;
+            $all[(string)$id] = ['mode' => $mode, 'color' => $color];
 
         return writeData('hud', $all);
     }
 
-    // the attributes for <html> that put the chosen HUD and the role colour on
-    // the page; nothing when the visitor is not logged in
+    // the attributes for <html> that put the chosen HUD and its colour on the
+    // page; nothing when the visitor is not logged in. data-hud-own keeps the
+    // account's own role, so the profile can put it back for "Moja rola".
     function hudHtmlAttributes($user)
     {
         if ($user === null)
             return '';
 
         $badge = roleBadge(siteRoles());
-        $html = ' data-hud="' . htmlspecialchars(hudMode($user['id']), ENT_QUOTES, 'UTF-8') . '"';
-        if ($badge !== null)
-            $html .= ' class="role-' . htmlspecialchars($badge['key'], ENT_QUOTES, 'UTF-8') . '"';
+        $key = hudColorKey($user['id'], $badge);
+        $html = ' data-hud="' . htmlspecialchars(hudMode($user['id']), ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-hud-own="' . htmlspecialchars((string)($badge['key'] ?? ''), ENT_QUOTES, 'UTF-8') . '"';
+        if ($key !== '')
+            $html .= ' class="role-' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '"';
 
         return $html;
     }
@@ -634,7 +685,7 @@
         if (isPanelAdminId($user['id']))
             $places[] = ['panel', 'Panel', 'admin/'];
 
-        $html = '<div class="account-menu' . ($badge ? ' role-' . $badge['key'] : '') . '">'
+        $html = '<div class="account-menu">'
             . '<button type="button" class="account-toggle" aria-expanded="false" aria-haspopup="true">'
             . '<img src="' . $text($user['avatar']) . '" alt="" width="28" height="28" />'
             . '<span class="account-name">' . $text($user['name']) . '</span>' . roleBadgeHtml($roles) . $icon('caret')
