@@ -1352,7 +1352,7 @@
 <?php endif; ?>
       </section>
 
-      <section class="card" data-sum="<?=webpQuality('jpg')?> JPG">
+      <section class="card wide" data-sum="<?=webpQuality('jpg')?> JPG">
         <h2><i><?=sprintf('%02d', $number++)?></i>Jakość konwersji na WebP</h2>
         <p class="hint">Z jaką jakością (<?=WEBP_QUALITY_MIN?>–<?=WEBP_QUALITY_MAX?>) zdjęcia zapisują się jako WebP. Niżej = mniejszy plik i słabsza jakość; wynik zapisuje się tylko, gdy wyjdzie mniejszy. Ręczna zmiana w galerii ma własny suwak.</p>
         <form class="quality-form" data-action="quality">
