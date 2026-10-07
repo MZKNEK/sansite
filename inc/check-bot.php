@@ -15,6 +15,7 @@
     require __DIR__ . '/bot.php';
     require __DIR__ . '/services.php';
     require __DIR__ . '/gallery.php';
+    require __DIR__ . '/panel-stats.php';
 
     $state = botState(true);
     if (servicesDue())
@@ -33,5 +34,8 @@
     // uploaded pictures and films waiting as WebP or WebM (inc/gallery.php);
     // one run at a time
     $mediaBase = str_replace('\\', '/', dirname(__DIR__)) . '/i';
+    // the panel's gallery and inc/data numbers, counted again once an hour here
+    // so opening the panel never walks the whole gallery (inc/panel-stats.php)
+    panelStats($mediaBase);
     runMediaJobs($mediaBase, 900);
     echo date('Y-m-d H:i:s'), ' ', $state['status'], ' ', $state['uptime'], "%\n";

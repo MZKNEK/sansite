@@ -46,11 +46,7 @@
   });
 
   // Polish plural: 1 polecenie, 2-4 polecenia, 5+ poleceń (but 12-14 poleceń)
-  function plural(n, one, few, many) {
-    if (n === 1) return one;
-    var last = n % 10, lastTwo = n % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? few : many;
-  }
+  var plural = window.SanakanUtil.plural;
 
   function filter() {
     var query = input.value.trim().toLowerCase();

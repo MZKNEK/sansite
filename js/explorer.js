@@ -47,12 +47,7 @@ window.SanakanGallery = (function () {
   var tiles = Array.prototype.slice.call(grid.querySelectorAll('.tile:not(.up)'));
   var up = document.getElementById('ex-up');
 
-  // Polish plural: 1 plik, 2-4 pliki, 5+ plików (but 12-14 plików)
-  function plural(n, one, few, many) {
-    if (n === 1) return one;
-    var last = n % 10, lastTwo = n % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? few : many;
-  }
+  var plural = window.SanakanUtil.plural;
 
   // Search by name
   var input = document.getElementById('ex-search');

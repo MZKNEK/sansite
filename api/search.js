@@ -37,11 +37,7 @@ window.SanakanApiSearch = (function () {
   }
 
   // Polish plural: 1 endpoint, 2-4 endpointy, 5+ endpointów (but 12-14 endpointów)
-  function plural(n, one, few, many) {
-    if (n === 1) return one;
-    var last = n % 10, lastTwo = n % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? few : many;
-  }
+  var plural = window.SanakanUtil.plural;
 
   function bind(ui) {
     var input = document.getElementById('api-search');

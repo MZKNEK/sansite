@@ -6,16 +6,8 @@
   var grid = document.getElementById('grid');
   var gallery = window.SanakanGallery;
 
-  // Polish plural: 1 element, 2-4 elementy, 5+ elementów (but 12-14 elementów)
-  function plural(n, one, few, many) {
-    if (n === 1) return one;
-    var last = n % 10, lastTwo = n % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? few : many;
-  }
-
-  function countLabel(n) {
-    return n + ' ' + plural(n, 'element', 'elementy', 'elementów');
-  }
+  var plural = window.SanakanUtil.plural;
+  var countLabel = window.SanakanUtil.countLabel;
 
   // "i/..." as the gallery names a path; links have u/<token> for the folder of an account
   function folderLabel(rel) {
@@ -122,7 +114,7 @@
       var hash = Array.prototype.map.call(new Uint8Array(digest), function (byte) {
         return ('0' + byte.toString(16)).slice(-2);
       }).join('');
-      return post({ action: 'duplicates', size: String(file.size), hash: hash });
+      return post({ action: 'duplicates', size: String(file.size), hash: hash, dir: data.dir });
     }).then(function (result) {
       return result.ok && result.matches ? result.matches : [];
     }).catch(function () {

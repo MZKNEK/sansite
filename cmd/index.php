@@ -8,27 +8,10 @@
     $prefix = $data['prefix'] ?? '';
     $modules = $data['modules'] ?? [];
 
-    // texts from the API are escaped before they go into the page
-    function e($text)
-    {
-        return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
-    }
-
     // two-digit numbers, like on the home page buttons
     function num($index)
     {
         return str_pad($index + 1, 2, '0', STR_PAD_LEFT);
-    }
-
-    // Polish plural: 1 polecenie, 2-4 polecenia, 5+ poleceń (but 12-14 poleceń)
-    function plural($n, $one, $few, $many)
-    {
-        if ($n == 1)
-            return $one;
-
-        $last = $n % 10;
-        $lastTwo = $n % 100;
-        return $last >= 2 && $last <= 4 && ($lastTwo < 12 || $lastTwo > 14) ? $few : $many;
     }
 
     function moduleCount($module)

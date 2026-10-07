@@ -49,21 +49,24 @@
             $y += 38;
         }
 
-        // ...and under them the other Sanakan sites, a small dot each. This site
-        // works when its picture comes, and the wiki is on the same server, so
-        // they are left out; the two Skalpelators share a dot, yellow when only
-        // one of them answers.
-        $sites = [];
-        foreach (servicesState(1) as $service) {
-            if ($service['key'] === 'site' || $service['key'] === 'wiki')
-                continue;
-            $name = in_array($service['key'], ['skalpel', 'uskalpel']) ? 'Skalpelatory' : $service['name'];
-            $sites[$name][] = $service['up'];
-        }
+        // ...and under them the three the bot itself reports on besides Discord:
+        // Shinden, the Alter site and the bot API, a small dot each. This site
+        // works when its picture comes and the wiki is on the same server, so
+        // they are left out; Waifu and the Skalpelators are in the panel only.
+        $shinden = botDependencyHistory('shinden');
+        $api = botApiLast();
+        $alter = null;
+        foreach (servicesState(1) as $service)
+            if ($service['key'] === 'alter')
+                $alter = $service['up'];
+        $sites = [
+            'Shinden' => $shinden ? end($shinden)[1] : null,
+            'Alter' => $alter,
+            'API bota' => $api ? $api[1] : null
+        ];
         $x = OG_WIDTH - 80;
-        foreach (array_reverse($sites, true) as $name => $ups) {
-            $known = array_filter($ups, function ($up) { return $up !== null; });
-            $hex = !$known ? '#80848e' : (!in_array(false, $known, true) ? '#23a55a' : (in_array(true, $known, true) ? '#f0b232' : '#d9534f'));
+        foreach (array_reverse($sites, true) as $name => $up) {
+            $hex = $up === null ? '#80848e' : ($up ? '#23a55a' : '#d9534f');
             text($img, OG_REGULAR, 20, $x, $y, color($img, '#dcddde', 50), $name, 0, 'right');
             $x -= textWidth(OG_REGULAR, 20, $name) + 8;
             circle($img, $x - 7, $y - 7, 14, color($img, $hex));

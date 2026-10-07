@@ -132,7 +132,7 @@
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=b3d3529c7a" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=4a92e73375" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -291,7 +291,8 @@
 <?php else: ?>
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
-  <script src="../js/explorer.js?v=eaa39322bf"></script>
+  <script src="../js/sanakan-util.js?v=f417e538a8"></script>
+  <script src="../js/explorer.js?v=b0c463f9b6"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>

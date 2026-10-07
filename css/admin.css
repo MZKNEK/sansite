@@ -1208,6 +1208,13 @@ a.who-name:hover {
     text-transform: none;
 }
 
+.diag-title i {
+    margin-right: 8px;
+    font-style: normal;
+    font-family: "Sanakan Mono", monospace;
+    color: var(--accent);
+}
+
 .diag-episodes {
     max-height: 640px;
     overflow-y: auto;

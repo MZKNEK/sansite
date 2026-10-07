@@ -23,7 +23,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | Path | Contents |
 |---|---|
 | `index.html`, `404.html` | Home page and the 404 page |
-| `og.php`, `inc/og.php` | Link preview pictures (`og:image`) of the pages, drawn with GD: the home page the logo with the bot's live Discord status dot (kept a minute); the commands their number and modules, their change history the latest changes with the new text of what changed, new commands of the last 30 days always among them (10 minutes); the panel a radar with the bot in its centre and the Sanakan sites as blips in the colours of their last check (5 minutes); the gallery, the API, the privacy notice and the profile (an identity card of the Safeguard, everything on it unknown) a drawing without any data (a day). `state/og.php` draws the status one (availability, outages, version, the other sites) with the same code |
+| `og.php`, `inc/og.php` | Link preview pictures (`og:image`) of the pages, drawn with GD: the home page the logo with the bot's live Discord status dot (kept a minute); the commands their number and modules, their change history the latest changes with the new text of what changed, new commands of the last 30 days always among them (10 minutes); the panel a radar with the bot in its centre and the Sanakan sites as blips in the colours of their last check (5 minutes); the gallery, the API, the privacy notice and the profile (an identity card of the Safeguard, everything on it unknown) a drawing without any data (a day). `state/og.php` draws the status one (availability, outages, version, and Shinden, Alter and the bot API as dots) with the same code |
 | `sanakan-og.png` | The home page's picture without the status dot, sent when GD cannot draw |
 | `wiki-og.png` | The wiki's link preview picture, a fixed file (a fan of Pocket Waifu cards), linked from `server/wiki/head.html` |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/`, `account/` | Subpages |
@@ -40,6 +40,8 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/services.php` | The Sanakan sites, this one included: whether they answer, since when, per day counts |
 | `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, the account's roles on the bot's server (asked with the site's key, kept 10 minutes), change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, pictures changed to WebP and films to WebM in the background, the manual change to WebP with a quality and a preview, search, duplicate check, trash, renaming, rotating, ZIP downloads |
+| `inc/text.php` | Escaping, lower case, Polish plurals, byte sizes and thousands, shared by every page (`e()`, `plural()`, `formatSize()`) |
+| `inc/panel-stats.php` | The gallery's numbers and the room `inc/data` takes, counted by `inc/check-bot.php` in the background and only read by the panel |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
 | `fonts/`, `css/fonts.css` | The site's fonts (Lato, Sanakan Mono, JetBrains Mono, SIL Open Font License; Sanakan Mono is Share Tech Mono with the Polish letters it lacks added), served from the site instead of Google Fonts, so no visitor's address goes to Google |
 | `inc/fonts/` | Lato and Sanakan Mono (SIL Open Font License) for the preview picture of `/state/` |
@@ -54,7 +56,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists and requests, the roles the bot reported, status history and outages, change history, trash, the old links of pictures changed to WebP and of films changed to WebM, the pictures and films waiting as WebP or WebM (`media-jobs.json`), the WebP results of a manual change waiting to be accepted (`webp-previews.json`, their files in `webp-preview/`), the WebP conversion qualities and the automatic scanner blocking (`settings.json`), file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup),
+- `inc/data/`, the data the site writes: access lists and requests, the roles the bot reported, status history and outages, change history, trash, the old links of pictures changed to WebP and of films changed to WebM, the pictures and films waiting as WebP or WebM (`media-jobs.json`), the WebP results of a manual change waiting to be accepted (`webp-previews.json`, their files in `webp-preview/`), the WebP conversion qualities and the automatic scanner blocking (`settings.json`), file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup), and the gallery and `inc/data` numbers the panel shows (`panel-stats.json`, counted by cron),
 - the pictures in `i/` (only `i/index.php` is tracked).
 
 The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (server card, "Kopia danych"). To restore it, unpack `data/` into `inc/data/` and `i/` into `i/`, then give them back to the web server: `chown -R www-data:www-data inc/data i`.

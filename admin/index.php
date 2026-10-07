@@ -9,6 +9,7 @@
     require __DIR__ . '/../inc/status-card.php';
     require_once __DIR__ . '/../inc/system.php';
     require __DIR__ . '/../inc/diag.php';
+    require __DIR__ . '/../inc/panel-stats.php';
     require __DIR__ . '/../inc/cloudflare.php';
     require __DIR__ . '/../inc/autoblock.php';
     require __DIR__ . '/../inc/meta.php';
@@ -47,32 +48,9 @@
             . 'mkdir -p ' . __DIR__ . '/../inc/data && chown www-data:www-data ' . __DIR__ . '/../inc/data';
     }
 
-    const LARGEST_SHOWN = 10;
     // pictures and films a folder in the trash shows at most
     const TRASH_PREVIEW_MAX = 60;
     const REPO_URL = 'https://github.com/MZKNEK/sansite';
-
-    // files and bytes in a folder and its subfolders
-    function folderTotals($dir)
-    {
-        $files = 0;
-        $bytes = 0;
-        foreach (is_dir($dir) ? (scandir($dir) ?: []) : [] as $name) {
-            if ($name === '.' || $name === '..')
-                continue;
-            $path = $dir . '/' . $name;
-            if (is_dir($path) && !is_link($path)) {
-                list($innerFiles, $innerBytes) = folderTotals($path);
-                $files += $innerFiles;
-                $bytes += $innerBytes;
-            } else if (is_file($path)) {
-                $files++;
-                $bytes += filesize($path);
-            }
-        }
-
-        return [$files, $bytes];
-    }
     const NOTICE_LENGTH = 300;
 
     // a time from a datetime-local field ("2026-10-04T22:00", Polish time), or null
@@ -90,62 +68,6 @@
         return $time ? date('Y-m-d\TH:i', $time) : '';
     }
     const CRON_LATE = 300;
-
-    // The gallery in numbers: files and bytes in all, per top folder ('' for the
-    // files right in i/), per file type, and the biggest files as [rel, size].
-    // Hidden files and the gallery script do not count, as in the gallery itself.
-    function galleryStats($base)
-    {
-        $stats = ['files' => 0, 'bytes' => 0, 'folders' => [], 'types' => [], 'largest' => []];
-        if (!is_dir($base))
-            return $stats;
-
-        foreach (listNames($base, '') as $name)
-            if (is_dir($base . '/' . $name) && !is_link($base . '/' . $name))
-                $stats['folders'][$name] = ['files' => 0, 'bytes' => 0];
-
-        $walk = function ($dirPath, $dirRel, $top, $depth) use (&$walk, &$stats) {
-            foreach (listNames($dirPath, $dirRel) as $name) {
-                $full = $dirPath . '/' . $name;
-                $rel = ltrim($dirRel . '/' . $name, '/');
-                if (is_dir($full) && !is_link($full)) {
-                    if ($depth < 10)
-                        $walk($full, $rel, $top ?? $name, $depth + 1);
-                    continue;
-                }
-                if (!is_file($full))
-                    continue;
-
-                $size = filesize($full);
-                $type = strtolower(pathinfo($name, PATHINFO_EXTENSION)) ?: 'bez rozszerzenia';
-                $stats['files']++;
-                $stats['bytes'] += $size;
-                foreach ([['folders', $top ?? ''], ['types', $type]] as [$group, $key]) {
-                    $stats[$group][$key]['files'] = ($stats[$group][$key]['files'] ?? 0) + 1;
-                    $stats[$group][$key]['bytes'] = ($stats[$group][$key]['bytes'] ?? 0) + $size;
-                }
-
-                // only the biggest are kept while walking
-                $stats['largest'][] = [$rel, $size];
-                if (count($stats['largest']) > 5 * LARGEST_SHOWN)
-                    $stats['largest'] = largestFirst($stats['largest']);
-            }
-        };
-        $walk($base, '', null, 0);
-
-        $stats['largest'] = largestFirst($stats['largest']);
-        foreach (['folders', 'types'] as $group)
-            uasort($stats[$group], function ($a, $b) { return $b['bytes'] <=> $a['bytes']; });
-
-        return $stats;
-    }
-
-    function largestFirst($files)
-    {
-        usort($files, function ($a, $b) { return $b[1] <=> $a[1]; });
-
-        return array_slice($files, 0, LARGEST_SHOWN);
-    }
 
     // share of the whole for the bar behind a row, as a CSS percentage
     function share($part, $whole)
@@ -855,8 +777,13 @@
         } else if (is_file(dataDir() . '/deployed-commit')) {
             $deployed = ['hash' => trim((string)file_get_contents(dataDir() . '/deployed-commit')), 'date' => null, 'subject' => '', 'at' => filemtime(dataDir() . '/deployed-commit')];
         }
-        list(, $dataBytes) = folderTotals(dataDir());
-        $stats = galleryStats($galleryDir);
+        $panelStats = panelStats($galleryDir);
+        $stats = $panelStats['gallery'];
+        $dataBytes = $panelStats['data']['bytes'];
+        $dataRoom = $panelStats['data'];
+        $thumbs = $panelStats['thumbs'];
+        $statsAgo = $panelStats['time'];
+        $dataHeavy = ($dataRoom['trash'] + $dataRoom['webp']) >= PANEL_DATA_WARN_BYTES;
         $diskFree = @disk_free_space($galleryDir);
         $diskTotal = @disk_total_space($galleryDir);
         $sessionsSince = sessionsValidSince();
@@ -864,8 +791,8 @@
         $cronLate = $cronLast === null || time() - $cronLast > CRON_LATE;
         $cronCommand = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-bot.php'))
             . " > /dev/null 2>&1' > /etc/cron.d/sanakan-status";
-        $thumbFiles = glob($thumbsDir . '/*') ?: [];
-        $thumbBytes = array_sum(array_map('filesize', $thumbFiles));
+        $thumbFiles = $thumbs['files'];
+        $thumbBytes = $thumbs['bytes'];
         $specFile = botFile('swagger.json');
         $privateTime = botPrivateCommandsTime();
         $heartbeatLast = botHeartbeatTime();
@@ -1012,7 +939,7 @@
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=b3d3529c7a" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=4a92e73375" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1058,7 +985,7 @@
       <nav class="admin-nav" id="admin-nav" aria-label="Sekcje panelu"></nav>
       <div class="panel-grid">
 
-<?php $alertCount = count($requests ?: []) + ($cronLate ? 1 : 0); ?>
+<?php $alertCount = count($requests ?: []) + ($cronLate ? 1 : 0) + ($dataHeavy ? 1 : 0); ?>
 <?php if ($alertCount): ?>
       <h2 class="panel-section" data-section="wymaga" data-label="Wymaga uwagi" data-count="<?=$alertCount?>">Wymaga uwagi</h2>
 <?php endif; ?>
@@ -1100,6 +1027,13 @@
           </li>
 <?php endforeach; ?>
         </ul>
+      </section>
+<?php endif; ?>
+
+<?php if ($dataHeavy): ?>
+      <section class="card wide alarm" role="alert" data-state="warn" data-sum="<?=e(formatSize($dataRoom['trash'] + $dataRoom['webp']))?>">
+        <h2><i>!</i>Dużo danych w inc/data</h2>
+        <p>Kosz zajmuje <b><?=e(formatSize($dataRoom['trash']))?></b>, a podglądy WebP <b><?=e(formatSize($dataRoom['webp']))?></b> &mdash; razem <?=e(formatSize($dataRoom['trash'] + $dataRoom['webp']))?> z <?=e(formatSize(PANEL_DATA_WARN_BYTES))?>. Kosz opróżnia się po <?=TRASH_DAYS?> dniach, podglądy po dwóch godzinach; możesz je też usunąć w kartach niżej.</p>
       </section>
 <?php endif; ?>
 
@@ -1371,6 +1305,7 @@
 
       <section class="card wide" data-sum="<?=$stats['files']?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Galeria w liczbach</h2>
+        <p class="hint">Policzone <?=e(ago($statsAgo))?>; odświeża się w tle raz na godzinę (cron), więc otwarcie panelu nie czeka na przejście galerii.</p>
         <div class="stats-summary">
           <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
           <span><b><?=e(formatSize($stats['bytes']))?></b> razem</span>
@@ -1449,8 +1384,9 @@
 
       <h2 class="panel-section" data-section="serwer" data-label="Serwer">Serwer</h2>
 
+      <?php $diagCard = sprintf('%02d', $number++); $diagSub = 0; $diagLetter = function () use (&$diagSub, $diagCard) { return $diagCard . chr(64 + ++$diagSub); }; ?>
       <section class="card wide diag" data-sum="<?=count($diagEpisodes)?>">
-        <h2><i><?=sprintf('%02d', $number++)?></i>Dostępność strony</h2>
+        <h2><i><?=$diagCard?></i>Dostępność strony</h2>
         <p class="hint">Co 10 sekund serwer pyta stronę przez Cloudflare, tak jak odwiedzający, i bezpośrednio u siebie, z pominięciem Cloudflare, a dla porównania wiki. Obok zapisuje ruch z dziennika nginx. Gdy strona nie działa tylko przez Cloudflare (522), połączenia nie dochodzą do serwera. Gdy nie działa też na serwerze, zatyka się nginx albo PHP. Pomiary z <?=DIAG_KEEP_DAYS?> dni, pokazane 24 godziny.</p>
 <?php if (!$diagRounds): ?>
         <p class="nobody">Jeszcze nie ma pomiarów. Ustawienie serwera opisuje lista niżej.</p>
@@ -1485,7 +1421,7 @@
 <?php endif; ?>
         </div>
 
-        <h3 class="diag-title">Awarie w ostatnich 24 godzinach<?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Awarie w ostatnich 24 godzinach<?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
 <?php if (!$diagEpisodes): ?>
         <p class="nobody">Strona cały czas odpowiadała.</p>
 <?php else: ?>
@@ -1520,7 +1456,7 @@
         </div>
 <?php endif; ?>
 
-        <h3 class="diag-title">Ostatnia godzina <span class="muted"><?=formatCount($diagHour['n'])?> zapytań, <?=formatCount($diagHour['php'])?> do PHP, najwięcej <?=formatCount($diagHour['peak'])?> w 10 s</span></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Ostatnia godzina <span class="muted"><?=formatCount($diagHour['n'])?> zapytań, <?=formatCount($diagHour['php'])?> do PHP, najwięcej <?=formatCount($diagHour['peak'])?> w 10 s</span></h3>
         <?=diagIpList($diagHour['ips'], $diagMarks)?>
 
 <?php if ($diagHour['paths']): ?>
@@ -1537,7 +1473,7 @@
 <?php endif; ?>
 <?php endif; ?>
 
-        <h3 class="diag-title">Skanery w ostatnich <?=DIAG_KEEP_DAYS?> dniach<?=$diagScanners ? ' <span class="muted">' . count($diagScanners) . ' ' . plural(count($diagScanners), 'adres', 'adresy', 'adresów') . ', ' . formatCount(array_sum(array_column($diagScanners, 'n'))) . ' zapytań</span>' : ''?></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Skanery w ostatnich <?=DIAG_KEEP_DAYS?> dniach<?=$diagScanners ? ' <span class="muted">' . count($diagScanners) . ' ' . plural(count($diagScanners), 'adres', 'adresy', 'adresów') . ', ' . formatCount(array_sum(array_column($diagScanners, 'n'))) . ' zapytań</span>' : ''?></h3>
         <p class="hint">Adresy, które pytały o to, czego na tej stronie nie ma (<code>/.env</code>, <code>/wp-*</code>, obce pliki <code>.php</code>, kopie zapasowe), albo przedstawiły się jako narzędzie do skanowania. Liczone są wszystkie ich zapytania od pierwszego takiego.</p>
 <?php if (cloudflareConfigured()): $autoOn = autoBlockEnabled(); ?>
         <form class="auto-block" data-action="auto-block">
@@ -1567,7 +1503,7 @@
 <?php endif; ?>
 <?php if ($cfItems): ?>
 
-        <h3 class="diag-title">Zablokowane w Cloudflare <span class="muted"><?=count($cfItems)?> na liście <?=e(CLOUDFLARE_LIST)?></span></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Zablokowane w Cloudflare <span class="muted"><?=count($cfItems)?> na liście <?=e(CLOUDFLARE_LIST)?></span></h3>
         <div class="diag-scroll">
           <ul class="diag-blocked">
 <?php foreach ($cfItems as $item): ?>
@@ -1582,7 +1518,7 @@
 <?php endif; ?>
 <?php if ($diagPages): ?>
 
-        <h3 class="diag-title">Czas PHP według stron <span class="muted">24 godziny, najwięcej czasu w sumie u góry</span></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Czas PHP według stron <span class="muted">24 godziny, najwięcej czasu w sumie u góry</span></h3>
         <ul class="stat-list diag-pages">
 <?php foreach ($diagPages as [$path, $n, $average, $slowest, $total]): ?>
           <li style="--share: <?=share($total, $diagPages[0][4])?>"><span title="<?=e($path)?>"><?=e($path)?></span><span><?=formatCount($n)?> &times; średnio <?=e(milliseconds($average))?> &middot; najdłużej <?=e(milliseconds($slowest))?></span></li>
@@ -1591,7 +1527,7 @@
 <?php endif; ?>
 <?php if ($diagSlow): ?>
 
-        <h3 class="diag-title">Wolne zapytania PHP <span class="muted">ostatnie z dziennika slowlog</span></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Wolne zapytania PHP <span class="muted">ostatnie z dziennika slowlog</span></h3>
         <div class="diag-scroll">
 <?php foreach ($diagSlow as $entry): ?>
           <pre class="diag-slow"><?=e($entry)?></pre>
@@ -1599,7 +1535,7 @@
         </div>
 <?php endif; ?>
 
-        <h3 class="diag-title">Ustawienie</h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i>Ustawienie</h3>
 <?php
         $nginxProbe = $diagLast['p']['nginx'] ?? null;
         $fpmProbe = $diagLast['p']['fpm'] ?? null;
@@ -1768,7 +1704,7 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
 
           <dt>Cache miniatur</dt>
           <dd>
-            <?=count($thumbFiles)?> <?=plural(count($thumbFiles), 'plik', 'pliki', 'plików')?>, <?=e(formatSize($thumbBytes))?>
+            <?=$thumbFiles?> <?=plural($thumbFiles, 'plik', 'pliki', 'plików')?>, <?=e(formatSize($thumbBytes))?>
             <button type="button" class="admin-btn small" data-action="clear-thumbs" data-confirm="Usunąć wszystkie miniatury? Utworzą się od nowa przy oglądaniu galerii.">Wyczyść</button>
           </dd>
 
@@ -1793,7 +1729,9 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
                       . (botAddresses() ? '; adres bota (chroniony przed blokadą): ' . e(implode(', ', array_keys(botAddresses()))) : ''))?></dd>
 
           <dt>Zapis danych</dt>
-          <dd><?=dataWritable() ? 'inc/data: OK' : '<b class="warn">brak prawa zapisu</b>: ' . e(dataError())?></dd>
+          <dd><?=dataWritable()
+              ? 'inc/data: ' . e(formatSize($dataRoom['bytes'])) . ' (kosz ' . e(formatSize($dataRoom['trash'])) . ', podglądy WebP ' . e(formatSize($dataRoom['webp'])) . ')'
+              : '<b class="warn">brak prawa zapisu</b>: ' . e(dataError())?></dd>
 
           <dt>Wersja strony</dt>
           <dd><?php if ($deployed): ?><a href="<?=e(REPO_URL . '/commit/' . $deployed['hash'])?>" target="_blank" rel="noopener"><code><?=e(substr($deployed['hash'], 0, 7))?></code></a><?=$deployed['subject'] !== '' ? ' ' . e($deployed['subject']) : ''?> <span class="muted">(<?=$deployed['date'] ? 'commit z ' . e(date('j.m.Y', $deployed['date'])) . ', ' : ''?>wdrożone <?=e(ago($deployed['at']))?>)</span><?php else: ?>brak informacji <span class="muted">(strona nie była wdrażana przez deploy.sh)</span><?php endif; ?></dd>
@@ -1827,7 +1765,8 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=eaa39322bf"></script>
+  <script src="../js/sanakan-util.js?v=f417e538a8"></script>
+  <script src="../js/explorer.js?v=b0c463f9b6"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($allowed): ?>

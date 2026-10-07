@@ -21,22 +21,6 @@
     if ($user !== null)
         header('Cache-Control: private, no-store');
 
-    function e($text)
-    {
-        return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
-    }
-
-    // Polish plural: 1 polecenie, 2-4 polecenia, 5+ poleceń (but 12-14 poleceń)
-    function plural($n, $one, $few, $many)
-    {
-        if ($n == 1)
-            return $one;
-
-        $last = $n % 10;
-        $lastTwo = $n % 100;
-        return $last >= 2 && $last <= 4 && ($lastTwo < 12 || $lastTwo > 14) ? $few : $many;
-    }
-
     // name and module of a command; a link to it on cmd/ while it is still there
     function commandName($key, $command, $link)
     {

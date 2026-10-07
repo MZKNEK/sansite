@@ -383,41 +383,6 @@
         return [$history, $gallery, $uploads];
     }
 
-    // lower case for the search, also without the mbstring extension
-    function lower($text)
-    {
-        return function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
-    }
-
-    function e($text)
-    {
-        return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
-    }
-
-    function formatSize($bytes)
-    {
-        if ($bytes < 1024)
-            return $bytes . ' B';
-        if ($bytes < 1024 * 1024)
-            return round($bytes / 1024) . ' KB';
-
-        if ($bytes < 1024 * 1024 * 1024)
-            return str_replace('.', ',', round($bytes / 1024 / 1024, 1)) . ' MB';
-
-        return str_replace('.', ',', round($bytes / 1024 / 1024 / 1024, 1)) . ' GB';
-    }
-
-    // Polish plural: 1 plik, 2-4 pliki, 5+ plików (but 12-14 plików)
-    function plural($n, $one, $few, $many)
-    {
-        if ($n == 1)
-            return $one;
-
-        $last = $n % 10;
-        $lastTwo = $n % 100;
-        return $last >= 2 && $last <= 4 && ($lastTwo < 12 || $lastTwo > 14) ? $few : $many;
-    }
-
     // visible entries of a folder: no hidden files, no index.php in the top
     // folder, and there the folders of the accounts and the private folder only
     // for those who may see them
@@ -1013,7 +978,9 @@
         sendMedia($file[0], 'private, max-age=3600');
     }
 
-    // a picture or film as it is, 404 for any other file
+    // a picture or film as it is, 404 for any other file; a film may be asked
+    // for in parts (Range), so it can be seeked and streamed instead of coming
+    // whole
     function sendMedia($path, $cache)
     {
         $type = MEDIA_MIME[extensionOf($path)] ?? null;
@@ -1030,12 +997,72 @@
         header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
         header('ETag: ' . $etag);
         header('X-Content-Type-Options: nosniff');
+        header('Accept-Ranges: bytes');
         if (trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
             http_response_code(304);
             return;
         }
+
+        // "bytes=..." from a player: one part is served, the whole file otherwise
+        $range = mediaRange((string)($_SERVER['HTTP_RANGE'] ?? ''), $size);
+        if ($range === false) {
+            http_response_code(416);
+            header('Content-Range: bytes */' . $size);
+            return;
+        }
+        if ($range !== null) {
+            [$start, $end] = $range;
+            http_response_code(206);
+            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+            header('Content-Length: ' . ($end - $start + 1));
+            $handle = @fopen($path, 'rb');
+            if ($handle === false)
+                return;
+            fseek($handle, $start);
+            $left = $end - $start + 1;
+            while ($left > 0 && !feof($handle)) {
+                $chunk = fread($handle, (int)min(262144, $left));
+                if ($chunk === false || $chunk === '')
+                    break;
+                echo $chunk;
+                $left -= strlen($chunk);
+            }
+            fclose($handle);
+            return;
+        }
+
         header('Content-Length: ' . $size);
         readfile($path);
+    }
+
+    // [start, end] of a single requested range, null when the request asks for
+    // none (or for several, which is answered with the whole file), or false when
+    // it is one this file cannot satisfy (416)
+    function mediaRange($header, $size)
+    {
+        $header = trim($header);
+        if ($header === '' || stripos($header, 'bytes=') !== 0)
+            return null;
+
+        $spec = trim(substr($header, 6));
+        if (strpos($spec, ',') !== false || !preg_match('/^(\d*)-(\d*)$/', $spec, $match) || ($match[1] === '' && $match[2] === ''))
+            return null;
+
+        if ($match[1] === '') {
+            // the last N bytes
+            $length = (int)$match[2];
+            if ($length <= 0 || $size === 0)
+                return false;
+            $start = max(0, $size - $length);
+            $end = $size - 1;
+        } else {
+            $start = (int)$match[1];
+            $end = $match[2] === '' ? $size - 1 : (int)$match[2];
+        }
+        if ($size === 0 || $start >= $size || $start > $end)
+            return false;
+
+        return [$start, min($end, $size - 1)];
     }
 
     // the folder of the logged-in account when it may have one, made the first time
@@ -2555,7 +2582,14 @@
             $job = claimMediaJob();
             if ($job === null)
                 break;
-            convertMediaJob($base, $job, $jobTimeout);
+            // the whole budget is not given to one job: what is left bounds it, so
+            // a long film cannot make the run overstay and hold the next one off
+            $timeout = $jobTimeout;
+            if ($deadline) {
+                $left = (int)max(1, $deadline - microtime(true));
+                $timeout = $jobTimeout > 0 ? min($jobTimeout, $left) : $left;
+            }
+            convertMediaJob($base, $job, $timeout);
             $done++;
         }
         flock($lock, LOCK_UN);
@@ -3003,8 +3037,10 @@
                 $hash = strtolower((string)($_POST['hash'] ?? ''));
                 if (!preg_match('/^[0-9a-f]{64}$/', $hash))
                     reply(false, 'Zły skrót pliku.', 400);
-                // an account with a folder of its own only hears about that folder
-                $from = galleryIsAdmin() ? '' : ownFolder($base);
+                // only the folder the page is in (an account with a folder of its
+                // own: that folder), so the check does not walk the whole gallery
+                $dir = resolvePath($base, $_POST['dir'] ?? '', true);
+                $from = $dir ? $dir[1] : (galleryIsAdmin() ? '' : ownFolder($base));
                 reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash, $from)]);
 
             // clears the account's finished conversion jobs without waiting for

@@ -19,7 +19,7 @@
         $file = botFile($name);
         if (!is_file($file) || filemtime($file) < max(time() - $ttl, filemtime(__FILE__))) {
             if (!function_exists('imagettftext') || !is_file(OG_FONTS . 'Lato-Bold.ttf') || !$draw($file)) {
-                header('Location: /sanakan-og.png', true, 302);
+                header('Location: ' . siteRoot() . 'sanakan-og.png', true, 302);
                 exit;
             }
         }

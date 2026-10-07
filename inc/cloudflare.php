@@ -13,8 +13,10 @@
     const CLOUDFLARE_API = 'https://api.cloudflare.com/client/v4';
     const CLOUDFLARE_TIMEOUT = 8;
     const CLOUDFLARE_COMMENT_LENGTH = 100;
-    // how long a change waits for Cloudflare to finish it, in half seconds
-    const CLOUDFLARE_WAIT_STEPS = 12;
+    // how long a change waits for Cloudflare to finish it, in half seconds;
+    // Cloudflare changes a list in the background, so a change usually takes a
+    // few seconds, and a slower one is reported as unconfirmed rather than done
+    const CLOUDFLARE_WAIT_STEPS = 20;
 
     function cloudflareConfigured()
     {
@@ -118,7 +120,11 @@
         return inet_ntop($network) . '/64';
     }
 
-    // waits until Cloudflare has made a change of the list: null, or an error message
+    // Waits until Cloudflare has made a change of the list: null when it is
+    // confirmed done, or a message why it is not. A failed poll is not a failed
+    // change, so it keeps waiting; only the operation's own "failed" is one. A
+    // change Cloudflare has not confirmed in time comes back as a message too,
+    // so a caller never takes it for done; the list shows the truth on a refresh.
     function cloudflareWait($result)
     {
         $operation = $result['operation_id'] ?? null;
@@ -128,14 +134,16 @@
         for ($i = 0; $i < CLOUDFLARE_WAIT_STEPS; $i++) {
             usleep(500000);
             $answer = cloudflareApi('GET', cloudflareListsPath() . '/bulk_operations/' . rawurlencode($operation));
-            $status = $answer[0] ? ($answer[1]['status'] ?? '') : '';
+            if (!$answer[0])
+                continue;   // the poll failed, which says nothing about the change
+            $status = $answer[1]['status'] ?? '';
             if ($status === 'completed')
                 return null;
             if ($status === 'failed')
                 return 'Cloudflare: ' . ($answer[1]['error'] ?? 'zmiana się nie udała') . '.';
         }
 
-        return null;  // still going on, it shows up after a refresh
+        return 'Cloudflare nie potwierdził zmiany na czas; odśwież listę, żeby sprawdzić, czy doszła.';
     }
 
     // puts an address on the list: null, or an error message

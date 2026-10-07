@@ -57,20 +57,32 @@
     }
 
     // Memory of the running programs, the workers of one program counted
-    // together: [name => ['count', 'bytes']], the biggest first.
+    // together: [name => ['count', 'bytes']], the biggest first. The one-line
+    // /proc/<pid>/stat is read, not the whole /status, and a thread without
+    // resident memory (a kernel thread) is left out.
     function systemProcesses()
     {
         $programs = [];
         foreach (glob('/proc/[0-9]*', GLOB_ONLYDIR) ?: [] as $dir) {
-            $status = @file_get_contents($dir . '/status');
-            if ($status === false || !preg_match('/^VmRSS:\s+(\d+) kB/m', $status, $rss))
-                continue;  // gone meanwhile, or a kernel thread
-            $name = preg_match('/^Name:\s+(.+)$/m', $status, $match) ? trim($match[1]) : '?';
+            $stat = @file_get_contents($dir . '/stat');
+            if ($stat === false)
+                continue;  // gone meanwhile
+            $open = strpos($stat, '(');
+            $close = strrpos($stat, ')');
+            if ($open === false || $close === false || $close <= $open)
+                continue;
+            $name = substr($stat, $open + 1, $close - $open - 1);
+            // the fields after the name start at state (field 3); RSS is field 24,
+            // so it is index 21 in what follows, in 4 KiB pages
+            $fields = preg_split('/\s+/', trim(substr($stat, $close + 1)));
+            $rss = isset($fields[21]) ? (int)$fields[21] * 4096 : 0;
+            if ($rss <= 0)
+                continue;  // a kernel thread
             // "php-fpm8.1" and its "php-fpm: pool www" workers are one program
             $name = preg_replace('/^(php-fpm)[\d.]*.*$/', '$1', $name);
 
             $programs[$name]['count'] = ($programs[$name]['count'] ?? 0) + 1;
-            $programs[$name]['bytes'] = ($programs[$name]['bytes'] ?? 0) + (int)$rss[1] * 1024;
+            $programs[$name]['bytes'] = ($programs[$name]['bytes'] ?? 0) + $rss;
         }
         uasort($programs, function ($a, $b) { return $b['bytes'] <=> $a['bytes']; });
 

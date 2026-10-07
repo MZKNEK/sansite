@@ -18,6 +18,8 @@
     // without access can ask for it; the requests wait in inc/data/requests.json. Those are kept in
     // inc/data/access.json, next to a list of recent logins; inc/ is not
     // reachable from the web.
+    require_once __DIR__ . '/text.php';
+
     const SITE_SESSION = 'sanakan_gallery';  // the gallery's old cookie name, so logins stay valid
 
     // the times in the history and the panel follow Polish time, not the server's
@@ -105,17 +107,38 @@
         return is_dir(dataDir()) ? is_writable(dataDir()) : is_writable(__DIR__);
     }
 
+    // The data read this request, so a page that asks for the same file many
+    // times reads it once (the panel walks the access lists and the roles in
+    // loops); every write drops the entry, so a read after one is fresh.
+    function &dataCache()
+    {
+        static $cache = [];
+
+        return $cache;
+    }
+
+    function forgetData($name)
+    {
+        $cache = &dataCache();
+        unset($cache[preg_replace('/\.json$/', '', (string)$name)]);
+    }
+
     function readData($name)
     {
+        $cache = &dataCache();
+        if (array_key_exists($name, $cache))
+            return $cache[$name];
+
         $file = dataDir() . '/' . $name . '.json';
         $data = is_file($file) ? json_decode((string)@file_get_contents($file), true) : null;
 
-        return is_array($data) ? $data : [];
+        return $cache[$name] = is_array($data) ? $data : [];
     }
 
     // writes a temp file and renames it, so a parallel request never reads half a file
     function writeData($name, $data)
     {
+        forgetData($name);
         if (!is_dir(dataDir()) && !@mkdir(dataDir(), 0750, true))
             return false;
 
@@ -700,6 +723,7 @@
     // what that returns, so two requests at once do not lose a change.
     function updateDataFile($name, $change)
     {
+        forgetData($name);
         if (!is_dir(dataDir()) && !@mkdir(dataDir(), 0750, true))
             return;
         $handle = @fopen(dataDir() . '/' . $name, 'c+');

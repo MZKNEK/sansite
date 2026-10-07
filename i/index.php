@@ -716,11 +716,12 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=eaa39322bf"></script>
+  <script src="../js/sanakan-util.js?v=f417e538a8"></script>
+  <script src="../js/explorer.js?v=b0c463f9b6"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=ed6f93167d"></script>
+  <script src="../js/explorer-admin.js?v=e7ae6ea60d"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>

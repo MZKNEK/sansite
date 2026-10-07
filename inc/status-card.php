@@ -17,21 +17,45 @@
         return botInMaintenance(time()) ? 'maintenance' : $state['status'];
     }
 
-    // what follows "Bot": the state, what is wrong when the bot reports problems,
-    // since when it does not answer
+    // What follows "Bot": the state, and for one that answers but has not
+    // answered everything, why (an issue it reports, an outage just now, a
+    // single break, or repeated ones, always with the 24 h number)
     function statusLabel($state)
     {
         $status = shownStatus($state);
-        if ($status === 'idle' && !empty($state['issues']))
-            return 'działa, ale ' . implode(', ', $state['issues']);
+        if ($status === 'idle')
+            return 'działa, ale ' . idleReason($state);
 
         return STATUS_LABELS[$status] . botDownText($state);
     }
 
-    // "41 234": thousands split by a space, as in Polish
-    function formatCount($n)
+    // Why a bot that answers is idle: the problem it reports, or an outage of
+    // the last 24 h told apart as one that is going on, one that just ended, a
+    // single break, or repeated ones; always with the 24 h availability
+    function idleReason($state)
     {
-        return number_format((int)$n, 0, ',', ' ');
+        if (!empty($state['issues']))
+            return implode(', ', $state['issues']);
+
+        $percent = str_replace('.', ',', (string)$state['uptime']) . '%';
+        $now = time();
+        $unplanned = [];
+        foreach (botIncidents($now - BOT_HISTORY_SPAN) as $incident)
+            if (!plannedIncident($incident))
+                $unplanned[] = $incident;
+        if (!$unplanned)
+            return 'w ostatnich 24 h odpowiadał w ' . $percent;
+
+        // [start, end or null, outages merged, seconds down, planned], newest first
+        [$start, $end] = $unplanned[0];
+        if ($end === null)
+            return 'nie odpowiada od ' . date('H:i', $start) . ' (' . $percent . ' w 24 h)';
+        if ($end > $now - 900)
+            return 'niedawno nie odpowiadał (do ' . date('H:i', $end) . ', ' . $percent . ' w 24 h)';
+        if (count($unplanned) === 1)
+            return 'miał przerwę ' . incidentTime([$start, $end]) . ' (' . $percent . ' w 24 h)';
+
+        return 'bywał niedostępny (' . count($unplanned) . ' ' . plural(count($unplanned), 'przerwa', 'przerwy', 'przerw') . ' w 24 h, ' . $percent . ')';
     }
 
     // The bot's own report (api/health) in boxes: Discord, database, Shinden,
