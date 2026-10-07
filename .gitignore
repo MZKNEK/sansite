@@ -7,3 +7,6 @@
 
 # Gallery access added in the admin panel and recent logins, written by PHP
 /inc/data/
+
+# Source maps of bundled scripts and stylesheets, only for the browser's dev tools
+*.map
