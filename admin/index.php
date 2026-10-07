@@ -875,6 +875,9 @@
         $now = time();
         $diagRounds = diagRounds($now - 86400);
         $diagLast = $diagRounds ? end($diagRounds) : null;
+        // the processor use comes from the background check, so opening the panel
+        // does not read /proc/stat and wait 250 ms for a second reading
+        $cpuNow = diagCpuNow($diagRounds);
         $diagEpisodes = diagEpisodes($diagRounds);
         $diagHour = diagMergeTraffic(array_filter($diagRounds, function ($round) use ($now) { return $round['t'] >= $now - 3600; }), 10);
         $diagSlow = diagSlowEntries();
@@ -1638,15 +1641,15 @@
 
 <?php
 $serverSum = [];
-if ($system['cpu'])
-    $serverSum[] = decimal($system['cpu']['busy']) . '% CPU';
+if ($cpuNow)
+    $serverSum[] = decimal($cpuNow['busy']) . '% CPU';
 if ($system['memory'])
     $serverSum[] = formatSize($system['memory']['total'] - $system['memory']['available']) . ' RAM';
 ?>
       <section class="card wide" data-sum="<?=$serverSum ? implode(' · ', $serverSum) : 'brak danych'?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Zasoby serwera</h2>
-        <p class="hint">Stan z chwili otwarcia panelu, odśwież stronę po nowy. Wykresy są z pomiarów co 10 sekund (karta „Dostępność strony”): linia to średnia z 5 minut, a jaśniejsze pasmo nad nią przy procesorze sięga najbardziej zajętych 10 sekund z tego czasu. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
-<?php if ($system['cpu'] === null && $system['memory'] === null): ?>
+        <p class="hint">Pamięć i procesy z chwili otwarcia panelu, odśwież stronę po nowy. Procesor i wykresy są z pomiarów w tle co <?=DIAG_INTERVAL?> s (karta „Dostępność strony”): linia to średnia z 5 minut, a jaśniejsze pasmo nad nią przy procesorze sięga najbardziej zajętych 10 sekund z tego czasu. <?=e($system['name'])?><?=$system['uptime'] !== null ? ' · serwer działa od ' . e(duration($system['uptime'])) : ''?>.</p>
+<?php if ($cpuNow === null && $system['memory'] === null): ?>
         <p class="nobody">Brak danych: serwer nie ma <code>/proc</code> (to nie Linux) albo PHP nie może go czytać (<code>open_basedir</code>).</p>
 <?php else:
         $cores = $system['cpuInfo']['cores'];
@@ -1655,7 +1658,7 @@ if ($system['memory'])
         $opcache = $system['opcache'];
 ?>
         <div class="meters">
-<?php if ($system['cpu']): $cpu = $system['cpu']; ?>
+<?php if ($cpuNow): $cpu = $cpuNow; ?>
           <?=meter('Procesor', $cpu['busy'], 100, decimal($cpu['busy']) . '%',
               ($load ? 'obciążenie ' . decimal($load[0], 2) . ' · ' . decimal($load[1], 2) . ' · ' . decimal($load[2], 2) . ' (1, 5, 15 min)'
                   . ($cores && $load[1] > $cores ? ' <b class="warn">więcej niż rdzeni</b>' : '') . '<br />' : '')
@@ -1712,7 +1715,7 @@ if ($system['memory'])
               <li style="--share: 0"><span>limit pamięci skryptu</span><span><?=e(ini_get('memory_limit'))?></span></li>
               <li style="--share: 0"><span>limit czasu skryptu</span><span><?=(int)ini_get('max_execution_time')?> s</span></li>
               <li style="--share: 0"><span>ten widok zużył</span><span><?=e(formatSize(memory_get_peak_usage(true)))?></span></li>
-              <li style="--share: 0"><span>pomiar procesora trwał</span><span><?=SYSTEM_CPU_SAMPLE / 1000?> ms</span></li>
+              <li style="--share: 0"><span>pomiar procesora</span><span>w tle, co <?=DIAG_INTERVAL?> s</span></li>
             </ul>
           </div>
         </div>

@@ -1,12 +1,12 @@
 <?php
     // The server's resources for the admin panel, read from Linux's /proc when
-    // the panel is opened: processor use (also time lost waiting for the disk
-    // and taken by the host of a virtual server), load, memory and swap, the
-    // processes using the most memory, uptime, OPcache and PHP limits. Where
-    // /proc cannot be read (another system, or a locked down PHP) the parts
-    // come back null and the panel says so.
+    // the panel is opened: load, memory and swap, the processes using the most
+    // memory, uptime, OPcache and PHP limits. The processor use is not read here
+    // (it would mean waiting 250 ms): the panel takes it from the background
+    // check (inc/diag.php), which reads /proc/stat every 10 seconds anyway.
+    // Where /proc cannot be read (another system, or a locked down PHP) the
+    // parts come back null and the panel says so.
 
-    const SYSTEM_CPU_SAMPLE = 250000;  // microseconds between the two readings of /proc/stat
     const SYSTEM_TOP_PROCESSES = 8;
 
     // the cpu line of /proc/stat as [busy, idle, iowait, steal, total] jiffies, or null
@@ -22,26 +22,6 @@
         $total = array_sum(array_slice($t, 0, 8));
 
         return ['idle' => $t[3], 'iowait' => $t[4], 'steal' => $t[7], 'total' => $total];
-    }
-
-    // processor use in percent over a short moment: ['busy', 'iowait', 'steal'], or null
-    function systemCpuUse()
-    {
-        $first = systemCpuTimes();
-        if ($first === null)
-            return null;
-        usleep(SYSTEM_CPU_SAMPLE);
-        $second = systemCpuTimes();
-
-        $total = $second['total'] - $first['total'];
-        if ($total <= 0)
-            return null;
-        $share = function ($key) use ($first, $second, $total) {
-            return round(100 * ($second[$key] - $first[$key]) / $total, 1);
-        };
-        $idle = $share('idle') + $share('iowait');
-
-        return ['busy' => round(max(0, 100 - $idle), 1), 'iowait' => $share('iowait'), 'steal' => $share('steal')];
     }
 
     // the number of processors and their model, from /proc/cpuinfo
@@ -140,7 +120,6 @@
         $load = function_exists('sys_getloadavg') ? @sys_getloadavg() : false;
 
         return [
-            'cpu' => systemCpuUse(),
             'cpuInfo' => systemCpuInfo(),
             'load' => is_array($load) ? $load : null,
             'memory' => systemMemory(),

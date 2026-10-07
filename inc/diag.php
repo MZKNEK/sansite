@@ -781,6 +781,35 @@
         return $parts;
     }
 
+    // The processor use between the last two rounds of the background check, as
+    // the panel's meter shows it: ['busy', 'iowait', 'steal'], or null when the
+    // rounds are missing or the server restarted between them. This is why the
+    // panel does not have to read /proc/stat and wait itself.
+    function diagCpuNow($rounds)
+    {
+        $previous = null;
+        $last = null;
+        foreach ($rounds as $round) {
+            if (empty($round['cpu']))
+                continue;
+            $previous = $last;
+            $last = $round;
+        }
+        if ($previous === null || $last === null || $last['t'] - $previous['t'] > 6 * DIAG_INTERVAL)
+            return null;
+        $cpu = $last['cpu'];
+        $all = $cpu['all'] - $previous['cpu']['all'];
+        if ($all <= 0 || $cpu['idle'] < $previous['cpu']['idle'])
+            return null;
+
+        $idle = $cpu['idle'] - $previous['cpu']['idle'];
+        $io = $cpu['io'] - $previous['cpu']['io'];
+        $busy = max(0, $all - $idle - $io);
+        $percent = function ($value) use ($all) { return round(100 * $value / $all, 1); };
+
+        return ['busy' => $percent($busy), 'iowait' => $percent($io), 'steal' => $percent($cpu['st'] - $previous['cpu']['st'])];
+    }
+
     // the requests of several rounds together, as diagReadLog gives them for one
     function diagMergeTraffic($rounds, $top = DIAG_TOP)
     {
