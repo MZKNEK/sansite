@@ -234,11 +234,11 @@
     }
 
     // an animated GIF as an animated WebP
-    function gifToWebp($source, $target)
+    function gifToWebp($source, $target, $quality = GIF_WEBP_QUALITY)
     {
         $tmp = $target . '.' . getmypid();
         // lossy and a light effort: a 22 MB GIF takes seconds instead of most of a minute, and ends up smaller
-        $ok = runTool(findTool('gif2webp'), ['-lossy', '-q', (string)GIF_WEBP_QUALITY, '-m', '2', '-mt', $source, '-o', $tmp], TOOL_TIMEOUT)
+        $ok = runTool(findTool('gif2webp'), ['-lossy', '-q', (string)$quality, '-m', '2', '-mt', $source, '-o', $tmp], TOOL_TIMEOUT)
             && @rename($tmp, $target);
         if (!$ok)
             @unlink($tmp);
@@ -273,7 +273,7 @@
 
     // a HEIC, HEIF or AVIF as WebP: ImageMagick (through libheif, keeping the
     // orientation), or ffmpeg; false when neither can
-    function heifToWebp($source, $target)
+    function heifToWebp($source, $target, $quality = 90)
     {
         $tmp = dirname($target) . '/.heif-' . getmypid() . '.webp';
         foreach (['magick', 'convert'] as $name) {
@@ -281,7 +281,7 @@
             if (!$tool)
                 continue;
             @unlink($tmp);
-            if (runTool($tool, [$source, '-auto-orient', '-quality', '90', $tmp], TOOL_TIMEOUT) && @filesize($tmp) > 0) {
+            if (runTool($tool, [$source, '-auto-orient', '-quality', (string)$quality, $tmp], TOOL_TIMEOUT) && @filesize($tmp) > 0) {
                 $ok = @rename($tmp, $target);
                 @unlink($tmp);
                 return $ok;
@@ -486,13 +486,13 @@
     // Writes a GD image (with imagesavealpha) as WebP. cwebp gets it as a PNG:
     // its sharp_yuv keeps the colours of thin lines, which GD's own encoder
     // cannot; without cwebp, or when it fails, GD writes it.
-    function writeWebp($img, $file)
+    function writeWebp($img, $file, $quality = WEBP_QUALITY)
     {
         if ($cwebp = findTool('cwebp')) {
             $png = sys_get_temp_dir() . '/sanakan-webp-' . getmypid() . '.png';
             // -m 4, not 6: a 20 MP picture takes 3 s instead of 20 s, for 3% more bytes
             $ok = @imagepng($img, $png, 1)
-                && runTool($cwebp, ['-quiet', '-q', (string)WEBP_QUALITY, '-m', '4', '-sharp_yuv', '-mt', $png, '-o', $file], TOOL_TIMEOUT);
+                && runTool($cwebp, ['-quiet', '-q', (string)$quality, '-m', '4', '-sharp_yuv', '-mt', $png, '-o', $file], TOOL_TIMEOUT);
             @unlink($png);
             clearstatcache();
             if ($ok && @filesize($file) > 0)
@@ -500,11 +500,11 @@
             @unlink($file);
         }
 
-        return @imagewebp($img, $file, WEBP_QUALITY);
+        return @imagewebp($img, $file, $quality);
     }
 
     // saves a picture as WebP, keeping transparency
-    function convertToWebp($source, $target)
+    function convertToWebp($source, $target, $quality = WEBP_QUALITY)
     {
         $img = loadImage($source);
         if (!$img)
@@ -513,7 +513,7 @@
         imagealphablending($img, false);
         imagesavealpha($img, true);
         $tmp = $target . '.' . getmypid();
-        $ok = writeWebp($img, $tmp) && @rename($tmp, $target);
+        $ok = writeWebp($img, $tmp, $quality) && @rename($tmp, $target);
         imagedestroy($img);
         if (!$ok)
             @unlink($tmp);
@@ -1716,53 +1716,168 @@
         header('Location: ' . siteRoot() . 'i/' . implode('/', array_map('rawurlencode', explode('/', $to))), true, 302);
     }
 
-    // A picture of the gallery as WebP when that is at least WEBP_MIN_SAVING
-    // smaller: [the new name, the old size, the new size], or why it stays
-    function changeToWebp($full, $rel)
+    // ---- Manual change to WebP with a preview -----------------------------------
+    // A gallery admin picks a picture, chooses a quality and the server makes a
+    // WebP aside; the result is shown next to the original and only what the
+    // admin accepts takes its place. It may also re-encode a still WebP.
+    // inc/data/webp-previews.json keeps the waiting results, their files in
+    // inc/data/webp-preview/ (out of the web, like the rest of inc/data).
+
+    // the quality a manual change may use, and how long a waiting result is kept
+    const WEBP_QUALITY_MIN = 40;
+    const WEBP_QUALITY_MAX = 100;
+    const WEBP_QUALITY_DEFAULT = 80;
+    const WEBP_PREVIEW_KEEP = 7200;
+
+    function webpPreviewDir()
     {
-        $name = basename($rel);
-        $ext = extensionOf($name);
-        $isGif = $ext === 'gif';
-        if (!is_file($full) || !in_array($ext, WEBP_SOURCE_TYPES, true))
-            return 'zamieniać można PNG, JPG i GIF';
-        if (!($isGif ? canConvertGifToWebp() : canConvertToWebp()))
-            return $isGif ? 'serwer nie umie zamieniać GIF-ów, brak gif2webp' : 'serwer nie umie zapisać WebP';
+        return dataDir() . '/webp-preview';
+    }
 
-        $dir = dirname($full);
-        $tmp = $dir . '/.webp-' . getmypid() . '.webp';
-        $size = filesize($full);
-        if (!($isGif ? gifToWebp($full, $tmp) : convertToWebp($full, $tmp))) {
-            @unlink($tmp);
-            return 'nie udało się zamienić';
-        }
+    function webpPreviews()
+    {
+        return readData('webp-previews');
+    }
+
+    // the kinds a manual change may take (a still WebP included, to re-encode it)
+    function canChangeToWebp($ext)
+    {
+        if ($ext === 'gif')
+            return canConvertGifToWebp();
+        if ($ext === 'avif')
+            return canConvertImageToWebp('avif');
+        if ($ext === 'webp')
+            return canConvertToWebp();
+
+        return in_array($ext, WEBP_SOURCE_TYPES, true) && canConvertToWebp();
+    }
+
+    // forgets the previews older than WEBP_PREVIEW_KEEP and their files
+    function pruneWebpPreviews()
+    {
+        $before = time() - WEBP_PREVIEW_KEEP;
+        updateDataFile('webp-previews.json', function ($data) use ($before) {
+            foreach ($data as $token => $preview) {
+                if (is_array($preview) && ($preview['created'] ?? 0) >= $before)
+                    continue;
+                if (is_array($preview) && !empty($preview['candidate']))
+                    @unlink(webpPreviewDir() . '/' . $preview['candidate']);
+                unset($data[$token]);
+            }
+            return $data;
+        });
+    }
+
+    // Makes the WebP aside and returns what the page shows, or a string why not.
+    // It is kept only when it is smaller; a bigger one is dropped here already.
+    function startWebpPreview($full, $rel, $quality, $user)
+    {
+        $ext = extensionOf($rel);
+        if (!is_file($full) || !canChangeToWebp($ext))
+            return 'tego pliku nie można zamienić na WebP';
+        if ($ext === 'webp' && isAnimatedWebp($full))
+            return 'animowanego WebP nie da się przeliczyć';
+
+        $dir = webpPreviewDir();
+        if (!is_dir($dir) && !@mkdir($dir, 0750, true))
+            return 'serwer nie może zapisać podglądu';
+        pruneWebpPreviews();
+
+        $token = bin2hex(random_bytes(12));
+        $candidate = $token . '.webp';
+        $candidateFull = $dir . '/' . $candidate;
+        $sizeFrom = (int)filesize($full);
+
+        if ($ext === 'gif')
+            $ok = gifToWebp($full, $candidateFull, $quality);
+        else if ($ext === 'avif')
+            $ok = function_exists('imagecreatefromavif') ? convertToWebp($full, $candidateFull, $quality) : heifToWebp($full, $candidateFull, $quality);
+        else
+            $ok = convertToWebp($full, $candidateFull, $quality);
+
         clearstatcache();
-        $newSize = filesize($tmp);
-        if ($newSize > $size * (1 - WEBP_MIN_SAVING)) {
-            @unlink($tmp);
-            return 'WebP nie wyszedłby wyraźnie mniejszy, ' . formatSize($size) . ' → ' . formatSize($newSize);
+        if (!$ok || !is_file($candidateFull) || @filesize($candidateFull) <= 0) {
+            @unlink($candidateFull);
+            return 'nie udało się zamienić na WebP';
+        }
+        $sizeTo = (int)filesize($candidateFull);
+        if ($sizeTo >= $sizeFrom) {
+            @unlink($candidateFull);
+            return 'WebP wyszedł większy (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ')';
         }
 
-        // the WebP keeps the date of the picture, so it stays where it was in the folder
-        $target = freeName($dir, pathinfo($name, PATHINFO_FILENAME) . '.webp');
+        updateDataFile('webp-previews.json', function ($data) use ($token, $rel, $candidate, $quality, $sizeFrom, $sizeTo, $user) {
+            $data[$token] = [
+                'rel' => $rel,
+                'candidate' => $candidate,
+                'by' => (string)$user['id'],
+                'quality' => (int)$quality,
+                'sizeFrom' => $sizeFrom,
+                'sizeTo' => $sizeTo,
+                'created' => time()
+            ];
+            return $data;
+        });
+
+        return [
+            'token' => $token,
+            'name' => basename($rel),
+            'original' => fileUrl($rel),
+            'preview' => '?preview=' . $token,
+            'info' => basename($rel) . ' · jakość ' . (int)$quality . ' · ' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo)
+        ];
+    }
+
+    // only what the admin accepts takes the original's place
+    function acceptWebpPreview($base, $token, $user)
+    {
+        $preview = webpPreviews()[(string)$token] ?? null;
+        if (!is_array($preview) || (string)($preview['by'] ?? '') !== (string)$user['id'])
+            return 'podgląd wygasł, spróbuj jeszcze raz';
+        $file = resolvePath($base, $preview['rel'], false);
+        $candidateFull = webpPreviewDir() . '/' . $preview['candidate'];
+        if (!$file || !is_file($candidateFull))
+            return 'podgląd wygasł, spróbuj jeszcze raz';
+        list($full, $rel) = $file;
+
+        $name = basename($rel);
+        $dir = dirname($full);
+        $target = extensionOf($name) === 'webp' ? $name : freeName($dir, pathinfo($name, PATHINFO_FILENAME) . '.webp');
+        $targetFull = $dir . '/' . $target;
         $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
+
+        // the hash of what was first uploaded, kept when the file was made a WebP before
         $hashes = readData('hashes');
-        $source = fileHash($full, $rel, $hashes);
-        if (!@rename($tmp, $dir . '/' . $target)) {
-            @unlink($tmp);
+        $source = (string)($hashes[$rel]['source'] ?? '');
+        if ($source === '')
+            $source = fileHash($full, $rel, $hashes);
+
+        $ok = swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel,
+            (int)filesize($full), (int)filesize($candidateFull), 'WebP', $source, (string)($user['name'] ?? ''), false);
+        if (!$ok)
             return 'nie udało się zapisać WebP';
-        }
-        @chmod($dir . '/' . $target, 0644);
-        @touch($dir . '/' . $target, filemtime($full));
-        if (!moveToTrash($full, $rel)) {
-            @unlink($dir . '/' . $target);
-            return 'nie udało się przenieść oryginału do kosza';
-        }
+        dropWebpPreview((string)$token);
 
-        dropHashes($rel);
-        recordHash($dir . '/' . $target, $targetRel, $source);
-        addMovedLink($rel, $targetRel);
+        return ['target' => $target];
+    }
 
-        return [$target, $size, $newSize];
+    function rejectWebpPreview($token, $user)
+    {
+        $preview = webpPreviews()[(string)$token] ?? null;
+        if (!is_array($preview) || (string)($preview['by'] ?? '') !== (string)$user['id'])
+            return false;
+        @unlink(webpPreviewDir() . '/' . $preview['candidate']);
+        dropWebpPreview((string)$token);
+
+        return true;
+    }
+
+    function dropWebpPreview($token)
+    {
+        updateDataFile('webp-previews.json', function ($data) use ($token) {
+            unset($data[$token]);
+            return $data;
+        });
     }
 
     // ---- Pictures and films changed in the background ---------------------------
@@ -1940,31 +2055,57 @@
     }
 
     // the changed file takes the original's place: it keeps the date, the
-    // original goes to the trash and its old link opens the new one
+    // original goes to the trash and its old link opens the new one; false when
+    // it could not be put in place. $candidateFull is where the new file is now
+    // (the same place as the target for a background job, a preview file for a
+    // manual change); a re-encoded WebP keeps its own name and link.
+    function swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, $byName, $background = false)
+    {
+        $mtime = (int)@filemtime($full);
+        if ($targetFull === $full) {
+            // the new file takes the old name: the original has to go first
+            if (!moveToTrash($full, $rel))
+                return false;
+            if (!@rename($candidateFull, $targetFull))
+                return false;
+        } else {
+            if ($candidateFull !== $targetFull && !@rename($candidateFull, $targetFull)) {
+                @unlink($candidateFull);
+                return false;
+            }
+            if (!moveToTrash($full, $rel)) {
+                @unlink($targetFull);
+                return false;
+            }
+        }
+        @chmod($targetFull, 0644);
+        @touch($targetFull, $mtime);
+
+        $action = $format === 'WebM' ? 'webm' : 'webp';
+        dropHashes($rel);
+        recordHash($targetFull, $targetRel, $source);
+        if ($targetRel !== $rel)
+            addMovedLink($rel, $targetRel);
+        addHistory($action, 'Zamieniono na ' . $format . ($background ? ' w tle' : '') . ', oryginał do kosza: '
+            . galleryPath($rel) . ' na ' . basename($targetRel) . ' (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ').',
+            $byName !== '' ? $byName : 'konwersja');
+
+        return true;
+    }
+
+    // the background job's version: it finishes the job with the outcome
     function replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job)
     {
-        @chmod($targetFull, 0644);
-        @touch($targetFull, filemtime($full));
         $source = (string)($job['source'] ?? '');
         if ($source === '') {
             $hashes = readData('hashes');
             $source = fileHash($full, $rel, $hashes);
         }
-        if (!moveToTrash($full, $rel)) {
-            @unlink($targetFull);
+        $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
+        if (!swapInConverted($full, $rel, $targetFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, (string)($job['byName'] ?? ''), true))
             finishMediaJob($job, 'failed', 'nie udało się przenieść oryginału do kosza', ['sizeFrom' => $sizeFrom]);
-            return;
-        }
-
-        $kind = ($job['kind'] ?? 'webm') === 'webm' ? 'webm' : 'webp';
-        $format = $kind === 'webm' ? 'WebM' : 'WebP';
-        dropHashes($rel);
-        recordHash($targetFull, $targetRel, $source);
-        addMovedLink($rel, $targetRel);
-        addHistory($kind, 'Zamieniono na ' . $format . ' w tle, oryginał do kosza: ' . galleryPath($rel) . ' na ' . basename($targetRel)
-            . ' (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ').',
-            ($job['byName'] ?? '') !== '' ? $job['byName'] : 'konwersja');
-        finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
+        else
+            finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
     }
 
     // an MP4 as WebM, kept when it is smaller
@@ -2487,21 +2628,28 @@
                     reply(count($rotated) > 0, $message . ' Pominięto (obracać można obrazki PNG, JPG i WebP bez animacji): ' . implode(', ', $skipped) . '.', 400);
                 reply(true, $message);
 
-            case 'webp':
-                $changed = [];
-                $skipped = [];
-                foreach (postedItems($base) as $item) {
-                    $result = changeToWebp($item[0], $item[1]);
-                    if (is_array($result))
-                        $changed[] = galleryPath($item[1]) . ' na ' . $result[0] . ' (' . formatSize($result[1]) . ' → ' . formatSize($result[2]) . ')';
-                    else
-                        $skipped[] = basename($item[1]) . ' (' . $result . ')';
-                }
+            // the manual change to WebP: the server makes the result aside and the
+            // page shows it next to the original; only webp-accept puts it in place
+            case 'webp-preview':
+                $items = postedItems($base);
+                if (count($items) !== 1)
+                    reply(false, 'Zamieniać z podglądem można po jednym pliku naraz.', 400);
+                $quality = max(WEBP_QUALITY_MIN, min(WEBP_QUALITY_MAX, (int)($_POST['quality'] ?? WEBP_QUALITY_DEFAULT)));
+                list($full, $rel) = $items[0];
+                $preview = startWebpPreview($full, $rel, $quality, siteUser());
+                if (is_string($preview))
+                    reply(true, '', 200, ['skipped' => basename($rel) . ' (' . $preview . ')']);
+                reply(true, '', 200, ['preview' => $preview]);
 
-                if ($changed)
-                    addHistory('webp', 'Zamieniono na WebP, oryginały do kosza: ' . implode(', ', $changed) . '.');
-                reply(true, $changed ? 'Zamieniono na WebP ' . countLabel(count($changed)) . '.' : '', 200,
-                    ['changed' => count($changed), 'skipped' => $skipped]);
+            case 'webp-accept':
+                $result = acceptWebpPreview($base, (string)($_POST['token'] ?? ''), siteUser());
+                if (is_string($result))
+                    reply(false, $result, 500);
+                reply(true, 'Zapisano WebP ' . basename($result['target']) . '.');
+
+            case 'webp-reject':
+                rejectWebpPreview((string)($_POST['token'] ?? ''), siteUser());
+                reply(true, 'Odrzucono wynik, oryginał zostaje.');
 
             case 'duplicates':
                 $hash = strtolower((string)($_POST['hash'] ?? ''));

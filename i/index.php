@@ -84,6 +84,25 @@
         sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : displayName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
     }
 
+    // ?preview=token: the WebP made for a manual change, shown next to the
+    // original until the admin accepts or rejects it (inc/gallery.php). Only the
+    // admin who made it, and only while it waits.
+    if (isset($_GET['preview'])) {
+        $user = siteUser();
+        $preview = webpPreviews()[(string)$_GET['preview']] ?? null;
+        $path = is_array($preview) ? webpPreviewDir() . '/' . ($preview['candidate'] ?? '') : '';
+        if ($user === null || !galleryIsAdmin() || !is_array($preview)
+                || (string)($preview['by'] ?? '') !== (string)$user['id'] || !is_file($path)) {
+            http_response_code(404);
+            exit;
+        }
+        header('Content-Type: image/webp');
+        header('Cache-Control: no-store');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
+    }
+
     if (isset($_GET['thumb'])) {
         $thumb = resolvePath($base, $_GET['thumb'], false);
         $canView = $thumb && galleryCanSee($base, $thumb[1]);
@@ -233,7 +252,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=55bb7e950f" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=a846644272" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -417,7 +436,7 @@
           <button type="button" class="admin-btn" id="act-rotate-left" title="Obróć w lewo (PNG, JPG, WebP)">&#8634; Obróć</button>
           <button type="button" class="admin-btn" id="act-rotate-right" title="Obróć w prawo (PNG, JPG, WebP)">Obróć &#8635;</button>
 <?php if ($admin && canConvertToWebp()): ?>
-          <button type="button" class="admin-btn" id="act-webp" title="PNG, JPG i GIF zapisuje jako WebP, gdy wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%. Oryginał trafia do kosza, a jego stary link otwiera WebP.">Na WebP</button>
+          <button type="button" class="admin-btn" id="act-webp" title="Zamienia na WebP z wybraną jakością; wynik zobaczysz obok oryginału i zapiszesz po akceptacji. Działa też na plikach WebP.">Na WebP…</button>
 <?php endif; ?>
 <?php if (canZip()): ?>
           <button type="button" class="admin-btn" id="act-zip">Pobierz ZIP</button>
@@ -619,6 +638,41 @@
   </dialog>
 <?php endif; ?>
 
+<?php if ($admin && canConvertToWebp()): ?>
+  <dialog class="ex-dialog" id="dlg-webp">
+    <form id="form-webp">
+      <h2>Zamień na WebP</h2>
+      <p id="webp-what"></p>
+      <label class="webp-quality">Jakość <output id="webp-quality-value"><?=WEBP_QUALITY_DEFAULT?></output>
+        <input type="range" id="webp-quality" name="quality" min="<?=WEBP_QUALITY_MIN?>" max="<?=WEBP_QUALITY_MAX?>" step="1" value="<?=WEBP_QUALITY_DEFAULT?>" />
+      </label>
+      <p>Niższa jakość to mniejszy plik. Wynik zobaczysz obok oryginału i zapiszesz dopiero po akceptacji; gdy WebP wyjdzie większy, nic się nie zmieni. Można tak przeliczyć też plik WebP.</p>
+      <p class="dialog-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="admin-btn" data-close>Anuluj</button>
+        <button type="submit" class="admin-btn primary">Zamień</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="ex-dialog webp-result" id="dlg-webp-result">
+    <h2>Wynik konwersji</h2>
+    <p id="webp-result-info"></p>
+    <div class="webp-compare" id="webp-compare">
+      <img id="webp-orig" alt="Oryginał" />
+      <img id="webp-new" class="webp-new" alt="WebP" />
+      <span class="webp-tag orig">Oryginał</span>
+      <span class="webp-tag new">WebP</span>
+    </div>
+    <input type="range" id="webp-slider" class="webp-slider" min="0" max="100" value="50" aria-label="Porównanie oryginału z WebP" />
+    <div class="dialog-actions">
+      <a class="admin-btn" id="webp-open" href="#" target="_blank" rel="noopener">Otwórz wynik</a>
+      <button type="button" class="admin-btn danger" id="webp-reject">Odrzuć</button>
+      <button type="button" class="admin-btn primary" id="webp-accept">Akceptuj</button>
+    </div>
+  </dialog>
+<?php endif; ?>
+
   <dialog class="ex-dialog" id="dlg-delete">
     <form id="form-delete">
       <h2>Usuń</h2>
@@ -659,7 +713,7 @@
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=d43ba1fcc4"></script>
+  <script src="../js/explorer-admin.js?v=ee50f36424"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>

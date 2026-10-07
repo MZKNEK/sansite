@@ -24,6 +24,8 @@
         pruneThumbs();
         botWriteFile($pruned, (string)time());
     }
+    // the WebP results of a manual change that nobody accepted or rejected
+    pruneWebpPreviews();
     // the panel warns when this stops coming; written before the changes
     // below, which may take a while, so a long conversion never looks like cron
     // having stopped (the next run finds the lock taken and comes back at once)

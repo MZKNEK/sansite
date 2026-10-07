@@ -412,45 +412,122 @@
   document.getElementById('act-rotate-left').addEventListener('click', function () { rotate('left'); });
   document.getElementById('act-rotate-right').addEventListener('click', function () { rotate('right'); });
 
-  // ---- Change to WebP (gallery admins) ----
-  // One picture per request, as a big GIF takes a while; the server keeps the
-  // WebP only when it is smaller and moves the original to the trash.
+  // ---- Change to WebP with a preview (gallery admins) ----
+  // The quality is chosen in a dialog; the server makes the WebP aside and it is
+  // shown next to the original. Only what the admin accepts takes the original's
+  // place (which then goes to the trash); a bigger result is dropped already.
+  // One file at a time, as a big GIF takes a while.
 
   var webpButton = document.getElementById('act-webp');
 
   function webpable(tile) {
-    return tile.classList.contains('file') && /\.(png|jpe?g|gif)$/i.test(tile.dataset.rel);
+    return tile.classList.contains('file') && /\.(png|jpe?g|gif|webp|avif)$/i.test(tile.dataset.rel);
   }
 
-  if (webpButton) {
+  var webpDialog = document.getElementById('dlg-webp');
+  var webpForm = document.getElementById('form-webp');
+  var webpResult = document.getElementById('dlg-webp-result');
+
+  if (webpButton && webpDialog && webpResult) {
+    var webpQueue = [];
+    var webpDone = 0;
+    var webpProblems = [];
+    var webpQuality = document.getElementById('webp-quality');
+    var webpQualityValue = document.getElementById('webp-quality-value');
+    var webpOrig = document.getElementById('webp-orig');
+    var webpNew = document.getElementById('webp-new');
+    var webpSlider = document.getElementById('webp-slider');
+    var webpInfo = document.getElementById('webp-result-info');
+    var webpOpen = document.getElementById('webp-open');
+    var webpAccept = document.getElementById('webp-accept');
+    var webpReject = document.getElementById('webp-reject');
+
+    webpQuality.addEventListener('input', function () {
+      webpQualityValue.textContent = webpQuality.value;
+    });
+
+    // the divider between the original (left) and the WebP (right)
+    function webpDivide(part) {
+      webpNew.style.clipPath = 'inset(0 0 0 ' + part + '%)';
+    }
+    webpSlider.addEventListener('input', function () { webpDivide(webpSlider.value); });
+
+    // Esc must not leave a result unanswered; the two buttons are the way out
+    webpResult.addEventListener('cancel', function (e) { e.preventDefault(); });
+
     webpButton.addEventListener('click', function () {
       var tiles = picked().filter(webpable);
       if (!tiles.length) return;
-      if (!window.confirm('Zamienić na WebP: ' + describe(tiles) + '? Oryginały trafią do kosza, a ich stare linki będą otwierać WebP. '
-        + 'Te, które jako WebP nie wyjdą wyraźnie mniejsze, zostaną bez zmian.')) return;
-
-      var changed = 0;
-      var skipped = [];
-      webpButton.disabled = true;
-      tiles.reduce(function (previous, tile, i) {
-        return previous.then(function () {
-          gallery.toast('Zamieniam na WebP ' + (i + 1) + ' z ' + tiles.length + '…');
-          return post({ action: 'webp', items: [tile.dataset.rel] }).then(function (result) {
-            if (!result.ok) skipped.push((tile.dataset.title || tile.dataset.rel) + ' (' + result.message + ')');
-            changed += result.changed || 0;
-            skipped = skipped.concat(result.skipped || []);
-          });
-        });
-      }, Promise.resolve()).then(function () {
-        var message = changed ? 'Zamieniono na WebP ' + countLabel(changed) + ', oryginały są w koszu.' : 'Nic nie zamieniono.';
-        if (skipped.length) message += ' Bez zmian: ' + skipped.join(', ') + '.';
-        if (changed) reloadWith(message, skipped.length > 0);
-        else {
-          gallery.toast(message, true);
-          webpButton.disabled = false;
-        }
-      });
+      webpQueue = tiles;
+      webpDone = 0;
+      webpProblems = [];
+      document.getElementById('webp-what').textContent = describe(tiles)
+        + (tiles.length > 1 ? ' (' + tiles.length + ' ' + plural(tiles.length, 'plik', 'pliki', 'plików') + ', po jednym)' : '');
+      dialogError(webpDialog, '');
+      webpDialog.showModal();
     });
+
+    webpForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      webpDialog.close();
+      webpButton.disabled = true;
+      webpNext();
+    });
+
+    function webpNext() {
+      if (!webpQueue.length) {
+        webpFinish();
+        return;
+      }
+      var tile = webpQueue.shift();
+      var label = tile.dataset.title || tile.dataset.rel;
+      var left = webpQueue.length;
+      gallery.toast('Konwersja ' + (left ? '1 z ' + (left + 1) : '') + ': ' + label);
+      post({ action: 'webp-preview', items: [tile.dataset.rel], quality: String(webpQuality.value) }).then(function (result) {
+        if (!result.ok) {
+          webpProblems.push(label + ' (' + result.message + ')');
+          return webpNext();
+        }
+        if (result.skipped) {
+          webpProblems.push(result.skipped);
+          return webpNext();
+        }
+        webpShow(result.preview, label);
+      });
+    }
+
+    function webpShow(preview, label) {
+      webpOrig.src = preview.original;
+      webpNew.src = preview.preview;
+      webpSlider.value = 50;
+      webpDivide(50);
+      webpOpen.href = preview.preview;
+      webpInfo.textContent = preview.info;
+      webpResult.showModal();
+
+      function answer(accept) {
+        webpAccept.disabled = true;
+        webpReject.disabled = true;
+        post({ action: accept ? 'webp-accept' : 'webp-reject', token: preview.token }).then(function (result) {
+          webpAccept.disabled = false;
+          webpReject.disabled = false;
+          webpResult.close();
+          if (accept && result.ok) webpDone++;
+          else if (accept) webpProblems.push(label + ' (' + result.message + ')');
+          webpNext();
+        });
+      }
+      webpAccept.onclick = function () { answer(true); };
+      webpReject.onclick = function () { answer(false); };
+    }
+
+    function webpFinish() {
+      webpButton.disabled = false;
+      var message = webpDone ? 'Zapisano WebP ' + countLabel(webpDone) + ', oryginały są w koszu.' : 'Nic nie zapisano.';
+      if (webpProblems.length) message += ' Bez zmian: ' + webpProblems.join(', ') + '.';
+      if (webpDone) reloadWith(message, webpProblems.length > 0);
+      else gallery.toast(message, true);
+    }
   }
 
   // ---- ZIP of the picked items ----
