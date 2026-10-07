@@ -311,7 +311,7 @@
             </label>
 <?php if (isPanelAdminId($id)): ?>
             <label class="hud-field">
-              <span class="hud-field-label">Kolor <span class="muted">— dowolny, jako admin panelu</span><i class="hud-dot" data-hud-dot></i></span>
+              <span class="hud-field-label">Kolor<i class="hud-dot" data-hud-dot></i></span>
               <span class="hud-select">
                 <select name="hudcolor" data-hud-color>
 <?php foreach (HUD_COLORS as $key => $label): $hex = $key === 'own' ? $ownHex : HUD_COLOR_HEX[$key]; ?>
