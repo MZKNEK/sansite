@@ -700,7 +700,8 @@
 
   // ---- The picture open in the viewer ----
   // renamed or deleted on its own, without picking it; the viewer comes back
-  // with it renamed, and closes after a delete instead of jumping to another
+  // with it renamed, and after a delete jumps to the next picture, or closes
+  // when there is nothing left after it
 
   function renameViewed() {
     var tile = gallery.viewing();
@@ -710,7 +711,9 @@
   function deleteViewed() {
     var tile = gallery.viewing();
     if (!tile) return;
-    askDelete([tile], null);
+    var list = gallery.pictures();
+    var next = list[list.indexOf(tile) + 1];
+    askDelete([tile], next ? next.dataset.rel : null);
   }
 
   document.getElementById('viewer-rename').addEventListener('click', renameViewed);
