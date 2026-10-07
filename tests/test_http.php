@@ -47,6 +47,16 @@
         assertSame('hello', $part, 'a max length cuts it');
     });
 
+    test('botFetch reads the whole body', function () {
+        // the exact path botApiCheck() and botAskHealth() take, without a stub
+        $file = tempDir() . '/alive.txt';
+        file_put_contents($file, 'ok');
+        $url = 'file://' . (DIRECTORY_SEPARATOR === '\\' ? '/' : '') . $file;
+
+        [$body] = botFetch($url);
+        assertSame('ok', $body, 'the bot check must see the body');
+    });
+
     test('botAppGet needs a 200 with JSON', function () {
         withHttp(['/permissions' => [json_encode(['onGuild' => true]), 200]]);
         assertSame(['onGuild' => true], botAppGet('https://x/permissions'));

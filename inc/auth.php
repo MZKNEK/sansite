@@ -97,10 +97,14 @@
     // ---- Stored data ----------------------------------------------------------
 
     // Where the site keeps its data. A test (or an unusual install) can point it
-    // elsewhere with SITE_DATA_DIR before the files are loaded.
+    // elsewhere with SITE_DATA_DIR before the files are loaded; an empty value is
+    // ignored, so a misconfiguration cannot move the data to a bare path.
     function dataDir()
     {
-        return defined('SITE_DATA_DIR') ? rtrim((string)SITE_DATA_DIR, '/\\') : __DIR__ . '/data';
+        if (defined('SITE_DATA_DIR') && SITE_DATA_DIR !== '')
+            return rtrim((string)SITE_DATA_DIR, '/\\');
+
+        return __DIR__ . '/data';
     }
 
     function dataWritable()
