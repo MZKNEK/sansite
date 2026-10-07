@@ -348,7 +348,6 @@ body.gbe-shot main.hero {
 }
 
 .account-menu {
-    --role: var(--accent-light);
     position: relative;
     z-index: 15;
     font: 14px Lato, sans-serif;
@@ -376,7 +375,9 @@ body.gbe-shot main.hero {
 .account-toggle img {
     flex: none;
     border-radius: 50%;
-    box-shadow: 0 0 0 2px var(--role);
+    /* the role colour of the account menu (a role-* class on it); an account
+       whose role is unknown keeps the site's accent */
+    box-shadow: 0 0 0 2px var(--role, var(--accent-light));
 }
 
 .account-toggle .lv {
