@@ -2883,21 +2883,13 @@
         if ($action === 'request-access')
             handleAccessRequest('gallery', galleryCanView(), $_POST['back'] ?? '');
 
-        if ($action === 'zip') {
-            if (!galleryCanView() && !galleryHomes($base))
-                reply(false, 'To konto nie ma dostępu do galerii.', 403);
-            $dir = resolvePath($base, $_POST['dir'] ?? '', true);
-            sendZip(galleryZipRoots(postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : displayName($dir[1])) . ' - wybrane.zip',
-                localBack($_POST['back'] ?? ''));
-        }
-
         // an account with a folder of its own changes only what is in it, and
         // there only adds, renames, turns and deletes pictures
         if (!galleryIsAdmin()) {
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
-            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete', 'media-clear'], true))
+            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete', 'media-clear', 'zip'], true))
                 reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
             // new folders and uploads go only inside its own folder, subfolders included
             if (in_array($action, ['upload', 'mkdir'], true)) {
@@ -2918,6 +2910,15 @@
                     reply(false, 'Folderu konta (' . displayPath($item[1]) . ') nie da się przenieść ani zmienić mu nazwy: nazwa idzie za kontem.', 400);
 
         switch ($action) {
+
+            // the picked items as one ZIP; the non-admin check above has already
+            // made sure they are all in the account's own folder
+            case 'zip':
+                if (!galleryCanView() && !galleryHomes($base))
+                    reply(false, 'To konto nie ma dostępu do galerii.', 403);
+                $dir = resolvePath($base, $_POST['dir'] ?? '', true);
+                sendZip(galleryZipRoots(postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : displayName($dir[1])) . ' - wybrane.zip',
+                    localBack($_POST['back'] ?? ''));
 
             case 'upload':
                 uploadFile($base);
