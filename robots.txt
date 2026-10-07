@@ -6,3 +6,5 @@ Disallow: /admin/
 Disallow: /account/
 Disallow: /inc/
 Disallow: /api/
+
+Sitemap: https://sanakan.pl/sitemap.xml

@@ -10,3 +10,8 @@ tests/ export-ignore
 
 # the deploy script runs in bash, also on Windows
 *.sh text eol=lf
+
+# The site runs on Linux and deploy sends the repository content (git archive),
+# so keep every text file LF both in the repository and in the working tree; git
+# still detects binary files (fonts, pictures) and leaves them untouched
+* text=auto eol=lf

@@ -111,7 +111,7 @@
 <?=metaTags('API', $description, '/api/', 'api')?>
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=0044961588" >
+  <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=b8670e6394" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
@@ -202,8 +202,8 @@
 
 <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
-<script src="./swagger-ui-bundle.js?v=421cb6eadf"> </script>
-<script src="./swagger-ui-standalone-preset.js?v=3ddf89e422"> </script>
+<script src="./swagger-ui-bundle.js?v=9910755d8a"> </script>
+<script src="./swagger-ui-standalone-preset.js?v=0ba407ddfc"> </script>
 <script src="../js/sanakan-util.js?v=f417e538a8"></script>
 <script src="./search.js?v=52c2c6eb3f"> </script>
 <script src="../js/account.js?v=c8dfe2b1f3"></script>
