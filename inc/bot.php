@@ -63,7 +63,7 @@
     // folder cannot be written.
     function botFile($name)
     {
-        $dir = __DIR__ . '/data';
+        $dir = dataDir();
         if (is_dir($dir) ? is_writable($dir) : @mkdir($dir, 0750, true))
             return $dir . '/bot-' . $name;
 

@@ -16,7 +16,7 @@
     {
         $files = 0;
         $bytes = 0;
-        foreach (is_dir($dir) ? (scandir($dir) ?: []) : [] as $name) {
+        foreach (is_dir($dir) ? (@scandir($dir) ?: []) : [] as $name) {
             if ($name === '.' || $name === '..')
                 continue;
             $path = $dir . '/' . $name;

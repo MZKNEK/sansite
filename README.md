@@ -52,6 +52,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
 | `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), `nginx-og.conf` for its nginx site (its link preview picture and purple), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
 | `tools/` | Development helpers, sent on the server never: `asset-versions.php` rewrites the `?v=` of every CSS and JS in the pages to the first ten characters of the file's hash, and `install-hooks.sh` makes git run it before every commit, so the version follows the content without anyone raising a number by hand |
+| `tests/`, `.github/` | The dependency-free test suite (`php tests/run.php`, `php tests/lint.php`) and the CI that runs it, also sent on the server never (see Tests below) |
 | `deploy.sh` | Deployment to the server over SSH |
 
 Kept out of git:
@@ -247,3 +248,20 @@ php -d extension=gd -S 127.0.0.1:8765 -t .
 ```
 
 The site is then at http://127.0.0.1:8765/. The Discord login works only with a local `DISCORD_REDIRECT_URI` in `inc/config.php` that is also listed under Redirects in the Discord application.
+
+## Tests
+
+The logic that can be tested without a browser or the network has a small, dependency-free suite; no composer, so it runs on the server's PHP too:
+
+```bash
+php tests/lint.php   # php -l over every PHP file
+php tests/run.php    # the cases
+```
+
+Every `tests/test_*.php` registers cases with `test('name', function () { ... })` and asserts with `assertSame()`, `assertTrue()`, `assertContains()`, `assertThrows()` (see `tests/bootstrap.php`). The bootstrap points `SITE_DATA_DIR` at a temporary folder before the code is loaded, so a test never touches `inc/data`; `tests/run.php` clears it between two cases. To cover a pure function, add a `tests/test_*.php` (the suite picks it up by name); to change the data folder of a real install, set `SITE_DATA_DIR` in `inc/config.php`. The session tests start a real session in the CLI; the GD tests run only when `gd` is loaded (CI enables it).
+
+Covered: the text helpers and Polish plurals, the safe paths, the file names, the media sniffing and metadata stripping (JPEG/PNG/WebP/AVIF), the byte ranges, the access lists and roles, the session, the logged-in account and the test rights, the bot state (commands, days, incidents, API, dependencies, heartbeat, addresses), the command and log parsers, the availability analysis and the nginx log reading, the trash, the shared links, the background conversion queue, the ZIP walk and the search.
+
+Not unit-tested, because they need the network, DNS, a browser or end in a `header()` and `exit()`: the Discord login, `botState()`/`api/health`, the Cloudflare API, and the page handlers (`handlePost()`, `uploadFile()`, `sendZip()`, `handleAccessRequest()`). They are checked by opening the site (`php -d extension=gd -S 127.0.0.1:8765 -t .`, see above) and by hand.
+
+GitHub Actions runs the lint and the suite on PHP 8.1 and 8.2, and `node --check` on the scripts (`.github/workflows/ci.yml`). `tests/`, `.github/` and `tools/` are `export-ignore`, so `deploy.sh` never sends them to the server.

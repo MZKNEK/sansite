@@ -1,0 +1,113 @@
+<?php
+    // inc/bot.php: the stored state on disk: the command changes, the daily
+    // counts, the incidents, the bot API, the dependencies and the heartbeat.
+
+    test('botTrackCommands logs new, changed and removed', function () {
+        $a = ['modules' => [['name' => 'M', 'subModules' => [['prefix' => 'p', 'commands' => [['name' => 'a', 'description' => 'x']]]]]]];
+        $b = ['modules' => [['name' => 'M', 'subModules' => [['prefix' => 'p', 'commands' => [['name' => 'a', 'description' => 'y'], ['name' => 'b', 'description' => 'new']]]]]]];
+        $c = ['modules' => [['name' => 'M', 'subModules' => [['prefix' => 'p', 'commands' => [['name' => 'b', 'description' => 'new']]]]]]];
+
+        botTrackCommands($a, 1000);
+        assertSame(1000, botCommandsWatchedSince());
+        assertSame([], botCommandChanges(), 'the first list is not a change');
+
+        botTrackCommands($b, 2000);
+        $changes = botCommandChanges();
+        assertSame(1, count($changes));
+        assertSame(['p b'], $changes[0]['added']);
+        assertSame(['x', 'y'], $changes[0]['changed']['p a']['description']);
+
+        botTrackCommands($c, 3000);
+        $changes = botCommandChanges();
+        assertSame(2, count($changes), 'newest first');
+        assertSame(['p a'], $changes[0]['removed']);
+        assertSame('y', $changes[0]['gone']['p a']['description'], 'the text from just before it went');
+    });
+
+    test('botRecordDay and the daily parts', function () {
+        $day = strtotime('today');
+        file_put_contents(botFile('status-history.txt'), implode("\n", [
+            ($day + 5) . ' 1 40 -',
+            ($day + 10) . ' 0',
+            '',
+        ]) . "\n");
+        botRecordDay(true, time());
+        $days = botDays();
+        $today = date('Y-m-d');
+        assertSame(2, $days[$today][0]);
+        assertSame(1, $days[$today][1]);
+        $parts = botDailyParts(3);
+        assertSame(2, end($parts)['checks']);
+    });
+
+    test('botRecordIncident and botDownSince', function () {
+        file_put_contents(botFile('incidents.json'), '[]');
+        botRecordIncident(false, 1000);
+        botRecordIncident(true, 2000);
+        assertSame([[1000, 2000]], botRawIncidents());
+        assertNull(botDownSince());
+
+        botRecordIncident(false, 3000);
+        assertSame(3000, botDownSince());
+        assertContains('od', botDownText(['status' => 'offline']));
+    });
+
+    test('botApiRecord, botApiLast and botApiDown', function () {
+        $now = time();
+        botApiRecord(true, 42, $now);
+        assertSame([$now, true, 42, null], botApiLast());
+        assertFalse(botApiDown($now + 1));
+
+        botApiRecord(false, 50, $now + 2);
+        assertTrue(botApiDown($now + 3));
+    });
+
+    test('botRecordDependencies and botDependencyHistory', function () {
+        $now = time();
+        botRecordDependencies(['shinden' => ['ok' => true, 'latencyMs' => 123]], $now);
+        $history = botDependencyHistory('shinden');
+        assertSame([$now, true, 123, null], end($history));
+    });
+
+    test('botPrivateModules drops what is public', function () {
+        file_put_contents(botFile('status.json'), json_encode(['status' => 'online', 'uptime' => 100, 'checked' => time(), 'ms' => null, 'issues' => []]));
+        file_put_contents(botFile('commands.json'), json_encode(['modules' => [['name' => 'Pub', 'subModules' => [['prefix' => 'p', 'commands' => [['name' => 'daily']]]]]]]));
+        file_put_contents(botFile('commands-private.json'), json_encode(['modules' => [['name' => 'Mod', 'subModules' => [['prefix' => 'p', 'commands' => [
+            ['name' => 'daily', 'description' => 'public too'],
+            ['name' => 'ban', 'description' => 'mod only'],
+        ]]]]]]));
+
+        $modules = botPrivateModules();
+        assertSame(1, count($modules));
+        assertSame('ban', $modules[0]['subModules'][0]['commands'][0]['name']);
+    });
+
+    test('botHealth, botCachedState and the heartbeat', function () {
+        file_put_contents(botFile('health.json'), json_encode(['status' => 'ok']));
+        assertSame('ok', botHealth()['status']);
+        unlink(botFile('health.json'));
+        assertNull(botHealth());
+
+        file_put_contents(botFile('status.json'), json_encode(['status' => 'online', 'uptime' => 100, 'checked' => time()]));
+        assertSame('online', botCachedState(botFile('status.json'))['status']);
+        file_put_contents(botFile('status2.json'), json_encode(['status' => 'online']));
+        assertNull(botCachedState(botFile('status2.json')), 'an incomplete state');
+
+        $now = time();
+        botSaveHeartbeat(['status' => 'ok', 'discord' => ['state' => 'Connected', 'latencyMs' => 10]], $now);
+        assertSame($now, botHeartbeatTime());
+        assertNull(botHeartbeatReport($now), 'no secret means no fresh report');
+    });
+
+    test('botCronLast and the bot addresses', function () {
+        assertNull(botCronLast());
+        botWriteFile(botFile('cron.txt'), '12345');
+        assertSame(12345, botCronLast());
+
+        $now = time();
+        botNoteAddress('8.8.8.8', $now);
+        assertTrue(botIsAddress('8.8.8.8'));
+        assertFalse(botIsAddress('9.9.9.9'));
+        botNoteAddress('not-an-ip', $now);
+        assertFalse(botIsAddress('not-an-ip'), 'a broken address is not kept');
+    });

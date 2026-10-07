@@ -389,7 +389,7 @@
     function listNames($dirPath, $dirRel)
     {
         $names = [];
-        foreach (scandir($dirPath) ?: [] as $name) {
+        foreach (@scandir($dirPath) ?: [] as $name) {
             if ($name[0] === '.' || ($dirRel === '' && ($name === 'index.php'
                     || ($name === USERS_DIR && !galleryIsAdmin())
                     || ($name === PRIVATE_DIR && !galleryCanSeePrivate()))))
@@ -1103,7 +1103,7 @@
     {
         $count = 0;
         $bytes = 0;
-        foreach (scandir($dirPath) ?: [] as $name)
+        foreach (@scandir($dirPath) ?: [] as $name)
             if ($name[0] !== '.' && is_file($dirPath . '/' . $name)) {
                 $count++;
                 $bytes += filesize($dirPath . '/' . $name);
@@ -1118,7 +1118,7 @@
         $count = 0;
         $bytes = 0;
         $walk = function ($path) use (&$walk, &$count, &$bytes) {
-            foreach (scandir($path) ?: [] as $name) {
+            foreach (@scandir($path) ?: [] as $name) {
                 if ($name[0] === '.')
                     continue;
                 $full = $path . '/' . $name;
@@ -1270,7 +1270,7 @@
         if (is_link($path) || is_file($path))
             return @unlink($path);
 
-        foreach (scandir($path) ?: [] as $name)
+        foreach (@scandir($path) ?: [] as $name)
             if ($name !== '.' && $name !== '..' && !removeTree($path . '/' . $name))
                 return false;
 
@@ -1284,7 +1284,7 @@
             return (int)@filesize($path);
 
         $bytes = 0;
-        foreach (scandir($path) ?: [] as $name)
+        foreach (@scandir($path) ?: [] as $name)
             if ($name !== '.' && $name !== '..')
                 $bytes += treeSize($path . '/' . $name);
 
@@ -1840,7 +1840,7 @@
             return;
 
         $names = [];
-        foreach (scandir($full) ?: [] as $name)
+        foreach (@scandir($full) ?: [] as $name)
             if ($name[0] !== '.' && !in_array($name, $skip, true))
                 $names[] = $name;
         if (!$names)
