@@ -37,7 +37,9 @@
         $out = (string)stream_get_contents($pipes[1]);
         fclose($pipes[1]);
         assertSame(0, proc_close($handle), 'the child exited cleanly');
-        assertSame(str_replace('\\', '/', realpath(__DIR__ . '/../inc/data')), str_replace('\\', '/', trim($out)));
+        // no realpath: inc/data may not exist yet on a fresh checkout
+        $expected = str_replace('\\', '/', dirname(__DIR__) . '/inc/data');
+        assertSame($expected, str_replace('\\', '/', trim($out)));
     });
 
     test('the bot URLs sit on botApiBase()', function () {
