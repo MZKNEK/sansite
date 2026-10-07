@@ -184,6 +184,11 @@
     --arm: 18px;
 }
 
+/* the value in the field follows the site's search box (JetBrains Mono) */
+.v-application.v-application .nav-header .v-text-field input {
+    font-family: "JetBrains Mono", Consolas, monospace !important;
+}
+
 /* ---- Navigation on the left -------------------------------------------- */
 
 .v-application.theme--dark .v-navigation-drawer.grey,
@@ -258,6 +263,12 @@
 
 .v-application.v-application .breadcrumbs-nav .v-breadcrumbs__divider {
     color: rgba(155, 89, 182, 0.6);
+}
+
+/* buttons follow the site's action buttons (JetBrains Mono); the breadcrumbs
+   above keep their Sanakan Mono, a more specific selector */
+.v-application.v-application .v-btn {
+    font-family: "JetBrains Mono", Consolas, monospace !important;
 }
 
 /* the band with the title: no grey, a purple line below */
