@@ -419,7 +419,11 @@
             return ($GLOBALS['SANAKAN_HTTP'])($url, $options, $maxLen);
 
         $context = stream_context_create(['http' => $options]);
-        $body = @file_get_contents($url, false, $context, 0, $maxLen);
+        // a length of 0 means "read nothing" to file_get_contents, so a missing
+        // max length has to leave the argument out
+        $body = $maxLen > 0
+            ? @file_get_contents($url, false, $context, 0, $maxLen)
+            : @file_get_contents($url, false, $context);
         $status = 0;
         foreach ($http_response_header ?? [] as $line)
             if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))

@@ -34,6 +34,19 @@
         assertSame(0, $status);
     });
 
+    test('httpRaw reads the whole body, or the given number of bytes', function () {
+        // a file:// URL stands in for the network, so the real httpRaw() runs
+        $file = tempDir() . '/body.txt';
+        file_put_contents($file, 'hello world');
+        $url = 'file://' . (DIRECTORY_SEPARATOR === '\\' ? '/' : '') . $file;
+
+        [$body] = httpRaw($url);
+        assertSame('hello world', $body, 'no max length reads it whole');
+
+        [$part] = httpRaw($url, [], 5);
+        assertSame('hello', $part, 'a max length cuts it');
+    });
+
     test('botAppGet needs a 200 with JSON', function () {
         withHttp(['/permissions' => [json_encode(['onGuild' => true]), 200]]);
         assertSame(['onGuild' => true], botAppGet('https://x/permissions'));
