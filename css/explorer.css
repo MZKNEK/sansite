@@ -699,7 +699,7 @@ body.viewer-open {
     border: 1px solid rgba(var(--accent-rgb), 0.45);
     background: transparent;
     color: var(--accent-light);
-    font: 13px Lato, sans-serif;
+    font: 13px "JetBrains Mono", Consolas, monospace;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
 }

@@ -1071,6 +1071,7 @@ a.who-name:hover {
     gap: 8px 24px;
     margin: 0;
     font-size: 14px;
+    font-family: "JetBrains Mono", Consolas, monospace;
 }
 
 .server dt {

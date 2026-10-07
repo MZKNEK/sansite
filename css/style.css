@@ -396,7 +396,7 @@ html[data-hud="full"].role-admin {
 .account-menu {
     position: relative;
     z-index: 15;
-    font: 14px Lato, sans-serif;
+    font: 14px "JetBrains Mono", Consolas, monospace;
 }
 
 .account-toggle {
@@ -846,7 +846,7 @@ a.hud-corners:hover {
     background: transparent;
     color: var(--text);
     /* 16px keeps phones from zooming in on focus */
-    font: 16px Lato, sans-serif;
+    font: 16px "JetBrains Mono", Consolas, monospace;
     -webkit-appearance: none;
     appearance: none;
 }
