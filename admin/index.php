@@ -606,6 +606,10 @@
                 @unlink(botFile('swagger.json'));
                 done('cache', 'Odświeżono specyfikację API; zostanie pobrana przy następnym wejściu do API.');
 
+            case 'refresh-stats':
+                panelStats($galleryDir, true);
+                done('cache', 'Przeliczono galerię od nowa.');
+
             case 'restore':
                 $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
                 if (!$item)
@@ -939,7 +943,7 @@
   <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=a6863ef8aa" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=8e291b2ca1" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1305,7 +1309,8 @@
 
       <section class="card wide" data-sum="<?=$stats['files']?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Galeria w liczbach</h2>
-        <p class="hint">Policzone <?=e(ago($statsAgo))?>; odświeża się w tle raz na godzinę (cron), więc otwarcie panelu nie czeka na przejście galerii.</p>
+        <p class="hint">Policzone <?=e(ago($statsAgo))?>; odświeża się w tle raz na godzinę (cron), więc otwarcie panelu nie czeka na przejście galerii.
+          <button type="button" class="admin-btn small" data-action="refresh-stats" data-confirm="Przeliczyć galerię od nowa? Przy dużej galerii to chwilę zajmie.">Przelicz teraz</button></p>
         <div class="stats-summary">
           <span><b><?=$stats['files']?></b> <?=plural($stats['files'], 'plik', 'pliki', 'plików')?></span>
           <span><b><?=e(formatSize($stats['bytes']))?></b> razem</span>

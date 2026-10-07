@@ -35,19 +35,21 @@
 
     // The gallery in numbers: files and bytes in all, per top folder ('' for the
     // files right in i/), per file type, and the biggest files as [rel, size].
-    // Hidden files and the gallery script do not count, as in the gallery itself.
+    // Hidden files and the gallery script do not count, as in the gallery itself,
+    // but the accounts' folders and the private one do: the panel counts the
+    // whole gallery, no matter who may see what in it.
     function galleryStats($base)
     {
         $stats = ['files' => 0, 'bytes' => 0, 'folders' => [], 'types' => [], 'largest' => []];
         if (!is_dir($base))
             return $stats;
 
-        foreach (listNames($base, '') as $name)
+        foreach (listNames($base, '', true) as $name)
             if (is_dir($base . '/' . $name) && !is_link($base . '/' . $name))
                 $stats['folders'][$name] = ['files' => 0, 'bytes' => 0];
 
         $walk = function ($dirPath, $dirRel, $top, $depth) use (&$walk, &$stats) {
-            foreach (listNames($dirPath, $dirRel) as $name) {
+            foreach (listNames($dirPath, $dirRel, true) as $name) {
                 $full = $dirPath . '/' . $name;
                 $rel = ltrim($dirRel . '/' . $name, '/');
                 if (is_dir($full) && !is_link($full)) {

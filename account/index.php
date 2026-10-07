@@ -142,7 +142,7 @@
   <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=a6863ef8aa" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=8e291b2ca1" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">

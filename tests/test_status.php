@@ -64,18 +64,25 @@
     });
 
     test('galleryStats counts files, bytes and types', function () {
+        sessionEnd();
         $base = tempDir();
         mkdir($base . '/sub');
+        mkdir($base . '/private', 0700, true);
+        mkdir($base . '/users/9-x', 0700, true);
         file_put_contents($base . '/a.webp', str_repeat('x', 100));
         file_put_contents($base . '/b.png', str_repeat('x', 50));
         file_put_contents($base . '/sub/c.webp', str_repeat('x', 30));
+        file_put_contents($base . '/private/p.webp', str_repeat('x', 20));
+        file_put_contents($base . '/users/9-x/u.png', str_repeat('x', 10));
         file_put_contents($base . '/.hidden', 'x');
         $stats = galleryStats($base);
-        assertSame(3, $stats['files']);
-        assertSame(180, $stats['bytes']);
+        assertSame(5, $stats['files'], 'the private and account folders count too');
+        assertSame(210, $stats['bytes']);
         assertSame(1, $stats['folders']['sub']['files']);
-        assertSame(130, $stats['types']['webp']['bytes']);
-        assertSame(1, $stats['types']['png']['files']);
+        assertSame(1, $stats['folders']['private']['files']);
+        assertSame(1, $stats['folders']['users']['files']);
+        assertSame(150, $stats['types']['webp']['bytes']);
+        assertSame(2, $stats['types']['png']['files']);
     });
 
     test('panelStats counts and caches', function () {

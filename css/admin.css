@@ -1220,7 +1220,7 @@ a.who-name:hover {
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: #efe2f7;
 }
 
 .diag-title .muted {
@@ -1234,7 +1234,7 @@ a.who-name:hover {
     margin-right: 8px;
     font-style: normal;
     font-family: "Sanakan Mono", monospace;
-    color: var(--accent);
+    color: var(--accent-light);
 }
 
 .diag-episodes {
@@ -1760,6 +1760,8 @@ a.who-name:hover {
 .diag-sub {
     margin-top: 8px;
     border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-left: 2px solid rgba(var(--accent-rgb), 0.4);
+    background: rgba(255, 255, 255, 0.015);
 }
 
 .diag-sub > summary {
@@ -1769,6 +1771,11 @@ a.who-name:hover {
     padding: 11px 14px;
     cursor: pointer;
     list-style: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.diag-sub > summary:hover {
+    background: rgba(var(--accent-rgb), 0.1);
 }
 
 .diag-sub > summary::-webkit-details-marker {
@@ -1780,8 +1787,14 @@ a.who-name:hover {
     margin: 0;
 }
 
+.diag-sub[open] {
+    border-color: rgba(var(--accent-rgb), 0.35);
+    border-left-color: var(--accent-light);
+}
+
 .diag-sub[open] > summary {
     border-bottom: 1px solid rgba(var(--accent-rgb), 0.18);
+    background: rgba(var(--accent-rgb), 0.12);
 }
 
 .diag-sub > .diag-subbody {

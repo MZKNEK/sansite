@@ -385,14 +385,15 @@
 
     // visible entries of a folder: no hidden files, no index.php in the top
     // folder, and there the folders of the accounts and the private folder only
-    // for those who may see them
-    function listNames($dirPath, $dirRel)
+    // for those who may see them. $everything drops that last part, for the
+    // panel's numbers, which count the whole gallery no matter who asks.
+    function listNames($dirPath, $dirRel, $everything = false)
     {
         $names = [];
         foreach (@scandir($dirPath) ?: [] as $name) {
             if ($name[0] === '.' || ($dirRel === '' && ($name === 'index.php'
-                    || ($name === USERS_DIR && !galleryIsAdmin())
-                    || ($name === PRIVATE_DIR && !galleryCanSeePrivate()))))
+                    || (!$everything && (($name === USERS_DIR && !galleryIsAdmin())
+                    || ($name === PRIVATE_DIR && !galleryCanSeePrivate()))))))
                 continue;
             $names[] = $name;
         }
