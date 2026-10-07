@@ -43,7 +43,7 @@
 .notice-form {
     margin-top: 22px;
     padding-top: 18px;
-    border-top: 1px solid rgba(155, 89, 182, 0.15);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.15);
 }
 
 .notice-form h3 {
@@ -62,7 +62,7 @@
 .notice-form textarea,
 .notice-fields input[type="datetime-local"] {
     padding: 7px 10px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 14px Lato, sans-serif;
@@ -116,7 +116,7 @@
 .quality-form input[type="number"] {
     width: 4.5em;
     padding: 7px 8px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
@@ -137,7 +137,7 @@
     box-sizing: border-box;
     width: 172px;
     padding: 7px 10px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
@@ -159,7 +159,7 @@
     z-index: 30;
     width: 264px;
     padding: 12px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
     background: #121115;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
@@ -214,7 +214,7 @@
 }
 
 .dt-day:hover {
-    background: rgba(155, 89, 182, 0.2);
+    background: rgba(var(--accent-rgb), 0.2);
 }
 
 .dt-day.other {
@@ -230,7 +230,7 @@
 }
 
 .dt-day.today {
-    border-color: rgba(155, 89, 182, 0.6);
+    border-color: rgba(var(--accent-rgb), 0.6);
 }
 
 .dt-day.chosen {
@@ -251,7 +251,7 @@
 .dt-time input {
     width: 52px;
     padding: 5px 6px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
@@ -299,7 +299,7 @@
     flex: 1;
     min-width: 0;
     padding: 7px 12px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 14px Lato, sans-serif;
@@ -324,7 +324,7 @@
     align-items: center;
     gap: 4px 14px;
     padding: 7px 8px;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.1);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.1);
     font-size: 13px;
 }
 
@@ -479,7 +479,7 @@ a.who-name:hover {
 
 .disk-bar .used,
 .disk .timeline-legend .used {
-    background: rgba(155, 89, 182, 0.35);
+    background: rgba(var(--accent-rgb), 0.35);
 }
 
 .disk.low .disk-bar .used {
@@ -573,7 +573,7 @@ a.who-name:hover {
     gap: 12px;
     margin-top: 3px;
     padding: 5px 8px;
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
     font: 13px "JetBrains Mono", Consolas, monospace;
 }
 
@@ -612,7 +612,7 @@ a.who-name:hover {
     align-items: center;
     gap: 6px 10px;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
 }
 
 .people li img,
@@ -635,7 +635,7 @@ a.who-name:hover {
 
 .who code {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(182, 112, 211, 0.75);
+    color: rgba(var(--accent-light-rgb), 0.75);
 }
 
 .note {
@@ -647,7 +647,7 @@ a.who-name:hover {
 .badge-config,
 .role {
     padding: 1px 8px;
-    border: 1px solid rgba(155, 89, 182, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
     color: var(--accent-light);
     font: 11px/18px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
@@ -686,13 +686,13 @@ a.who-name:hover {
 
 .access-cell.on {
     border-left-color: var(--accent-light);
-    background: rgba(155, 89, 182, 0.08);
+    background: rgba(var(--accent-rgb), 0.08);
     color: #e6dcef;
 }
 
 .access-cell.strong {
     border-left-color: #fff;
-    background: rgba(155, 89, 182, 0.25);
+    background: rgba(var(--accent-rgb), 0.25);
     color: #fff;
     font-weight: 700;
 }
@@ -726,7 +726,7 @@ a.who-name:hover {
     flex: 1 1 140px;
     min-width: 0;
     padding: 7px 10px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 14px Lato, sans-serif;
@@ -778,7 +778,7 @@ a.who-name:hover {
     width: 28px;
     height: 24px;
     padding: 0;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: transparent;
     color: var(--accent-light);
     cursor: pointer;
@@ -786,7 +786,7 @@ a.who-name:hover {
 
 .login-more:hover,
 .login-more[aria-expanded="true"] {
-    background: rgba(155, 89, 182, 0.18);
+    background: rgba(var(--accent-rgb), 0.18);
 }
 
 .login-more .account-icon {
@@ -808,7 +808,7 @@ a.who-name:hover {
     justify-content: space-between;
     gap: 10px 24px;
     padding: 8px 12px 4px;
-    border-left: 2px solid rgba(155, 89, 182, 0.4);
+    border-left: 2px solid rgba(var(--accent-rgb), 0.4);
     background: rgba(255, 255, 255, 0.02);
 }
 
@@ -834,7 +834,7 @@ a.who-name:hover {
     align-items: center;
     gap: 8px 16px;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
 }
 
 .login-who {
@@ -868,7 +868,7 @@ a.who-name:hover {
     align-items: center;
     gap: 8px 16px;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
 }
 
 .trash-name {
@@ -888,7 +888,7 @@ a.who-name:hover {
 .trash-name code {
     overflow-wrap: anywhere;
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(182, 112, 211, 0.75);
+    color: rgba(var(--accent-light-rgb), 0.75);
 }
 
 /* a shared link, picked whole with one click to copy */
@@ -924,7 +924,7 @@ a.who-name:hover {
 
 .test-form select {
     padding: 7px 8px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 13px Lato, sans-serif;
@@ -963,7 +963,7 @@ a.who-name:hover {
     padding-right: 6px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 .trash-all {
@@ -990,7 +990,7 @@ a.who-name:hover {
     display: block;
     max-width: 100%;
     max-height: 420px;
-    border: 1px solid rgba(155, 89, 182, 0.25);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
     background: #0b0b0d;
 }
 
@@ -1004,7 +1004,7 @@ a.who-name:hover {
     display: block;
     aspect-ratio: 1;
     overflow: hidden;
-    border: 1px solid rgba(155, 89, 182, 0.25);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
     background: #0b0b0d;
 }
 
@@ -1028,7 +1028,7 @@ a.who-name:hover {
     overflow-y: auto;
     list-style: none;
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 .history li {
@@ -1036,7 +1036,7 @@ a.who-name:hover {
     grid-template-columns: 90px minmax(100px, 160px) 1fr;
     gap: 4px 14px;
     padding: 6px 0;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.1);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.1);
     font-size: 13px;
 }
 
@@ -1111,7 +1111,7 @@ a.who-name:hover {
 .usage-plot {
     position: relative;
     height: 72px;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.25);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.25);
 }
 
 .usage-plot svg {
@@ -1219,7 +1219,7 @@ a.who-name:hover {
     max-height: 640px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 .diag-episode {
@@ -1256,7 +1256,7 @@ a.who-name:hover {
 }
 
 .diag-episode[open] summary {
-    border-bottom: 1px solid rgba(155, 89, 182, 0.15);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.15);
 }
 
 .diag-episode .server {
@@ -1282,7 +1282,7 @@ a.who-name:hover {
     gap: 2px 14px;
     margin-top: 3px;
     padding: 5px 8px;
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
     font: 13px "JetBrains Mono", Consolas, monospace;
 }
 
@@ -1351,7 +1351,7 @@ a.who-name:hover {
     max-height: 560px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 /* addresses on the block list of Cloudflare */
@@ -1367,7 +1367,7 @@ a.who-name:hover {
     align-items: center;
     gap: 4px 14px;
     padding: 6px 8px;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.1);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.1);
     font-size: 13px;
 }
 
@@ -1523,7 +1523,7 @@ a.who-name:hover {
 .admin-nav .nav-filter {
     margin: 0 0 8px;
     padding: 8px 10px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: #0b0b0d;
     color: var(--text);
     font: 13px Lato, sans-serif;
@@ -1550,13 +1550,13 @@ a.who-name:hover {
 
 .admin-nav a:hover {
     color: #fff;
-    background: rgba(155, 89, 182, 0.14);
+    background: rgba(var(--accent-rgb), 0.14);
 }
 
 .admin-nav a.active {
     border-color: var(--accent-light);
     color: #fff;
-    background: rgba(155, 89, 182, 0.22);
+    background: rgba(var(--accent-rgb), 0.22);
 }
 
 .admin-nav .dot {
@@ -1593,7 +1593,7 @@ a.who-name:hover {
     display: flex;
     flex-direction: column;
     margin: 0 0 8px 13px;
-    border-left: 1px solid rgba(155, 89, 182, 0.35);
+    border-left: 1px solid rgba(var(--accent-rgb), 0.35);
 }
 
 .admin-nav .nav-card {
@@ -1607,7 +1607,7 @@ a.who-name:hover {
 
 .admin-nav .nav-card:hover {
     color: #fff;
-    background: rgba(155, 89, 182, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
 }
 
 /* a long nav scrolls on its own */
@@ -1615,7 +1615,7 @@ a.who-name:hover {
     max-height: calc(100vh - 32px);
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 .panel-section {
@@ -1634,7 +1634,7 @@ a.who-name:hover {
 
 /* a card folds to its title; a colored left edge says how it stands */
 .card.collapsible {
-    border-left: 3px solid rgba(155, 89, 182, 0.3);
+    border-left: 3px solid rgba(var(--accent-rgb), 0.3);
 }
 
 .card[data-state="ok"] {
@@ -1737,7 +1737,7 @@ a.who-name:hover {
 /* the diagnostics card folded into sub-accordions */
 .diag-sub {
     margin-top: 8px;
-    border: 1px solid rgba(155, 89, 182, 0.18);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
 }
 
 .diag-sub > summary {
@@ -1759,7 +1759,7 @@ a.who-name:hover {
 }
 
 .diag-sub[open] > summary {
-    border-bottom: 1px solid rgba(155, 89, 182, 0.18);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.18);
 }
 
 .diag-sub > .diag-subbody {
@@ -1785,4 +1785,45 @@ a.who-name:hover {
     .admin-nav {
         position: static;
     }
+}
+
+/* The HUD colour chosen in the profile (/account/): the choices and their
+   swatches; the role colour of the account comes from --role (css/style.css) */
+.hud-form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.hud-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.hud-swatch {
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+}
+
+.hud-swatch.hud-default {
+    background: #9b59b6;
+}
+
+.hud-swatch.hud-accent,
+.hud-swatch.hud-full {
+    background: var(--role, var(--accent-light));
+}
+
+.hud-swatch.hud-full {
+    box-shadow: 0 0 10px var(--role, var(--accent-light));
+}
+
+.hud-form .admin-btn {
+    margin-top: 6px;
 }

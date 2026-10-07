@@ -145,6 +145,11 @@
     .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (me) {
       if (!me) return;
+      // the HUD colour chosen in the profile (/account/), applied at once
+      if (me.hud === 'accent' || me.hud === 'full') {
+        document.documentElement.setAttribute('data-hud', me.hud);
+        if (me.role) document.documentElement.classList.add('role-' + me.role);
+      }
       if (!me.menu) {
         if (!me.login) return;
         var login = document.createElement('a');

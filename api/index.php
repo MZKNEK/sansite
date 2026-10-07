@@ -32,7 +32,7 @@
     if (!$allowed):
 ?>
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl"<?=hudHtmlAttributes($user)?>>
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -43,8 +43,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=463fb55e4a" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -105,14 +105,14 @@
 ?>
 <!-- HTML for static distribution bundle build -->
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl"<?=hudHtmlAttributes($user)?>>
 <head>
   <meta charset="UTF-8">
 <?=metaTags('API', $description, '/api/', 'api')?>
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=463fb55e4a" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=7ea800b1aa" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />

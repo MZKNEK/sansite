@@ -25,9 +25,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=463fb55e4a" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
+  <script src="../js/hud.js?v=88d070fcff"></script>
 </head>
 
 <body class="state-page">

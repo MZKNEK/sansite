@@ -547,6 +547,54 @@
             . 'LV.' . $badge['level'] . '</span>';
     }
 
+    // ---- The look of the HUD ---------------------------------------------------
+    // Each account may let its role on the bot's server colour the HUD, chosen
+    // in its profile (/account/). The default is the site's own purple, so
+    // nothing changes until it is picked; the setting is kept in inc/data/hud.json.
+
+    const HUD_MODES = [
+        'default' => 'Domyślnie (fiolet strony)',
+        'accent'  => 'Tylko akcenty w kolorze roli',
+        'full'    => 'Cały HUD w kolorze roli'
+    ];
+
+    // the mode of an account, 'default' when it never picked one
+    function hudMode($id)
+    {
+        $mode = readData('hud')[(string)$id] ?? 'default';
+
+        return isset(HUD_MODES[$mode]) ? $mode : 'default';
+    }
+
+    function setHudMode($id, $mode)
+    {
+        if (!isset(HUD_MODES[$mode]))
+            return false;
+
+        $all = readData('hud');
+        if ($mode === 'default')
+            unset($all[(string)$id]);
+        else
+            $all[(string)$id] = $mode;
+
+        return writeData('hud', $all);
+    }
+
+    // the attributes for <html> that put the chosen HUD and the role colour on
+    // the page; nothing when the visitor is not logged in
+    function hudHtmlAttributes($user)
+    {
+        if ($user === null)
+            return '';
+
+        $badge = roleBadge(siteRoles());
+        $html = ' data-hud="' . htmlspecialchars(hudMode($user['id']), ENT_QUOTES, 'UTF-8') . '"';
+        if ($badge !== null)
+            $html .= ' class="role-' . htmlspecialchars($badge['key'], ENT_QUOTES, 'UTF-8') . '"';
+
+        return $html;
+    }
+
     // ---- The account in the corner of every page ----------------------------------
 
     const ACCOUNT_ICONS = [

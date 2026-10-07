@@ -32,10 +32,20 @@
     header('Cache-Control: no-store, private');
 
     $user = siteUser();
+    // the HUD colour chosen in the profile also goes into cookies, so the pages
+    // that render no account menu (the home page, the privacy notice, the 404,
+    // the public status) can apply it too (js/hud.js)
+    if ($user !== null) {
+        $badge = roleBadge(siteRoles());
+        setcookie('hud', hudMode($user['id']), time() + 31536000, '/');
+        setcookie('hudrole', $badge['key'] ?? '', time() + 31536000, '/');
+    }
     echo json_encode($user === null ? [
         'login' => authConfigured()
     ] : [
         'menu' => accountMenuHtml($user, siteRoles(), siteRoot()),
         'api' => canViewApiId($user['id']),
+        'hud' => hudMode($user['id']),
+        'role' => roleBadge(siteRoles())['key'] ?? '',
         'flash' => takeFlash()
     ], JSON_UNESCAPED_UNICODE);

@@ -44,6 +44,14 @@
                 addHistory('sessions', 'Wylogowano się na pozostałych urządzeniach.');
                 setFlash('Wylogowano pozostałe urządzenia.');
             }
+        } else if (($_POST['action'] ?? '') === 'hud') {
+            $mode = (string)($_POST['hud'] ?? '');
+            if (!isset(HUD_MODES[$mode]) || !setHudMode($user['id'], $mode)) {
+                setFlash('Nie udało się zapisać wyglądu, spróbuj później.');
+            } else {
+                addHistory('hud', 'Zmieniono wygląd na: ' . HUD_MODES[$mode] . '.');
+                setFlash('Zapisano wygląd.');
+            }
         }
         header('Location: ./', true, 303);
         exit;
@@ -117,7 +125,7 @@
     }
 ?>
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl"<?=hudHtmlAttributes($user)?>>
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -129,10 +137,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=463fb55e4a" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=4a92e73375" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=c27e4788b6" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -280,6 +288,23 @@
 <?php endif; ?>
       </section>
 
+      <section class="card wide">
+        <h2><i><?=$showGallery ? '06' : '05'?></i>Wygląd</h2>
+        <p class="hint">Kolor strony. Domyślnie jest fioletowy, jak dotąd. Można go oddać roli na serwerze bota: w wariancie <b>tylko akcenty</b> kolor wchodzi w narożniki, linki, wyszukiwarkę i menu konta, a w <b>całym HUD</b> także w tło, poświatę tytułu i linie pod SAFEGUARD. Zmiana widoczna od razu, zapisuje się przyciskiem.</p>
+        <form method="post" action="./" class="hud-form">
+          <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
+          <input type="hidden" name="action" value="hud" />
+<?php $hudNow = hudMode($id); foreach (HUD_MODES as $key => $label): ?>
+          <label class="hud-choice">
+            <input type="radio" name="hud" value="<?=e($key)?>" data-hud-choice<?=$hudNow === $key ? ' checked' : ''?> />
+            <span class="hud-swatch hud-<?=e($key)?>"></span>
+            <span><?=e($label)?></span>
+          </label>
+<?php endforeach; ?>
+          <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
+        </form>
+      </section>
+
       <p class="hint own-note">Tak wyglądają dane tego konta zapisane przez stronę. Więcej w <a href="../privacy/">informacji o prywatności</a>. O usunięcie danych można poprosić pod adresem <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>.</p>
     </div>
 <?php endif; ?>
@@ -293,6 +318,7 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=b0c463f9b6"></script>
+  <script src="../js/hud.js?v=88d070fcff"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>

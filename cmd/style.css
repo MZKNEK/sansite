@@ -96,7 +96,7 @@ code {
     background: rgba(14, 14, 17, 0.88);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(155, 89, 182, 0.2);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
 .module-chips {
@@ -106,13 +106,13 @@ code {
     padding-bottom: 4px;
     overflow-x: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 89, 182, 0.4) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 .module-chips a {
     flex: none;
     padding: 5px 12px;
-    border: 1px solid rgba(155, 89, 182, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     color: var(--accent-light);
     font-size: 13px;
     letter-spacing: 0.1em;
@@ -122,7 +122,7 @@ code {
 }
 
 .module-chips a:hover {
-    background: rgba(155, 89, 182, 0.2);
+    background: rgba(var(--accent-rgb), 0.2);
     color: #fff;
 }
 
@@ -163,33 +163,33 @@ code {
     flex: 1;
     height: 1px;
     margin-left: 18px;
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.6), transparent);
+    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.6), transparent);
 }
 
-/* The moderator and debug commands, only for the admins: red like the locked
-   API button of the home page */
+/* The moderator and debug commands, only for the admins: the locked accent,
+   like the API button of the home page (amber for an admin, whose HUD is red) */
 .cmd-meta .private-count,
 .module-private {
-    color: #f0c4c2;
+    color: var(--lock-text);
 }
 
 .module-chips a.private {
-    border-color: rgba(232, 98, 98, 0.45);
-    color: #f0c4c2;
+    border-color: rgba(var(--lock-border-rgb), 0.45);
+    color: var(--lock-text);
 }
 
 .module-chips a.private:hover {
-    background: rgba(217, 83, 79, 0.2);
+    background: rgba(var(--lock-fill-rgb), 0.2);
     color: #fff;
 }
 
 .module-chips a.private i,
 .module.private .module-head i {
-    color: #e86262;
+    color: var(--lock);
 }
 
 .module.private .module-head::after {
-    background: linear-gradient(90deg, rgba(232, 98, 98, 0.6), transparent);
+    background: linear-gradient(90deg, rgba(var(--lock-border-rgb), 0.6), transparent);
 }
 
 .module-private {
@@ -198,7 +198,7 @@ code {
     gap: 6px;
     margin-left: 14px;
     padding: 2px 8px;
-    border: 1px solid rgba(232, 98, 98, 0.45);
+    border: 1px solid rgba(var(--lock-border-rgb), 0.45);
     font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
 }
@@ -230,12 +230,12 @@ code {
     grid-template-columns: minmax(150px, 220px) 1fr minmax(200px, 300px);
     gap: 8px 28px;
     padding: 16px 14px;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
     transition: background-color 0.15s;
 }
 
 .cmd:hover {
-    background: rgba(155, 89, 182, 0.06);
+    background: rgba(var(--accent-rgb), 0.06);
 }
 
 /* the command a link points to (#daily) lands below the sticky toolbar and lights up */
@@ -244,13 +244,13 @@ code {
 }
 
 .cmd:target {
-    background: rgba(155, 89, 182, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
     box-shadow: inset 3px 0 0 var(--accent);
     animation: linked 1.6s ease-out;
 }
 
 @keyframes linked {
-    from { background: rgba(182, 112, 211, 0.35); }
+    from { background: rgba(var(--accent-light-rgb), 0.35); }
 }
 
 /* new and changed commands, and the latest change above the list */
@@ -280,8 +280,8 @@ code {
     max-width: 640px;
     margin: 24px auto 0;
     padding: 10px 16px;
-    border: 1px solid rgba(155, 89, 182, 0.3);
-    background: rgba(155, 89, 182, 0.06);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    background: rgba(var(--accent-rgb), 0.06);
     font-size: 14px;
     color: rgba(220, 221, 222, 0.8);
 }
@@ -316,7 +316,7 @@ code {
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, rgba(155, 89, 182, 0.5), transparent);
+    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.5), transparent);
 }
 
 .change-head small {
@@ -336,7 +336,7 @@ code {
     grid-template-columns: 110px minmax(140px, 220px) 1fr;
     gap: 4px 18px;
     padding: 10px 12px;
-    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
 }
 
 .change-kind {
@@ -443,7 +443,7 @@ code {
 }
 
 .cmd-aliases code {
-    color: rgba(182, 112, 211, 0.75);
+    color: rgba(var(--accent-light-rgb), 0.75);
     font-size: 12px;
     word-break: break-all;
 }
@@ -464,8 +464,8 @@ code {
 
 .cmd-params li {
     padding: 1px 10px;
-    border: 1px solid rgba(155, 89, 182, 0.3);
-    background: rgba(155, 89, 182, 0.06);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    background: rgba(var(--accent-rgb), 0.06);
     color: rgba(220, 221, 222, 0.7);
     font-size: 13px;
 }
@@ -492,7 +492,7 @@ code {
 .copy {
     flex: none;
     padding: 2px 8px;
-    border: 1px solid rgba(155, 89, 182, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
     background: transparent;
     color: rgba(220, 221, 222, 0.6);
     font: 11px/18px "Sanakan Mono", monospace;
@@ -503,7 +503,7 @@ code {
 }
 
 .copy:hover {
-    background: rgba(155, 89, 182, 0.2);
+    background: rgba(var(--accent-rgb), 0.2);
     color: #fff;
 }
 

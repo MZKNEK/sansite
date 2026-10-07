@@ -2,6 +2,22 @@
     --accent: #9b59b6;
     --accent-light: #b670d3;
     --accent-dark: #713b87;
+    /* the same colours as rgb triples, so a rule can use them with its own
+       alpha and the HUD can follow the role (see the role-* and data-hud rules) */
+    --accent-rgb: 155, 89, 182;
+    --accent-light-rgb: 182, 112, 211;
+    --accent-dark-rgb: 113, 59, 135;
+    /* the page chrome (the background, the glow of the title, the lines under
+       SAFEGUARD): the role colour only in the "full" HUD, the site's purple
+       otherwise */
+    --hud-rgb: 155, 89, 182;
+    --hud-light-rgb: 182, 112, 211;
+    /* the locked accent: the API button and the moderator commands, red as a
+       warning; an admin (whose HUD is red) gets amber instead, see below */
+    --lock: #e86262;
+    --lock-text: #f0c4c2;
+    --lock-border-rgb: 232, 98, 98;
+    --lock-fill-rgb: 217, 83, 79;
     --bg-dark: #080909;
     --bg-mid: #202225;
     --text: #dcddde;
@@ -24,7 +40,7 @@ body {
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    background: radial-gradient(ellipse at top right, rgba(155, 89, 182, 0.18), transparent 55%),
+    background: radial-gradient(ellipse at top right, rgba(var(--hud-rgb), 0.18), transparent 55%),
                 linear-gradient(to top right, var(--bg-dark), var(--bg-mid));
     background-attachment: fixed;
     background-repeat: no-repeat;
@@ -72,7 +88,7 @@ main.hero {
     max-width: 60vw;
     margin: 0 auto;
     border-radius: 50%;
-    box-shadow: 0 0 34px rgba(155, 89, 182, 0.4);
+    box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.4);
     animation: rise-in 0.6s ease-out backwards, glitch-ring 7s steps(1) infinite;
 }
 
@@ -82,7 +98,7 @@ main.hero {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    box-shadow: 0 0 70px 12px rgba(155, 89, 182, 0.5);
+    box-shadow: 0 0 70px 12px rgba(var(--accent-rgb), 0.5);
     opacity: 0.2;
     animation: logo-glow 4s ease-in-out infinite alternate;
 }
@@ -137,8 +153,8 @@ img.logo {
 }
 
 @keyframes glitch-ring {
-    0%, 92%, 95%, 100% { box-shadow: 0 0 34px rgba(155, 89, 182, 0.4); }
-    93%, 94% { box-shadow: -4px 0 0 #ff2a6d, 4px 0 0 #05d9e8, 0 0 34px rgba(155, 89, 182, 0.4); }
+    0%, 92%, 95%, 100% { box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.4); }
+    93%, 94% { box-shadow: -4px 0 0 #ff2a6d, 4px 0 0 #05d9e8, 0 0 34px rgba(var(--accent-rgb), 0.4); }
 }
 
 /* status dot like on Discord, set by the script in index.html from status.php:
@@ -173,7 +189,7 @@ img.logo {
 
 @keyframes charge {
     70% {
-        box-shadow: 0 0 0 4px rgba(182, 112, 211, 0.9), 0 0 28px 10px rgba(155, 89, 182, 0.7);
+        box-shadow: 0 0 0 4px rgba(var(--accent-light-rgb), 0.9), 0 0 28px 10px rgba(var(--accent-rgb), 0.7);
     }
     to {
         box-shadow: 0 0 0 5px #fff, 0 0 36px 16px rgba(214, 180, 236, 0.95);
@@ -198,7 +214,7 @@ img.logo {
     margin-top: -1px;
     transform-origin: left center;
     background: #fff;
-    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.9), 0 0 18px 6px rgba(182, 112, 211, 0.8);
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.9), 0 0 18px 6px rgba(var(--accent-light-rgb), 0.8);
     pointer-events: none;
     animation: gbe 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
@@ -279,14 +295,44 @@ body.gbe-shot main.hero {
 /* The role of the account on the bot's Discord server as a Safeguard level,
    "LV.9", next to its name on every page; the panel colours its role chips
    the same way */
-.role-dev { --role: #4fd1c5; }
-.role-admin { --role: #e86262; }
-.role-semiAdmin { --role: #f0a35e; }
-.role-tester { --role: #e8d36a; }
-.role-moderator { --role: #5fd38d; }
-.role-user { --role: var(--accent-light); }
+.role-dev { --role: #4fd1c5; --role-rgb: 79, 209, 197; --role-light-rgb: 127, 227, 216; --role-dark-rgb: 47, 156, 147; }
+.role-admin { --role: #e86262; --role-rgb: 232, 98, 98; --role-light-rgb: 240, 138, 138; --role-dark-rgb: 168, 59, 59; }
+.role-semiAdmin { --role: #f0a35e; --role-rgb: 240, 163, 94; --role-light-rgb: 246, 192, 140; --role-dark-rgb: 176, 110, 47; }
+.role-tester { --role: #e8d36a; --role-rgb: 232, 211, 106; --role-light-rgb: 240, 226, 154; --role-dark-rgb: 171, 154, 56; }
+.role-moderator { --role: #5fd38d; --role-rgb: 95, 211, 141; --role-light-rgb: 143, 227, 175; --role-dark-rgb: 55, 156, 94; }
+.role-user { --role: var(--accent-light); --role-rgb: 182, 112, 211; --role-light-rgb: 182, 112, 211; --role-dark-rgb: 113, 59, 135; }
 .role-none,
-.role-out { --role: #80848e; }
+.role-out { --role: #80848e; --role-rgb: 128, 132, 142; --role-light-rgb: 160, 164, 173; --role-dark-rgb: 85, 88, 95; }
+
+/* The HUD in the colour of the role, chosen in the profile (/account/).
+   "accent" makes the accent elements (the targeting corners, links, the search
+   box, the account menu) follow the role; "full" also the page chrome. The
+   default keeps the site's own purple. */
+html[data-hud="accent"],
+html[data-hud="full"] {
+    --accent-rgb: var(--role-rgb, 155, 89, 182);
+    --accent-light-rgb: var(--role-light-rgb, 182, 112, 211);
+    --accent-dark-rgb: var(--role-dark-rgb, 113, 59, 135);
+    --accent: rgb(var(--accent-rgb));
+    --accent-light: rgb(var(--accent-light-rgb));
+    --accent-dark: rgb(var(--accent-dark-rgb));
+}
+
+html[data-hud="full"] {
+    --hud-rgb: var(--role-rgb, 155, 89, 182);
+    --hud-light-rgb: var(--role-light-rgb, 182, 112, 211);
+}
+
+/* A red HUD (an admin) would swallow the locked red of the API button and the
+   moderator commands, so there the locked accent turns amber, which still
+   reads as "kept away" and stays apart from the red around it. */
+html[data-hud="accent"].role-admin,
+html[data-hud="full"].role-admin {
+    --lock: #f0b232;
+    --lock-text: #ffe0a3;
+    --lock-border-rgb: 240, 178, 50;
+    --lock-fill-rgb: 240, 178, 50;
+}
 
 .lv {
     flex: none;
@@ -368,7 +414,7 @@ body.gbe-shot main.hero {
 
 .account-toggle:hover,
 .account-menu.open .account-toggle {
-    background: rgba(155, 89, 182, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
     color: #fff;
 }
 
@@ -408,7 +454,7 @@ body.gbe-shot main.hero {
    .hud-corners, later in this file, would make it see-through */
 .account-menu .account-drop {
     --fill: #18181e;
-    border: 1px solid rgba(155, 89, 182, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
 }
 
 .account-drop {
@@ -435,7 +481,7 @@ body.gbe-shot main.hero {
 .account-drop a + form {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px solid rgba(155, 89, 182, 0.22);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.22);
 }
 
 .account-drop a,
@@ -459,7 +505,7 @@ body.gbe-shot main.hero {
 
 .account-drop a:hover,
 .account-drop a:focus-visible {
-    background: rgba(155, 89, 182, 0.16);
+    background: rgba(var(--accent-rgb), 0.16);
     color: #fff;
 }
 
@@ -493,8 +539,8 @@ body.gbe-shot main.hero {
 .account-scan {
     margin-top: 8px;
     padding: 7px 16px 8px;
-    border-top: 1px solid rgba(155, 89, 182, 0.18);
-    background: rgba(155, 89, 182, 0.08);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.18);
+    background: rgba(var(--accent-rgb), 0.08);
     color: rgba(220, 221, 222, 0.42);
     font-size: 10px;
     letter-spacing: 0.14em;
@@ -513,7 +559,7 @@ body.gbe-shot main.hero {
     z-index: 20;
     margin: 0;
     padding: 10px 16px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
     background: rgba(18, 18, 22, 0.96);
     font-size: 14px;
     transform: translateX(-50%);
@@ -620,7 +666,7 @@ body.gbe-shot main.hero {
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(182, 112, 211, 0.6));
+    background: linear-gradient(90deg, transparent, rgba(var(--hud-light-rgb), 0.6));
 }
 
 .tag::after {
@@ -643,7 +689,7 @@ body.gbe-shot main.hero {
     font-weight: 700;
     letter-spacing: 0.38em;
     text-transform: uppercase;
-    text-shadow: 0 0 18px rgba(155, 89, 182, 0.7);
+    text-shadow: 0 0 18px rgba(var(--hud-rgb), 0.7);
 }
 
 .kana {
@@ -678,7 +724,7 @@ body.gbe-shot main.hero {
 .morse-word:not(:last-child)::after {
     content: "/";
     margin: 0 8px;
-    color: rgba(155, 89, 182, 0.22);
+    color: rgba(var(--accent-rgb), 0.22);
 }
 
 .morse-letter {
@@ -709,7 +755,7 @@ body.gbe-shot main.hero {
     0%,
     3% {
         background: rgba(239, 226, 247, 0.6);
-        box-shadow: 0 0 4px rgba(182, 112, 211, 0.5);
+        box-shadow: 0 0 4px rgba(var(--accent-light-rgb), 0.5);
     }
 
     12% {
@@ -744,8 +790,8 @@ body.gbe-shot main.hero {
 /* targeting corners like the Safeguard scanner; they grow on hover */
 .links a,
 .hud-corners {
-    --corner: rgba(182, 112, 211, 0.9);
-    --fill: rgba(155, 89, 182, 0.05);
+    --corner: rgba(var(--accent-light-rgb), 0.9);
+    --fill: rgba(var(--accent-rgb), 0.05);
     --arm: 10px;
     background:
         linear-gradient(var(--corner), var(--corner)) left top / var(--arm) 2px no-repeat,
@@ -763,7 +809,7 @@ body.gbe-shot main.hero {
 .links a:hover,
 a.hud-corners:hover {
     --arm: 18px;
-    --fill: rgba(155, 89, 182, 0.18);
+    --fill: rgba(var(--accent-rgb), 0.18);
     color: #fff;
 }
 
@@ -778,7 +824,7 @@ a.hud-corners:hover {
 
 .search:focus-within {
     --arm: 18px;
-    --fill: rgba(155, 89, 182, 0.12);
+    --fill: rgba(var(--accent-rgb), 0.12);
 }
 
 .search-icon {
@@ -811,7 +857,7 @@ a.hud-corners:hover {
 
 .search kbd {
     padding: 0 7px;
-    border: 1px solid rgba(155, 89, 182, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
     border-radius: 3px;
     color: var(--accent-light);
     font: 13px/20px "Sanakan Mono", monospace;
@@ -863,9 +909,9 @@ a.hud-corners:hover {
 
 /* a page behind a login (API): red instead of purple, with a padlock */
 .links a.restricted {
-    --corner: rgba(232, 98, 98, 0.85);
-    --fill: rgba(217, 83, 79, 0.06);
-    color: #f0c4c2;
+    --corner: rgba(var(--lock-border-rgb), 0.85);
+    --fill: rgba(var(--lock-fill-rgb), 0.06);
+    color: var(--lock-text);
 }
 
 /* a short name (API) needs no full-width button, locked or not */
@@ -874,12 +920,12 @@ a.hud-corners:hover {
 }
 
 .links a.restricted:hover {
-    --fill: rgba(217, 83, 79, 0.2);
+    --fill: rgba(var(--lock-fill-rgb), 0.2);
     color: #fff;
 }
 
 .links a.restricted i {
-    color: #e86262;
+    color: var(--lock);
 }
 
 .links a .lock {
@@ -961,13 +1007,13 @@ a.hud-corners:hover {
 .links .below a.swap-alt {
     top: calc(100% + 14px);
     z-index: 1;
-    --corner: rgba(182, 112, 211, 0.9);
-    --fill: rgba(155, 89, 182, 0.05);
+    --corner: rgba(var(--accent-light-rgb), 0.9);
+    --fill: rgba(var(--accent-rgb), 0.05);
     color: var(--text);
 }
 
 .links .below a.swap-alt:hover {
-    --fill: rgba(155, 89, 182, 0.18);
+    --fill: rgba(var(--accent-rgb), 0.18);
     color: #fff;
 }
 
@@ -1226,8 +1272,8 @@ a.hud-corners:hover {
     right: 0;
     top: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(182, 112, 211, 0.8), transparent);
-    box-shadow: 0 0 12px rgba(182, 112, 211, 0.6);
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-light-rgb), 0.8), transparent);
+    box-shadow: 0 0 12px rgba(var(--accent-light-rgb), 0.6);
     animation: ns-sweep 2.4s linear infinite;
     pointer-events: none;
 }
@@ -1287,7 +1333,7 @@ a.hud-corners:hover {
 .ns-bar {
     flex: 1 0 100%;
     height: 6px;
-    background: rgba(155, 89, 182, 0.15);
+    background: rgba(var(--accent-rgb), 0.15);
 }
 
 .ns-bar i {
@@ -1405,12 +1451,12 @@ a.hud-corners:hover {
     gap: 8px;
     margin: 12px 0 0;
     padding-top: 10px;
-    border-top: 1px solid rgba(155, 89, 182, 0.3);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.3);
     animation: ns-in 0.2s ease-out;
 }
 
 .ns-prompt:focus-within {
-    border-top-color: rgba(182, 112, 211, 0.8);
+    border-top-color: rgba(var(--accent-light-rgb), 0.8);
 }
 
 .ns-sign {
@@ -1445,7 +1491,7 @@ a.hud-corners:hover {
 .ns-close:hover,
 .ns-close:focus-visible {
     color: #fff;
-    outline: 1px solid rgba(182, 112, 211, 0.6);
+    outline: 1px solid rgba(var(--accent-light-rgb), 0.6);
 }
 
 /* found out: everything turns red */
