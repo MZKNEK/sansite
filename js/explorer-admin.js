@@ -452,8 +452,8 @@
       webpQualityValue.textContent = webpQuality.value;
     });
 
-    // the divider between the original (left) and the WebP (right)
-    var webpCompare = document.getElementById('webp-compare');
+    // the divider between the original (left) and the WebP (right), moved by
+    // the slider under the picture
     var webpDivider = document.getElementById('webp-divider');
 
     function webpDivide(part) {
@@ -463,28 +463,6 @@
       webpDivider.style.left = part + '%';
     }
     webpSlider.addEventListener('input', function () { webpDivide(webpSlider.value); });
-
-    // dragging on the picture moves the divider too
-    var webpDragging = false;
-    function webpPartAt(e) {
-      var rect = webpCompare.getBoundingClientRect();
-      return rect.width > 0 ? ((e.clientX - rect.left) / rect.width) * 100 : 50;
-    }
-    webpCompare.addEventListener('pointerdown', function (e) {
-      webpDragging = true;
-      try {
-        webpCompare.setPointerCapture(e.pointerId);
-      } catch (err) {
-        // no capture, the drag still works
-      }
-      webpDivide(webpPartAt(e));
-      e.preventDefault();
-    });
-    webpCompare.addEventListener('pointermove', function (e) {
-      if (webpDragging) webpDivide(webpPartAt(e));
-    });
-    webpCompare.addEventListener('pointerup', function () { webpDragging = false; });
-    webpCompare.addEventListener('pointercancel', function () { webpDragging = false; });
 
     // Esc must not leave a result unanswered; the two buttons are the way out
     webpResult.addEventListener('cancel', function (e) { e.preventDefault(); });

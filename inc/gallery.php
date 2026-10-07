@@ -33,8 +33,8 @@
     // formats a browser cannot be counted on to show: a HEIC or HEIF is always
     // written as WebP on upload (an AVIF follows the WebP rule instead)
     const CONVERT_IMAGE_TYPES = ['heic', 'heif'];
-    // cwebp at 95 with sharp_yuv keeps lines free of colour noise at about a
-    // third more bytes than GD at 90, which smudges colours along every line
+    // the quality cwebp writes a picture at when the page asks for none; a
+    // JPEG or PNG goes through cwebp itself, so its colours stay as they are
     const WEBP_QUALITY = 95;
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
@@ -481,15 +481,14 @@
         return $img;
     }
 
-    // Writes a GD image (with imagesavealpha) as WebP. cwebp gets it as a PNG:
-    // its sharp_yuv keeps the colours of thin lines, which GD's own encoder
-    // cannot; without cwebp, or when it fails, GD writes it. $icc is the colour
-    // profile of the original, put into the WebP so its colours stay the same.
+    // Writes a GD image (with imagesavealpha) as WebP. cwebp gets it as a PNG;
+    // without cwebp, or when it fails, GD writes it. $icc is the colour profile
+    // of the original, put into the WebP so its colours stay the same.
     function writeWebp($img, $file, $quality = WEBP_QUALITY, $icc = null)
     {
         if ($cwebp = findTool('cwebp')) {
             $png = sys_get_temp_dir() . '/sanakan-webp-' . getmypid() . '.png';
-            $args = ['-quiet', '-q', (string)$quality, '-m', '4', '-sharp_yuv', '-mt'];
+            $args = ['-quiet', '-q', (string)$quality, '-m', '4', '-mt'];
             $iccFile = null;
             if ($icc !== null && $icc !== '') {
                 $iccFile = sys_get_temp_dir() . '/sanakan-icc-' . getmypid() . '.icc';
@@ -516,6 +515,20 @@
     // saves a picture as WebP, keeping transparency and the colour profile
     function convertToWebp($source, $target, $quality = WEBP_QUALITY)
     {
+        $cwebp = findTool('cwebp');
+        $info = @getimagesize($source);
+        // A JPEG or PNG goes through cwebp itself when it can: cwebp reads the
+        // picture as it is and copies its ICC profile, so the colours do not
+        // change. A JPEG that has to be turned (EXIF) takes the GD way below,
+        // where the profile is passed along by hand.
+        if ($cwebp && $info && in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true)
+                && !($info[2] === IMAGETYPE_JPEG && jpegOrientation($source) > 1)) {
+            $tmp = $target . '.' . getmypid();
+            if (runTool($cwebp, ['-quiet', '-q', (string)$quality, '-m', '4', '-metadata', 'icc', $source, '-o', $tmp], TOOL_TIMEOUT) && @filesize($tmp) > 0)
+                return @rename($tmp, $target);
+            @unlink($tmp);
+        }
+
         $img = loadImage($source);
         if (!$img)
             return false;

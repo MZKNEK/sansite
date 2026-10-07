@@ -252,7 +252,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=0eb07b121b" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -668,7 +668,7 @@
         <img id="webp-new" class="webp-new" alt="WebP" />
         <span class="webp-tag orig">Oryginał</span>
         <span class="webp-tag new">WebP</span>
-        <span class="webp-divider" id="webp-divider" aria-hidden="true"><span class="webp-handle">&#8596;</span></span>
+        <span class="webp-divider" id="webp-divider" aria-hidden="true"></span>
       </div>
       <input type="range" id="webp-slider" class="webp-slider" min="0" max="100" value="50" aria-label="Porównanie oryginału z WebP" />
     </div>
@@ -720,7 +720,7 @@
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=0cd10aafbb"></script>
+  <script src="../js/explorer-admin.js?v=ed6f93167d"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>
