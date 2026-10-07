@@ -28,7 +28,7 @@
   <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=31f5973ee3"></script>
+  <script src="../js/hud.js?v=0effb1151f"></script>
 </head>
 
 <body class="state-page">

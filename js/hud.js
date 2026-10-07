@@ -21,19 +21,30 @@
     }
   }
 
-  // the choice in the profile: preview it on the page itself as it is picked
-  Array.prototype.forEach.call(document.querySelectorAll('[data-hud-choice]'), function (input) {
-    input.addEventListener('change', function () {
-      if (input.checked) root.setAttribute('data-hud', input.value);
+  // the variant in the profile: preview it on the page itself as it is picked
+  Array.prototype.forEach.call(document.querySelectorAll('[data-hud-choice]'), function (field) {
+    field.addEventListener('change', function () {
+      root.setAttribute('data-hud', field.value);
     });
   });
 
-  // the colour of the HUD (a panel admin picks any role, or its own)
-  Array.prototype.forEach.call(document.querySelectorAll('[data-hud-color]'), function (input) {
-    input.addEventListener('change', function () {
-      if (!input.checked) return;
-      var key = input.value === 'own' ? root.getAttribute('data-hud-own') : input.value;
+  // the colour of the HUD (a panel admin picks any role, or its own); a dot
+  // next to the label shows the picked colour
+  Array.prototype.forEach.call(document.querySelectorAll('[data-hud-color]'), function (field) {
+    var dot = document.querySelector('[data-hud-dot]');
+
+    function paint() {
+      var option = field.options ? field.options[field.selectedIndex] : null;
+      if (dot && option && option.getAttribute('data-hex'))
+        dot.style.background = option.getAttribute('data-hex');
+    }
+
+    field.addEventListener('change', function () {
+      var key = field.value === 'own' ? root.getAttribute('data-hud-own') : field.value;
       root.className = key ? 'role-' + key : '';
+      paint();
     });
+
+    paint();
   });
 })();

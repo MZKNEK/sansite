@@ -142,7 +142,7 @@
   <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=7fb6ed8e67" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=13d0bb3644" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -296,29 +296,33 @@
         <form method="post" action="./" class="hud-form">
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="hud" />
-<?php $hudNow = hudMode($id); $colorNow = hudColor($id); ?>
-          <div class="hud-group">
-            <b class="hud-label">Wariant</b>
+<?php $hudNow = hudMode($id); $colorNow = hudColor($id); $ownHex = HUD_COLOR_HEX[$badge['key'] ?? ''] ?? '#b670d3'; ?>
+          <div class="hud-fields">
+            <label class="hud-field">
+              <span class="hud-field-label">Wariant</span>
+              <span class="hud-select">
+                <select name="hud" data-hud-choice>
 <?php foreach (HUD_MODES as $key => $label): ?>
-            <label class="hud-choice">
-              <input type="radio" name="hud" value="<?=e($key)?>" data-hud-choice<?=$hudNow === $key ? ' checked' : ''?> />
-              <span class="hud-swatch hud-<?=e($key)?>"></span>
-              <span><?=e($label)?></span>
-            </label>
+                  <option value="<?=e($key)?>"<?=$hudNow === $key ? ' selected' : ''?>><?=e($label)?></option>
 <?php endforeach; ?>
-          </div>
+                </select>
+                <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+              </span>
+            </label>
 <?php if (isPanelAdminId($id)): ?>
-          <div class="hud-group">
-            <b class="hud-label">Kolor <span class="muted">— administrator panelu może wybrać dowolny</span></b>
-<?php foreach (HUD_COLORS as $key => $label): $hex = $key === 'own' ? (HUD_COLOR_HEX[$badge['key'] ?? ''] ?? '#b670d3') : HUD_COLOR_HEX[$key]; ?>
-            <label class="hud-choice">
-              <input type="radio" name="hudcolor" value="<?=e($key)?>" data-hud-color<?=$colorNow === $key ? ' checked' : ''?> />
-              <span class="hud-swatch" style="background: <?=e($hex)?>"></span>
-              <span><?=e($label)?></span>
-            </label>
+            <label class="hud-field">
+              <span class="hud-field-label">Kolor <span class="muted">— dowolny, jako admin panelu</span><i class="hud-dot" data-hud-dot></i></span>
+              <span class="hud-select">
+                <select name="hudcolor" data-hud-color>
+<?php foreach (HUD_COLORS as $key => $label): $hex = $key === 'own' ? $ownHex : HUD_COLOR_HEX[$key]; ?>
+                  <option value="<?=e($key)?>" data-hex="<?=e($hex)?>"<?=$colorNow === $key ? ' selected' : ''?>><?=e($label)?></option>
 <?php endforeach; ?>
-          </div>
+                </select>
+                <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+              </span>
+            </label>
 <?php endif; ?>
+          </div>
           <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
         </form>
       </section>
@@ -336,7 +340,7 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=b0c463f9b6"></script>
-  <script src="../js/hud.js?v=31f5973ee3"></script>
+  <script src="../js/hud.js?v=0effb1151f"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>

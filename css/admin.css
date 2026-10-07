@@ -1787,70 +1787,111 @@ a.who-name:hover {
     }
 }
 
-/* The HUD colour chosen in the profile (/account/): the choices and their
-   swatches; the role colour of the account comes from --role (css/style.css) */
+/* The HUD colour chosen in the profile (/account/): two dropdowns side by
+   side, in the style of the site's fields (like the select of skalpelator) */
 .hud-form {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 
-.hud-choice {
+.hud-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 18px;
+}
+
+.hud-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 220px;
+}
+
+.hud-field-label {
     display: flex;
     align-items: center;
-    gap: 10px;
-    cursor: pointer;
-}
-
-.hud-swatch {
-    width: 18px;
-    height: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 3px;
-}
-
-.hud-swatch.hud-default {
-    background: #9b59b6;
-}
-
-.hud-swatch.hud-accent,
-.hud-swatch.hud-full {
-    background: var(--role, var(--accent-light));
-}
-
-.hud-swatch.hud-full {
-    box-shadow: 0 0 10px var(--role, var(--accent-light));
-}
-
-.hud-form .admin-btn {
-    margin-top: 6px;
-}
-
-/* the groups of the HUD choices in the profile (/account/) */
-.hud-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
     gap: 8px;
-}
-
-.hud-group + .hud-group {
-    margin-top: 6px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(var(--accent-rgb), 0.15);
-}
-
-.hud-label {
     font: 600 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent-light);
 }
 
-.hud-label .muted {
+.hud-field-label .muted {
     font-weight: 400;
-    text-transform: none;
     letter-spacing: 0;
+    text-transform: none;
+}
+
+/* a graphite cell with a thin frame, an arrow cell on the right; the native
+   list cannot be styled once open, but the closed control fits the site */
+.hud-select {
+    position: relative;
+    display: block;
+}
+
+.hud-select select {
+    width: 100%;
+    height: 38px;
+    padding: 0 44px 0 12px;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 0;
+    background: rgba(8, 9, 9, 0.55);
+    color: var(--text);
+    font: 15px Lato, sans-serif;
+    outline: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.hud-select select:hover {
+    border-color: rgba(var(--accent-light-rgb), 0.7);
+}
+
+.hud-select select:focus {
+    border-color: var(--accent-light);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+}
+
+.hud-select select option {
+    background: #17151c;
+    color: var(--text);
+}
+
+.hud-select::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 38px;
+    height: 38px;
+    border-left: 1px solid rgba(var(--accent-rgb), 0.25);
+    background: rgba(var(--accent-rgb), 0.08);
+    pointer-events: none;
+}
+
+.hud-select .hud-chevron {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    width: 10px;
+    height: 6px;
+    transform: translateY(-50%);
+    fill: none;
+    stroke: var(--accent-light);
+    stroke-width: 1.6;
+    pointer-events: none;
+}
+
+/* a small dot next to the Kolor label, in the picked colour */
+.hud-dot {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+}
+
+.hud-form .admin-btn {
+    margin-top: 16px;
 }
