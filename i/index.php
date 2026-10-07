@@ -46,17 +46,22 @@
         header('Cache-Control: no-store');
         $user = siteUser();
         $jobs = [];
-        if ($user !== null)
-            foreach (userMediaJobs((string)$user['id']) as $job)
+        $summary = '';
+        if ($user !== null) {
+            $mine = userMediaJobs((string)$user['id']);
+            $summary = mediaJobsSummary($mine);
+            foreach ($mine as $job)
                 $jobs[] = [
                     'rel' => publicRel($job['rel']),
                     'target' => !empty($job['targetRel']) ? publicRel($job['targetRel']) : null,
                     'status' => $job['status'] ?? '',
                     'label' => mediaJobLabel($job),
                     'text' => mediaJobText($job),
+                    'short' => mediaJobShort($job),
                     'active' => mediaJobActive($job)
                 ];
-        echo json_encode(['jobs' => $jobs]);
+        }
+        echo json_encode(['jobs' => $jobs, 'summary' => $summary]);
         exit;
     }
 
@@ -115,6 +120,10 @@
     // done, shown in the gallery; and the job of each file in the folder, for
     // its badge
     $myJobs = $user ? userMediaJobs((string)$user['id']) : [];
+    // the full list of the account's jobs (?zadania=1), with what is still going
+    $showTasks = $user && !$locked && isset($_GET['zadania']);
+    $taskJobs = $showTasks ? userMediaJobs((string)$user['id'], 500, true) : [];
+    $finishedTasks = $showTasks ? count(array_filter($taskJobs, function ($job) { return !mediaJobActive($job); })) : 0;
     $jobByRel = [];
     foreach (mediaJobs() as $job) {
         if (!empty($job['rel']))
@@ -224,7 +233,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=82a125f16a" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=55bb7e950f" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -293,13 +302,48 @@
     </section>
 <?php else: ?>
 
+<?php if ($showTasks): ?>
+    <div class="toolbar" id="toolbar">
+      <a class="admin-btn" href="<?=e(folderUrl($dirRel))?>">&larr; Wróć do galerii</a>
+      <form class="media-clear-form" method="post" action="index.php">
+        <input type="hidden" name="csrf" value="<?=e(siteCsrf())?>" />
+        <input type="hidden" name="action" value="media-clear" />
+        <input type="hidden" name="back" value="<?=e('?zadania=1' . ($dirRel === '' ? '' : '&p=' . rawurlencode(publicRel($dirRel))))?>" />
+        <button type="submit" class="admin-btn"<?=$finishedTasks ? '' : ' disabled'?>>Wyczyść zakończone</button>
+      </form>
+      <span class="admin-hint">Zamiana zdjęć i filmów na WebP/WebM w tle. Zakończone znikają same po <?=intdiv(MEDIA_JOB_DONE_SHOW, 60)?> min; możesz je wyczyścić od razu. Co jest w toku, zostaje.</span>
+    </div>
+    <div class="media-tasks" id="media-tasks" data-media-jobs data-active="<?=$taskJobs && array_filter($taskJobs, 'mediaJobActive') ? '1' : '0'?>">
+<?php if (!$taskJobs): ?>
+      <p class="empty">Brak zadań konwersji.</p>
+<?php else: foreach ($taskJobs AS $job): ?>
+      <div class="media-task media-job <?=e($job['status'])?>" data-job="<?=e(publicRel($job['rel']))?>" data-status="<?=e($job['status'])?>" title="<?=e(mediaJobText($job))?>">
+        <span class="media-job-dot" aria-hidden="true"></span>
+        <span class="media-task-name"><?=e($job['name'])?></span>
+        <span class="media-task-state"><?=e(mediaJobText($job))?></span>
+        <span class="media-task-time"><?=e(date('d.m H:i', $job['updated'] ?? $job['created'] ?? 0))?></span>
+      </div>
+<?php endforeach; endif; ?>
+    </div>
+<?php else: ?>
+
 <?php if ($myJobs): ?>
-    <p class="ex-meta media-jobs" id="media-jobs" data-active="<?=array_filter($myJobs, 'mediaJobActive') ? '1' : '0'?>">
-      <span class="media-jobs-title">Konwersja plików:</span>
+    <section class="media-jobs hud-corners" id="media-jobs" data-media-jobs data-active="<?=array_filter($myJobs, 'mediaJobActive') ? '1' : '0'?>">
+      <div class="media-jobs-head">
+        <span class="media-jobs-title">Konwersja plików</span>
+        <span class="media-jobs-summary" data-media-jobs-summary id="media-jobs-summary"><?=e(mediaJobsSummary($myJobs))?></span>
+        <a class="media-jobs-link" href="?zadania=1<?= $dirRel === '' ? '' : '&p=' . rawurlencode(publicRel($dirRel)) ?>">Zadania &rarr;</a>
+      </div>
+      <ul class="media-jobs-list">
 <?php foreach ($myJobs AS $job): ?>
-      <span class="media-job <?=e($job['status'])?>" data-job="<?=e(publicRel($job['rel']))?>" data-status="<?=e($job['status'])?>" title="<?=e(mediaJobText($job))?>"><?=e(mediaJobText($job))?></span>
+        <li class="media-job <?=e($job['status'])?>" data-job="<?=e(publicRel($job['rel']))?>" data-status="<?=e($job['status'])?>" title="<?=e(mediaJobText($job))?>">
+          <span class="media-job-dot" aria-hidden="true"></span>
+          <span class="media-job-name"><?=e($job['name'])?></span>
+          <span class="media-job-state"><?=e(mediaJobShort($job))?></span>
+        </li>
 <?php endforeach; ?>
-    </p>
+      </ul>
+    </section>
 <?php endif; ?>
 
 <?php if ($showTrash): ?>
@@ -468,6 +512,7 @@
     <p class="empty" id="ex-no-results" hidden>Brak pasujących plików.</p>
 <?php endif; ?>
 <?php endif; ?>
+<?php endif; ?>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
@@ -610,7 +655,7 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=b4a63d9ba2"></script>
+  <script src="../js/explorer.js?v=eaa39322bf"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>

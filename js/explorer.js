@@ -549,49 +549,73 @@ window.SanakanGallery = (function () {
   };
   window.SanakanGallery.pictures = pictures;
 
-  // A picture or film uploaded with "change to WebP/WebM" is converted on the
-  // server after the upload (inc/gallery.php, inc/check-bot.php). While one is
-  // still going, its status is asked for again and the line and badges update;
-  // once none is left the page comes back, showing the changed files.
-  var jobsBox = document.getElementById('media-jobs');
-  if (jobsBox) {
-    function paintJobs(jobs) {
-      var active = false;
-      jobs.forEach(function (job) {
-        if (job.active) active = true;
-        jobsBox.querySelectorAll('.media-job').forEach(function (el) {
-          if (el.dataset.job !== job.rel) return;
-          el.textContent = job.text;
-          el.className = 'media-job ' + job.status;
-          el.dataset.status = job.status;
-        });
-        document.querySelectorAll('.job-badge').forEach(function (badge) {
-          if (badge.dataset.job !== job.rel) return;
-          badge.textContent = job.label;
-          badge.className = 'job-badge ' + job.status;
-          badge.hidden = job.status !== 'pending' && job.status !== 'converting' && job.status !== 'failed';
+})();
+
+// A picture or film uploaded with "change to WebP/WebM" is converted on the
+// server after the upload (inc/gallery.php, inc/check-bot.php). The gallery
+// panel and the tasks page (i/?zadania=1) carry data-media-jobs; while a job is
+// still going its status is asked for again and the rows update; on the gallery
+// the page comes back once nothing is left, showing the changed files.
+(function () {
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-media-jobs]'));
+  if (!boxes.length) return;
+
+  var STATUSES = ['pending', 'converting', 'done', 'skipped', 'failed'];
+
+  function setStatus(el, status) {
+    STATUSES.forEach(function (name) { el.classList.remove(name); });
+    el.classList.add(status);
+  }
+
+  function anyActive() {
+    return boxes.some(function (box) { return box.dataset.active === '1'; });
+  }
+
+  function paintJobs(data) {
+    var jobs = data.jobs || [];
+    var active = false;
+    jobs.forEach(function (job) {
+      if (job.active) active = true;
+      boxes.forEach(function (box) {
+        box.querySelectorAll('.media-job').forEach(function (row) {
+          if (row.dataset.job !== job.rel) return;
+          setStatus(row, job.status);
+          row.dataset.status = job.status;
+          row.title = job.text;
+          var short = row.querySelector('.media-job-state');
+          if (short) short.textContent = job.short;
+          var full = row.querySelector('.media-task-state');
+          if (full) full.textContent = job.text;
         });
       });
-      jobsBox.dataset.active = active ? '1' : '0';
-      return active;
-    }
-
-    function pollJobs() {
-      fetch('?mediajobs=1', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-        .then(function (response) { return response.json(); })
-        .then(function (data) {
-          var wasActive = jobsBox.dataset.active === '1';
-          var active = paintJobs(data && data.jobs ? data.jobs : []);
-          if (wasActive && !active) {
-            window.SanakanGallery.keepView(null);
-            location.reload();
-            return;
-          }
-          setTimeout(pollJobs, active ? 5000 : 15000);
-        })
-        .catch(function () { setTimeout(pollJobs, 15000); });
-    }
-
-    if (jobsBox.dataset.active === '1') pollJobs();
+      document.querySelectorAll('.job-badge').forEach(function (badge) {
+        if (badge.dataset.job !== job.rel) return;
+        setStatus(badge, job.status);
+        badge.textContent = job.label;
+        badge.hidden = job.status !== 'pending' && job.status !== 'converting' && job.status !== 'failed';
+      });
+    });
+    boxes.forEach(function (box) { box.dataset.active = active ? '1' : '0'; });
+    var summary = document.querySelector('[data-media-jobs-summary]');
+    if (summary && data.summary) summary.textContent = data.summary;
+    return active;
   }
+
+  function pollJobs() {
+    fetch('?mediajobs=1', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        var wasActive = anyActive();
+        var active = paintJobs(data || {});
+        if (wasActive && !active && document.getElementById('grid')) {
+          if (window.SanakanGallery && window.SanakanGallery.keepView) window.SanakanGallery.keepView(null);
+          location.reload();
+          return;
+        }
+        setTimeout(pollJobs, active ? 5000 : 15000);
+      })
+      .catch(function () { setTimeout(pollJobs, 15000); });
+  }
+
+  if (anyActive()) pollJobs();
 })();

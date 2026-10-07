@@ -217,6 +217,15 @@ main.content {
 }
 
 .media-jobs {
+    --corner: rgba(182, 112, 211, 0.55);
+    --fill: rgba(155, 89, 182, 0.06);
+    max-width: 760px;
+    margin: 18px auto 0;
+    padding: 12px 16px 14px;
+    text-align: left;
+}
+
+.media-jobs-head {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -224,24 +233,167 @@ main.content {
 }
 
 .media-jobs-title {
-    color: rgba(220, 221, 222, 0.75);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.media-jobs-summary {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.media-jobs-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2px 24px;
+    max-height: 190px;
+    margin: 10px 0 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
 }
 
 .media-job {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    padding: 3px 0;
+    font: 12px/1.5 "Sanakan Mono", monospace;
     color: rgba(220, 221, 222, 0.6);
 }
 
-.media-job.pending,
-.media-job.converting {
+.media-job-dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(220, 221, 222, 0.35);
+}
+
+.media-job-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: #efe2f7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-job-state {
+    flex: none;
+    margin-left: auto;
+    white-space: nowrap;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.media-job.pending .media-job-dot,
+.media-job.converting .media-job-dot {
+    background: #f0b232;
+    box-shadow: 0 0 6px rgba(240, 178, 50, 0.7);
+}
+
+.media-job.converting .media-job-dot {
+    animation: media-job-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes media-job-pulse {
+    50% { opacity: 0.35; }
+}
+
+.media-job.pending .media-job-state,
+.media-job.converting .media-job-state {
     color: #f0b232;
 }
 
-.media-job.done {
+.media-job.done .media-job-dot {
+    background: #7fd18a;
+}
+
+.media-job.done .media-job-state {
     color: #7fd18a;
 }
 
-.media-job.failed {
+.media-job.failed .media-job-dot {
+    background: #e06b6b;
+}
+
+.media-job.failed .media-job-state {
     color: #e06b6b;
+}
+
+.media-jobs-link {
+    margin-left: auto;
+    color: var(--accent-light);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    text-decoration: none;
+}
+
+.media-jobs-link:hover {
+    color: #fff;
+}
+
+/* the tasks page (i/?zadania=1): every job of the account, with details */
+.media-clear-form {
+    margin: 0;
+}
+
+.media-tasks {
+    max-width: 900px;
+    margin: 18px auto 0;
+}
+
+.media-tasks .media-job {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 2fr) auto;
+    align-items: baseline;
+    gap: 4px 14px;
+    padding: 9px 4px;
+    border-bottom: 1px solid rgba(155, 89, 182, 0.12);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+}
+
+.media-task-name {
+    min-width: 0;
+    overflow: hidden;
+    color: #efe2f7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-task-state {
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.media-job.pending .media-task-state,
+.media-job.converting .media-task-state {
+    color: #f0b232;
+}
+
+.media-job.done .media-task-state {
+    color: #7fd18a;
+}
+
+.media-job.failed .media-task-state {
+    color: #e06b6b;
+}
+
+.media-task-time {
+    white-space: nowrap;
+    color: rgba(220, 221, 222, 0.4);
+}
+
+@media (max-width: 640px) {
+    .media-tasks .media-job {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .media-task-state,
+    .media-task-time {
+        grid-column: 2;
+    }
 }
 
 /* ".." tile, one folder up */

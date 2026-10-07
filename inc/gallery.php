@@ -45,11 +45,12 @@
     // inc/media-worker.php by hand), so the upload does not wait. One film may
     // take MEDIA_JOB_TIMEOUT per encoder; a job left "converting" for longer
     // than MEDIA_JOB_STALE (a restart) is tried again, done ones are kept
-    // MEDIA_JOB_KEEP_DAYS and the gallery shows them for MEDIA_JOB_DONE_SHOW.
+    // MEDIA_JOB_KEEP_DAYS and the gallery shows them for MEDIA_JOB_DONE_SHOW
+    // (5 minutes) after they finish
     const MEDIA_JOB_TIMEOUT = 600;
     const MEDIA_JOB_STALE = 1800;
     const MEDIA_JOB_KEEP_DAYS = 7;
-    const MEDIA_JOB_DONE_SHOW = 3600;
+    const MEDIA_JOB_DONE_SHOW = 300;
     const TRASH_DAYS = 30;
     const THUMB_KEEP_DAYS = 30;
     const SEARCH_LIMIT = 300;
@@ -1783,22 +1784,46 @@
     }
 
     // what an account uploaded: the jobs still going, and the ones that finished
-    // within MEDIA_JOB_DONE_SHOW, newest first
-    function userMediaJobs($id, $limit = 12)
+    // within MEDIA_JOB_DONE_SHOW, newest first; with $all everything still kept
+    function userMediaJobs($id, $limit = 12, $all = false)
     {
         $jobs = [];
         foreach (readData('media-jobs') as $job) {
             if (!is_array($job) || empty($job['rel']) || (string)($job['by'] ?? '') !== (string)$id)
                 continue;
-            if (!mediaJobActive($job) && ($job['updated'] ?? 0) < time() - MEDIA_JOB_DONE_SHOW)
+            if (!$all && !mediaJobActive($job) && ($job['updated'] ?? 0) < time() - MEDIA_JOB_DONE_SHOW)
                 continue;
             $jobs[] = $job;
         }
         usort($jobs, function ($a, $b) {
+            // what is still going first, then the newest
+            $activeA = mediaJobActive($a) ? 1 : 0;
+            $activeB = mediaJobActive($b) ? 1 : 0;
+            if ($activeA !== $activeB)
+                return $activeB - $activeA;
+
             return ($b['updated'] ?? 0) - ($a['updated'] ?? 0);
         });
 
         return array_slice($jobs, 0, $limit);
+    }
+
+    // drops the jobs of this account that are done, so its list is clean without
+    // waiting for the ones that finished to age out; what is still going stays
+    function clearFinishedMediaJobs($id)
+    {
+        $removed = 0;
+        updateDataFile('media-jobs.json', function ($data) use ($id, &$removed) {
+            foreach ($data as $jobId => $job) {
+                if (!is_array($job) || (string)($job['by'] ?? '') !== (string)$id || mediaJobActive($job))
+                    continue;
+                unset($data[$jobId]);
+                $removed++;
+            }
+            return $data;
+        });
+
+        return $removed;
     }
 
     // Adds a file to the queue; the request answers without waiting for it.
@@ -2089,6 +2114,46 @@
         return $name;
     }
 
+    // a short state for the panel row; the whole reason stays in its tooltip
+    function mediaJobShort($job)
+    {
+        $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
+        switch ($job['status'] ?? '') {
+            case 'pending': return 'w kolejce';
+            case 'converting': return 'konwersja na ' . $format . '…';
+            case 'done':
+                $sizes = !empty($job['sizeFrom']) && !empty($job['sizeTo'])
+                    ? ' (' . formatSize($job['sizeFrom']) . ' → ' . formatSize($job['sizeTo']) . ')' : '';
+                return $format . ' gotowe' . $sizes;
+            case 'skipped': return 'bez zmian, oryginał zostaje';
+            case 'failed': return 'błąd konwersji';
+        }
+
+        return '';
+    }
+
+    // how the panel sums the jobs up, e.g. "2 w toku · 13 bez zmian"
+    function mediaJobsSummary($jobs)
+    {
+        $counts = ['pending' => 0, 'converting' => 0, 'done' => 0, 'skipped' => 0, 'failed' => 0];
+        foreach ($jobs as $job)
+            if (isset($counts[$job['status'] ?? '']))
+                $counts[$job['status']]++;
+
+        $parts = [];
+        $active = $counts['pending'] + $counts['converting'];
+        if ($active)
+            $parts[] = $active . ' w toku';
+        if ($counts['done'])
+            $parts[] = $counts['done'] . ' ' . plural($counts['done'], 'gotowe', 'gotowe', 'gotowych');
+        if ($counts['skipped'])
+            $parts[] = $counts['skipped'] . ' bez zmian';
+        if ($counts['failed'])
+            $parts[] = $counts['failed'] . ' ' . plural($counts['failed'], 'błąd', 'błędy', 'błędów');
+
+        return implode(' · ', $parts);
+    }
+
     // whether a job is still on its way
     function mediaJobActive($job)
     {
@@ -2344,7 +2409,7 @@
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
-            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete'], true))
+            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete', 'media-clear'], true))
                 reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
             // new folders and uploads go only inside its own folder, subfolders included
             if (in_array($action, ['upload', 'mkdir'], true)) {
@@ -2445,6 +2510,16 @@
                 // an account with a folder of its own only hears about that folder
                 $from = galleryIsAdmin() ? '' : ownFolder($base);
                 reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash, $from)]);
+
+            // clears the account's finished conversion jobs without waiting for
+            // them to age out of the gallery panel
+            case 'media-clear':
+                $removed = clearFinishedMediaJobs((string)siteUser()['id']);
+                setFlash($removed
+                    ? 'Wyczyszczono ' . countLabel($removed) . ' zakończonych zadań konwersji.'
+                    : 'Nie ma czego czyścić.');
+                header('Location: ' . localBack($_POST['back'] ?? ''), true, 303);
+                exit;
 
             // the trash of the account's own folder, in the gallery (the panel
             // does the same for everything); a non-admin only its own entries
