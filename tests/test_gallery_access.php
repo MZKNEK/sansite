@@ -68,6 +68,40 @@
         sessionEnd();
     });
 
+    test('a shared private folder is seen by whoever has the link', function () {
+        // without opening the link, nothing of private/ is seen
+        $before = tempDir();
+        sessionFor('sanakan-share-private-a', ['id' => '606', 'name' => 'S', 'avatar' => 'a']);
+        assertFalse(galleryCanSee($before, 'private/a.png'));
+        sessionEnd();
+
+        $base = tempDir();
+        mkdir($base . '/private/sub', 0700, true);
+        file_put_contents($base . '/private/a.png', 'x');
+        file_put_contents($base . '/private/sub/b.png', 'x');
+
+        sessionFor('sanakan-share-private-b', ['id' => '606', 'name' => 'S', 'avatar' => 'a']);
+        $token = createShare('private', 7, siteUser());
+        assertSame('private', openShare($base, $token));
+        assertTrue(galleryCanSee($base, 'private'), 'the shared folder');
+        assertTrue(galleryCanSee($base, 'private/a.png'), 'its files');
+        assertTrue(galleryCanSee($base, 'private/sub'), 'and subfolders');
+        assertTrue(galleryCanSee($base, 'private/sub/b.png'));
+        sessionEnd();
+
+        // a link for a subfolder opens only that one, not the whole private folder
+        $base2 = tempDir();
+        mkdir($base2 . '/private/sub', 0700, true);
+        file_put_contents($base2 . '/private/a.png', 'x');
+        file_put_contents($base2 . '/private/sub/b.png', 'x');
+        sessionFor('sanakan-share-private-c', ['id' => '606', 'name' => 'S', 'avatar' => 'a']);
+        $sub = createShare('private/sub', 7, siteUser());
+        assertSame('private/sub', openShare($base2, $sub));
+        assertTrue(galleryCanSee($base2, 'private/sub/b.png'));
+        assertFalse(galleryCanSee($base2, 'private/a.png'), 'the rest of private stays out');
+        sessionEnd();
+    });
+
     test('galleryZipRoots names the top folder i', function () {
         $dir = tempDir();
         $roots = galleryZipRoots([[$dir . '/a.png', 'a.png'], [$dir, '']]);

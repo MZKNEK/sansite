@@ -843,14 +843,23 @@
     }
 
     // Whether the visitor may see a folder or a file: the private folder only
-    // those who may see it (the panel admins and the GALLERY_PRIVATE list), the
+    // those who may see it (the panel admins and the GALLERY_PRIVATE list) and
+    // whoever holds a link shared for it or a subfolder (so a shared private
+    // folder gives its thumbnails and files out too), the
     // gallery admins everything else, the viewers all but the folders of the
     // accounts, an account with a folder of its own that folder, anyone the
     // folders shared with it.
     function galleryCanSee($base, $rel)
     {
-        if (inPrivateDir($rel))
-            return galleryCanSeePrivate();
+        if (inPrivateDir($rel)) {
+            if (galleryCanSeePrivate())
+                return true;
+            foreach (sessionShares($base) as $home)
+                if (inFolder($rel, $home))
+                    return true;
+
+            return false;
+        }
         if (galleryIsAdmin())
             return true;
         foreach (galleryHomes($base) as $home)
