@@ -939,7 +939,7 @@
   <link href="../css/style.css?v=7ea800b1aa" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=bbc3267158" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=975b1e2e04" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=57d19bc21b" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
