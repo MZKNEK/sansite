@@ -27,15 +27,38 @@
         exit;
     }
 
-    // i/<file>.png|jpg|gif that is not there (nginx sends these here too): the
-    // old link of a picture changed to WebP goes on to it, anything else is a 404
-    if (strpos($requested, siteRoot() . 'i/') === 0 && preg_match('/\.(?:png|jpe?g|gif)$/i', $requested)) {
+    // i/<file>.png|jpg|gif|webm|mp4 that is not there (nginx sends these here
+    // too): the old link of a picture changed to WebP, or of a film changed to
+    // WebM, goes on to the new one; anything else is a 404
+    if (strpos($requested, siteRoot() . 'i/') === 0 && preg_match('/\.(?:png|jpe?g|gif|webm|mp4)$/i', $requested)) {
         sendMovedLink(substr($requested, strlen(siteRoot() . 'i/')));
         exit;
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST')
         handlePost($base);
+
+    // ?mediajobs: how the pictures and films this account uploaded are
+    // converting, for the gallery to keep its status line and badges up to date
+    // (js/explorer.js)
+    if (isset($_GET['mediajobs'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        $user = siteUser();
+        $jobs = [];
+        if ($user !== null)
+            foreach (userMediaJobs((string)$user['id']) as $job)
+                $jobs[] = [
+                    'rel' => publicRel($job['rel']),
+                    'target' => !empty($job['targetRel']) ? publicRel($job['targetRel']) : null,
+                    'status' => $job['status'] ?? '',
+                    'label' => mediaJobLabel($job),
+                    'text' => mediaJobText($job),
+                    'active' => mediaJobActive($job)
+                ];
+        echo json_encode(['jobs' => $jobs]);
+        exit;
+    }
 
     // ?s=token: a shared link, its folder opens from now on in this session
     if (isset($_GET['s'])) {
@@ -88,6 +111,17 @@
     // bring back or drop for good without asking a gallery admin
     $ownTrash = $own === null ? [] : ownTrashItems((string)$user['id']);
     $showTrash = $own !== null && isset($_GET['kosz']);
+    // the pictures and films this account uploaded that are converting or just
+    // done, shown in the gallery; and the job of each file in the folder, for
+    // its badge
+    $myJobs = $user ? userMediaJobs((string)$user['id']) : [];
+    $jobByRel = [];
+    foreach (mediaJobs() as $job) {
+        if (!empty($job['rel']))
+            $jobByRel[$job['rel']] = $job;
+        if (!empty($job['targetRel']))
+            $jobByRel[$job['targetRel']] = $job;
+    }
     // what an upload may be: the images (AVIF included), the HEIC and HEIF the
     // server can write as WebP, and for a gallery admin the films too
     $uploadTypes = array_merge(IMAGE_TYPES, canConvertHeif() ? CONVERT_IMAGE_TYPES : []);
@@ -135,6 +169,10 @@
                 $files[] = fileEntry($full, $rel);
         }
     }
+    // a film still converting (or one that failed) gets its status on the tile
+    foreach ($files as &$file)
+        $file['job'] = $jobByRel[$file['rel']] ?? null;
+    unset($file);
     $totalBytes = array_sum(array_column($files, 'size'));
 
     // the folders on the way here, as links where the visitor may go
@@ -186,7 +224,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=46e1dc16c3" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=82a125f16a" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -255,6 +293,15 @@
     </section>
 <?php else: ?>
 
+<?php if ($myJobs): ?>
+    <p class="ex-meta media-jobs" id="media-jobs" data-active="<?=array_filter($myJobs, 'mediaJobActive') ? '1' : '0'?>">
+      <span class="media-jobs-title">Konwersja plików:</span>
+<?php foreach ($myJobs AS $job): ?>
+      <span class="media-job <?=e($job['status'])?>" data-job="<?=e(publicRel($job['rel']))?>" data-status="<?=e($job['status'])?>" title="<?=e(mediaJobText($job))?>"><?=e(mediaJobText($job))?></span>
+<?php endforeach; ?>
+    </p>
+<?php endif; ?>
+
 <?php if ($showTrash): ?>
     <div class="toolbar" id="toolbar">
       <a class="admin-btn" href="<?=e(folderUrl($own))?>">&larr; Wróć do folderu</a>
@@ -305,7 +352,7 @@
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
         <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $uploadTypes))?>" hidden />
 <?php if ($admin && (canConvertToWebp() || canConvertVideo())): ?>
-        <label class="admin-check" title="PNG, JPG i GIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia). Gdy nowy plik nie wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%, zostaje oryginał.">
+        <label class="admin-check" title="PNG, JPG, GIF i AVIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia); plik zapisuje się od razu, zmiana idzie w tle. Gdy nowy plik nie wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%, zostaje oryginał.">
           <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP/WebM
         </label>
 <?php endif; ?>
@@ -334,9 +381,9 @@
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching && $admin): ?>
-        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Filmy MP4 zapisują się jako WebM, gdy wyjdzie wyraźnie mniejszy. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą wyraźnie mniejsze; status zobaczysz wyżej. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
-        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> każde zapisują się jako WebP, gdy wychodzi wyraźnie mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi wyraźnie mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -399,6 +446,9 @@
 <?php endif; ?>
 <?php if ($file['ext'] === 'gif' || $file['kind'] === 'video'): ?>
           <span class="badge"><?=e(strtoupper($file['ext']))?></span>
+<?php endif; ?>
+<?php if (!empty($file['job']) && in_array($file['job']['status'] ?? '', ['pending', 'converting', 'failed'], true)): ?>
+          <span class="job-badge <?=e($file['job']['status'])?>" data-job="<?=e(publicRel($file['rel']))?>" title="<?=e(mediaJobText($file['job']))?>"><?=e(mediaJobLabel($file['job']))?></span>
 <?php endif; ?>
         </span>
         <span class="label">
@@ -560,7 +610,7 @@
   ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)?></script>
 <?php endif; ?>
 
-  <script src="../js/explorer.js?v=dae35abb3c"></script>
+  <script src="../js/explorer.js?v=b4a63d9ba2"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>

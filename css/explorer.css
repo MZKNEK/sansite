@@ -198,6 +198,52 @@ main.content {
     letter-spacing: 0.1em;
 }
 
+/* conversion of an uploaded file: its tile badge and the uploader's status line */
+.job-badge {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    padding: 1px 6px;
+    background: rgba(14, 14, 17, 0.85);
+    border: 1px solid rgba(240, 178, 50, 0.5);
+    color: #f0b232;
+    font: 11px/16px "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
+}
+
+.job-badge.failed {
+    border-color: rgba(214, 78, 78, 0.6);
+    color: #e06b6b;
+}
+
+.media-jobs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.media-jobs-title {
+    color: rgba(220, 221, 222, 0.75);
+}
+
+.media-job {
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.media-job.pending,
+.media-job.converting {
+    color: #f0b232;
+}
+
+.media-job.done {
+    color: #7fd18a;
+}
+
+.media-job.failed {
+    color: #e06b6b;
+}
+
 /* ".." tile, one folder up */
 .up .thumb {
     background: rgba(155, 89, 182, 0.06);

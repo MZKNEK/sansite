@@ -40,6 +40,16 @@
     const WEBP_QUALITY = 95;
     const GIF_WEBP_QUALITY = 75;
     const TOOL_TIMEOUT = 50;
+    // A picture or film is uploaded first and changed afterwards on the server
+    // (inc/data/media-jobs.json, run by inc/check-bot.php from cron or
+    // inc/media-worker.php by hand), so the upload does not wait. One film may
+    // take MEDIA_JOB_TIMEOUT per encoder; a job left "converting" for longer
+    // than MEDIA_JOB_STALE (a restart) is tried again, done ones are kept
+    // MEDIA_JOB_KEEP_DAYS and the gallery shows them for MEDIA_JOB_DONE_SHOW.
+    const MEDIA_JOB_TIMEOUT = 600;
+    const MEDIA_JOB_STALE = 1800;
+    const MEDIA_JOB_KEEP_DAYS = 7;
+    const MEDIA_JOB_DONE_SHOW = 3600;
     const TRASH_DAYS = 30;
     const THUMB_KEEP_DAYS = 30;
     const SEARCH_LIMIT = 300;
@@ -236,8 +246,8 @@
     }
 
     // an MP4 as WebM, or false; VP9 for size, VP8 where the build has no VP9,
-    // and a long film that does not finish in TOOL_TIMEOUT keeps its original
-    function mp4ToWebm($source, $target)
+    // and a film that does not finish in $timeout keeps its original
+    function mp4ToWebm($source, $target, $timeout = TOOL_TIMEOUT)
     {
         $ffmpeg = findTool('ffmpeg');
         if (!$ffmpeg)
@@ -252,7 +262,7 @@
             @unlink($tmp);
             $args = array_merge(['-v', 'error', '-y', '-i', $source, '-c:v', $encoder[0]], $encoder[1],
                 ['-deadline', 'realtime', '-cpu-used', '4', '-c:a', 'libopus', '-b:a', '96k', '-f', 'webm', $tmp]);
-            if (runTool($ffmpeg, $args, TOOL_TIMEOUT) && @rename($tmp, $target))
+            if (runTool($ffmpeg, $args, $timeout) && @rename($tmp, $target))
                 return true;
         }
         @unlink($tmp);
@@ -338,6 +348,7 @@
         'rename' => 'zmiany nazw',
         'rotate' => 'obrócone',
         'webp' => 'zamienione na WebP',
+        'webm' => 'zamienione na WebM',
         'delete' => 'do kosza'
     ];
 
@@ -1753,6 +1764,337 @@
         return [$target, $size, $newSize];
     }
 
+    // ---- Pictures and films changed in the background ---------------------------
+    // An uploaded PNG, JPG, GIF or AVIF waits its turn as WebP, an MP4 as WebM;
+    // the file is saved first and the request answers at once, so adding many at
+    // once does not hold the upload open. inc/data/media-jobs.json keeps what is
+    // waiting and how it went, and the gallery shows the status to whoever
+    // uploaded the file.
+
+    // the jobs, newest first
+    function mediaJobs()
+    {
+        $jobs = readData('media-jobs');
+        uasort($jobs, function ($a, $b) {
+            return ($b['created'] ?? 0) - ($a['created'] ?? 0);
+        });
+
+        return $jobs;
+    }
+
+    // what an account uploaded: the jobs still going, and the ones that finished
+    // within MEDIA_JOB_DONE_SHOW, newest first
+    function userMediaJobs($id, $limit = 12)
+    {
+        $jobs = [];
+        foreach (readData('media-jobs') as $job) {
+            if (!is_array($job) || empty($job['rel']) || (string)($job['by'] ?? '') !== (string)$id)
+                continue;
+            if (!mediaJobActive($job) && ($job['updated'] ?? 0) < time() - MEDIA_JOB_DONE_SHOW)
+                continue;
+            $jobs[] = $job;
+        }
+        usort($jobs, function ($a, $b) {
+            return ($b['updated'] ?? 0) - ($a['updated'] ?? 0);
+        });
+
+        return array_slice($jobs, 0, $limit);
+    }
+
+    // Adds a file to the queue; the request answers without waiting for it.
+    // $kind is 'webp' or 'webm'; $source is the hash of what was uploaded, so the
+    // changed file still recognises the original
+    function addMediaJob($rel, $id, $name, $size, $kind, $source = '')
+    {
+        $jobId = date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $job = [
+            'rel' => $rel,
+            'name' => basename($rel),
+            'kind' => $kind,
+            'source' => (string)$source,
+            'by' => (string)$id,
+            'byName' => (string)$name,
+            'created' => time(),
+            'updated' => time(),
+            'status' => 'pending',
+            'message' => '',
+            'targetRel' => null,
+            'sizeFrom' => (int)$size,
+            'sizeTo' => null
+        ];
+        updateDataFile('media-jobs.json', function ($data) use ($jobId, $job) {
+            $data[$jobId] = $job;
+            return $data;
+        });
+
+        return $jobId;
+    }
+
+    function updateMediaJob($id, $changes)
+    {
+        updateDataFile('media-jobs.json', function ($data) use ($id, $changes) {
+            if (isset($data[$id]))
+                $data[$id] = array_merge($data[$id], $changes, ['updated' => time()]);
+            return $data;
+        });
+    }
+
+    // the oldest file still waiting, taken for conversion; null when there is none
+    function claimMediaJob()
+    {
+        $claimed = null;
+        updateDataFile('media-jobs.json', function ($data) use (&$claimed) {
+            $best = null;
+            foreach ($data as $id => $job) {
+                if (!is_array($job) || ($job['status'] ?? '') !== 'pending')
+                    continue;
+                if ($best === null || ($job['created'] ?? 0) < ($data[$best]['created'] ?? 0))
+                    $best = (string)$id;
+            }
+            if ($best !== null) {
+                $data[$best]['status'] = 'converting';
+                $data[$best]['updated'] = time();
+                $data[$best]['message'] = '';
+                $claimed = $data[$best];
+                $claimed['id'] = $best;
+            }
+            return $data;
+        });
+
+        return $claimed;
+    }
+
+    // drops jobs that finished long ago and takes back the ones a restart left
+    // half done, so they are tried again
+    function pruneMediaJobs()
+    {
+        $now = time();
+        updateDataFile('media-jobs.json', function ($data) use ($now) {
+            foreach ($data as $id => $job) {
+                if (!is_array($job)) {
+                    unset($data[$id]);
+                    continue;
+                }
+                $status = $job['status'] ?? '';
+                $updated = $job['updated'] ?? 0;
+                if ($status === 'converting' && $updated < $now - MEDIA_JOB_STALE)
+                    $data[$id] = array_merge($job, ['status' => 'pending', 'updated' => $now, 'message' => 'Wznowiono po przerwie.']);
+                else if (!in_array($status, ['pending', 'converting'], true) && $updated < $now - MEDIA_JOB_KEEP_DAYS * 86400)
+                    unset($data[$id]);
+            }
+            return $data;
+        });
+    }
+
+    // whether the server can change this picture's kind to WebP
+    function canConvertImageToWebp($ext)
+    {
+        if ($ext === 'avif')
+            return function_exists('imagecreatefromavif') || canConvertHeif();
+        if ($ext === 'gif')
+            return canConvertGifToWebp();
+
+        return canConvertToWebp();
+    }
+
+    // turns one claimed job's file into WebP or WebM; the new file takes its
+    // place when it is at least WEBP_MIN_SAVING smaller and the original goes to
+    // the trash, as when a picture is changed by hand
+    function convertMediaJob($base, $job, $timeout = 0)
+    {
+        $file = resolvePath($base, $job['rel'] ?? '', false);
+        if (!$file) {
+            finishMediaJob($job, 'failed', 'plik zniknął przed konwersją');
+            return;
+        }
+        list($full, $rel) = $file;
+        if (($job['kind'] ?? 'webm') === 'webm')
+            convertJobToWebm($full, $rel, $job, $timeout > 0 ? $timeout : MEDIA_JOB_TIMEOUT);
+        else
+            convertJobToWebp($full, $rel, $job);
+    }
+
+    // the changed file takes the original's place: it keeps the date, the
+    // original goes to the trash and its old link opens the new one
+    function replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job)
+    {
+        @chmod($targetFull, 0644);
+        @touch($targetFull, filemtime($full));
+        $source = (string)($job['source'] ?? '');
+        if ($source === '') {
+            $hashes = readData('hashes');
+            $source = fileHash($full, $rel, $hashes);
+        }
+        if (!moveToTrash($full, $rel)) {
+            @unlink($targetFull);
+            finishMediaJob($job, 'failed', 'nie udało się przenieść oryginału do kosza', ['sizeFrom' => $sizeFrom]);
+            return;
+        }
+
+        $kind = ($job['kind'] ?? 'webm') === 'webm' ? 'webm' : 'webp';
+        $format = $kind === 'webm' ? 'WebM' : 'WebP';
+        dropHashes($rel);
+        recordHash($targetFull, $targetRel, $source);
+        addMovedLink($rel, $targetRel);
+        addHistory($kind, 'Zamieniono na ' . $format . ' w tle, oryginał do kosza: ' . galleryPath($rel) . ' na ' . basename($targetRel)
+            . ' (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ').',
+            ($job['byName'] ?? '') !== '' ? $job['byName'] : 'konwersja');
+        finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
+    }
+
+    // an MP4 as WebM, kept when it is smaller
+    function convertJobToWebm($full, $rel, $job, $timeout)
+    {
+        if (!canConvertVideo()) {
+            finishMediaJob($job, 'failed', 'serwer nie ma ffmpeg');
+            return;
+        }
+
+        $dir = dirname($full);
+        $target = freeName($dir, pathinfo(basename($rel), PATHINFO_FILENAME) . '.webm');
+        $targetFull = $dir . '/' . $target;
+        $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
+        $sizeFrom = (int)filesize($full);
+
+        if (!mp4ToWebm($full, $targetFull, $timeout)) {
+            @unlink($targetFull);
+            finishMediaJob($job, 'failed', 'nie udało się zamienić na WebM', ['sizeFrom' => $sizeFrom]);
+            return;
+        }
+        clearstatcache();
+        $sizeTo = (int)@filesize($targetFull);
+        if ($sizeTo > $sizeFrom * (1 - WEBP_MIN_SAVING)) {
+            @unlink($targetFull);
+            finishMediaJob($job, 'skipped', 'WebM nie wyszedłby wyraźnie mniejszy (' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
+            return;
+        }
+        replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job);
+    }
+
+    // a PNG, JPG, GIF or AVIF as WebP, kept when it is smaller
+    function convertJobToWebp($full, $rel, $job)
+    {
+        $name = basename($rel);
+        $ext = extensionOf($name);
+        $isGif = $ext === 'gif';
+        if ($ext !== 'avif' && !in_array($ext, WEBP_SOURCE_TYPES, true)) {
+            finishMediaJob($job, 'failed', 'tego pliku nie da się zamienić na WebP');
+            return;
+        }
+        if (!canConvertImageToWebp($ext)) {
+            finishMediaJob($job, 'failed', $isGif ? 'serwer nie umie zamienić GIF-a (brak gif2webp)' : 'serwer nie umie zapisać WebP');
+            return;
+        }
+
+        $dir = dirname($full);
+        $target = freeName($dir, pathinfo($name, PATHINFO_FILENAME) . '.webp');
+        $targetFull = $dir . '/' . $target;
+        $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
+        $sizeFrom = (int)filesize($full);
+
+        $tmp = $dir . '/.webp-' . getmypid() . '.webp';
+        $converted = $ext === 'avif'
+            ? (function_exists('imagecreatefromavif') ? convertToWebp($full, $tmp) : heifToWebp($full, $tmp))
+            : ($isGif ? gifToWebp($full, $tmp) : convertToWebp($full, $tmp));
+        clearstatcache();
+        if (!$converted || !is_file($tmp) || @filesize($tmp) <= 0) {
+            @unlink($tmp);
+            finishMediaJob($job, 'failed', 'nie udało się zamienić na WebP', ['sizeFrom' => $sizeFrom]);
+            return;
+        }
+        $sizeTo = (int)filesize($tmp);
+        if ($sizeTo > $sizeFrom * (1 - WEBP_MIN_SAVING)) {
+            @unlink($tmp);
+            finishMediaJob($job, 'skipped', 'WebP nie wyszedłby wyraźnie mniejszy (' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
+            return;
+        }
+        if (!@rename($tmp, $targetFull)) {
+            @unlink($tmp);
+            finishMediaJob($job, 'failed', 'nie udało się zapisać WebP', ['sizeFrom' => $sizeFrom]);
+            return;
+        }
+        replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job);
+    }
+
+    function finishMediaJob($job, $status, $message, $extra = [])
+    {
+        updateMediaJob((string)($job['id'] ?? ''), $extra + ['status' => $status, 'message' => $message]);
+    }
+
+    // Runs the waiting conversions, at most $budget seconds of them (0: until
+    // none is left), one at a time; a second call while one runs does nothing.
+    // Returns how many were done.
+    function runMediaJobs($base, $budget = 0, $jobTimeout = 0)
+    {
+        if (!dataWritable())
+            return 0;
+        $lock = @fopen(dataDir() . '/media-jobs.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock !== false)
+                fclose($lock);
+            return 0;
+        }
+
+        pruneMediaJobs();
+        $done = 0;
+        $deadline = $budget > 0 ? microtime(true) + $budget : 0.0;
+        while (!$deadline || microtime(true) < $deadline) {
+            $job = claimMediaJob();
+            if ($job === null)
+                break;
+            convertMediaJob($base, $job, $jobTimeout);
+            $done++;
+        }
+        flock($lock, LOCK_UN);
+        fclose($lock);
+
+        return $done;
+    }
+
+    // short label of a job's status, for the badge on its tile
+    function mediaJobLabel($job)
+    {
+        $kind = ($job['kind'] ?? 'webm') === 'webm' ? 'webm' : 'webp';
+        switch ($job['status'] ?? '') {
+            case 'pending': return 'W kolejce';
+            case 'converting': return 'Konwersja…';
+            case 'done': return $kind === 'webm' ? 'WebM' : 'WebP';
+            case 'skipped': return $kind === 'webm' ? 'MP4' : 'Bez zmian';
+            case 'failed': return 'Błąd';
+        }
+
+        return '';
+    }
+
+    // the line the gallery shows about one job
+    function mediaJobText($job)
+    {
+        $name = (string)($job['name'] ?? '');
+        $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
+        switch ($job['status'] ?? '') {
+            case 'pending':
+                return $name . ': w kolejce do zamiany na ' . $format;
+            case 'converting':
+                return $name . ': zamienianie na ' . $format . ' w toku…';
+            case 'done':
+                $sizes = !empty($job['sizeFrom']) && !empty($job['sizeTo'])
+                    ? ' (' . formatSize($job['sizeFrom']) . ' → ' . formatSize($job['sizeTo']) . ')' : '';
+                return $name . ': gotowe (' . $format . ')' . $sizes;
+            case 'skipped':
+                return $name . ': zostawiono oryginał' . (($job['message'] ?? '') !== '' ? ' (' . $job['message'] . ')' : '');
+            case 'failed':
+                return $name . ': konwersja się nie udała' . (($job['message'] ?? '') !== '' ? ' (' . $job['message'] . ')' : '');
+        }
+
+        return $name;
+    }
+
+    // whether a job is still on its way
+    function mediaJobActive($job)
+    {
+        return in_array($job['status'] ?? '', ['pending', 'converting'], true);
+    }
+
     // ---- Trash ------------------------------------------------------------------
     // Deleted files and folders go to inc/data/trash/<id>/ for TRASH_DAYS days;
     // the admin panel restores them or deletes them for good. inc/ is not
@@ -2249,13 +2591,19 @@
         }
 
         // "change to WebP" ticked in the page, always in the folder of an account;
-        // the original stays when the WebP is not at least WEBP_MIN_SAVING smaller,
-        // and when it cannot be made (in the folder of an account that is an error)
+        // the original stays when the WebP is not at least WEBP_MIN_SAVING smaller.
+        // The change runs in the background (below), except a HEIC or HEIF, which
+        // is written as WebP now: a browser cannot show it otherwise.
         $note = '';
+        $ext = extensionOf($name);
+        $wantConvert = $own || ($_POST['webp'] ?? '') === '1';
+        // an account's own folder insists on WebP; without it the upload is refused
+        if ($own && in_array($ext, WEBP_SOURCE_TYPES, true) && !canConvertImageToWebp($ext))
+            reply(false, $name . ': ' . ($ext === 'gif' ? 'serwer nie umie teraz zamienić GIF-a na WebP, dodaj PNG, JPG albo WebP.' : 'serwer nie umie teraz zapisać WebP, spróbuj później.'), 503);
 
         // a HEIC or HEIF cannot be counted on to show in a browser, so it is
         // always written as WebP; when that cannot be done the upload is refused
-        if (in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true)) {
+        if (in_array($ext, CONVERT_IMAGE_TYPES, true)) {
             if (!canConvertHeif())
                 reply(false, $name . ': serwer nie umie zamienić HEIC/HEIF na WebP (brak imagemagick lub ffmpeg). Dodaj plik jako JPG, PNG albo WebP.', 503);
             $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
@@ -2273,94 +2621,6 @@
                 'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
         }
 
-        // an AVIF as WebP when "change" is on and that comes out smaller, as a
-        // PNG does; the original AVIF stays otherwise
-        if (extensionOf($name) === 'avif' && ($own || ($_POST['webp'] ?? '') === '1')) {
-            $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
-            $path = $dir[0] . '/' . $target;
-            $converted = function_exists('imagecreatefromavif') ? convertToWebp($file['tmp_name'], $path) : heifToWebp($file['tmp_name'], $path);
-            clearstatcache();
-            if (!$converted) {
-                @unlink($path);
-                $note = ' Nie udało się zamienić AVIF na WebP, zostawiono AVIF.';
-            } else if (filesize($path) > $file['size'] * (1 - WEBP_MIN_SAVING)) {
-                $note = ' WebP nie wyszedłby wyraźnie mniejszy (' . formatSize(filesize($path)) . '), zostawiono AVIF.';
-                @unlink($path);
-            } else {
-                @chmod($path, 0644);
-                if ($own)
-                    checkUserTotal($ownDir, $path, $name);
-                recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
-                $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
-                done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
-                    'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
-            }
-        }
-
-        if (($own || ($_POST['webp'] ?? '') === '1') && in_array(extensionOf($name), WEBP_SOURCE_TYPES, true)) {
-            $isGif = extensionOf($name) === 'gif';
-            if (!($isGif ? canConvertGifToWebp() : canConvertToWebp())) {
-                if ($own)
-                    reply(false, $name . ': ' . ($isGif ? 'serwer nie umie teraz zamienić GIF-a na WebP, dodaj PNG, JPG albo WebP.' : 'serwer nie umie teraz zapisać WebP, spróbuj później.'), 503);
-                $note = $isGif
-                    ? ' Serwer nie umie zamieniać GIF-ów na animowane WebP (brak gif2webp), zostawiono GIF.'
-                    : ' Serwer nie umie zapisać WebP, zostawiono oryginał.';
-            } else {
-                $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
-                $path = $dir[0] . '/' . $target;
-                $converted = $isGif ? gifToWebp($file['tmp_name'], $path) : convertToWebp($file['tmp_name'], $path);
-                clearstatcache();
-
-                if (!$converted) {
-                    @unlink($path);
-                    if ($own)
-                        reply(false, $name . ': nie udało się zamienić na WebP.', 500);
-                    $note = ' Nie udało się zamienić na WebP, zostawiono oryginał.';
-                } else if (filesize($path) > $file['size'] * (1 - WEBP_MIN_SAVING)) {
-                    $note = ' WebP nie wyszedłby wyraźnie mniejszy (' . formatSize(filesize($path)) . '), zostawiono oryginał.';
-                    @unlink($path);
-                } else {
-                    @chmod($path, 0644);
-                    if ($own)
-                        checkUserTotal($ownDir, $path, $name);
-                    recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
-                    $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
-                    done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
-                        'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
-                }
-            }
-        }
-
-        // an MP4 as WebM when "change" is on and the WebM comes out smaller, the
-        // same rule as WebP: the original stays when it does not, or when the
-        // conversion fails or does not finish
-        if (($own || ($_POST['webp'] ?? '') === '1') && in_array(extensionOf($name), VIDEO_SOURCE_TYPES, true)) {
-            if (!canConvertVideo()) {
-                $note = ' Serwer nie umie zamieniać filmów na WebM (brak ffmpeg), zostawiono MP4.';
-            } else {
-                $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webm');
-                $path = $dir[0] . '/' . $target;
-                if (mp4ToWebm($file['tmp_name'], $path)) {
-                    clearstatcache();
-                    if (filesize($path) > $file['size'] * (1 - WEBP_MIN_SAVING)) {
-                        $note = ' WebM nie wyszedłby wyraźnie mniejszy (' . formatSize(filesize($path)) . '), zostawiono MP4.';
-                        @unlink($path);
-                    } else {
-                        @chmod($path, 0644);
-                        if ($own)
-                            checkUserTotal($ownDir, $path, $name);
-                        recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
-                        $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
-                        done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
-                            'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
-                    }
-                } else {
-                    @unlink($path);
-                    $note = ' Nie udało się zamienić na WebM, zostawiono MP4.';
-                }
-            }
-        }
-
         $target = freeName($dir[0], $name);
         $sentHash = hash_file('sha256', $file['tmp_name']);
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
@@ -2369,9 +2629,27 @@
         if ($own)
             checkUserTotal($ownDir, $dir[0] . '/' . $target, $name);
         $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
-        recordHash($dir[0] . '/' . $target, ltrim($dir[1] . '/' . $target, '/'), $stripped ? $sentHash : null);
+        $rel = ltrim($dir[1] . '/' . $target, '/');
+        recordHash($dir[0] . '/' . $target, $rel, $stripped ? $sentHash : null);
 
-        done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . '.',
+        // a picture or film with "change" on waits its turn as WebP or WebM: the
+        // file is saved and the request answers at once, the change runs in the
+        // background (inc/check-bot.php from cron) and the gallery shows how it
+        // is going
+        $convertible = $ext === 'avif' || in_array($ext, WEBP_SOURCE_TYPES, true) || in_array($ext, VIDEO_SOURCE_TYPES, true);
+        if ($wantConvert && $convertible) {
+            $kind = in_array($ext, VIDEO_SOURCE_TYPES, true) ? 'webm' : 'webp';
+            $format = $kind === 'webm' ? 'WebM' : 'WebP';
+            if (!($kind === 'webm' ? canConvertVideo() : canConvertImageToWebp($ext))) {
+                $note = ' Serwer nie umie teraz zamienić na ' . $format . ', zostawiono oryginał.';
+            } else {
+                $user = siteUser();
+                addMediaJob($rel, $user['id'] ?? '', $user['name'] ?? '', filesize($dir[0] . '/' . $target), $kind, $sentHash);
+                $note = ($kind === 'webm' ? ' Film' : ' Grafika') . ' zostanie zamieniona na ' . $format . ' w tle; status zobaczysz w galerii.';
+            }
+        }
+
+        done('upload', 'Dodano ' . galleryPath($rel) . '.',
             ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).')
             . ($stripped ? ' Usunięto metadane (np. miejsce i czas zrobienia).' : '') . $note);
     }

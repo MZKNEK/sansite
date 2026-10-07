@@ -548,4 +548,50 @@ window.SanakanGallery = (function () {
     return viewer.hidden ? null : current;
   };
   window.SanakanGallery.pictures = pictures;
+
+  // A picture or film uploaded with "change to WebP/WebM" is converted on the
+  // server after the upload (inc/gallery.php, inc/check-bot.php). While one is
+  // still going, its status is asked for again and the line and badges update;
+  // once none is left the page comes back, showing the changed files.
+  var jobsBox = document.getElementById('media-jobs');
+  if (jobsBox) {
+    function paintJobs(jobs) {
+      var active = false;
+      jobs.forEach(function (job) {
+        if (job.active) active = true;
+        jobsBox.querySelectorAll('.media-job').forEach(function (el) {
+          if (el.dataset.job !== job.rel) return;
+          el.textContent = job.text;
+          el.className = 'media-job ' + job.status;
+          el.dataset.status = job.status;
+        });
+        document.querySelectorAll('.job-badge').forEach(function (badge) {
+          if (badge.dataset.job !== job.rel) return;
+          badge.textContent = job.label;
+          badge.className = 'job-badge ' + job.status;
+          badge.hidden = job.status !== 'pending' && job.status !== 'converting' && job.status !== 'failed';
+        });
+      });
+      jobsBox.dataset.active = active ? '1' : '0';
+      return active;
+    }
+
+    function pollJobs() {
+      fetch('?mediajobs=1', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          var wasActive = jobsBox.dataset.active === '1';
+          var active = paintJobs(data && data.jobs ? data.jobs : []);
+          if (wasActive && !active) {
+            window.SanakanGallery.keepView(null);
+            location.reload();
+            return;
+          }
+          setTimeout(pollJobs, active ? 5000 : 15000);
+        })
+        .catch(function () { setTimeout(pollJobs, 15000); });
+    }
+
+    if (jobsBox.dataset.active === '1') pollJobs();
+  }
 })();

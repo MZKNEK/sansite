@@ -1,8 +1,10 @@
 <?php
     // Checks the bot once, without the one-minute cache, every 5 minutes the
     // other Sanakan sites (inc/services.php) and once a day removes the thumbnails
-    // nobody looks at any more (inc/gallery.php). Run by cron every minute, as the
-    // web server's user, so the history has no gaps also when nobody visits:
+    // nobody looks at any more (inc/gallery.php); it also changes the pictures and
+    // films uploaded since the last run to WebP or WebM in the background. Run by
+    // cron every minute, as the web server's user, so the history has no gaps also
+    // when nobody visits:
     //   * * * * * www-data php /var/www/html/inc/check-bot.php > /dev/null 2>&1
     // Only from the command line; inc/ is also blocked from the web in nginx.
     if (PHP_SAPI !== 'cli') {
@@ -22,6 +24,12 @@
         pruneThumbs();
         botWriteFile($pruned, (string)time());
     }
-    // the panel warns when this stops coming
+    // the panel warns when this stops coming; written before the changes
+    // below, which may take a while, so a long conversion never looks like cron
+    // having stopped (the next run finds the lock taken and comes back at once)
     botWriteFile(botFile('cron.txt'), (string)time());
+    // uploaded pictures and films waiting as WebP or WebM (inc/gallery.php);
+    // one run at a time
+    $mediaBase = str_replace('\\', '/', dirname(__DIR__)) . '/i';
+    runMediaJobs($mediaBase, 900);
     echo date('Y-m-d H:i:s'), ' ', $state['status'], ' ', $state['uptime'], "%\n";
