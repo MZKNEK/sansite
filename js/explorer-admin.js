@@ -430,6 +430,8 @@
 
   if (webpButton && webpDialog && webpResult) {
     var webpQueue = [];
+    var webpTotal = 0;
+    var webpIndex = 0;
     var webpDone = 0;
     var webpProblems = [];
     var webpQuality = document.getElementById('webp-quality');
@@ -438,6 +440,10 @@
     var webpNew = document.getElementById('webp-new');
     var webpSlider = document.getElementById('webp-slider');
     var webpInfo = document.getElementById('webp-result-info');
+    var webpProcessing = document.getElementById('webp-processing');
+    var webpProcessingText = document.getElementById('webp-processing-text');
+    var webpBody = document.getElementById('webp-result-body');
+    var webpActions = document.getElementById('webp-result-actions');
     var webpOpen = document.getElementById('webp-open');
     var webpAccept = document.getElementById('webp-accept');
     var webpReject = document.getElementById('webp-reject');
@@ -455,10 +461,17 @@
     // Esc must not leave a result unanswered; the two buttons are the way out
     webpResult.addEventListener('cancel', function (e) { e.preventDefault(); });
 
+    // "2 z 5 · " while more than one file is being changed
+    function webpWhere() {
+      return webpTotal > 1 ? webpIndex + ' z ' + webpTotal + ' · ' : '';
+    }
+
     webpButton.addEventListener('click', function () {
       var tiles = picked().filter(webpable);
       if (!tiles.length) return;
       webpQueue = tiles;
+      webpTotal = tiles.length;
+      webpIndex = 0;
       webpDone = 0;
       webpProblems = [];
       document.getElementById('webp-what').textContent = describe(tiles)
@@ -481,8 +494,15 @@
       }
       var tile = webpQueue.shift();
       var label = tile.dataset.title || tile.dataset.rel;
-      var left = webpQueue.length;
-      gallery.toast('Konwersja ' + (left ? '1 z ' + (left + 1) : '') + ': ' + label);
+      webpIndex++;
+      // the dialog shows which file is being changed right now
+      webpInfo.textContent = webpWhere() + label;
+      webpProcessingText.textContent = 'Przetwarzanie na WebP…';
+      webpProcessing.hidden = false;
+      webpBody.hidden = true;
+      webpActions.hidden = true;
+      if (!webpResult.open) webpResult.showModal();
+
       post({ action: 'webp-preview', items: [tile.dataset.rel], quality: String(webpQuality.value) }).then(function (result) {
         if (!result.ok) {
           webpProblems.push(label + ' (' + result.message + ')');
@@ -502,8 +522,10 @@
       webpSlider.value = 50;
       webpDivide(50);
       webpOpen.href = preview.preview;
-      webpInfo.textContent = preview.info;
-      webpResult.showModal();
+      webpInfo.textContent = webpWhere() + preview.info;
+      webpProcessing.hidden = true;
+      webpBody.hidden = false;
+      webpActions.hidden = false;
 
       function answer(accept) {
         webpAccept.disabled = true;
@@ -511,7 +533,6 @@
         post({ action: accept ? 'webp-accept' : 'webp-reject', token: preview.token }).then(function (result) {
           webpAccept.disabled = false;
           webpReject.disabled = false;
-          webpResult.close();
           if (accept && result.ok) webpDone++;
           else if (accept) webpProblems.push(label + ' (' + result.message + ')');
           webpNext();
@@ -523,6 +544,7 @@
 
     function webpFinish() {
       webpButton.disabled = false;
+      if (webpResult.open) webpResult.close();
       var message = webpDone ? 'Zapisano WebP ' + countLabel(webpDone) + ', oryginały są w koszu.' : 'Nic nie zapisano.';
       if (webpProblems.length) message += ' Bez zmian: ' + webpProblems.join(', ') + '.';
       if (webpDone) reloadWith(message, webpProblems.length > 0);

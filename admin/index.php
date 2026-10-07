@@ -30,7 +30,7 @@
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
         'galleryUploaders' => ['Własne foldery w galerii', 'Dodają zdjęcia tylko do swojego folderu i/' . USERS_DIR . '/ID-nick i tylko jego widzą (oprócz nich administratorzy galerii). Do '
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
-            . ' MB, zapisywane jako WebP, gdy wychodzi wyraźnie mniejszy. Folder zostaje po odebraniu dostępu.'],
+            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy. Folder zostaje po odebraniu dostępu.'],
         'galleryPrivate' => ['Prywatny folder galerii', 'Widzą i/' . PRIVATE_DIR . '. Administratorzy panelu zawsze, reszta z tej listy. Pliki nie otwierają się bezpośrednim linkiem.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
@@ -995,7 +995,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=a846644272" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=f398283c78" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=17bf9a344d" type="text/css" rel="stylesheet" />
 </head>

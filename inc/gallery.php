@@ -33,8 +33,6 @@
     // formats a browser cannot be counted on to show: a HEIC or HEIF is always
     // written as WebP on upload (an AVIF follows the WebP rule instead)
     const CONVERT_IMAGE_TYPES = ['heic', 'heif'];
-    // how much smaller a WebP has to be to replace the original, 0.02 is 2%
-    const WEBP_MIN_SAVING = 0.02;
     // cwebp at 95 with sharp_yuv keeps lines free of colour noise at about a
     // third more bytes than GD at 90, which smudges colours along every line
     const WEBP_QUALITY = 95;
@@ -2038,8 +2036,8 @@
     }
 
     // turns one claimed job's file into WebP or WebM; the new file takes its
-    // place when it is at least WEBP_MIN_SAVING smaller and the original goes to
-    // the trash, as when a picture is changed by hand
+    // place when it is smaller and the original goes to the trash, as when a
+    // picture is changed by hand
     function convertMediaJob($base, $job, $timeout = 0)
     {
         $file = resolvePath($base, $job['rel'] ?? '', false);
@@ -2129,9 +2127,9 @@
         }
         clearstatcache();
         $sizeTo = (int)@filesize($targetFull);
-        if ($sizeTo > $sizeFrom * (1 - WEBP_MIN_SAVING)) {
+        if ($sizeTo >= $sizeFrom) {
             @unlink($targetFull);
-            finishMediaJob($job, 'skipped', 'WebM nie wyszedłby wyraźnie mniejszy (' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
+            finishMediaJob($job, 'skipped', 'WebM nie wyszedł mniejszy (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
             return;
         }
         replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job);
@@ -2169,9 +2167,9 @@
             return;
         }
         $sizeTo = (int)filesize($tmp);
-        if ($sizeTo > $sizeFrom * (1 - WEBP_MIN_SAVING)) {
+        if ($sizeTo >= $sizeFrom) {
             @unlink($tmp);
-            finishMediaJob($job, 'skipped', 'WebP nie wyszedłby wyraźnie mniejszy (' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
+            finishMediaJob($job, 'skipped', 'WebP nie wyszedł mniejszy (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
             return;
         }
         if (!@rename($tmp, $targetFull)) {
@@ -2814,9 +2812,9 @@
         }
 
         // "change to WebP" ticked in the page, always in the folder of an account;
-        // the original stays when the WebP is not at least WEBP_MIN_SAVING smaller.
-        // The change runs in the background (below), except a HEIC or HEIF, which
-        // is written as WebP now: a browser cannot show it otherwise.
+        // the original stays when the WebP does not come out smaller. The change
+        // runs in the background (below), except a HEIC or HEIF, which is written
+        // as WebP now: a browser cannot show it otherwise.
         $note = '';
         $ext = extensionOf($name);
         $wantConvert = $own || ($_POST['webp'] ?? '') === '1';

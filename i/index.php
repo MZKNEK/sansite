@@ -252,7 +252,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=a846644272" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=f398283c78" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -415,7 +415,7 @@
         <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
         <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $uploadTypes))?>" hidden />
 <?php if ($admin && (canConvertToWebp() || canConvertVideo())): ?>
-        <label class="admin-check" title="PNG, JPG, GIF i AVIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia); plik zapisuje się od razu, zmiana idzie w tle. Gdy nowy plik nie wyjdzie mniejszy o więcej niż <?=WEBP_MIN_SAVING * 100?>%, zostaje oryginał.">
+        <label class="admin-check" title="PNG, JPG, GIF i AVIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia); plik zapisuje się od razu, zmiana idzie w tle. Gdy nowy plik nie wyjdzie mniejszy, zostaje oryginał.">
           <input type="checkbox" id="upload-webp" /> Zamieniaj na WebP/WebM
         </label>
 <?php endif; ?>
@@ -444,9 +444,9 @@
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching && $admin): ?>
-        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą wyraźnie mniejsze; status zobaczysz wyżej. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą mniejsze; status zobaczysz wyżej. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
-        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi wyraźnie mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -656,16 +656,22 @@
   </dialog>
 
   <dialog class="ex-dialog webp-result" id="dlg-webp-result">
-    <h2>Wynik konwersji</h2>
+    <h2>Konwersja na WebP</h2>
     <p id="webp-result-info"></p>
-    <div class="webp-compare" id="webp-compare">
-      <img id="webp-orig" alt="Oryginał" />
-      <img id="webp-new" class="webp-new" alt="WebP" />
-      <span class="webp-tag orig">Oryginał</span>
-      <span class="webp-tag new">WebP</span>
+    <div class="webp-processing" id="webp-processing" hidden>
+      <span class="webp-spinner" aria-hidden="true"></span>
+      <span id="webp-processing-text">Przetwarzanie…</span>
     </div>
-    <input type="range" id="webp-slider" class="webp-slider" min="0" max="100" value="50" aria-label="Porównanie oryginału z WebP" />
-    <div class="dialog-actions">
+    <div id="webp-result-body" hidden>
+      <div class="webp-compare" id="webp-compare">
+        <img id="webp-orig" alt="Oryginał" />
+        <img id="webp-new" class="webp-new" alt="WebP" />
+        <span class="webp-tag orig">Oryginał</span>
+        <span class="webp-tag new">WebP</span>
+      </div>
+      <input type="range" id="webp-slider" class="webp-slider" min="0" max="100" value="50" aria-label="Porównanie oryginału z WebP" />
+    </div>
+    <div class="dialog-actions" id="webp-result-actions" hidden>
       <a class="admin-btn" id="webp-open" href="#" target="_blank" rel="noopener">Otwórz wynik</a>
       <button type="button" class="admin-btn danger" id="webp-reject">Odrzuć</button>
       <button type="button" class="admin-btn primary" id="webp-accept">Akceptuj</button>
@@ -713,7 +719,7 @@
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=ee50f36424"></script>
+  <script src="../js/explorer-admin.js?v=addd9101fd"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>

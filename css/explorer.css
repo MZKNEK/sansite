@@ -975,6 +975,29 @@ body.selecting .tile.up {
     accent-color: var(--accent-light);
 }
 
+.webp-processing {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+    color: rgba(220, 221, 222, 0.8);
+    font: 14px "JetBrains Mono", Consolas, monospace;
+}
+
+.webp-spinner {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(155, 89, 182, 0.35);
+    border-top-color: var(--accent-light);
+    border-radius: 50%;
+    animation: webp-spin 0.8s linear infinite;
+}
+
+@keyframes webp-spin {
+    to { transform: rotate(360deg); }
+}
+
 .webp-compare {
     position: relative;
     overflow: hidden;
