@@ -26,21 +26,14 @@
     // [answered with a page (2xx/3xx), milliseconds]
     function serviceCheck($url)
     {
-        $context = stream_context_create(['http' => [
+        $started = microtime(true);
+        [$body, $status] = httpRaw($url, [
             'method' => 'GET',
             'timeout' => SERVICE_TIMEOUT,
             'ignore_errors' => true,
             'header' => "User-Agent: SanakanStatus (https://sanakan.pl/state/)\r\n"
-        ]]);
-        $started = microtime(true);
-        $body = @file_get_contents($url, false, $context, 0, 65536);
+        ], 65536);
         $ms = (int)round((microtime(true) - $started) * 1000);
-
-        // the status of the last answer, after any redirects
-        $status = 0;
-        foreach ($http_response_header ?? [] as $line)
-            if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
-                $status = (int)$match[1];
 
         return [$body !== false && $status >= 200 && $status < 400, $ms];
     }

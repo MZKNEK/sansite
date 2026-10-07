@@ -35,3 +35,25 @@
             assertTrue(filesize($dir . '/a.webp') > 0);
         }
     });
+
+    test('stripMetadata drops a PNG text chunk', function () {
+        if (!hasGd()) {
+            assertFalse(hasGd());
+            return;
+        }
+        $dir = tempDir();
+        $img = imagecreatetruecolor(4, 4);
+        imagepng($img, $dir . '/a.png');
+        imagedestroy($img);
+
+        // a real PNG with a tEXt chunk added right after IHDR
+        $png = (string)file_get_contents($dir . '/a.png');
+        $ihdr = unpack('N', substr($png, 8, 4))[1];
+        $at = 8 + 12 + $ihdr;
+        file_put_contents($dir . '/b.png', substr($png, 0, $at) . fx_pngChunk('tEXt', "Author\0me") . substr($png, $at));
+        assertContains('tEXt', (string)file_get_contents($dir . '/b.png'));
+
+        assertTrue(stripMetadata($dir . '/b.png'));
+        assertFalse(strpos((string)file_get_contents($dir . '/b.png'), 'tEXt') !== false);
+        assertTrue(getimagesize($dir . '/b.png') !== false, 'still a valid picture');
+    });

@@ -23,10 +23,27 @@
     // api/health only when the reports stop coming.
     require_once __DIR__ . '/auth.php';
 
-    const BOT_HEALTH_URL = 'https://api.sanakan.pl/api/health';
-    const BOT_API_URL = 'https://api.sanakan.pl/api/Info/commands';
-    const BOT_PRIVATE_URL = 'https://api.sanakan.pl/api/Info/commands/private';
-    const BOT_API_ALIVE_URL = 'https://api.sanakan.pl/api/alive';
+    // The bot API addresses, on the base of botApiBase() (inc/auth.php), which
+    // BOT_API_BASE in inc/config.php may point at a test bot.
+    function botHealthUrl()
+    {
+        return botApiBase() . '/api/health';
+    }
+
+    function botCommandsUrl()
+    {
+        return botApiBase() . '/api/Info/commands';
+    }
+
+    function botPrivateUrl()
+    {
+        return botApiBase() . '/api/Info/commands/private';
+    }
+
+    function botApiAliveUrl()
+    {
+        return botApiBase() . '/api/alive';
+    }
     // the bot API is asked at most this often after the bot's reports
     const BOT_API_CHECK_EVERY = 50;
     // a failed API check this recent makes the bot "idle" with an issue
@@ -618,15 +635,9 @@
     // GET with a 5 s limit: [body or false, HTTP status or 0, milliseconds]
     function botFetch($url)
     {
-        $context = stream_context_create(['http' => ['method' => 'GET', 'timeout' => 5, 'ignore_errors' => true]]);
         $started = microtime(true);
-        $body = @file_get_contents($url, false, $context);
+        [$body, $status] = httpRaw($url, ['method' => 'GET', 'timeout' => 5, 'ignore_errors' => true]);
         $ms = (int)round((microtime(true) - $started) * 1000);
-
-        $status = 0;
-        foreach ($http_response_header ?? [] as $line)
-            if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
-                $status = (int)$match[1];
 
         return [$body, $status, $ms];
     }
@@ -635,7 +646,7 @@
     // this bot has no api/health yet. Not answering at all means offline.
     function botAskHealth()
     {
-        [$body, $status, $ms] = botFetch(BOT_HEALTH_URL);
+        [$body, $status, $ms] = botFetch(botHealthUrl());
         $health = $body === false ? null : @json_decode((string)$body, true);
         $answered = is_array($health) && isset($health['status']);
         // an answer of the bot itself means its API works
@@ -696,7 +707,7 @@
         }
 
         if ($now - (int)@file_get_contents(botFile('api-checked.txt')) >= BOT_API_CHECK_EVERY) {
-            [$body, $status, $ms] = botFetch(BOT_API_ALIVE_URL);
+            [$body, $status, $ms] = botFetch(botApiAliveUrl());
             botApiRecord($status === 200 && trim((string)$body) === 'ok', $ms, $now);
         }
         fclose($lock);
@@ -807,7 +818,7 @@
     // the command list from the API: [answered with commands, milliseconds]; kept for cmd/
     function botFetchCommands($now)
     {
-        [$json, , $ms] = botFetch(BOT_API_URL);
+        [$json, , $ms] = botFetch(botCommandsUrl());
         $data = $json === false ? null : @json_decode($json, true);
         if (empty($data['modules']))
             return [false, $ms];
@@ -826,7 +837,7 @@
         if (botAppKey() === '' || (is_file($file) && $now - filemtime($file) < BOT_COMMANDS_TTL))
             return;
 
-        $data = botAppGet(BOT_PRIVATE_URL, 5);
+        $data = botAppGet(botPrivateUrl(), 5);
         if (isset($data['modules']))
             botWriteFile($file, json_encode($data, JSON_UNESCAPED_UNICODE));
         else if (is_file($file))

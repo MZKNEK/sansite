@@ -255,13 +255,16 @@ The logic that can be tested without a browser or the network has a small, depen
 
 ```bash
 php tests/lint.php   # php -l over every PHP file
-php tests/run.php    # the cases
+php tests/run.php    # the cases, no network
+php tests/http.php   # HTTP smoke test of the pages, no network
 ```
 
 Every `tests/test_*.php` registers cases with `test('name', function () { ... })` and asserts with `assertSame()`, `assertTrue()`, `assertContains()`, `assertThrows()` (see `tests/bootstrap.php`). The bootstrap points `SITE_DATA_DIR` at a temporary folder before the code is loaded, so a test never touches `inc/data`; `tests/run.php` clears it between two cases. To cover a pure function, add a `tests/test_*.php` (the suite picks it up by name); to change the data folder of a real install, set `SITE_DATA_DIR` in `inc/config.php`. The session tests start a real session in the CLI; the GD tests run only when `gd` is loaded (CI enables it).
 
-Covered: the text helpers and Polish plurals, the safe paths, the file names, the media sniffing and metadata stripping (JPEG/PNG/WebP/AVIF), the byte ranges, the access lists and roles, the session, the logged-in account and the test rights, the bot state (commands, days, incidents, API, dependencies, heartbeat, addresses), the command and log parsers, the availability analysis and the nginx log reading, the trash, the shared links, the background conversion queue, the ZIP walk and the search.
+The network is faked through `httpRaw()` (inc/auth.php): with the `SANAKAN_HTTP` callable set, it is called instead of `file_get_contents`, so a test can script Discord, the bot API and Cloudflare. `tests/http.php` starts the real site with `php -S` and `tests/smoke-router.php`, which points the bot API at `tests/bot-stub.php` on a second server (so the single-threaded site server never asks itself) and `SITE_DATA_DIR` at a temporary folder; it then asks every page for its status and that its body has no PHP error. `BOT_API_BASE` in `inc/config.php` points the bot API elsewhere (a test bot), the live address is the default.
 
-Not unit-tested, because they need the network, DNS, a browser or end in a `header()` and `exit()`: the Discord login, `botState()`/`api/health`, the Cloudflare API, and the page handlers (`handlePost()`, `uploadFile()`, `sendZip()`, `handleAccessRequest()`). They are checked by opening the site (`php -d extension=gd -S 127.0.0.1:8765 -t .`, see above) and by hand.
+Covered: the text helpers and Polish plurals, the safe paths, the file names, the media sniffing and metadata stripping (JPEG/PNG/WebP/AVIF), the byte ranges, the access lists and roles, the session, the logged-in account and the test rights, the Discord login and the bot API through the fake network, the bot state (commands, days, incidents, API, dependencies, heartbeat, addresses), the command and log parsers, the availability analysis and the nginx log reading, the trash, the shared links, the background conversion queue, the ZIP walk and the search, and the pages through the HTTP smoke test.
 
-GitHub Actions runs the lint and the suite on PHP 8.1 and 8.2, and `node --check` on the scripts (`.github/workflows/ci.yml`). `tests/`, `.github/` and `tools/` are `export-ignore`, so `deploy.sh` never sends them to the server.
+Not unit-tested: the DNS reverse lookup of the automatic blocking (`autoBlockTrustedHost()`), the external tool conversions (`cwebp`, `ffmpeg`) beyond the GD path, and a browser's JavaScript beyond `node --check`.
+
+GitHub Actions runs the lint, the suite and the HTTP smoke test on PHP 8.1 and 8.2, and `node --check` on the scripts (`.github/workflows/ci.yml`). `tests/`, `.github/` and `tools/` are `export-ignore`, so `deploy.sh` never sends them to the server.

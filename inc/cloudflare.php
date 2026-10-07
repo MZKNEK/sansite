@@ -44,7 +44,7 @@
         if ($body !== null)
             $http['content'] = json_encode($body);
 
-        $json = @file_get_contents(CLOUDFLARE_API . $path, false, stream_context_create(['http' => $http]));
+        [$json] = httpRaw(CLOUDFLARE_API . $path, $http);
         $data = $json === false ? null : json_decode($json, true);
         if (!is_array($data))
             return [false, 'Cloudflare nie odpowiedział.'];
@@ -125,13 +125,13 @@
     // change, so it keeps waiting; only the operation's own "failed" is one. A
     // change Cloudflare has not confirmed in time comes back as a message too,
     // so a caller never takes it for done; the list shows the truth on a refresh.
-    function cloudflareWait($result)
+    function cloudflareWait($result, $steps = CLOUDFLARE_WAIT_STEPS)
     {
         $operation = $result['operation_id'] ?? null;
         if ($operation === null)
             return null;
 
-        for ($i = 0; $i < CLOUDFLARE_WAIT_STEPS; $i++) {
+        for ($i = 0; $i < $steps; $i++) {
             usleep(500000);
             $answer = cloudflareApi('GET', cloudflareListsPath() . '/bulk_operations/' . rawurlencode($operation));
             if (!$answer[0])

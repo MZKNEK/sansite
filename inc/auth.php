@@ -60,7 +60,6 @@
     // roles that may read the API documentation, and that see the private commands on cmd/
     const API_ROLES = ['dev', 'admin', 'semiAdmin', 'tester'];
     const PRIVATE_COMMAND_ROLES = ['dev', 'admin'];
-    const BOT_ROLES_URL = 'https://api.sanakan.pl/api/User/discord/%s/permissions';
     const BOT_ROLES_TTL = 600;
     const BOT_ROLES_KEEP = 200;
 
@@ -394,21 +393,50 @@
         return defined('BOT_APP_KEY') ? (string)BOT_APP_KEY : '';
     }
 
-    // GET from the bot API with the site's key: the answer as an array, or null
-    function botAppGet($url, $timeout = 4)
+    // Base of the bot API. BOT_API_BASE in inc/config.php points it elsewhere (a
+    // test bot or a local stub, e.g. the HTTP smoke test); the live address is
+    // the default.
+    function botApiBase()
     {
-        $context = stream_context_create(['http' => [
-            'method' => 'GET',
-            'timeout' => $timeout,
-            'ignore_errors' => true,
-            'header' => "Accept: application/json\r\nx-app-key: " . botAppKey()
-        ]]);
-        $json = @file_get_contents($url, false, $context);
+        authConfigured();
 
+        return defined('BOT_API_BASE') ? rtrim((string)BOT_API_BASE, '/') : 'https://api.sanakan.pl';
+    }
+
+    // the URL of an account's roles on the bot's server
+    function botRolesUrl($id)
+    {
+        return botApiBase() . '/api/User/discord/' . rawurlencode((string)$id) . '/permissions';
+    }
+
+    // One outbound HTTP request, so a test can replace it: with the SANAKAN_HTTP
+    // callable in $GLOBALS set it is called instead and returns [body, status].
+    // A request that cannot be made comes back as [false, 0]. $maxLen cuts the
+    // body (0 reads it whole).
+    function httpRaw($url, array $options = [], $maxLen = 0)
+    {
+        if (isset($GLOBALS['SANAKAN_HTTP']) && is_callable($GLOBALS['SANAKAN_HTTP']))
+            return ($GLOBALS['SANAKAN_HTTP'])($url, $options, $maxLen);
+
+        $context = stream_context_create(['http' => $options]);
+        $body = @file_get_contents($url, false, $context, 0, $maxLen);
         $status = 0;
         foreach ($http_response_header ?? [] as $line)
             if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
                 $status = (int)$match[1];
+
+        return [$body, $status];
+    }
+
+    // GET from the bot API with the site's key: the answer as an array, or null
+    function botAppGet($url, $timeout = 4)
+    {
+        [$json, $status] = httpRaw($url, [
+            'method' => 'GET',
+            'timeout' => $timeout,
+            'ignore_errors' => true,
+            'header' => "Accept: application/json\r\nx-app-key: " . botAppKey()
+        ]);
         $data = $json === false || $status !== 200 ? null : json_decode($json, true);
 
         return is_array($data) ? $data : null;
@@ -432,7 +460,7 @@
         $age = time() - max($entry['checked'] ?? 0, $entry['tried'] ?? 0);
 
         if ($refresh && $age >= BOT_ROLES_TTL && botAppKey() !== '' && preg_match('/^\d{17,20}$/', $id)) {
-            $answer = botAppGet(sprintf(BOT_ROLES_URL, $id));
+            $answer = botAppGet(botRolesUrl($id));
             if ($answer !== null) {
                 $roles = ['onGuild' => !empty($answer['onGuild'])];
                 foreach (array_keys(BOT_ROLES) as $role)
@@ -951,7 +979,7 @@
         }
         $http['header'] = implode("\r\n", $headers);
 
-        $json = @file_get_contents(discordApi() . $path, false, stream_context_create(['http' => $http]));
+        [$json] = httpRaw(discordApi() . $path, $http);
         $data = $json === false ? null : json_decode($json, true);
 
         return is_array($data) ? $data : [];

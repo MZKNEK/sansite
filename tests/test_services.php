@@ -28,3 +28,24 @@
         assertContains('Waifu', servicesDown());
         assertFalse(in_array('Wiki', servicesDown(), true), 'the wiki was not checked');
     });
+
+    test('servicesRecord notes the change and the per-day counts', function () {
+        $now = time();
+        servicesRecord(['wiki' => [true, 40]], $now);
+        $wiki = null;
+        foreach (servicesState(2) as $service)
+            if ($service['key'] === 'wiki')
+                $wiki = $service;
+        assertTrue($wiki['up']);
+        assertSame(40, $wiki['ms']);
+        assertSame($now, $wiki['since']);
+        assertSame(1, end($wiki['days'])['checks']);
+
+        servicesRecord(['wiki' => [false, null]], $now + 10);
+        $wiki = null;
+        foreach (servicesState(2) as $service)
+            if ($service['key'] === 'wiki')
+                $wiki = $service;
+        assertSame($now + 10, $wiki['since'], 'a change moves since');
+        assertFalse($wiki['up']);
+    });

@@ -92,3 +92,27 @@
         else
             $_SERVER['SCRIPT_NAME'] = $saved;
     });
+
+    test('noteAccountAddress notes the address and the device', function () {
+        sessionFor('sanakan-note-1', ['id' => '111', 'name' => 'T', 'avatar' => 'a']);
+        $_SERVER['REMOTE_ADDR'] = '8.8.8.8';
+        $_SERVER['HTTP_CF_IPCOUNTRY'] = 'PL';
+        $_SERVER['HTTP_USER_AGENT'] = 'UA';
+        unset($_SESSION['address_seen']);
+        noteAccountAddress('111');
+
+        $addresses = readData('addresses');
+        assertSame('PL', $addresses['111']['8.8.8.8'][3]);
+        assertSame(1, count(readData('devices')['111']));
+        assertSame('UA', $addresses['111']['8.8.8.8'][4]);
+
+        unset($_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_CF_IPCOUNTRY'], $_SERVER['HTTP_USER_AGENT'], $_SESSION['address_seen']);
+        sessionEnd();
+    });
+
+    test('roleBadgeHtml writes the level in the role colour', function () {
+        $html = roleBadgeHtml(['onGuild' => true, 'dev' => true]);
+        assertContains('role-dev', $html);
+        assertContains('LV.9', $html);
+        assertSame('', roleBadgeHtml(null));
+    });

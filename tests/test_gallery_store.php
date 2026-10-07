@@ -100,3 +100,27 @@
         assertSame([], trashItems());
         assertFalse(is_dir(trashDir() . '/' . $id));
     });
+
+    test('historyEntries drops the oldest past the cap', function () {
+        $line = json_encode(['time' => time(), 'id' => '', 'name' => '', 'action' => 'x', 'text' => str_repeat('a', 600)]) . "\n";
+        file_put_contents(historyFile(), str_repeat($line, HISTORY_KEEP + 100));
+        clearstatcache();
+
+        addHistory('y', 'nowy wpis');
+        assertSame(HISTORY_KEEP, count(historyEntries(HISTORY_KEEP)), 'trimmed to the cap');
+    });
+
+    test('pruneThumbs drops the ones nobody looked at', function () {
+        $dir = thumbsDir();
+        if (!is_dir($dir))
+            mkdir($dir, 0775, true);
+        $old = $dir . '/old.webp';
+        $new = $dir . '/new.webp';
+        file_put_contents($old, 'x');
+        file_put_contents($new, 'x');
+        @touch($old, time() - (THUMB_KEEP_DAYS + 1) * 86400);
+
+        assertSame(1, pruneThumbs());
+        assertFalse(is_file($old));
+        assertTrue(is_file($new));
+    });

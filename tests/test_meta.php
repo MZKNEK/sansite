@@ -24,3 +24,12 @@
     test('metaTags escapes a quote in the text', function () {
         assertContains('&quot;', metaTags('a"b', null, '/x/', 'x'));
     });
+
+    test('metaTags takes a custom picture', function () {
+        $html = metaTags('T', 'D', '/x/', 'x', ['https://cdn/x.png', 600, 400]);
+        assertContains('property="og:image" content="https://cdn/x.png"', $html);
+        assertContains('content="600"', $html);
+        assertContains('content="400"', $html);
+        assertContains('summary_large_image', $html);
+    });
+

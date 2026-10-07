@@ -27,6 +27,9 @@ jobs:
       - name: Run the tests
         run: php tests/run.php
 
+      - name: HTTP smoke test
+        run: php tests/http.php
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
