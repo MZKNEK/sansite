@@ -483,15 +483,27 @@
 
     // Writes a GD image (with imagesavealpha) as WebP. cwebp gets it as a PNG:
     // its sharp_yuv keeps the colours of thin lines, which GD's own encoder
-    // cannot; without cwebp, or when it fails, GD writes it.
-    function writeWebp($img, $file, $quality = WEBP_QUALITY)
+    // cannot; without cwebp, or when it fails, GD writes it. $icc is the colour
+    // profile of the original, put into the WebP so its colours stay the same.
+    function writeWebp($img, $file, $quality = WEBP_QUALITY, $icc = null)
     {
         if ($cwebp = findTool('cwebp')) {
             $png = sys_get_temp_dir() . '/sanakan-webp-' . getmypid() . '.png';
+            $args = ['-quiet', '-q', (string)$quality, '-m', '4', '-sharp_yuv', '-mt'];
+            $iccFile = null;
+            if ($icc !== null && $icc !== '') {
+                $iccFile = sys_get_temp_dir() . '/sanakan-icc-' . getmypid() . '.icc';
+                if (@file_put_contents($iccFile, $icc) !== false)
+                    $args = array_merge($args, ['-icc_profile', $iccFile]);
+                else
+                    $iccFile = null;
+            }
             // -m 4, not 6: a 20 MP picture takes 3 s instead of 20 s, for 3% more bytes
             $ok = @imagepng($img, $png, 1)
-                && runTool($cwebp, ['-quiet', '-q', (string)$quality, '-m', '4', '-sharp_yuv', '-mt', $png, '-o', $file], TOOL_TIMEOUT);
+                && runTool($cwebp, array_merge($args, [$png, '-o', $file]), TOOL_TIMEOUT);
             @unlink($png);
+            if ($iccFile !== null)
+                @unlink($iccFile);
             clearstatcache();
             if ($ok && @filesize($file) > 0)
                 return true;
@@ -501,7 +513,7 @@
         return @imagewebp($img, $file, $quality);
     }
 
-    // saves a picture as WebP, keeping transparency
+    // saves a picture as WebP, keeping transparency and the colour profile
     function convertToWebp($source, $target, $quality = WEBP_QUALITY)
     {
         $img = loadImage($source);
@@ -511,7 +523,7 @@
         imagealphablending($img, false);
         imagesavealpha($img, true);
         $tmp = $target . '.' . getmypid();
-        $ok = writeWebp($img, $tmp, $quality) && @rename($tmp, $target);
+        $ok = writeWebp($img, $tmp, $quality, imageIccProfile($source)) && @rename($tmp, $target);
         imagedestroy($img);
         if (!$ok)
             @unlink($tmp);
@@ -1268,6 +1280,72 @@
                 return exifOrientation(substr($segment[1], 4));
 
         return 1;
+    }
+
+    // The ICC colour profile of a picture, or null. GD reads a JPEG or PNG
+    // without looking at its profile, so the pixels keep the colours they were
+    // made in; the profile has to go into the WebP too, or a photo in Display P3
+    // or Adobe RGB comes out duller and shifted.
+    function imageIccProfile($source)
+    {
+        $info = @getimagesize($source);
+        if (!$info)
+            return null;
+        if ($info[2] === IMAGETYPE_JPEG)
+            return jpegIccProfile($source);
+        if ($info[2] === IMAGETYPE_PNG)
+            return pngIccProfile($source);
+
+        return null;
+    }
+
+    // the ICC profile of a JPEG: its APP2 segments ("ICC_PROFILE\0" and a part
+    // number) joined in order
+    function jpegIccProfile($path)
+    {
+        $parts = jpegSegments((string)@file_get_contents($path, false, null, 0, 1048576) . "\xFF\xDA");
+        $chunks = [];
+        foreach ($parts[0] ?? [] as $segment) {
+            if ($segment[0] !== 0xE2)
+                continue;
+            $payload = substr($segment[1], 4);
+            if (substr($payload, 0, 12) !== "ICC_PROFILE\0" || strlen($payload) < 14)
+                continue;
+            $chunks[ord($payload[12])] = substr($payload, 14);
+        }
+        if (!$chunks)
+            return null;
+        ksort($chunks);
+
+        return implode('', $chunks);
+    }
+
+    // the ICC profile of a PNG: its iCCP chunk, zlib-compressed
+    function pngIccProfile($path)
+    {
+        $data = (string)@file_get_contents($path, false, null, 0, 1048576);
+        if (substr($data, 0, 8) !== "\x89PNG\r\n\x1A\n")
+            return null;
+        $pos = 8;
+        $length = strlen($data);
+        while ($pos + 12 <= $length) {
+            $size = unpack('N', substr($data, $pos, 4))[1];
+            $type = substr($data, $pos + 4, 4);
+            if ($type === 'iCCP') {
+                $chunk = substr($data, $pos + 8, $size);
+                $nul = strpos($chunk, "\0");
+                if ($nul === false || $nul + 2 > strlen($chunk))
+                    return null;
+                $profile = @gzuncompress(substr($chunk, $nul + 2));
+
+                return $profile === false ? null : $profile;
+            }
+            if ($type === 'IDAT' || $type === 'IEND')
+                break;
+            $pos += $size + 12;
+        }
+
+        return null;
     }
 
     // turns and mirrors a GD image the way an EXIF orientation says
