@@ -97,6 +97,36 @@
     gap: 8px;
 }
 
+/* the quality of the WebP conversion, per kind of picture */
+.quality-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    margin-top: 14px;
+    font-size: 14px;
+}
+
+.quality-form label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quality-form input[type="number"] {
+    width: 4.5em;
+    padding: 7px 8px;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+    background: #0b0b0d;
+    color: var(--text);
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    outline: 0;
+}
+
+.quality-form input[type="number"]:focus {
+    border-color: var(--accent);
+}
+
 /* Date and time in the Polish way (js/admin.js): a text field and a calendar */
 .dt {
     position: relative;

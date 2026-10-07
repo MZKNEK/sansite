@@ -661,6 +661,18 @@
                 botSaveNotice(null);
                 done('notice', 'Usunięto ogłoszenie.');
 
+            case 'quality':
+                $settings = readData('settings');
+                $parts = [];
+                foreach (['jpg' => 'JPG', 'png' => 'PNG', 'gif' => 'GIF', 'avif' => 'AVIF'] as $kind => $label) {
+                    $value = max(WEBP_QUALITY_MIN, min(WEBP_QUALITY_MAX, (int)($_POST['quality' . ucfirst($kind)] ?? 0)));
+                    $settings['quality' . ucfirst($kind)] = $value;
+                    $parts[] = $label . ' ' . $value;
+                }
+                if (!writeData('settings', $settings))
+                    reply(false, dataError(), 500);
+                done('quality', 'Zmieniono jakość konwersji na WebP: ' . implode(', ', $parts) . '.');
+
             case 'clear-thumbs':
                 $removed = 0;
                 foreach (glob($thumbsDir . '/*') ?: [] as $file)
@@ -997,7 +1009,7 @@
   <link href="../css/style.css?v=b8670e6394" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=6ad64e5971" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=04c2032fa6" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=17bf9a344d" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=b3d3529c7a" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -1400,6 +1412,18 @@
 <?php else: ?>
         <p class="nobody">Galeria jest pusta.</p>
 <?php endif; ?>
+      </section>
+
+      <section class="card" data-sum="<?=webpQuality('jpg')?> JPG">
+        <h2><i><?=sprintf('%02d', $number++)?></i>Jakość konwersji na WebP</h2>
+        <p class="hint">Z jaką jakością (<?=WEBP_QUALITY_MIN?>–<?=WEBP_QUALITY_MAX?>) zdjęcia zapisują się jako WebP. Niżej = mniejszy plik i słabsza jakość; wynik zapisuje się tylko, gdy wyjdzie mniejszy. Ręczna zmiana w galerii ma własny suwak.</p>
+        <form class="quality-form" data-action="quality">
+          <label>JPG <input type="number" name="qualityJpg" min="<?=WEBP_QUALITY_MIN?>" max="<?=WEBP_QUALITY_MAX?>" value="<?=webpQuality('jpg')?>" /></label>
+          <label>PNG <input type="number" name="qualityPng" min="<?=WEBP_QUALITY_MIN?>" max="<?=WEBP_QUALITY_MAX?>" value="<?=webpQuality('png')?>" /></label>
+          <label>GIF <input type="number" name="qualityGif" min="<?=WEBP_QUALITY_MIN?>" max="<?=WEBP_QUALITY_MAX?>" value="<?=webpQuality('gif')?>" /></label>
+          <label>AVIF/HEIC <input type="number" name="qualityAvif" min="<?=WEBP_QUALITY_MIN?>" max="<?=WEBP_QUALITY_MAX?>" value="<?=webpQuality('avif')?>" /></label>
+          <button type="submit" class="admin-btn primary">Zapisz</button>
+        </form>
       </section>
 
       <section class="card wide" data-sum="<?=$history ? e(ago($history[0]['time'] ?? 0)) : 'brak'?>">

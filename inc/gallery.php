@@ -33,10 +33,13 @@
     // formats a browser cannot be counted on to show: a HEIC or HEIF is always
     // written as WebP on upload (an AVIF follows the WebP rule instead)
     const CONVERT_IMAGE_TYPES = ['heic', 'heif'];
-    // the quality cwebp writes a picture at when the page asks for none; a
-    // JPEG or PNG goes through cwebp itself, so its colours stay as they are
-    const WEBP_QUALITY = 95;
+    // The quality cwebp writes a picture at when the page asks for none, per
+    // kind; the panel may change them (inc/data/settings.json), these are the
+    // defaults. A JPEG or PNG goes through cwebp itself, so its colours stay.
+    const WEBP_QUALITY_PNG = 95;
+    const WEBP_QUALITY_JPG = 80;
     const GIF_WEBP_QUALITY = 75;
+    const AVIF_WEBP_QUALITY = 90;
     const TOOL_TIMEOUT = 50;
     // A picture or film is uploaded first and changed afterwards on the server
     // (inc/data/media-jobs.json, run by inc/check-bot.php from cron or
@@ -232,8 +235,9 @@
     }
 
     // an animated GIF as an animated WebP
-    function gifToWebp($source, $target, $quality = GIF_WEBP_QUALITY)
+    function gifToWebp($source, $target, $quality = null)
     {
+        $quality = $quality === null ? webpQuality('gif') : $quality;
         $tmp = $target . '.' . getmypid();
         // lossy and a light effort: a 22 MB GIF takes seconds instead of most of a minute, and ends up smaller
         $ok = runTool(findTool('gif2webp'), ['-lossy', '-q', (string)$quality, '-m', '2', '-mt', $source, '-o', $tmp], TOOL_TIMEOUT)
@@ -271,8 +275,9 @@
 
     // a HEIC, HEIF or AVIF as WebP: ImageMagick (through libheif, keeping the
     // orientation), or ffmpeg; false when neither can
-    function heifToWebp($source, $target, $quality = 90)
+    function heifToWebp($source, $target, $quality = null)
     {
+        $quality = $quality === null ? webpQuality('avif') : $quality;
         $tmp = dirname($target) . '/.heif-' . getmypid() . '.webp';
         foreach (['magick', 'convert'] as $name) {
             $tool = findTool($name);
@@ -481,11 +486,38 @@
         return $img;
     }
 
+    // The quality set in the panel for a kind of picture (jpg, png, gif, avif),
+    // or the default above; the panel keeps it in inc/data/settings.json.
+    function webpQuality($kind)
+    {
+        $defaults = ['jpg' => WEBP_QUALITY_JPG, 'png' => WEBP_QUALITY_PNG, 'gif' => GIF_WEBP_QUALITY, 'avif' => AVIF_WEBP_QUALITY];
+        $value = readData('settings')['quality' . ucfirst($kind)] ?? null;
+        if (!is_numeric($value))
+            return $defaults[$kind] ?? WEBP_QUALITY_PNG;
+
+        return max(WEBP_QUALITY_MIN, min(WEBP_QUALITY_MAX, (int)$value));
+    }
+
+    // the quality for a source file, by what it is
+    function webpQualityOf($source)
+    {
+        $type = @getimagesize($source)[2] ?? 0;
+        if ($type === IMAGETYPE_GIF)
+            return webpQuality('gif');
+        if ($type === IMAGETYPE_AVIF)
+            return webpQuality('avif');
+        if ($type === IMAGETYPE_PNG)
+            return webpQuality('png');
+
+        return webpQuality('jpg');
+    }
+
     // Writes a GD image (with imagesavealpha) as WebP. cwebp gets it as a PNG;
     // without cwebp, or when it fails, GD writes it. $icc is the colour profile
     // of the original, put into the WebP so its colours stay the same.
-    function writeWebp($img, $file, $quality = WEBP_QUALITY, $icc = null)
+    function writeWebp($img, $file, $quality = null, $icc = null)
     {
+        $quality = $quality === null ? WEBP_QUALITY_PNG : $quality;
         if ($cwebp = findTool('cwebp')) {
             $png = sys_get_temp_dir() . '/sanakan-webp-' . getmypid() . '.png';
             $args = ['-quiet', '-q', (string)$quality, '-m', '4', '-mt'];
@@ -513,10 +545,12 @@
     }
 
     // saves a picture as WebP, keeping transparency and the colour profile
-    function convertToWebp($source, $target, $quality = WEBP_QUALITY)
+    function convertToWebp($source, $target, $quality = null)
     {
-        $cwebp = findTool('cwebp');
         $info = @getimagesize($source);
+        if ($quality === null)
+            $quality = webpQualityOf($source);
+        $cwebp = findTool('cwebp');
         // A JPEG or PNG goes through cwebp itself when it can: cwebp reads the
         // picture as it is and copies its ICC profile, so the colours do not
         // change. A JPEG that has to be turned (EXIF) takes the GD way below,
@@ -1464,12 +1498,236 @@
         return 'RIFF' . pack('V', strlen($chunks) + 4) . 'WEBP' . $chunks;
     }
 
-    // removes the metadata of a saved JPEG, PNG or WebP; true when the file changed
+    // Empties the Exif and XMP items of an AVIF (an ISO base media file): the
+    // bytes they hold are zeroed, so where and with what a photo was taken is
+    // gone; the picture's own item is left alone. null when nothing was dropped.
+    function stripAvif($data)
+    {
+        $len = strlen($data);
+        if ($len < 24 || substr($data, 4, 4) !== 'ftyp')
+            return null;
+
+        $meta = null;
+        $mdat = null;
+        $pos = 0;
+        while ($pos + 8 <= $len) {
+            $size = unpack('N', substr($data, $pos, 4))[1];
+            $type = substr($data, $pos + 4, 4);
+            $header = 8;
+            if ($size === 1) {
+                if ($pos + 16 > $len)
+                    break;
+                $size = unpack('J', substr($data, $pos + 8, 8))[1];
+                $header = 16;
+            } else if ($size === 0) {
+                $size = $len - $pos;
+            }
+            if ($size < $header || $pos + $size > $len)
+                break;
+            if ($type === 'meta')
+                $meta = [$pos + $header, $size - $header];
+            else if ($type === 'mdat')
+                $mdat = [$pos + $header, $size - $header];
+            $pos += $size;
+        }
+        if ($meta === null || $mdat === null)
+            return null;
+
+        $items = avifItems($data, $meta[0], $meta[1]);
+        if (!$items)
+            return null;
+
+        // the picture itself is never touched
+        $image = [];
+        foreach ($items as $item)
+            if ($item['type'] === 'av01')
+                foreach ($item['extents'] as $extent)
+                    $image[] = [$item['base'] + $extent[0], $extent[1]];
+
+        $changed = false;
+        foreach ($items as $item) {
+            if ($item['type'] !== 'Exif' && $item['type'] !== 'mime')
+                continue;
+            foreach ($item['extents'] as $extent) {
+                $at = $item['base'] + $extent[0];
+                $size = $extent[1];
+                if ($size <= 0 || $at < $mdat[0] || $at + $size > $mdat[0] + $mdat[1])
+                    continue;
+                foreach ($image as $range)
+                    if ($at < $range[0] + $range[1] && $range[0] < $at + $size)
+                        continue 2;
+                $data = substr_replace($data, str_repeat("\0", $size), $at, $size);
+                $changed = true;
+            }
+        }
+
+        return $changed ? $data : null;
+    }
+
+    // [['type' => ..., 'base' => ..., 'extents' => [[offset, size], ...]], ...]
+    // of the items an AVIF's meta box names and places, or null
+    function avifItems($data, $start, $size)
+    {
+        $types = null;
+        $locations = null;
+        $pos = $start + 4;   // meta is a full box: version and flags first
+        $end = $start + $size;
+        while ($pos + 8 <= $end) {
+            $boxSize = unpack('N', substr($data, $pos, 4))[1];
+            $boxType = substr($data, $pos + 4, 4);
+            if ($boxSize < 8 || $pos + $boxSize > $end)
+                return null;
+            if ($boxType === 'iinf')
+                $types = avifItemTypes($data, $pos, $boxSize);
+            else if ($boxType === 'iloc')
+                $locations = avifItemLocations($data, $pos, $boxSize);
+            $pos += $boxSize;
+        }
+        if ($types === null || $locations === null)
+            return null;
+
+        $items = [];
+        foreach ($types as $id => $type)
+            if (isset($locations[$id]))
+                $items[] = ['type' => $type, 'base' => $locations[$id]['base'], 'extents' => $locations[$id]['extents']];
+
+        return $items;
+    }
+
+    // item ID => item type, from an iinf box, or null
+    function avifItemTypes($data, $pos, $size)
+    {
+        $end = $pos + $size;
+        $version = ord($data[$pos + 8]);
+        $pos += 12;
+        if ($version === 0) {
+            if ($pos + 2 > $end)
+                return null;
+            $pos += 2;   // entry count
+        } else {
+            if ($pos + 4 > $end)
+                return null;
+            $pos += 4;
+        }
+
+        $types = [];
+        while ($pos + 8 <= $end) {
+            $boxSize = unpack('N', substr($data, $pos, 4))[1];
+            if ($boxSize < 8 || $pos + $boxSize > $end)
+                return null;
+            if (substr($data, $pos + 4, 4) === 'infe') {
+                $infe = avifInfe($data, $pos, $boxSize);
+                if ($infe !== null)
+                    $types[$infe[0]] = $infe[1];
+            }
+            $pos += $boxSize;
+        }
+
+        return $types;
+    }
+
+    // [item ID, item type] of an infe box, or null
+    function avifInfe($data, $pos, $size)
+    {
+        $end = $pos + $size;
+        if ($pos + 12 > $end)
+            return null;
+        $version = ord($data[$pos + 8]);
+        $pos += 12;
+        if ($version < 2)
+            return null;   // the item type is not written out there
+        $idSize = $version === 2 ? 2 : 4;
+        if ($pos + $idSize + 6 > $end)
+            return null;
+        $id = $idSize === 2 ? unpack('n', substr($data, $pos, 2))[1] : unpack('N', substr($data, $pos, 4))[1];
+
+        return [$id, substr($data, $pos + $idSize + 2, 4)];
+    }
+
+    // item ID => ['base' => ..., 'extents' => [[offset, size], ...]], from iloc, or null
+    function avifItemLocations($data, $pos, $size)
+    {
+        $end = $pos + $size;
+        if ($pos + 16 > $end)
+            return null;
+        $version = ord($data[$pos + 8]);
+        $sizes = unpack('n', substr($data, $pos + 12, 2))[1];
+        $pos += 14;
+        $offsetSize = ($sizes >> 12) & 0xF;
+        $lengthSize = ($sizes >> 8) & 0xF;
+        $baseSize = ($sizes >> 4) & 0xF;
+        $indexSize = $version === 1 || $version === 2 ? ($sizes & 0xF) : 0;
+        if ($offsetSize > 8 || $lengthSize > 8 || $baseSize > 8 || $indexSize > 8)
+            return null;
+
+        if ($version < 2) {
+            if ($pos + 2 > $end)
+                return null;
+            $count = unpack('n', substr($data, $pos, 2))[1];
+            $pos += 2;
+        } else {
+            if ($pos + 4 > $end)
+                return null;
+            $count = unpack('N', substr($data, $pos, 4))[1];
+            $pos += 4;
+        }
+
+        $items = [];
+        for ($i = 0; $i < $count; $i++) {
+            $idSize = $version < 2 ? 2 : 4;
+            if ($pos + $idSize + 2 > $end)
+                return null;
+            $id = $idSize === 2 ? unpack('n', substr($data, $pos, 2))[1] : unpack('N', substr($data, $pos, 4))[1];
+            $pos += $idSize;
+            if ($version === 1 || $version === 2) {
+                if ($pos + 2 > $end)
+                    return null;
+                $method = unpack('n', substr($data, $pos, 2))[1] & 0xF;
+                $pos += 2;
+                if ($method !== 0)
+                    return null;   // the data is not in mdat
+            }
+            if ($pos + 2 > $end)
+                return null;
+            $pos += 2;   // data reference index
+            $base = avifReadUint($data, $pos, $baseSize);
+            $pos += $baseSize;
+            if ($pos + 2 > $end)
+                return null;
+            $extentCount = unpack('n', substr($data, $pos, 2))[1];
+            $pos += 2;
+            $extents = [];
+            for ($e = 0; $e < $extentCount; $e++) {
+                $off = avifReadUint($data, $pos, $offsetSize);
+                $pos += $offsetSize;
+                $extLen = avifReadUint($data, $pos, $lengthSize);
+                $pos += $lengthSize + $indexSize;
+                $extents[] = [$off, $extLen];
+            }
+            $items[$id] = ['base' => $base, 'extents' => $extents];
+        }
+
+        return $items;
+    }
+
+    function avifReadUint($data, $pos, $size)
+    {
+        $value = 0;
+        for ($i = 0; $i < $size; $i++)
+            $value = ($value << 8) | ord($data[$pos + $i]);
+
+        return $value;
+    }
+
+    // removes the metadata of a saved JPEG, PNG, WebP or AVIF; true when the file changed
     function stripMetadata($path)
     {
         $info = @getimagesize($path);
         $data = (string)@file_get_contents($path);
-        switch ($info[2] ?? 0) {
+        // an AVIF is an ISO base media file, not one getimagesize always knows
+        if (($info[2] ?? 0) === IMAGETYPE_AVIF || extensionOf($path) === 'avif')
+            $clean = stripAvif($data);
+        else switch ($info[2] ?? 0) {
             case IMAGETYPE_JPEG: $clean = stripJpeg($data); break;
             case IMAGETYPE_PNG: $clean = stripPng($data); break;
             case IMAGETYPE_WEBP: $clean = stripWebp($data); break;
