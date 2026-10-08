@@ -84,7 +84,8 @@
         assertContains('mention-pop', $html);
         assertContains('LV.9', $html);
         assertContains('role-dev', $html);
-        assertContains('role: dev', $html);
+        assertContains('<b>dev</b>', $html);
+        assertFalse(strpos($html, 'mention-roles'), 'just the rank, not the role list');
     });
 
     test('mentionUsers maps the handle, the nick and the rank', function () {

@@ -31,12 +31,12 @@
 
         return '<span class="mention">'
             . '<button type="button" class="mention-btn" aria-haspopup="true">' . $image . $name . '</button>'
-            . '<span class="mention-pop" role="tooltip">' . markdownMentionRank($badge, $user['roles'] ?? []) . '</span>'
+            . '<span class="mention-pop" role="tooltip">' . markdownMentionRank($badge) . '</span>'
             . '</span>';
     }
 
     // the rank of an @nick inside its popup: the Safeguard level and the role
-    function markdownMentionRank($badge, $roles = [])
+    function markdownMentionRank($badge)
     {
         $key = preg_replace('/[^A-Za-z]/', '', (string)($badge['key'] ?? 'none'));
         $level = (int)($badge['level'] ?? 0);
@@ -46,11 +46,8 @@
         } else {
             $rank = '<span class="lv role-' . $key . '">' . htmlspecialchars((string)($badge['label'] ?? ''), ENT_QUOTES, 'UTF-8') . '</span>';
         }
-        $out = '<span class="mention-rank">' . $rank . '</span>';
-        if ($level > 0 && $roles)
-            $out .= '<span class="mention-roles">role: ' . htmlspecialchars(implode(', ', $roles), ENT_QUOTES, 'UTF-8') . '</span>';
 
-        return $out;
+        return '<span class="mention-rank">' . $rank . '</span>';
     }
 
     // Inline pieces of one line: `code`, @nick, [text](url), **bold**, *italic*,

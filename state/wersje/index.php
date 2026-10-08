@@ -52,7 +52,7 @@
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=2f1bbeae36" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=02efc6d9dc" type="text/css" rel="stylesheet" />
   <script src="../../js/hud.js?v=0effb1151f"></script>
 </head>
 
