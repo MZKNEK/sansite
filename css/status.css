@@ -482,24 +482,16 @@
     text-align: right;
 }
 
-.version-head {
-    margin-bottom: 16px;
+/* the line under the title of a version: when it was introduced */
+.version-intro {
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.6);
 }
 
-.version-head h2 {
-    margin-bottom: 6px;
-}
-
-.version-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 16px;
-    font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
-}
-
-.version-commit code {
-    font: 12px "JetBrains Mono", Consolas, monospace;
+.version-intro code {
+    font: 13px "JetBrains Mono", Consolas, monospace;
     color: var(--accent-light);
 }
 
@@ -515,7 +507,7 @@
 
 /* the changelog (verdiff.md) rendered on state/wersje/ */
 .markdown {
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.7;
     color: rgba(220, 221, 222, 0.82);
 }
@@ -550,8 +542,9 @@
     color: var(--accent-light);
 }
 
-/* an @nick the site knows, as the avatar and the nick */
+/* an @nick the site knows, as the avatar and the nick; a click opens its rank */
 .markdown .mention {
+    position: relative;
     color: var(--accent-light);
     font-weight: 700;
     white-space: nowrap;
@@ -564,6 +557,61 @@
     border-radius: 50%;
     object-fit: cover;
     vertical-align: -0.2em;
+}
+
+.markdown .mention-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.markdown .mention-btn:hover {
+    text-decoration: underline;
+}
+
+.markdown .mention-pop {
+    display: none;
+    position: absolute;
+    z-index: 6;
+    left: 0;
+    top: calc(100% + 8px);
+    min-width: 170px;
+    padding: 10px 12px;
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    background: #1a121f;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+    white-space: normal;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: rgba(220, 221, 222, 0.85);
+    text-align: left;
+}
+
+.markdown .mention:focus-within .mention-pop {
+    display: block;
+}
+
+.markdown .mention-rank {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.markdown .mention-rank b {
+    font-weight: 700;
+    color: var(--accent-light);
+}
+
+.markdown .mention-roles {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.55);
 }
 
 .markdown code {

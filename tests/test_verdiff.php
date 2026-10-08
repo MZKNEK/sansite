@@ -77,9 +77,22 @@
         assertFalse(strpos(markdownToHtml('napisz na a@b.pl', $mentions), 'class="mention"'), 'a mid-word @ is not a mention');
     });
 
-    test('mentionUsers maps the handle and the nick', function () {
+    test('markdownToHtml opens the rank of an @nick', function () {
+        $mentions = ['sniku' => ['name' => 'Sniku', 'avatar' => '', 'badge' => ['key' => 'dev', 'level' => 9, 'label' => 'DEV', 'name' => 'dev'], 'roles' => ['dev']]];
+        $html = markdownToHtml('@sniku', $mentions);
+        assertContains('<button type="button" class="mention-btn"', $html);
+        assertContains('mention-pop', $html);
+        assertContains('LV.9', $html);
+        assertContains('role-dev', $html);
+        assertContains('role: dev', $html);
+    });
+
+    test('mentionUsers maps the handle, the nick and the rank', function () {
         writeData('logins', ['7' => ['name' => 'Sniku', 'username' => 'sniku', 'avatar' => 'https://cdn.discordapp.com/avatars/7/a.png?size=64']]);
+        writeData('roles', ['7' => ['roles' => ['onGuild' => true, 'dev' => true], 'checked' => time()]]);
         $users = mentionUsers();
         assertSame('Sniku', $users['sniku']['name']);
         assertSame('https://cdn.discordapp.com/avatars/7/a.png?size=64', $users['sniku']['avatar']);
+        assertSame(9, $users['sniku']['badge']['level']);
+        assertSame(['dev'], $users['sniku']['roles']);
     });

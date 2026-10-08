@@ -25,6 +25,18 @@
     }
     $section = $shown !== null && $shown['changes'] ? verdiffChanges($shown['version']) : null;
     $changes = $section !== null ? markdownToHtml($section['changes'], mentionUsers()) : '';
+
+    // the line under the title: when the version was introduced, its commit
+    $introParts = [];
+    if ($shown !== null) {
+        if ($shown['since'])
+            $introParts[] = 'wprowadzona ' . e(date('j.m.Y H:i', $shown['since'])) . ' (' . e(duration(time() - $shown['since'])) . ' temu)';
+        else if ($shown['date'])
+            $introParts[] = 'data w changelogu: ' . e($shown['date']);
+        if ($shown['commit'])
+            $introParts[] = 'commit <code>' . e($shown['commit']) . '</code>';
+    }
+    $intro = implode(' &middot; ', $introParts);
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -40,7 +52,7 @@
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=2f30a394d4" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=2f1bbeae36" type="text/css" rel="stylesheet" />
   <script src="../../js/hud.js?v=0effb1151f"></script>
 </head>
 
@@ -52,24 +64,13 @@
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
       <h1 class="hud-title"><?=$shown !== null ? 'Wersja ' . e($shown['version']) : 'Wersje'?></h1>
+<?php if ($intro !== ''): ?>
+      <p class="version-intro"><?=$intro?></p>
+<?php endif; ?>
     </header>
 
 <?php if ($shown !== null): ?>
     <section class="card state-card">
-      <div class="version-head">
-        <h2><i>+</i>Wersja <?=e($shown['version'])?></h2>
-        <div class="version-meta">
-<?php if ($shown['since']): ?>
-          <span>wprowadzona <?=e(date('j.m.Y H:i', $shown['since']))?> (<?=e(duration(time() - $shown['since']))?> temu)</span>
-<?php endif; ?>
-<?php if ($shown['date'] && !$shown['since']): ?>
-          <span>data w changelogu: <?=e($shown['date'])?></span>
-<?php endif; ?>
-<?php if ($shown['commit']): ?>
-          <span class="version-commit">commit <code><?=e($shown['commit'])?></code></span>
-<?php endif; ?>
-        </div>
-      </div>
       <div class="markdown">
 <?=$changes !== '' ? $changes : '<p class="incidents-none">Brak opisu zmian dla tej wersji w repozytorium bota.</p>'?>
       </div>

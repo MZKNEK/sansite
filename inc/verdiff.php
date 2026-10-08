@@ -120,15 +120,20 @@
 
     // The accounts the site knows, by their Discord handle and by their nick, for
     // the @nick a changelog may carry, as lower-case handle => ['name',
-    // 'avatar']. Only the accounts that logged in are here (the recent logins);
-    // an account that never did stays plain text.
+    // 'avatar', 'badge', 'roles']. 'badge' is the account's role as roleBadge()
+    // reads it (null when the site never asked), so a click can open the rank.
+    // Only the accounts that logged in are here (the recent logins); an account
+    // that never did stays plain text.
     function mentionUsers()
     {
         $users = [];
-        foreach (readData('logins') as $login) {
+        foreach (readData('logins') as $id => $login) {
+            $roles = botRoles($id);
             $entry = [
                 'name' => $login['name'] ?? ($login['username'] ?? ''),
                 'avatar' => $login['avatar'] ?? '',
+                'badge' => $roles === null ? null : roleBadge($roles),
+                'roles' => $roles === null ? [] : roleNames($roles),
             ];
             foreach ([$login['username'] ?? '', $login['name'] ?? ''] as $handle) {
                 $handle = strtolower(trim((string)$handle));
