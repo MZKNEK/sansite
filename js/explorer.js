@@ -614,3 +614,41 @@ window.SanakanGallery = (function () {
 
   if (anyActive()) pollJobs();
 })();
+
+// The line of tips in the toolbar takes a lot of room on a phone. A small
+// button folds it away, and the choice is kept in this browser so it stays
+// folded (or shown) on the next visit.
+(function () {
+  var HINT_KEY = 'gallery-hint';
+
+  document.querySelectorAll('.admin-hint').forEach(function (hint) {
+    var content = document.createElement('span');
+    content.className = 'admin-hint-content';
+    while (hint.firstChild) content.appendChild(hint.firstChild);
+
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'admin-hint-toggle';
+
+    function setCollapsed(collapsed) {
+      hint.classList.toggle('collapsed', collapsed);
+      toggle.textContent = collapsed ? '?' : '\u00d7';
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      toggle.title = collapsed ? 'Pokaż podpowiedź' : 'Ukryj podpowiedź';
+      toggle.setAttribute('aria-label', toggle.title);
+    }
+
+    var collapsed = false;
+    try { collapsed = localStorage.getItem(HINT_KEY) === 'hidden'; } catch (err) {}
+
+    toggle.addEventListener('click', function () {
+      collapsed = !collapsed;
+      setCollapsed(collapsed);
+      try { localStorage.setItem(HINT_KEY, collapsed ? 'hidden' : 'shown'); } catch (err) {}
+    });
+
+    hint.appendChild(content);
+    hint.appendChild(toggle);
+    setCollapsed(collapsed);
+  });
+})();

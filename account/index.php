@@ -140,7 +140,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=a6863ef8aa" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
 </head>
@@ -339,7 +339,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=b0c463f9b6"></script>
+  <script src="../js/explorer.js?v=6728775ca3"></script>
   <script src="../js/hud.js?v=0effb1151f"></script>
   <script src="../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
