@@ -550,6 +550,26 @@
     color: var(--accent-light);
 }
 
+/* an @nick the site knows, as the avatar and the nick */
+.markdown .mention {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 8px 1px 2px;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    background: rgba(var(--accent-rgb), 0.08);
+    color: #efe2f7;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.markdown .mention img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 .markdown code {
     padding: 1px 5px;
     background: rgba(255, 255, 255, 0.06);

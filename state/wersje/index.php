@@ -24,7 +24,7 @@
             $shown = ['version' => $section['version'], 'since' => null, 'date' => $section['date'], 'commit' => $section['commit'], 'changes' => true];
     }
     $section = $shown !== null && $shown['changes'] ? verdiffChanges($shown['version']) : null;
-    $changes = $section !== null ? markdownToHtml($section['changes']) : '';
+    $changes = $section !== null ? markdownToHtml($section['changes'], mentionUsers()) : '';
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -40,7 +40,7 @@
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=4e83b35b7f" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=8e1712edac" type="text/css" rel="stylesheet" />
   <script src="../../js/hud.js?v=0effb1151f"></script>
 </head>
 

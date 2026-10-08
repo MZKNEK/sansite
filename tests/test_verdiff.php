@@ -60,3 +60,28 @@
         assertFalse(strpos($html, 'href="javascript:'), 'a bad link target is not turned into a link');
         assertContains('&lt;script&gt;', markdownToHtml('<script>alert(1)</script>'));
     });
+
+    test('markdownToHtml draws an @nick the site knows', function () {
+        $mentions = ['sniku' => ['name' => 'Sniku', 'avatar' => 'https://cdn.discordapp.com/avatars/1/a.png?size=64']];
+        $html = markdownToHtml('Dzięki @sniku i @ktos!', $mentions);
+        assertContains('<span class="mention"', $html);
+        assertContains('>Sniku</span>', $html);
+        assertContains('cdn.discordapp.com/avatars/1/a.png', $html);
+        assertContains('@ktos', $html, 'an unknown nick stays plain text');
+
+        // a handle with an underscore is not eaten by the italic rule
+        $html = markdownToHtml('@some_nick', ['some_nick' => ['name' => 'Some Nick', 'avatar' => '']]);
+        assertContains('<span class="mention"', $html);
+        assertContains('Some Nick', $html);
+        assertFalse(strpos($html, '<em>'), 'the underscore is not emphasis');
+
+        // an e-mail is not a mention
+        assertFalse(strpos(markdownToHtml('napisz na a@b.pl', $mentions), 'class="mention"'), 'a mid-word @ is not a mention');
+    });
+
+    test('mentionUsers maps the handle and the nick', function () {
+        writeData('logins', ['7' => ['name' => 'Sniku', 'username' => 'sniku', 'avatar' => 'https://cdn.discordapp.com/avatars/7/a.png?size=64']]);
+        $users = mentionUsers();
+        assertSame('Sniku', $users['sniku']['name']);
+        assertSame('https://cdn.discordapp.com/avatars/7/a.png?size=64', $users['sniku']['avatar']);
+    });

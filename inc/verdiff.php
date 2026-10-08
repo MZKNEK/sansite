@@ -118,6 +118,28 @@
         return $sections[verdiffKey($version)] ?? null;
     }
 
+    // The accounts the site knows, by their Discord handle and by their nick, for
+    // the @nick a changelog may carry, as lower-case handle => ['name',
+    // 'avatar']. Only the accounts that logged in are here (the recent logins);
+    // an account that never did stays plain text.
+    function mentionUsers()
+    {
+        $users = [];
+        foreach (readData('logins') as $login) {
+            $entry = [
+                'name' => $login['name'] ?? ($login['username'] ?? ''),
+                'avatar' => $login['avatar'] ?? '',
+            ];
+            foreach ([$login['username'] ?? '', $login['name'] ?? ''] as $handle) {
+                $handle = strtolower(trim((string)$handle));
+                if ($handle !== '' && !isset($users[$handle]))
+                    $users[$handle] = $entry;
+            }
+        }
+
+        return $users;
+    }
+
     // The version log of state/wersje/: every version the bot reported, newest
     // first, each with the changelog section that matches it when there is one.
     // Versions that are only in verdiff.md are listed too, with their date from

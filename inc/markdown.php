@@ -3,7 +3,9 @@
     // repository (verdiff.md, state/wersje/). It is deliberately tiny and
     // dependency-free, like the rest of the site: headings, paragraphs, ordered
     // and unordered lists, fenced code, blockquotes, rules, bold, italic,
-    // strikethrough, inline code and links. Everything is escaped first, so a
+    // strikethrough, inline code, links, and an @nick of an account the site
+    // knows, drawn as the avatar and the nick (the page passes the accounts,
+    // mentionUsers() in inc/verdiff.php). The text is escaped first, so a
     // changelog cannot inject HTML; only http(s), mailto and relative links
     // survive.
 
@@ -13,8 +15,22 @@
         return (bool)preg_match('~^(https?://|mailto:|/|#)~i', (string)$url);
     }
 
-    // inline pieces of one line: `code`, [text](url), **bold**, *italic*, ~~gone~~
-    function markdownInline($text)
+    // an avatar and the nick of an account the site knows, for its @nick
+    function markdownMention($handle, $user)
+    {
+        $avatar = (string)($user['avatar'] ?? '');
+        $image = $avatar === ''
+            ? ''
+            : '<img src="' . htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') . '" alt="" width="20" height="20" loading="lazy" />';
+
+        return '<span class="mention" title="@' . htmlspecialchars($handle, ENT_QUOTES, 'UTF-8') . '">'
+            . $image . htmlspecialchars((string)($user['name'] ?? $handle), ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+
+    // Inline pieces of one line: `code`, @nick, [text](url), **bold**, *italic*,
+    // ~~gone~~. $mentions maps a lower-case handle to ['name', 'avatar']; an
+    // @nick with no entry stays plain text.
+    function markdownInline($text, array $mentions = [])
     {
         // inline code first, kept aside so the rules below do not touch it
         $code = [];
@@ -22,6 +38,22 @@
             $code[] = '<code>' . $match[1] . '</code>';
             return "\x00" . (count($code) - 1) . "\x00";
         }, $text);
+
+        // The mentions next: a handle the site knows becomes a chip, kept aside
+        // like the code, so the emphasis and link rules below do not reach the
+        // handle or the chip (a handle may hold an underscore, which the italic
+        // rule would otherwise take).
+        $chips = [];
+        if ($mentions) {
+            $text = preg_replace_callback('/(?<![\w.@])@([A-Za-z0-9_](?:[A-Za-z0-9._]{0,29}[A-Za-z0-9_])?)/', function ($match) use (&$chips, $mentions) {
+                $user = $mentions[strtolower($match[1])] ?? null;
+                if ($user === null)
+                    return $match[0];
+
+                $chips[] = markdownMention($match[1], $user);
+                return "\x01" . (count($chips) - 1) . "\x01";
+            }, $text);
+        }
 
         $text = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/', function ($match) {
             $url = html_entity_decode($match[2], ENT_QUOTES, 'UTF-8');
@@ -37,21 +69,23 @@
 
         foreach ($code as $i => $html)
             $text = str_replace("\x00" . $i . "\x00", $html, $text);
+        foreach ($chips as $i => $html)
+            $text = str_replace("\x01" . $i . "\x01", $html, $text);
 
         return $text;
     }
 
-    // a changelog's Markdown as HTML; an empty text gives an empty string
-    function markdownToHtml($text)
+    // a changelog's Markdown as HTML; $mentions as markdownInline() takes them
+    function markdownToHtml($text, array $mentions = [])
     {
         $text = htmlspecialchars(str_replace(["\r\n", "\r"], "\n", (string)$text), ENT_QUOTES, 'UTF-8');
         $lines = explode("\n", $text);
         $count = count($lines);
         $out = '';
         $paragraph = [];
-        $flush = function () use (&$paragraph, &$out) {
+        $flush = function () use (&$paragraph, &$out, $mentions) {
             if ($paragraph) {
-                $out .= '<p>' . markdownInline(implode(' ', $paragraph)) . "</p>\n";
+                $out .= '<p>' . markdownInline(implode(' ', $paragraph), $mentions) . "</p>\n";
                 $paragraph = [];
             }
         };
@@ -76,7 +110,7 @@
             if (preg_match('/^(#{1,6})\s+(.*)$/', $line, $match)) {
                 $flush();
                 $level = strlen($match[1]);
-                $out .= "<h$level>" . markdownInline($match[2]) . "</h$level>\n";
+                $out .= "<h$level>" . markdownInline($match[2], $mentions) . "</h$level>\n";
                 continue;
             }
 
@@ -93,7 +127,7 @@
                     $quote[] = $match[1];
                     $i++;
                 }
-                $out .= '<blockquote>' . markdownInline(implode(' ', $quote)) . "</blockquote>\n";
+                $out .= '<blockquote>' . markdownInline(implode(' ', $quote), $mentions) . "</blockquote>\n";
                 $i--;
                 continue;
             }
@@ -105,7 +139,7 @@
                     $items[] = $match[1];
                     $i++;
                 }
-                $out .= markdownItems('ul', $items);
+                $out .= markdownItems('ul', $items, $mentions);
                 $i--;
                 continue;
             }
@@ -117,7 +151,7 @@
                     $items[] = $match[1];
                     $i++;
                 }
-                $out .= markdownItems('ol', $items);
+                $out .= markdownItems('ol', $items, $mentions);
                 $i--;
                 continue;
             }
@@ -129,11 +163,11 @@
         return trim($out);
     }
 
-    function markdownItems($tag, $items)
+    function markdownItems($tag, $items, array $mentions = [])
     {
         $out = "";
         foreach ($items as $item)
-            $out .= "\n  <li>" . markdownInline($item) . "</li>";
+            $out .= "\n  <li>" . markdownInline($item, $mentions) . "</li>";
 
         return "<$tag>$out\n</$tag>\n";
     }
