@@ -552,20 +552,18 @@
 
 /* an @nick the site knows, as the avatar and the nick */
 .markdown .mention {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
     color: var(--accent-light);
     font-weight: 700;
-    vertical-align: middle;
     white-space: nowrap;
 }
 
 .markdown .mention img {
-    width: 18px;
-    height: 18px;
+    width: 1.1em;
+    height: 1.1em;
+    margin-right: 0.3em;
     border-radius: 50%;
     object-fit: cover;
+    vertical-align: -0.2em;
 }
 
 .markdown code {
