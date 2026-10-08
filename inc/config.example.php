@@ -66,6 +66,14 @@
     // answers 404 and the site asks the API every minute, as before.
     const BOT_HEARTBEAT_SECRET = '';
 
+    // Optional: the changelog of the bot, verdiff.md in the root of its
+    // repository, read by state/wersje/. Give the raw address of the file, e.g.
+    // https://raw.githubusercontent.com/OWNER/REPO/main/verdiff.md. A heading per
+    // version with a "Data:" and an optional "Commit:" line and the changes under
+    // it. Without it the page still lists the versions the bot reported, but
+    // shows no changes.
+    // const BOT_REPO_VERDIFF_URL = '';
+
     // Optional: blocking addresses in Cloudflare from the panel (inc/cloudflare.php,
     // README). A token with Account Filter Lists: Edit, the account ID (domain
     // overview in Cloudflare, right column) and the name of the IP list that a

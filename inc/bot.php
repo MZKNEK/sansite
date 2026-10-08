@@ -12,6 +12,8 @@
     // long the API took to answer. The panel can set a notice for the home page
     // and state/, and mark a planned maintenance break. Changes in the command
     // list (new, removed, changed commands) are logged for cmd/ and cmd/zmiany/.
+    // Changes of the version the bot reports are logged for state/, which shows
+    // since when each one ran.
     // The bot's api/health says whether it is connected to Discord, its ping and
     // the state of its database and of Shinden. While a bot without it answers
     // 404, the command list is the check, as before. With the site's key
@@ -69,6 +71,8 @@
     const BOT_INCIDENTS_KEEP = 200;
     const BOT_MAINTENANCE_KEEP = 100;
     const BOT_CHANGES_KEEP = 300;
+    // version changes kept for the log on state/
+    const BOT_VERSIONS_KEEP = 50;
     // outages less than this apart are shown as one
     const BOT_INCIDENT_MERGE = 1800;
 
@@ -915,6 +919,54 @@
         return $issues ?: ['bot zgłasza problemy'];
     }
 
+    // ---- Versions --------------------------------------------------------------------
+    // The version from the bot's own report (api/health or the heartbeat). Every
+    // time it changes, the change is logged, so state/ can show since when each
+    // version ran. The bot's startedAt is used as the moment the version started
+    // when it gives one (also after the site has not answered for a while),
+    // otherwise the moment the check noticed it.
+
+    function botRecordVersion($version, $now, $startedAt = null)
+    {
+        $version = trim((string)$version);
+        if ($version === '')
+            return;
+
+        $fp = @fopen(botFile('versions.json'), 'c+');
+        if ($fp === false || !flock($fp, LOCK_EX)) {
+            if ($fp !== false)
+                fclose($fp);
+            return;
+        }
+
+        $versions = json_decode((string)stream_get_contents($fp), true);
+        $versions = is_array($versions) ? $versions : [];
+        $last = $versions ? $versions[count($versions) - 1] : null;
+
+        if (($last['version'] ?? null) !== $version) {
+            $started = $startedAt ? strtotime((string)$startedAt) : false;
+            // a startedAt from the future or from before the previous change is not believed
+            if ($started === false || $started > $now + 60 || ($last !== null && $started <= $last['since']))
+                $started = $now;
+            $versions[] = ['version' => $version, 'since' => $started, 'seen' => $now];
+            $versions = array_slice($versions, -BOT_VERSIONS_KEEP);
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode($versions, JSON_UNESCAPED_UNICODE));
+        }
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+
+    // the version changes, newest first, as ['version', 'since' => when it
+    // started, 'seen' => when the site first noticed it]
+    function botVersions()
+    {
+        $versions = json_decode((string)@file_get_contents(botFile('versions.json')), true);
+
+        return is_array($versions) ? array_reverse($versions) : [];
+    }
+
     // the cached state, or null when there is none
     function botCachedState($file)
     {
@@ -968,9 +1020,10 @@
             [$online, $ms] = botFetchCommands($now);
         } else {
             [$online, $ms, $health] = $report;
-            if ($health !== null)
+            if ($health !== null) {
                 botWriteFile(botFile('health.json'), json_encode($health));
-            else
+                botRecordVersion($health['version'] ?? '', $now, $health['startedAt'] ?? null);
+            } else
                 @unlink(botFile('health.json'));
 
             // a failed try keeps the last list and waits as long, so an API out

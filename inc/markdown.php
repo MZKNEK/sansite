@@ -1,0 +1,139 @@
+<?php
+    // A small Markdown renderer for the changelog the bot keeps in its
+    // repository (verdiff.md, state/wersje/). It is deliberately tiny and
+    // dependency-free, like the rest of the site: headings, paragraphs, ordered
+    // and unordered lists, fenced code, blockquotes, rules, bold, italic,
+    // strikethrough, inline code and links. Everything is escaped first, so a
+    // changelog cannot inject HTML; only http(s), mailto and relative links
+    // survive.
+
+    // whether a link target is one a page may follow
+    function markdownLinkAllowed($url)
+    {
+        return (bool)preg_match('~^(https?://|mailto:|/|#)~i', (string)$url);
+    }
+
+    // inline pieces of one line: `code`, [text](url), **bold**, *italic*, ~~gone~~
+    function markdownInline($text)
+    {
+        // inline code first, kept aside so the rules below do not touch it
+        $code = [];
+        $text = preg_replace_callback('/`([^`]+)`/', function ($match) use (&$code) {
+            $code[] = '<code>' . $match[1] . '</code>';
+            return "\x00" . (count($code) - 1) . "\x00";
+        }, $text);
+
+        $text = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/', function ($match) {
+            $url = html_entity_decode($match[2], ENT_QUOTES, 'UTF-8');
+
+            return markdownLinkAllowed($url) ? '<a href="' . $match[2] . '" rel="noopener nofollow">' . $match[1] . '</a>' : $match[0];
+        }, $text);
+
+        $text = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text);
+        $text = preg_replace('/__([^_]+)__/', '<strong>$1</strong>', $text);
+        $text = preg_replace('/~~([^~]+)~~/', '<del>$1</del>', $text);
+        $text = preg_replace('/\*([^*]+)\*/', '<em>$1</em>', $text);
+        $text = preg_replace('/_([^_]+)_/', '<em>$1</em>', $text);
+
+        foreach ($code as $i => $html)
+            $text = str_replace("\x00" . $i . "\x00", $html, $text);
+
+        return $text;
+    }
+
+    // a changelog's Markdown as HTML; an empty text gives an empty string
+    function markdownToHtml($text)
+    {
+        $text = htmlspecialchars(str_replace(["\r\n", "\r"], "\n", (string)$text), ENT_QUOTES, 'UTF-8');
+        $lines = explode("\n", $text);
+        $count = count($lines);
+        $out = '';
+        $paragraph = [];
+        $flush = function () use (&$paragraph, &$out) {
+            if ($paragraph) {
+                $out .= '<p>' . markdownInline(implode(' ', $paragraph)) . "</p>\n";
+                $paragraph = [];
+            }
+        };
+
+        for ($i = 0; $i < $count; $i++) {
+            $line = $lines[$i];
+
+            if (preg_match('/^\s*```/', $line)) {
+                $flush();
+                $code = [];
+                for ($i++; $i < $count && !preg_match('/^\s*```/', $lines[$i]); $i++)
+                    $code[] = $lines[$i];
+                $out .= '<pre><code>' . implode("\n", $code) . "</code></pre>\n";
+                continue;
+            }
+
+            if (trim($line) === '') {
+                $flush();
+                continue;
+            }
+
+            if (preg_match('/^(#{1,6})\s+(.*)$/', $line, $match)) {
+                $flush();
+                $level = strlen($match[1]);
+                $out .= "<h$level>" . markdownInline($match[2]) . "</h$level>\n";
+                continue;
+            }
+
+            if (preg_match('/^\s*([-*_])\1{2,}\s*$/', $line)) {
+                $flush();
+                $out .= "<hr />\n";
+                continue;
+            }
+
+            if (preg_match('/^\s*(?:&gt;|>)\s?(.*)$/', $line)) {
+                $flush();
+                $quote = [];
+                while ($i < $count && preg_match('/^\s*(?:&gt;|>)\s?(.*)$/', $lines[$i], $match)) {
+                    $quote[] = $match[1];
+                    $i++;
+                }
+                $out .= '<blockquote>' . markdownInline(implode(' ', $quote)) . "</blockquote>\n";
+                $i--;
+                continue;
+            }
+
+            if (preg_match('/^\s*[-*+]\s+(.*)$/', $line)) {
+                $flush();
+                $items = [];
+                while ($i < $count && preg_match('/^\s*[-*+]\s+(.*)$/', $lines[$i], $match)) {
+                    $items[] = $match[1];
+                    $i++;
+                }
+                $out .= markdownItems('ul', $items);
+                $i--;
+                continue;
+            }
+
+            if (preg_match('/^\s*\d+[.)]\s+(.*)$/', $line)) {
+                $flush();
+                $items = [];
+                while ($i < $count && preg_match('/^\s*\d+[.)]\s+(.*)$/', $lines[$i], $match)) {
+                    $items[] = $match[1];
+                    $i++;
+                }
+                $out .= markdownItems('ol', $items);
+                $i--;
+                continue;
+            }
+
+            $paragraph[] = trim($line);
+        }
+        $flush();
+
+        return trim($out);
+    }
+
+    function markdownItems($tag, $items)
+    {
+        $out = "";
+        foreach ($items as $item)
+            $out .= "\n  <li>" . markdownInline($item) . "</li>";
+
+        return "<$tag>$out\n</$tag>\n";
+    }

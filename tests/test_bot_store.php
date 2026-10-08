@@ -99,6 +99,29 @@
         assertNull(botHeartbeatReport($now), 'no secret means no fresh report');
     });
 
+    test('botRecordVersion logs a version only when it changes', function () {
+        $now = time();
+        botRecordVersion('1.0', $now);
+        botRecordVersion('1.0', $now + 60, gmdate('c', $now + 30));
+        botRecordVersion('1.1', $now + 120, gmdate('c', $now + 100));
+        botRecordVersion('1.1', $now + 180);
+
+        $versions = botVersions();
+        assertSame(2, count($versions), 'the same version is logged once');
+        assertSame('1.1', $versions[0]['version'], 'newest first');
+        assertSame('1.0', $versions[1]['version']);
+        assertSame($now + 100, $versions[0]['since'], 'startedAt says when it started');
+        assertSame($now + 120, $versions[0]['seen'], 'when the site first saw it');
+        assertSame($now, $versions[1]['since'], 'without startedAt the check time is used');
+
+        // a startedAt from before the previous change is not believed
+        botRecordVersion('1.2', $now + 300, gmdate('c', $now - 500));
+        assertSame($now + 300, botVersions()[0]['since']);
+
+        botRecordVersion('', $now + 360);
+        assertSame(3, count(botVersions()), 'an empty version is ignored');
+    });
+
     test('botCronLast and the bot addresses', function () {
         assertNull(botCronLast());
         botWriteFile(botFile('cron.txt'), '12345');

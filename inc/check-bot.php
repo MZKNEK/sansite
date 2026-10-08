@@ -13,11 +13,15 @@
     }
 
     require __DIR__ . '/bot.php';
+    require __DIR__ . '/verdiff.php';
     require __DIR__ . '/services.php';
     require __DIR__ . '/gallery.php';
     require __DIR__ . '/panel-stats.php';
 
     $state = botState(true);
+    // the bot's changelog from its repository, asked for again at most every
+    // VERDIFF_TTL, so state/wersje/ opens without waiting on the network
+    verdiff();
     if (servicesDue())
         servicesCheckAll();
     $pruned = botFile('thumbs-pruned.txt');

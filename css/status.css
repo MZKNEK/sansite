@@ -80,6 +80,15 @@
     color: rgba(220, 221, 222, 0.55);
 }
 
+.status-text a {
+    color: var(--accent-light);
+    text-decoration: none;
+}
+
+.status-text a:hover {
+    text-decoration: underline;
+}
+
 /* 24 h in 15 minute parts */
 /* the 24 h, 30 day and 12 month bars */
 .bar {
@@ -411,9 +420,175 @@
     color: rgba(220, 221, 222, 0.4);
 }
 
+.version-return {
+    margin-top: 20px;
+    text-align: center;
+}
+
 @media only screen and (max-width: 600px) {
     .timeline,
     .response-chart {
         gap: 1px;
     }
+}
+
+/* the version history on state/wersje/ */
+.version-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.version-entry {
+    display: grid;
+    grid-template-columns: 150px minmax(150px, 1fr) auto;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+}
+
+.version-entry:last-child {
+    border-bottom: 0;
+}
+
+.version-name {
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.version-entry.current .version-name {
+    color: #8fe0a8;
+}
+
+.version-when {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.version-diff {
+    padding: 7px 14px;
+    color: var(--accent-light);
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.version-none {
+    font-size: 12px;
+    color: rgba(220, 221, 222, 0.35);
+    text-align: right;
+}
+
+.version-head {
+    margin-bottom: 16px;
+}
+
+.version-head h2 {
+    margin-bottom: 6px;
+}
+
+.version-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.version-commit code {
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: var(--accent-light);
+}
+
+@media only screen and (max-width: 600px) {
+    .version-entry {
+        grid-template-columns: 1fr auto;
+    }
+
+    .version-when {
+        grid-column: 1 / 3;
+    }
+}
+
+/* the changelog (verdiff.md) rendered on state/wersje/ */
+.markdown {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(220, 221, 222, 0.82);
+}
+
+.markdown > :first-child {
+    margin-top: 0;
+}
+
+.markdown > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+    margin: 20px 0 8px;
+    color: #efe2f7;
+    letter-spacing: 0.04em;
+}
+
+.markdown h2 {
+    font-size: 15px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.markdown a {
+    color: var(--accent-light);
+}
+
+.markdown code {
+    padding: 1px 5px;
+    background: rgba(255, 255, 255, 0.06);
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.markdown pre {
+    margin: 12px 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+    border-left: 2px solid rgba(var(--accent-rgb), 0.45);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.markdown pre code {
+    padding: 0;
+    background: none;
+}
+
+.markdown ul,
+.markdown ol {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+
+.markdown li {
+    margin: 3px 0;
+}
+
+.markdown blockquote {
+    margin: 12px 0;
+    padding: 4px 14px;
+    border-left: 2px solid rgba(var(--accent-rgb), 0.45);
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.markdown hr {
+    margin: 18px 0;
+    border: 0;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.25);
 }

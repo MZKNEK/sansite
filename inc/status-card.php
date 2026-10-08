@@ -376,7 +376,7 @@
             <b>Bot <?=e(statusLabel($state))?></b>
             <span>Ostatnie sprawdzenie <?=e(ago($state['checked']))?> &middot; <?=count($history)?> <?=plural(count($history), 'sprawdzenie', 'sprawdzenia', 'sprawdzeń')?> w 24 h</span>
 <?php if (!empty($health['version']) || !empty($health['startedAt'])): ?>
-            <span><?=!empty($health['version']) ? 'Wersja ' . e($health['version']) : ''?><?=!empty($health['version']) && !empty($health['startedAt']) ? ' &middot; ' : ''?><?=!empty($health['startedAt']) ? 'uruchomiony ' . e(date('j.m H:i', strtotime($health['startedAt']))) . ' (' . e(duration(time() - strtotime($health['startedAt']))) . ' temu)' : ''?></span>
+            <span><?=!empty($health['version']) ? '<a href="wersje/">Wersja ' . e($health['version']) . '</a>' : ''?><?=!empty($health['version']) && !empty($health['startedAt']) ? ' &middot; ' : ''?><?=!empty($health['startedAt']) ? 'uruchomiony ' . e(date('j.m H:i', strtotime($health['startedAt']))) . ' (' . e(duration(time() - strtotime($health['startedAt']))) . ' temu)' : ''?></span>
 <?php endif; ?>
           </div>
         </div>

@@ -141,7 +141,7 @@
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=998eb1311f" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=4e83b35b7f" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
 </head>
 

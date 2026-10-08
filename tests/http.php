@@ -94,6 +94,7 @@
         ['/privacy/', [200]],
         ['/status.php', [200]],
         ['/state/', [200]],
+        ['/state/wersje/', [200]],
         ['/state/og.php', [200, 302]],
         ['/cmd/', [200]],
         ['/cmd/zmiany/', [200]],
