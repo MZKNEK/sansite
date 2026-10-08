@@ -83,10 +83,20 @@
       <p class="incidents-none">Jeszcze brak wersji. Pojawią się, gdy bot zgłosi pierwszą.</p>
 <?php else: ?>
       <ul class="version-list">
+<?php $newerSince = null; // the version above ended this one's run ?>
 <?php foreach ($entries as $entry): $isCurrent = $current !== null && strcasecmp($entry['version'], $current) === 0; ?>
+<?php
+        // how long this version ran: until the next, newer version started. The
+        // newest keeps counting up, older ones are frozen at their replacement.
+        $ran = null;
+        if ($entry['since']) {
+            $ran = max(0, ($newerSince ?? time()) - $entry['since']);
+            $newerSince = $entry['since'];
+        }
+?>
         <li class="version-entry<?=$isCurrent ? ' current' : ''?>">
           <span class="version-name"><?=e($entry['version'])?></span>
-          <span class="version-when"><?php if ($entry['since']): ?>od <?=e(date('j.m.Y H:i', $entry['since']))?> &middot; <?=e(duration(time() - $entry['since']))?><?php elseif ($entry['date']): ?><?=e($entry['date'])?><?php else: ?>—<?php endif; ?></span>
+          <span class="version-when"><?php if ($entry['since']): ?>od <?=e(date('j.m.Y H:i', $entry['since']))?> &middot; <?=e(duration($ran))?><?php elseif ($entry['date']): ?><?=e($entry['date'])?><?php else: ?>—<?php endif; ?></span>
 <?php if ($entry['changes']): ?>
           <a class="version-diff hud-corners" href="?v=<?=e(rawurlencode($entry['version']))?>">Zobacz zmiany</a>
 <?php else: ?>
