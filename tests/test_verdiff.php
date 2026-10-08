@@ -39,14 +39,12 @@
         assertNull(verdiffChanges('9.9.9'));
 
         $entries = versionEntries();
-        assertSame(3, count($entries), 'the two recorded plus the changelog-only one');
+        assertSame(2, count($entries), 'only the versions the bot reported');
         assertSame('1.4.10.14', $entries[0]['version'], 'newest first');
         assertTrue($entries[0]['changes']);
         assertSame('aaaa111', $entries[0]['commit']);
         assertSame('1.4.10.13', $entries[1]['version'], 'recorded without a section');
         assertFalse($entries[1]['changes']);
-        assertSame('1.4.10.12', $entries[2]['version'], 'only in the changelog');
-        assertSame(strtotime('2026-10-01'), $entries[2]['since'], 'its date is used');
     });
 
     test('markdownToHtml renders the changelog and escapes', function () {

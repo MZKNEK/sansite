@@ -142,15 +142,14 @@
 
     // The version log of state/wersje/: every version the bot reported, newest
     // first, each with the changelog section that matches it when there is one.
-    // Versions that are only in verdiff.md are listed too, with their date from
-    // the file, so the page shows the changelog also before the log started.
     // Each entry is ['version', 'since' => time or null, 'date' => text or null,
-    // 'commit' => hash or null, 'changes' => whether a section exists].
+    // 'commit' => hash or null, 'changes' => whether a section exists]. A version
+    // that is only in verdiff.md and the bot has not reported yet is not listed,
+    // so the page never shows a version ahead of the bot.
     function versionEntries()
     {
         $sections = verdiff()['sections'];
         $entries = [];
-        $seen = [];
         foreach (botVersions() as $reported) {
             $key = verdiffKey($reported['version']);
             $section = $sections[$key] ?? null;
@@ -160,20 +159,6 @@
                 'date' => $section['date'] ?? null,
                 'commit' => $section['commit'] ?? null,
                 'changes' => $section !== null,
-            ];
-            $seen[$key] = true;
-        }
-        foreach ($sections as $key => $section) {
-            if (isset($seen[$key]))
-                continue;
-            $date = $section['date'] ?? null;
-            $since = $date !== null ? strtotime($date) : false;
-            $entries[] = [
-                'version' => $section['version'],
-                'since' => $since !== false ? $since : null,
-                'date' => $date,
-                'commit' => $section['commit'],
-                'changes' => true,
             ];
         }
         usort($entries, function ($a, $b) {
