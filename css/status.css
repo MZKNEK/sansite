@@ -542,9 +542,8 @@
     color: var(--accent-light);
 }
 
-/* an @nick the site knows, as the avatar and the nick; a click opens its rank */
+/* an @nick the site knows: the avatar, the nick and its rank tag */
 .markdown .mention {
-    position: relative;
     color: var(--accent-light);
     font-weight: 700;
     white-space: nowrap;
@@ -559,63 +558,9 @@
     vertical-align: -0.2em;
 }
 
-.markdown .mention-btn {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.markdown .mention-btn:hover {
-    text-decoration: underline;
-}
-
-.markdown .mention-pop {
-    display: none;
-    position: absolute;
-    z-index: 6;
-    left: 0;
-    top: calc(100% + 7px);
-    min-width: 130px;
-    padding: 9px 12px;
-    border: 1px solid rgba(var(--accent-rgb), 0.45);
-    background: #1a121f;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
-    white-space: normal;
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 1.5;
-    color: rgba(220, 221, 222, 0.85);
-    text-align: left;
-}
-
-/* the gap between the nick and its popup stays hoverable */
-.markdown .mention-pop::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: -9px;
-    height: 9px;
-}
-
-.markdown .mention:hover .mention-pop,
-.markdown .mention:focus-within .mention-pop {
-    display: block;
-}
-
-.markdown .mention-rank {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.markdown .mention-rank b {
-    font-weight: 700;
-    color: var(--accent-light);
+.markdown .mention .lv {
+    margin-left: 6px;
+    vertical-align: 0;
 }
 
 .markdown code {

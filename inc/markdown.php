@@ -15,8 +15,7 @@
         return (bool)preg_match('~^(https?://|mailto:|/|#)~i', (string)$url);
     }
 
-    // an avatar and the nick of an account the site knows, for its @nick; when
-    // its role is known too, a click on it opens the rank (state/wersje/)
+    // an avatar, the nick and the rank of an account the site knows, for its @nick
     function markdownMention($handle, $user)
     {
         $avatar = (string)($user['avatar'] ?? '');
@@ -26,28 +25,20 @@
             : '<img src="' . htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') . '" alt="" width="16" height="16" loading="lazy" />';
         $badge = $user['badge'] ?? null;
 
-        if ($badge === null)
-            return '<span class="mention" title="@' . htmlspecialchars($handle, ENT_QUOTES, 'UTF-8') . '">' . $image . $name . '</span>';
-
-        return '<span class="mention">'
-            . '<button type="button" class="mention-btn" aria-haspopup="true">' . $image . $name . '</button>'
-            . '<span class="mention-pop" role="tooltip">' . markdownMentionRank($badge) . '</span>'
-            . '</span>';
+        return '<span class="mention" title="@' . htmlspecialchars($handle, ENT_QUOTES, 'UTF-8') . '">'
+            . $image . $name . ($badge === null ? '' : markdownMentionRank($badge)) . '</span>';
     }
 
-    // the rank of an @nick inside its popup: the Safeguard level and the role
+    // the rank of an @nick as one filled tag, e.g. "LV.9 dev"
     function markdownMentionRank($badge)
     {
         $key = preg_replace('/[^A-Za-z]/', '', (string)($badge['key'] ?? 'none'));
         $level = (int)($badge['level'] ?? 0);
-        if ($level > 0) {
-            $rank = '<span class="lv role-' . $key . '">LV.' . $level . '</span>'
-                . '<b>' . htmlspecialchars((string)($badge['name'] ?? ''), ENT_QUOTES, 'UTF-8') . '</b>';
-        } else {
-            $rank = '<span class="lv role-' . $key . '">' . htmlspecialchars((string)($badge['label'] ?? ''), ENT_QUOTES, 'UTF-8') . '</span>';
-        }
+        $text = $level > 0
+            ? 'LV.' . $level . (($badge['name'] ?? '') !== '' ? ' ' . $badge['name'] : '')
+            : (string)($badge['label'] ?? '');
 
-        return '<span class="mention-rank">' . $rank . '</span>';
+        return '<span class="lv role-' . $key . '">' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 
     // Inline pieces of one line: `code`, @nick, [text](url), **bold**, *italic*,
