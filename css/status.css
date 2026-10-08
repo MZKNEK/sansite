@@ -542,8 +542,9 @@
     color: var(--accent-light);
 }
 
-/* an @nick the site knows: the avatar, the nick and its rank tag */
+/* an @nick the site knows: the avatar and the nick; hovering it opens its rank */
 .markdown .mention {
+    position: relative;
     color: var(--accent-light);
     font-weight: 700;
     white-space: nowrap;
@@ -558,9 +559,42 @@
     vertical-align: -0.2em;
 }
 
-.markdown .mention .lv {
-    margin-left: 6px;
-    vertical-align: 0;
+.markdown .mention-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.markdown .mention-btn:hover {
+    text-decoration: underline;
+}
+
+/* the rank tag, shown while the pointer is over the nick (or it has focus) */
+.markdown .mention-pop {
+    display: none;
+    position: absolute;
+    z-index: 6;
+    left: 0;
+    top: calc(100% + 6px);
+}
+
+/* the gap between the nick and the tag stays hoverable */
+.markdown .mention-pop::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    height: 8px;
+}
+
+.markdown .mention:hover .mention-pop,
+.markdown .mention:focus-within .mention-pop {
+    display: block;
 }
 
 .markdown code {

@@ -77,12 +77,13 @@
         assertFalse(strpos(markdownToHtml('napisz na a@b.pl', $mentions), 'class="mention"'), 'a mid-word @ is not a mention');
     });
 
-    test('markdownToHtml tags an @nick with its rank', function () {
+    test('markdownToHtml tags an @nick with its rank on hover', function () {
         $mentions = ['sniku' => ['name' => 'Sniku', 'avatar' => '', 'badge' => ['key' => 'dev', 'level' => 9, 'label' => 'DEV', 'name' => 'dev'], 'roles' => ['dev']]];
         $html = markdownToHtml('@sniku', $mentions);
+        assertContains('<button type="button" class="mention-btn"', $html);
+        assertContains('mention-pop', $html);
         assertContains('<span class="lv role-dev">LV.9 dev</span>', $html);
-        assertFalse(strpos($html, 'mention-pop'), 'no popup, the rank shows at once');
-        assertFalse(strpos($html, 'mention-btn'), 'no button');
+        assertFalse(strpos($html, 'mention-roles'), 'just the rank tag');
     });
 
     test('mentionUsers maps the handle, the nick and the rank', function () {

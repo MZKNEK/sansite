@@ -15,7 +15,8 @@
         return (bool)preg_match('~^(https?://|mailto:|/|#)~i', (string)$url);
     }
 
-    // an avatar, the nick and the rank of an account the site knows, for its @nick
+    // an avatar and the nick of an account the site knows, for its @nick; when
+    // its role is known, hovering it opens a tag with the rank (state/wersje/)
     function markdownMention($handle, $user)
     {
         $avatar = (string)($user['avatar'] ?? '');
@@ -25,11 +26,16 @@
             : '<img src="' . htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') . '" alt="" width="16" height="16" loading="lazy" />';
         $badge = $user['badge'] ?? null;
 
-        return '<span class="mention" title="@' . htmlspecialchars($handle, ENT_QUOTES, 'UTF-8') . '">'
-            . $image . $name . ($badge === null ? '' : markdownMentionRank($badge)) . '</span>';
+        if ($badge === null)
+            return '<span class="mention" title="@' . htmlspecialchars($handle, ENT_QUOTES, 'UTF-8') . '">' . $image . $name . '</span>';
+
+        return '<span class="mention">'
+            . '<button type="button" class="mention-btn" aria-haspopup="true">' . $image . $name . '</button>'
+            . '<span class="mention-pop" role="tooltip">' . markdownMentionRank($badge) . '</span>'
+            . '</span>';
     }
 
-    // the rank of an @nick as one filled tag, e.g. "LV.9 dev"
+    // the rank tag of an @nick, e.g. "LV.9 dev"
     function markdownMentionRank($badge)
     {
         $key = preg_replace('/[^A-Za-z]/', '', (string)($badge['key'] ?? 'none'));
