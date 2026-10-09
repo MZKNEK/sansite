@@ -46,6 +46,21 @@
         assertSame(1, diagAccountTraffic('111')['n'], 'the account traffic is kept');
     });
 
+    test('a link preview asking for probe paths is not a scanner', function () {
+        file_put_contents(DIAG_ACCESS_LOG, '');
+        diagReadLog();
+
+        $discord = 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)';
+        $log = '';
+        foreach (['/.env', '/wp-login.php', '/old.php'] as $uri)
+            $log .= json_encode(['t' => '1', 'ip' => '35.237.4.214', 'm' => 'GET', 'u' => $uri, 's' => '404', 'rt' => '0.010', 'ut' => '-', 'ua' => $discord, 'cc' => 'US']) . "\n";
+        file_put_contents(DIAG_ACCESS_LOG, $log, FILE_APPEND);
+
+        $stats = diagReadLog();
+        assertSame(3, $stats['n'], 'its traffic is still counted');
+        assertFalse(isset(diagScanners()['35.237.4.214']));
+    });
+
     test('diagRecentAddresses and diagPrune', function () {
         $now = time();
         $round = ['t' => $now, 'p' => [], 'log' => ['n' => 5, 'php' => 1, 's4' => 0, 's5' => 0, 'rt' => 10, 'paths' => [], 'ips' => [['9.9.9.9', 5, 1, 'US', 'ua', '/x']]]];

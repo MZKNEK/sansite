@@ -54,6 +54,10 @@
     const DIAG_SCANNER_PATHS = '~/\.(?:env|git|svn|hg|aws|ssh|docker|vscode|idea|ds_store|htaccess|htpasswd)|/wp-|wordpress|xmlrpc|phpmyadmin|/pma/|adminer|/cgi-bin|/vendor/|/actuator|/server-status|/boaform|/hnap1|/owa/|/solr/|/console|/_profiler|/telescope|/debug/|/config\.(?:json|ya?ml|ini|php)|\.(?:asp|aspx|jsp|cgi|bak|old|sql|tar|gz|7z|rar)$~i';
     // user agents of scanning tools
     const DIAG_SCANNER_AGENTS = '~zgrab|masscan|nmap|nikto|sqlmap|nuclei|httpx|visionheight|censys|expanse|internet-measurement|l9explore|l9tcpid|wpscan|dirbuster|gobuster|ffuf|feroxbuster|fuzz~i';
+    // link previews fetch whatever link someone posted, from shared cloud
+    // addresses no reverse DNS tells apart, so their requests never make a
+    // scanner: a blocked one would leave the bot's pictures out of its embeds
+    const DIAG_PREVIEW_AGENTS = '~Discordbot~i';
     // at most this many scanners are remembered, the ones seen longest ago go first
     const DIAG_SCANNERS_KEEP = 3000;
     // pages per hour kept for the PHP times, the most asked
@@ -382,9 +386,10 @@
             $ips[$ip]['n']++;
             $ips[$ip]['php'] += (int)$php;
             $ips[$ip]['paths'][$path] = ($ips[$ip]['paths'][$path] ?? 0) + 1;
-            if (!isset($ips[$ip]['reason']) && ($reason = diagScannerReason($r, $path)) !== null)
+            $preview = preg_match(DIAG_PREVIEW_AGENTS, (string)($r['ua'] ?? '')) === 1;
+            if (!$preview && !isset($ips[$ip]['reason']) && ($reason = diagScannerReason($r, $path)) !== null)
                 $ips[$ip]['reason'] = $reason;
-            if (diagProbePath($path))
+            if (!$preview && diagProbePath($path))
                 $ips[$ip]['probes'][$path] = true;
 
             if ($php) {
