@@ -39,6 +39,100 @@
         assertTrue(verdiffDue($cache, $missing, $now + VERDIFF_RETRY), 'an old cache without the try time');
     });
 
+    test('verdiff keeps a section the file no longer has', function () {
+        $now = time();
+        file_put_contents(botFile('verdiff.json'), json_encode([
+            'fetched' => $now - VERDIFF_TTL, 'hash' => 'old',
+            'sections' => verdiffParse("# 1.4.10.14\n\n- old text\n\n# 1.4.10.15\n\n- draft\n"),
+        ]));
+        $GLOBALS['SANAKAN_HTTP'] = function () {
+            return ["# 1.4.10.15\n\n- final\n", 200];
+        };
+        $cache = verdiff('https://raw.githubusercontent.com/o/r/master/verdiff.md');
+        unset($GLOBALS['SANAKAN_HTTP']);
+
+        assertSame('- old text', $cache['sections']['1.4.10.14']['changes'], 'kept from before');
+        assertSame('- final', $cache['sections']['1.4.10.15']['changes'], 'the file wins');
+    });
+
+    test('verdiffBackfill reads the missed sections from the history', function () {
+        $now = time();
+        $a = str_repeat('a', 40);
+        $b = str_repeat('b', 40);
+        file_put_contents(botFile('verdiff.json'), json_encode([
+            'fetched' => $now, 'tried' => $now, 'hash' => 'x',
+            'sections' => verdiffParse("# 1.4.10.15\n\n- current\n"),
+        ]));
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.4.10.14', 'since' => $now - 86400],
+            ['version' => '1.4.10.15', 'since' => $now - 60],
+        ]));
+        $asked = [];
+        $GLOBALS['SANAKAN_HTTP'] = function ($url) use ($a, $b, &$asked) {
+            $asked[] = $url;
+            if (strpos($url, 'api.github.com/repos/o/r/commits?path=verdiff.md&sha=master') !== false)
+                return [json_encode([['sha' => $a], ['sha' => $b]]), 200];
+            if (strpos($url, "/o/r/$a/verdiff.md") !== false)
+                return ["# 1.4.10.15\n\n- older text of the current one\n", 200];
+            if (strpos($url, "/o/r/$b/verdiff.md") !== false)
+                return ["# 1.4.10.14\n\nData: 2026-10-08\n\n- recovered\n", 200];
+
+            return [false, 0];
+        };
+        $url = 'https://raw.githubusercontent.com/o/r/master/verdiff.md';
+        verdiffBackfill($url);
+        $first = count($asked);
+        verdiffBackfill($url);
+        unset($GLOBALS['SANAKAN_HTTP']);
+
+        $cache = verdiffCached();
+        assertSame('- recovered', $cache['sections']['1.4.10.14']['changes']);
+        assertSame('2026-10-08', $cache['sections']['1.4.10.14']['date']);
+        assertSame('- current', $cache['sections']['1.4.10.15']['changes'], 'a known section is kept');
+        assertSame([$a, $b], $cache['revisions']);
+        assertSame(3, $first, 'the history and two revisions');
+        assertSame($first, count($asked), 'nothing missing, nothing asked');
+    });
+
+    test('a version before VERDIFF_FROM has its built-in changes', function () {
+        $now = time();
+        file_put_contents(botFile('verdiff.json'), json_encode([
+            'fetched' => $now, 'tried' => $now, 'history' => 0, 'hash' => 'x',
+            'sections' => verdiffParse("# 1.4.10.14\n\n- new\n"),
+        ]));
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.4.10.13', 'since' => $now - 120],
+            ['version' => '1.4.10.14', 'since' => $now - 60],
+        ]));
+
+        $section = verdiffChanges('1.4.10.13');
+        assertSame('333405b', $section['commit']);
+        assertContains('## Techniczne', $section['changes']);
+        assertTrue(versionEntries()[1]['changes'], 'listed with its changes');
+
+        assertFalse(verdiffExpected('1.4.10.13'));
+        assertTrue(verdiffExpected('1.4.10.14'));
+        assertTrue(verdiffExpected('v1.4.11'));
+        assertFalse(verdiffDue(verdiffCached(), ['version' => '1.4.10.12', 'since' => $now], $now + VERDIFF_RETRY), 'an old version is not looked for');
+
+        // an old version without a section does not send cron to the history
+        $GLOBALS['SANAKAN_HTTP'] = function ($url) {
+            throw new Exception('asked ' . $url);
+        };
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.4.10.12', 'since' => $now - 120],
+            ['version' => '1.4.10.14', 'since' => $now - 60],
+        ]));
+        verdiffBackfill('https://raw.githubusercontent.com/o/r/master/verdiff.md');
+        unset($GLOBALS['SANAKAN_HTTP']);
+    });
+
+    test('verdiffGithub reads a raw address', function () {
+        assertSame(['o', 'r', 'master', 'verdiff.md'], verdiffGithub('https://raw.githubusercontent.com/o/r/master/verdiff.md'));
+        assertSame(['o', 'r', 'main', 'docs/v.md'], verdiffGithub('https://raw.githubusercontent.com/o/r/refs/heads/main/docs/v.md'));
+        assertNull(verdiffGithub('https://example.com/verdiff.md'));
+    });
+
     test('verdiffChanges and versionEntries match by version', function () {
         file_put_contents(botFile('verdiff.json'), json_encode([
             'fetched' => time(),
@@ -47,7 +141,7 @@
         ]));
         $now = time();
         file_put_contents(botFile('versions.json'), json_encode([
-            ['version' => '1.4.10.13', 'since' => $now - 600, 'seen' => $now - 600],
+            ['version' => '1.4.10.11', 'since' => $now - 600, 'seen' => $now - 600],
             ['version' => '1.4.10.14', 'since' => $now - 60, 'seen' => $now - 60],
         ]));
 
@@ -59,7 +153,7 @@
         assertSame('1.4.10.14', $entries[0]['version'], 'newest first');
         assertTrue($entries[0]['changes']);
         assertSame('aaaa111', $entries[0]['commit']);
-        assertSame('1.4.10.13', $entries[1]['version'], 'recorded without a section');
+        assertSame('1.4.10.11', $entries[1]['version'], 'recorded without a section');
         assertFalse($entries[1]['changes']);
     });
 

@@ -17,7 +17,13 @@
     // one section per version: its date, its commit and the Markdown of the
     // changes. A version the bot reported and a section are then matched by the
     // version string, so a recorded version can show its changes without leaving
-    // the site. Needs inc/bot.php (botFile()) and inc/auth.php (httpRaw()).
+    // the site. The bot's repository may keep only the current version in the
+    // file, so a section once read is kept when the file no longer has it, and
+    // the ones the site missed are read from the file's history on GitHub
+    // (verdiffBackfill()). The versions before VERDIFF_FROM, which the file
+    // never described, have their changes written here, in
+    // inc/verdiff-builtin.md (same format), and are never looked for in the
+    // file. Needs inc/bot.php (botFile()) and inc/auth.php (httpRaw()).
 
     // how long the answer is kept before the file is asked for again
     const VERDIFF_TTL = 21600;
@@ -26,16 +32,49 @@
     // how long after the bot reports a version without a section the file is
     // asked for every VERDIFF_RETRY instead of every VERDIFF_TTL
     const VERDIFF_NEW = 86400;
+    // the first version verdiff.md describes
+    const VERDIFF_FROM = '1.4.10.14';
 
     function verdiffUrl()
     {
         return defined('BOT_REPO_VERDIFF_URL') ? trim((string)BOT_REPO_VERDIFF_URL) : '';
     }
 
+    // [owner, repo, ref, path] of a raw.githubusercontent.com address, or null
+    // for any other address (then there is no history to read)
+    function verdiffGithub($url)
+    {
+        if (!preg_match('~^https://raw\.githubusercontent\.com/([^/]+)/([^/]+)/(?:refs/heads/)?([^/]+)/(.+)$~', (string)$url, $match))
+            return null;
+
+        return [$match[1], $match[2], $match[3], $match[4]];
+    }
+
     // the key a version is matched by: no spaces, no leading "v"
     function verdiffKey($version)
     {
         return ltrim(trim((string)$version), 'vV');
+    }
+
+    // whether verdiff.md is expected to describe a version (VERDIFF_FROM on)
+    function verdiffExpected($version)
+    {
+        return version_compare(verdiffKey($version), VERDIFF_FROM, '>=');
+    }
+
+    // the sections written in inc/verdiff-builtin.md, for the versions before
+    // VERDIFF_FROM
+    function verdiffBuiltin()
+    {
+        static $sections = null;
+
+        return $sections ?? ($sections = verdiffParse((string)@file_get_contents(__DIR__ . '/verdiff-builtin.md')));
+    }
+
+    // every known section: the changelog's, then the built-in ones
+    function verdiffSections()
+    {
+        return verdiff()['sections'] + verdiffBuiltin();
     }
 
     // verdiff.md as [key => ['version', 'date', 'commit', 'changes']]
@@ -93,7 +132,8 @@
     {
         if ($cache === null || $now - (int)$cache['fetched'] >= VERDIFF_TTL)
             return true;
-        if ($newest === null || isset($cache['sections'][verdiffKey($newest['version'] ?? '')]))
+        $version = $newest['version'] ?? '';
+        if ($newest === null || !verdiffExpected($version) || isset($cache['sections'][verdiffKey($version)]))
             return false;
         if ($now - (int)($newest['since'] ?? 0) >= VERDIFF_NEW)
             return false;
@@ -101,28 +141,49 @@
         return $now - (int)($cache['tried'] ?? $cache['fetched']) >= VERDIFF_RETRY;
     }
 
-    // the cached changelog, asked for again when verdiffDue() says so:
-    // ['fetched', 'tried', 'hash', 'sections']. A failed try keeps the last
-    // answer and waits VERDIFF_RETRY.
-    function verdiff()
+    // one GET to GitHub: [body, status]
+    function verdiffGet($url, $accept = 'text/plain')
     {
-        $file = botFile('verdiff.json');
-        $cache = json_decode((string)@file_get_contents($file), true);
-        $known = is_array($cache) && isset($cache['fetched'], $cache['sections']);
-        $url = verdiffUrl();
-        $newest = botVersions()[0] ?? null;
-
-        if ($url === '' || !verdiffDue($known ? $cache : null, $newest, time()))
-            return $known ? $cache : ['fetched' => 0, 'hash' => '', 'sections' => []];
-
-        [$body, $status] = httpRaw($url, [
+        return httpRaw($url, [
             'method' => 'GET',
             'timeout' => 5,
             'ignore_errors' => true,
-            'header' => "User-Agent: sanakan.pl\r\nAccept: text/plain"
+            'header' => "User-Agent: sanakan.pl\r\nAccept: $accept"
         ]);
+    }
+
+    // the cached changelog, or null when there is none
+    function verdiffCached()
+    {
+        $cache = json_decode((string)@file_get_contents(botFile('verdiff.json')), true);
+
+        return is_array($cache) && isset($cache['fetched'], $cache['sections']) ? $cache : null;
+    }
+
+    // the cached changelog, asked for again when verdiffDue() says so:
+    // ['fetched', 'tried', 'hash', 'sections', 'history', 'revisions']. The
+    // sections of the file win over the known ones, and a known section the
+    // file no longer has is kept. A failed try keeps the last answer and waits
+    // VERDIFF_RETRY. $url stands in for verdiffUrl() (the tests).
+    function verdiff($url = null)
+    {
+        $file = botFile('verdiff.json');
+        $cache = verdiffCached();
+        $known = $cache !== null;
+        $url = $url ?? verdiffUrl();
+        $newest = botVersions()[0] ?? null;
+
+        if ($url === '' || !verdiffDue($cache, $newest, time()))
+            return $known ? $cache : ['fetched' => 0, 'hash' => '', 'sections' => []];
+
+        [$body, $status] = verdiffGet($url);
         if ($body !== false && $status === 200) {
-            $cache = ['fetched' => time(), 'hash' => substr(hash('sha256', (string)$body), 0, 12), 'sections' => verdiffParse($body)];
+            $old = $known ? $cache : [];
+            $cache = [
+                'fetched' => time(),
+                'hash' => substr(hash('sha256', (string)$body), 0, 12),
+                'sections' => verdiffParse($body) + ($old['sections'] ?? []),
+            ] + $old;
         } else {
             // keep what is known and come back in VERDIFF_RETRY seconds
             $cache = $known ? $cache : ['hash' => '', 'sections' => []];
@@ -134,10 +195,60 @@
         return $cache;
     }
 
+    // verdiff(), then reads the sections the site missed from the history of
+    // verdiff.md on GitHub: the commits that changed the file, newest first, each revision
+    // asked for once (its hash goes to 'revisions'). A known section is kept, so
+    // the current file and the newer revisions win. Only for a
+    // raw.githubusercontent.com address, at most every VERDIFF_TTL and only
+    // while a version the bot reported (VERDIFF_FROM on) has no section; from cron
+    // (inc/check-bot.php), as it may ask for several files. $url stands in for
+    // verdiffUrl() (the tests).
+    function verdiffBackfill($url = null)
+    {
+        $url = $url ?? verdiffUrl();
+        $cache = verdiff($url);
+        $github = verdiffGithub($url);
+        if ($github === null)
+            return;
+
+        $missing = false;
+        foreach (botVersions() as $reported)
+            if (verdiffExpected($reported['version']) && !isset($cache['sections'][verdiffKey($reported['version'])]))
+                $missing = true;
+        if (!$missing || time() - (int)($cache['history'] ?? 0) < VERDIFF_TTL)
+            return;
+
+        [$owner, $repo, $ref, $path] = $github;
+        [$body, $status] = verdiffGet('https://api.github.com/repos/' . $owner . '/' . $repo . '/commits?path='
+            . rawurlencode(rawurldecode($path)) . '&sha=' . rawurlencode($ref) . '&per_page=100', 'application/vnd.github+json');
+        $commits = $body !== false && $status === 200 ? json_decode((string)$body, true) : null;
+
+        $sections = $cache['sections'];
+        $revisions = $cache['revisions'] ?? [];
+        foreach (is_array($commits) ? $commits : [] as $commit) {
+            $sha = $commit['sha'] ?? '';
+            if (!is_string($sha) || !preg_match('/^[0-9a-f]{40}$/', $sha) || in_array($sha, $revisions, true))
+                continue;
+            [$text, $status] = verdiffGet('https://raw.githubusercontent.com/' . $owner . '/' . $repo . '/' . $sha . '/' . $path);
+            // a revision that did not come is asked for again next time
+            if ($text === false || $status !== 200)
+                continue;
+            $sections += verdiffParse($text);
+            $revisions[] = $sha;
+        }
+
+        // read again, so a fetch that came meanwhile is not lost
+        $cache = verdiffCached() ?? $cache;
+        $cache['sections'] += $sections;
+        $cache['revisions'] = $revisions;
+        $cache['history'] = time();
+        botWriteFile(botFile('verdiff.json'), json_encode($cache, JSON_UNESCAPED_UNICODE));
+    }
+
     // the section of one version, or null
     function verdiffChanges($version)
     {
-        $sections = verdiff()['sections'];
+        $sections = verdiffSections();
 
         return $sections[verdiffKey($version)] ?? null;
     }
@@ -177,7 +288,7 @@
     // so the page never shows a version ahead of the bot.
     function versionEntries()
     {
-        $sections = verdiff()['sections'];
+        $sections = verdiffSections();
         $entries = [];
         foreach (botVersions() as $reported) {
             $key = verdiffKey($reported['version']);

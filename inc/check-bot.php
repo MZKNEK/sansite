@@ -21,8 +21,9 @@
     $state = botState(true);
     // the bot's changelog from its repository, asked for again every
     // VERDIFF_TTL (sooner while a new version has no section in it yet), so
-    // state/wersje/ opens without waiting on the network
-    verdiff();
+    // state/wersje/ opens without waiting on the network; the sections the file
+    // no longer has are read from its history
+    verdiffBackfill();
     if (servicesDue())
         servicesCheckAll();
     $pruned = botFile('thumbs-pruned.txt');
