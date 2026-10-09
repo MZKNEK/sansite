@@ -37,6 +37,10 @@
             $introParts[] = 'commit <code>' . e($shown['commit']) . '</code>';
     }
     $intro = implode(' &middot; ', $introParts);
+
+    // the link preview picture (og.php?p=wersje): one version's own, or the
+    // history's; the time in its address makes Discord fetch it again
+    $image = SITE_URL . '/og.php?p=wersje' . ($shown !== null ? '&v=' . rawurlencode($shown['version']) : '') . '&t=' . intdiv(time(), BOT_COMMANDS_TTL);
 ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -44,7 +48,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<?=metaTags($shown !== null ? 'Wersja ' . $shown['version'] : 'Wersje', $shown !== null ? 'Zmiany w wersji ' . $shown['version'] . ' bota Sanakan.' : 'Historia wersji bota Sanakan.', '/state/wersje/', 'status')?>
+<?=metaTags($shown !== null ? 'Wersja ' . $shown['version'] : 'Wersje', $shown !== null ? 'Zmiany w wersji ' . $shown['version'] . ' bota Sanakan.' : 'Historia wersji bota Sanakan.', '/state/wersje/', null, [$image, 1200, 630])?>
   <title><?=$shown !== null ? 'Wersja ' . e($shown['version']) : 'Wersje'?> &middot; Sanakan</title>
   <link rel="icon" href="../../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />

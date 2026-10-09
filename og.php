@@ -9,6 +9,7 @@
     require __DIR__ . '/inc/services.php';
     require __DIR__ . '/inc/gallery.php';
     require __DIR__ . '/inc/status-card.php';
+    require __DIR__ . '/inc/verdiff.php';
     require __DIR__ . '/inc/og.php';
 
     // the drawing function and how long its picture is kept
@@ -16,6 +17,8 @@
         'home' => ['drawHome', BOT_CACHE_TTL],
         'cmd' => ['drawCommands', BOT_COMMANDS_TTL],
         'zmiany' => ['drawChanges', BOT_COMMANDS_TTL],
+        // how long the current version runs grows on it
+        'wersje' => ['drawVersions', BOT_COMMANDS_TTL],
         'i' => ['drawGallery', 86400],
         'api' => ['drawApi', 86400],
         'privacy' => ['drawPrivacy', 86400],
@@ -27,12 +30,21 @@
     const OG_NEW_DAYS = 14;
     // the changes listed on the picture of cmd/zmiany
     const OG_CHANGE_ROWS = 4;
+    // the versions on the line of the version history picture
+    const OG_VERSION_NODES = 6;
 
     $page = $_GET['p'] ?? 'home';
     if (!isset(OG_PAGES[$page]))
         $page = 'home';
 
-    ogServe('og-' . $page . '.png', OG_PAGES[$page][1], OG_PAGES[$page][0]);
+    // one version of state/wersje/ (&v=) has a picture of its own, a version
+    // the site does not know the one of the whole history
+    $version = $page === 'wersje' && isset($_GET['v']) && is_string($_GET['v']) ? knownVersion($_GET['v']) : null;
+    if ($version !== null)
+        ogServe('og-wersja-' . preg_replace('/[^0-9A-Za-z.-]/', '_', verdiffKey($version['version'])) . '.png', BOT_COMMANDS_TTL,
+            function ($file) use ($version) { return drawVersion($file, $version); });
+    else
+        ogServe('og-' . $page . '.png', OG_PAGES[$page][1], OG_PAGES[$page][0]);
 
     // The logo in its ring with the status dot of the home page, and the name
     // next to it; a planned break shows as do not disturb
@@ -168,6 +180,201 @@
         }
 
         ogFoot($img, 'sanakan.pl/cmd/zmiany', $since ? 'zapisywane od ' . date('j.m.Y', $since) : '');
+
+        return ogSave($img, $file);
+    }
+
+    // The versions of state/wersje/, newest first, each with 'ran' (how long it
+    // ran until the next one started, the newest up to now; null without a
+    // start) and 'current' (the one the bot reports now)
+    function versionRuns()
+    {
+        $entries = versionEntries();
+        $current = botHealth()['version'] ?? ($entries[0]['version'] ?? null);
+        $newerSince = null;
+        foreach ($entries as &$entry) {
+            $entry['ran'] = null;
+            if ($entry['since']) {
+                $entry['ran'] = max(0, ($newerSince ?? time()) - $entry['since']);
+                $newerSince = $entry['since'];
+            }
+            $entry['current'] = $current !== null && strcasecmp($entry['version'], $current) === 0;
+        }
+        unset($entry);
+
+        return $entries;
+    }
+
+    // the version $wanted as versionRuns() has it, one only the changelog knows
+    // without its run, or null
+    function knownVersion($wanted)
+    {
+        foreach (versionRuns() as $entry)
+            if (strcasecmp(verdiffKey($entry['version']), verdiffKey($wanted)) === 0)
+                return $entry;
+        $section = verdiffChanges($wanted);
+
+        return $section === null ? null : ['version' => $section['version'], 'since' => null, 'date' => $section['date'],
+            'commit' => $section['commit'], 'changes' => true, 'ran' => null, 'current' => false];
+    }
+
+    // up to two facts in the free top right corner, as on the status picture:
+    // when the version came (or its date in the changelog) and its commit
+    function versionFacts($img, $entry)
+    {
+        $facts = [];
+        if ($entry['since'])
+            $facts['wprowadzona'] = date('j.m.Y H:i', $entry['since']);
+        else if ($entry['date'])
+            $facts['data'] = $entry['date'];
+        if ($entry['commit'])
+            $facts['commit'] = $entry['commit'];
+        $y = 112;
+        foreach ($facts as $label => $value) {
+            $font = $label === 'commit' ? OG_MONO : OG_BOLD;
+            $width = textWidth($font, 22, $value);
+            text($img, $font, 22, OG_WIDTH - 80, $y, color($img, '#efe2f7'), $value, 0, 'right');
+            text($img, OG_REGULAR, 22, OG_WIDTH - 92 - $width, $y, color($img, '#dcddde', 50), $label, 0, 'right');
+            $y += 38;
+        }
+    }
+
+    // The versions (newest first, as versionRuns()) as commits on a branch at
+    // $y, oldest on the left, the one at $mark glowing: up to OG_VERSION_NODES
+    // of them on even slots around it, the date above, the number below. The
+    // line comes faded from older ones and goes on dotted to the next version.
+    function versionBranch($img, $entries, $mark, $y)
+    {
+        $start = max(0, min($mark - 2, count($entries) - OG_VERSION_NODES));
+        $shown = array_reverse(array_slice($entries, $start, OG_VERSION_NODES, true), true);
+        if (!$shown)
+            return;
+
+        $slot = (OG_WIDTH - 160) / OG_VERSION_NODES;
+        $first = OG_VERSION_NODES - count($shown);
+        $purple = color($img, '#9b59b6');
+        $left = 80 + $slot * ($first + 0.5);
+        $right = 80 + $slot * (OG_VERSION_NODES - 0.5);
+        if (count($entries) > $start + count($shown))
+            for ($x = 80; $x < $left; $x += 4)
+                box($img, $x, $y - 1.5, $x + 4, $y + 1.5, color($img, '#9b59b6', (int)(110 - 80 * ($x - 80) / max(1, $left - 80))));
+        line($img, $left, $y, $right, $y, 3, $purple);
+        for ($x = $right + 24; $x < OG_WIDTH - 80; $x += 14)
+            box($img, $x, $y - 1.5, $x + 6, $y + 1.5, color($img, '#9b59b6', 80));
+
+        $slotIndex = $first;
+        foreach ($shown as $i => $entry) {
+            $x = 80 + $slot * ($slotIndex++ + 0.5);
+            $marked = $i === $mark;
+            if ($marked) {
+                for ($g = 0; $g < 8; $g++)
+                    circle($img, $x, $y, 70 - $g * 6, color($img, '#b670d3', 120 - $g * 3));
+                circle($img, $x, $y, 30, color($img, '#d2a8e8'));
+                ring($img, $x, $y, 30, 3, $purple);
+            } else {
+                circle($img, $x, $y, 20, color($img, OG_BACKGROUND));
+                ring($img, $x, $y, 20, 3, $purple);
+            }
+
+            $when = $entry['since'] ? date('j.m.Y', $entry['since']) : (string)$entry['date'];
+            text($img, OG_REGULAR, 16, $x - textWidth(OG_REGULAR, 16, $when) / 2, $y - 30, color($img, '#dcddde', $marked ? 40 : 70), $when);
+            $name = ogFit(OG_MONO, 20, $entry['version'], $slot - 16);
+            text($img, OG_MONO, 20, $x - textWidth(OG_MONO, 20, $name) / 2, $y + 44, color($img, $marked ? '#efe2f7' : '#d2a8e8', $marked ? 0 : 30), $name);
+        }
+    }
+
+    // The version history: the version running now, how many there were and
+    // how long the current one runs, and the last ones as commits on a branch,
+    // oldest on the left, the current one glowing at its end
+    function drawVersions($file)
+    {
+        $entries = versionRuns();
+        $current = null;
+        $recent = 0;
+        foreach ($entries as $entry) {
+            if ($entry['current'] && $current === null)
+                $current = $entry;
+            // a version from the built-in changelog has only its date
+            $start = $entry['since'] ?: ($entry['date'] ? strtotime($entry['date']) : false);
+            if ($start && $start >= time() - 30 * 86400)
+                $recent++;
+        }
+        $current = $current ?? ($entries[0] ?? null);
+
+        $img = ogCanvas();
+        ogHead($img, 'SAFEGUARD · LV.9 · WERSJE', 'Wersje');
+        ogLine($img, $current !== null ? 'Obecna wersja ' . $current['version'] : 'Jeszcze brak wersji');
+        if ($current !== null)
+            versionFacts($img, $current);
+        ogStats($img, [
+            'wersje' => count($entries),
+            'nowe (30 dni)' => $recent,
+            'obecna działa' => $current !== null && $current['ran'] !== null ? duration($current['ran']) : '–'
+        ]);
+
+        $mark = 0;
+        foreach ($entries as $i => $entry)
+            if ($entry === $current)
+                $mark = $i;
+        versionBranch($img, $entries, $mark, 484);
+
+        ogFoot($img, 'sanakan.pl/state/wersje', 'stan z ' . date('j.m.Y H:i'));
+
+        return ogSave($img, $file);
+    }
+
+    // One version: its number as the name, how many changes it brought, the
+    // first of them (the technical ones after the rest) and how long it ran
+    function drawVersion($file, $entry)
+    {
+        $section = verdiffChanges($entry['version']);
+        $items = $section !== null ? verdiffItems($section['changes']) : [];
+        usort($items, function ($a, $b) { return $a[1] <=> $b[1]; });
+        $technical = count(array_filter($items, function ($item) { return $item[1]; }));
+        $plain = count($items) - $technical;
+
+        $img = ogCanvas();
+        ogHead($img, 'SAFEGUARD · LV.9 · WERSJA', $entry['version']);
+        versionFacts($img, $entry);
+
+        // the version the bot runs now is marked next to its name
+        if ($entry['current']) {
+            $x = 80 + textWidth(OG_BOLD, 64, ogUpper($entry['version']), 18) + 30;
+            box($img, $x, 150, $x + 110, 186, color($img, '#23a55a', 95));
+            text($img, OG_BOLD, 18, $x + 55 - textWidth(OG_BOLD, 18, 'obecna') / 2, 175, color($img, '#23a55a'), 'obecna');
+        }
+
+        $parts = [];
+        if ($plain)
+            $parts[] = $plain . ' ' . plural($plain, 'zmiana', 'zmiany', 'zmian');
+        if ($technical)
+            $parts[] = $technical . ' ' . plural($technical, 'techniczna', 'techniczne', 'technicznych');
+        ogLine($img, $parts ? implode(', ', $parts) : 'Brak opisu zmian');
+
+        // a row per change; when they do not fit, the last row says how many more
+        $rows = count($items) > OG_CHANGE_ROWS ? array_slice($items, 0, OG_CHANGE_ROWS - 1) : $items;
+        foreach ($rows as $i => [$text, $isTechnical]) {
+            $y = 362 + $i * 50;
+            box($img, 84, $y - 16, 96, $y - 4, color($img, $isTechnical ? '#80848e' : '#9b59b6'));
+            text($img, OG_REGULAR, 24, 116, $y, color($img, $isTechnical ? '#dcddde' : '#efe2f7', $isTechnical ? 50 : 0), ogFit(OG_REGULAR, 24, $text, OG_WIDTH - 196));
+        }
+        if (count($items) > count($rows)) {
+            $more = count($items) - count($rows);
+            text($img, OG_REGULAR, 22, 116, 362 + count($rows) * 50, color($img, '#b670d3'), 'i ' . $more . ' ' . plural($more, 'kolejna', 'kolejne', 'kolejnych'));
+        }
+
+        // without changes to list, where it stands among the versions around it
+        if (!$items) {
+            $entries = versionRuns();
+            foreach ($entries as $i => $run)
+                if (strcasecmp($run['version'], $entry['version']) === 0)
+                    versionBranch($img, $entries, $i, 440);
+        }
+
+        $note = '';
+        if ($entry['ran'] !== null)
+            $note = ($entry['current'] ? 'działa ' : 'działała ') . duration($entry['ran']);
+        ogFoot($img, 'sanakan.pl/state/wersje', $note);
 
         return ogSave($img, $file);
     }
