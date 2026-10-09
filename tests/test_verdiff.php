@@ -192,6 +192,48 @@
         assertSame($sorted, $older, 'the built-in ones newest first, the oldest last');
     });
 
+    test('versionSeries and versionGroups put the versions in series', function () {
+        assertSame('1.4.10', versionSeries('1.4.10.16'));
+        assertSame('1.0.0', versionSeries('1.0.0.0-alpha'));
+        assertSame('1.2', versionSeries('v1.2'));
+
+        $entries = array_map(function ($version) { return ['version' => $version]; }, ['1.4.10.1', '1.4.10.0', '1.4.9.39', '1.4.10.2']);
+        $groups = versionGroups($entries);
+        assertSame(['1.4.10', '1.4.9', '1.4.10'], array_column($groups, 'series'), 'a split series is listed again, not moved');
+        assertSame(2, count($groups[0]['entries']));
+        assertSame([], versionGroups([]));
+    });
+
+    test('versionNeighbours skips the versions without changes', function () {
+        $entries = [
+            ['version' => '1.4.10.16', 'changes' => true],
+            ['version' => '1.4.10.15', 'changes' => false],
+            ['version' => '1.4.10.14', 'changes' => true],
+            ['version' => '1.4.10.13', 'changes' => true],
+        ];
+        $around = versionNeighbours($entries, '1.4.10.14');
+        assertSame('1.4.10.13', $around['older']['version']);
+        assertSame('1.4.10.16', $around['newer']['version'], 'the one without changes is passed over');
+        assertNull(versionNeighbours($entries, '1.4.10.16')['newer'], 'nothing newer than the newest');
+        assertNull(versionNeighbours($entries, '1.4.10.13')['older'], 'nothing older than the oldest');
+        assertSame(['older' => null, 'newer' => null], versionNeighbours($entries, '9.9'));
+    });
+
+    test('versionDate writes the start or the changelog date', function () {
+        $since = mktime(19, 33, 0, 10, 9, 2026);
+        assertSame('9.10.2026 19:33', versionDate(['since' => $since, 'date' => '2026-10-01']));
+        assertSame('4.09.2026', versionDate(['since' => null, 'date' => '2026-09-04']));
+        assertSame('jesień 2018', versionDate(['since' => null, 'date' => 'jesień 2018']));
+        assertNull(versionDate(['since' => null, 'date' => null]));
+    });
+
+    test('versionUntil leaves out what the start already says', function () {
+        $since = mktime(19, 7, 0, 10, 9, 2026);
+        assertSame('19:39', versionUntil($since, mktime(19, 39, 0, 10, 9, 2026)));
+        assertSame('10.10 08:05', versionUntil($since, mktime(8, 5, 0, 10, 10, 2026)));
+        assertSame('2.01.2027 10:00', versionUntil($since, mktime(10, 0, 0, 1, 2, 2027)));
+    });
+
     test('markdownToHtml renders the changelog and escapes', function () {
         $html = markdownToHtml("# Title\n\n- one **bold**\n- two `code`\n\n## Sec\n\n> note\n\n[a](https://x) [b](javascript:1)");
         assertContains('<h1>Title</h1>', $html);

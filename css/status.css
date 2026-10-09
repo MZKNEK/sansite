@@ -420,11 +420,6 @@
     color: rgba(220, 221, 222, 0.4);
 }
 
-.version-return {
-    margin-top: 20px;
-    text-align: center;
-}
-
 @media only screen and (max-width: 600px) {
     .timeline,
     .response-chart {
@@ -432,54 +427,168 @@
     }
 }
 
-/* the version history on state/wersje/ */
+/* the version history on state/wersje/: a search box, then the versions in
+   series (1.4.10.x) that open and close, each version one row that opens it */
+.version-search {
+    margin: 4px 0 6px;
+}
+
+.version-group {
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.16);
+}
+
+.version-group:last-of-type {
+    border-bottom: 0;
+}
+
+.version-group > summary {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 14px 4px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.version-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* the arrow before a series: turns down when it is open */
+.version-group > summary::before {
+    content: "\25B8";
+    flex: none;
+    width: 12px;
+    color: var(--accent-light);
+    transition: transform 0.2s;
+}
+
+.version-group[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.version-group > summary:hover .version-series {
+    color: #fff;
+}
+
+.version-series {
+    font: 700 16px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.version-series i {
+    font-style: normal;
+    color: rgba(220, 221, 222, 0.35);
+}
+
+.version-count {
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.08em;
+    color: var(--accent-light);
+}
+
+.version-span {
+    margin-left: auto;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.45);
+    white-space: nowrap;
+}
+
 .version-list {
-    margin: 0;
+    margin: 0 0 12px 26px;
     padding: 0;
     list-style: none;
+    border-left: 1px solid rgba(var(--accent-rgb), 0.22);
 }
 
-.version-entry {
+.version-row {
     display: grid;
-    grid-template-columns: 150px minmax(150px, 1fr) auto;
-    align-items: center;
-    gap: 8px 16px;
-    padding: 11px 0;
-    border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+    grid-template-columns: 150px minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 4px 18px;
+    padding: 9px 12px 9px 16px;
+    color: inherit;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -1px;
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
-.version-entry:last-child {
-    border-bottom: 0;
+a.version-row:hover,
+a.version-row:focus-visible {
+    background: rgba(var(--accent-rgb), 0.1);
+    border-left-color: var(--accent-light);
+    outline: 0;
 }
 
 .version-name {
     font: 14px "JetBrains Mono", Consolas, monospace;
     color: #efe2f7;
+    white-space: nowrap;
+}
+
+a.version-row:hover .version-name {
+    color: #fff;
 }
 
 .version-entry.current .version-name {
     color: #8fe0a8;
 }
 
-.version-when {
-    font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+.version-entry.current .version-row {
+    border-left-color: #8fe0a8;
+    background: rgba(143, 224, 168, 0.05);
 }
 
-.version-diff {
-    padding: 7px 14px;
-    color: var(--accent-light);
-    font: 12px "JetBrains Mono", Consolas, monospace;
-    letter-spacing: 0.06em;
+/* the tag next to the version the bot runs now */
+.version-now {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px solid rgba(143, 224, 168, 0.5);
+    border-radius: 3px;
+    font: normal 10px/1.4 "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    text-decoration: none;
+    vertical-align: 2px;
+}
+
+/* the first change: one line, cut with an ellipsis */
+.version-summary {
+    overflow: hidden;
+    font-size: 14px;
+    color: rgba(220, 221, 222, 0.75);
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.version-none {
-    font-size: 12px;
-    color: rgba(220, 221, 222, 0.35);
+.version-summary small {
+    margin-left: 4px;
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: var(--accent-light);
+}
+
+.version-when {
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.5);
     text-align: right;
+}
+
+.version-from,
+.version-until {
+    white-space: nowrap;
+}
+
+.version-when small {
+    display: block;
+    font-size: 11px;
+    color: rgba(220, 221, 222, 0.35);
+}
+
+.version-none {
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(220, 221, 222, 0.35);
 }
 
 /* the line under the title of a version: when it was introduced */
@@ -495,13 +604,89 @@
     color: var(--accent-light);
 }
 
+/* under a version: the previous (older) and the next (newer) one, the list
+   between them */
+.version-steps {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.version-step {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 18px;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.version-step.older {
+    justify-self: start;
+    align-items: flex-start;
+}
+
+.version-step.newer {
+    justify-self: end;
+    align-items: flex-end;
+}
+
+.version-step small {
+    font: 11px "Sanakan Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.version-step b {
+    font: 15px "JetBrains Mono", Consolas, monospace;
+    color: #efe2f7;
+}
+
+.version-step.all {
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.version-step.all:hover {
+    color: #fff;
+}
+
 @media only screen and (max-width: 600px) {
-    .version-entry {
-        grid-template-columns: 1fr auto;
+    .version-list {
+        margin-left: 6px;
     }
 
-    .version-when {
+    .version-row {
+        grid-template-columns: 1fr auto;
+        padding-left: 12px;
+    }
+
+    .version-summary {
         grid-column: 1 / 3;
+        grid-row: 2;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .version-span {
+        display: none;
+    }
+
+    .version-steps {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .version-step.all {
+        grid-column: 1 / 3;
+        grid-row: 2;
+        justify-self: center;
     }
 }
 

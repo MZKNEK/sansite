@@ -347,3 +347,81 @@
 
         return $entries;
     }
+
+    // The series a version belongs to on state/wersje/: its first three parts
+    // ("1.4.10" of "1.4.10.16", "1.0.0" of "1.0.0.0-alpha")
+    function versionSeries($version)
+    {
+        $parts = explode('.', verdiffKey($version));
+
+        return implode('.', array_slice($parts, 0, 3));
+    }
+
+    // The entries of versionEntries() in runs of one series, in their order:
+    // [['series', 'entries']]. A series the order splits (a version brought
+    // back) is listed twice rather than moved.
+    function versionGroups($entries)
+    {
+        $groups = [];
+        foreach ($entries as $entry) {
+            $series = versionSeries($entry['version']);
+            $last = count($groups) - 1;
+            if ($last >= 0 && $groups[$last]['series'] === $series)
+                $groups[$last]['entries'][] = $entry;
+            else
+                $groups[] = ['series' => $series, 'entries' => [$entry]];
+        }
+
+        return $groups;
+    }
+
+    // The versions next to one in versionEntries() that have changes to show:
+    // ['older' => entry or null, 'newer' => entry or null]. Both are null for
+    // a version that is not listed.
+    function versionNeighbours($entries, $version)
+    {
+        $index = null;
+        foreach ($entries as $i => $entry) {
+            if (strcasecmp($entry['version'], $version) === 0) {
+                $index = $i;
+                break;
+            }
+        }
+        $found = ['older' => null, 'newer' => null];
+        if ($index === null)
+            return $found;
+
+        for ($i = $index + 1; $i < count($entries) && $found['older'] === null; $i++)
+            if ($entries[$i]['changes'])
+                $found['older'] = $entries[$i];
+        for ($i = $index - 1; $i >= 0 && $found['newer'] === null; $i--)
+            if ($entries[$i]['changes'])
+                $found['newer'] = $entries[$i];
+
+        return $found;
+    }
+
+    // The date of a list entry as the page writes it: the start the site
+    // logged ("9.10.2026 19:33"), else the changelog's date ("8.10.2026" of
+    // "2026-10-08", any other text as it is), else null
+    function versionDate($entry)
+    {
+        if (!empty($entry['since']))
+            return date('j.m.Y H:i', $entry['since']);
+        $date = (string)($entry['date'] ?? '');
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $match))
+            return (int)$match[3] . '.' . $match[2] . '.' . $match[1];
+
+        return $date !== '' ? $date : null;
+    }
+
+    // The end of a version's run as the list writes it after its start: only
+    // the time on the same day ("19:39"), the day without the year in the same
+    // year ("9.10 19:07"), else all of it
+    function versionUntil($since, $until)
+    {
+        if (date('Y-m-d', $since) === date('Y-m-d', $until))
+            return date('H:i', $until);
+
+        return date(date('Y', $since) === date('Y', $until) ? 'j.m H:i' : 'j.m.Y H:i', $until);
+    }

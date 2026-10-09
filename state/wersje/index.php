@@ -3,6 +3,9 @@
     // it started, each with the changes from the bot's repository (verdiff.md,
     // inc/verdiff.php) rendered on the site. state/ links to it from the version
     // line. A version opens with ?v=<version>; the changes never leave the site.
+    // The list is in series (1.4.10.x), the newest open, with a search box over
+    // the versions and their changes (js/versions.js); a version's page links
+    // the previous and the next one, also on the arrow keys.
     require __DIR__ . '/../../inc/bot.php';
     require __DIR__ . '/../../inc/verdiff.php';
     require __DIR__ . '/../../inc/markdown.php';
@@ -38,6 +41,35 @@
     }
     $intro = implode(' &middot; ', $introParts);
 
+    // the versions either side of the one shown, for stepping through them
+    $around = $shown !== null ? versionNeighbours($entries, $shown['version']) : ['older' => null, 'newer' => null];
+
+    // The list: each version's first change as its summary and every change as
+    // the text the search box looks in, when it ended and how long it ran (until
+    // the next, newer version started; the newest runs on and keeps counting
+    // up), then in runs of a series
+    $groups = [];
+    if ($shown === null) {
+        $sections = verdiffSections();
+        $newerSince = null;
+        foreach ($entries as &$entry) {
+            $items = isset($sections[verdiffKey($entry['version'])]) ? verdiffItems($sections[verdiffKey($entry['version'])]['changes']) : [];
+            $plain = array_values(array_filter($items, function ($item) { return !$item[1]; })) ?: $items;
+            $entry['summary'] = $plain ? $plain[0][0] : '';
+            $entry['more'] = max(0, count($items) - 1);
+            $entry['text'] = lower($entry['version'] . ' ' . implode(' ', array_column($items, 0)));
+            $entry['ran'] = null;
+            $entry['until'] = null;
+            if ($entry['since']) {
+                $entry['ran'] = max(0, ($newerSince ?? time()) - $entry['since']);
+                $entry['until'] = $newerSince;
+                $newerSince = $entry['since'];
+            }
+        }
+        unset($entry);
+        $groups = versionGroups($entries);
+    }
+
     // the link preview picture (og.php?p=wersje): one version's own, or the
     // history's; the time in its address makes Discord fetch it again
     $image = SITE_URL . '/og.php?p=wersje' . ($shown !== null ? '&v=' . rawurlencode($shown['version']) : '') . '&t=' . intdiv(time(), BOT_COMMANDS_TTL);
@@ -56,8 +88,15 @@
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=dadc1c92cc" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
+<?php if ($around['older']): ?>
+  <link rel="prev" href="?v=<?=e(rawurlencode($around['older']['version']))?>" />
+<?php endif; ?>
+<?php if ($around['newer']): ?>
+  <link rel="next" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" />
+<?php endif; ?>
   <script src="../../js/hud.js?v=0effb1151f"></script>
+  <script src="../../js/versions.js?v=2fa8a60efb" defer></script>
 </head>
 
 <body class="state-page">
@@ -79,36 +118,66 @@
 <?=$changes !== '' ? $changes : '<p class="incidents-none">Brak opisu zmian dla tej wersji w repozytorium bota.</p>'?>
       </div>
     </section>
-    <p class="version-return"><a class="back hud-corners" href="./" title="Wszystkie wersje">&larr; Wszystkie wersje</a></p>
+    <nav class="version-steps" aria-label="Inne wersje">
+<?php if ($around['older']): ?>
+      <a class="version-step older hud-corners" href="?v=<?=e(rawurlencode($around['older']['version']))?>" rel="prev" title="Poprzednia wersja (strzałka w lewo)"><small>&larr; Poprzednia</small><b><?=e($around['older']['version'])?></b></a>
+<?php else: ?>
+      <span class="version-step older empty"></span>
+<?php endif; ?>
+      <a class="version-step all" href="./" title="Wszystkie wersje">Wszystkie wersje</a>
+<?php if ($around['newer']): ?>
+      <a class="version-step newer hud-corners" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" rel="next" title="Następna wersja (strzałka w prawo)"><small>Następna &rarr;</small><b><?=e($around['newer']['version'])?></b></a>
+<?php else: ?>
+      <span class="version-step newer empty"></span>
+<?php endif; ?>
+    </nav>
 <?php else: ?>
     <section class="card state-card">
       <h2><i>+</i>Historia wersji</h2>
 <?php if (!$entries): ?>
       <p class="incidents-none">Jeszcze brak wersji. Pojawią się, gdy bot zgłosi pierwszą.</p>
 <?php else: ?>
-      <ul class="version-list">
-<?php $newerSince = null; // the version above ended this one's run ?>
-<?php foreach ($entries as $entry): $isCurrent = $current !== null && strcasecmp($entry['version'], $current) === 0; ?>
+      <label class="search version-search hud-corners">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
+        <input id="version-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj wersji lub zmiany" aria-label="Szukaj wersji lub zmiany" />
+        <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
+      </label>
+      <div class="search-info" id="version-search-info" aria-live="polite"></div>
+<?php foreach ($groups as $g => $group): $first = $group['entries'][0]; $last = end($group['entries']); $count = count($group['entries']); ?>
 <?php
-        // how long this version ran: until the next, newer version started. The
-        // newest keeps counting up, older ones are frozen at their replacement.
-        $ran = null;
-        if ($entry['since']) {
-            $ran = max(0, ($newerSince ?? time()) - $entry['since']);
-            $newerSince = $entry['since'];
-        }
+        // the days the series covers: from its oldest version to its newest
+        $from = versionDate($last);
+        $to = versionDate($first);
+        $from = $from !== null ? preg_replace('/ \d+:\d+$/', '', $from) : null;
+        $to = $to !== null ? preg_replace('/ \d+:\d+$/', '', $to) : null;
+        $span = $from !== null && $to !== null && $from !== $to ? $from . ' – ' . $to : ($to ?? $from);
 ?>
-        <li class="version-entry<?=$isCurrent ? ' current' : ''?>">
-          <span class="version-name"><?=e($entry['version'])?></span>
-          <span class="version-when"><?php if ($entry['since']): ?>od <?=e(date('j.m.Y H:i', $entry['since']))?> &middot; <?=e(duration($ran))?><?php elseif ($entry['date']): ?><?=e($entry['date'])?><?php else: ?>—<?php endif; ?></span>
+      <details class="version-group"<?=$g === 0 ? ' open' : ''?>>
+        <summary>
+          <span class="version-series"><?=e($group['series'])?><i>.x</i></span>
+          <span class="version-count"><?=$count?> <?=plural($count, 'wersja', 'wersje', 'wersji')?></span>
+          <span class="version-span"><?=$span !== null ? e($span) : ''?></span>
+        </summary>
+        <ul class="version-list">
+<?php foreach ($group['entries'] as $entry): $isCurrent = $current !== null && strcasecmp($entry['version'], $current) === 0; $date = versionDate($entry); ?>
+          <li class="version-entry<?=$isCurrent ? ' current' : ''?>" data-q="<?=e($entry['text'])?>">
 <?php if ($entry['changes']): ?>
-          <a class="version-diff hud-corners" href="?v=<?=e(rawurlencode($entry['version']))?>">Zobacz zmiany</a>
+            <a class="version-row" href="?v=<?=e(rawurlencode($entry['version']))?>">
 <?php else: ?>
-          <span class="version-none">brak opisu</span>
+            <div class="version-row">
 <?php endif; ?>
-        </li>
+              <span class="version-name"><?=e($entry['version'])?><?php if ($isCurrent): ?> <em class="version-now">teraz</em><?php endif; ?></span>
+              <span class="version-summary"><?php if ($entry['summary'] !== ''): ?><?=e($entry['summary'])?><?php if ($entry['more']): ?> <small>+<?=$entry['more']?></small><?php endif; ?><?php elseif ($entry['changes']): ?><span class="version-none">bez listy zmian</span><?php else: ?><span class="version-none">brak opisu</span><?php endif; ?></span>
+              <span class="version-when"><span class="version-from"><?=$date !== null ? e($date) : '—'?></span><?php if ($entry['since']): ?> <span class="version-until">&ndash; <?=$entry['until'] !== null ? e(versionUntil($entry['since'], $entry['until'])) : 'teraz'?></span><?php endif; ?><?php if ($entry['ran'] !== null): ?><small><?=$entry['until'] === null ? 'działa' : 'działała'?> <?=e(duration($entry['ran']))?></small><?php endif; ?></span>
+<?=$entry['changes'] ? "            </a>
+" : "            </div>
+"?>
+          </li>
 <?php endforeach; ?>
-      </ul>
+        </ul>
+      </details>
+<?php endforeach; ?>
+      <p class="incidents-none" id="version-search-none" hidden>Żadna wersja nie pasuje.</p>
 <?php endif; ?>
     </section>
     <p class="state-note">Wersje i zmiany z repozytorium bota.</p>
