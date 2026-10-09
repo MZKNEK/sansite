@@ -23,6 +23,22 @@
         assertSame('1.2.3', verdiffKey(' 1.2.3 '));
     });
 
+    test('verdiffDue asks again for a new version without a section', function () {
+        $now = time();
+        $cache = ['fetched' => $now - 60, 'tried' => $now - 60, 'sections' => verdiffParse("# 1.4.10.14\n\n- new\n")];
+        $known = ['version' => '1.4.10.14', 'since' => $now - 60];
+        $missing = ['version' => '1.4.10.15', 'since' => $now - 60];
+        assertTrue(verdiffDue(null, null, $now), 'nothing cached yet');
+        assertFalse(verdiffDue($cache, $known, $now), 'the newest version is in it');
+        assertFalse(verdiffDue($cache, null, $now), 'no version reported');
+        assertFalse(verdiffDue($cache, $missing, $now), 'missing, but tried a minute ago');
+        assertTrue(verdiffDue($cache, $missing, $now + VERDIFF_RETRY), 'missing and the retry is up');
+        assertTrue(verdiffDue($cache, $known, $now + VERDIFF_TTL), 'too old anyway');
+        assertFalse(verdiffDue($cache, ['version' => '1.4.10.15', 'since' => $now - VERDIFF_NEW], $now + VERDIFF_RETRY), 'missing for too long, back to VERDIFF_TTL');
+        unset($cache['tried']);
+        assertTrue(verdiffDue($cache, $missing, $now + VERDIFF_RETRY), 'an old cache without the try time');
+    });
+
     test('verdiffChanges and versionEntries match by version', function () {
         file_put_contents(botFile('verdiff.json'), json_encode([
             'fetched' => time(),

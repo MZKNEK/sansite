@@ -19,8 +19,9 @@
     require __DIR__ . '/panel-stats.php';
 
     $state = botState(true);
-    // the bot's changelog from its repository, asked for again at most every
-    // VERDIFF_TTL, so state/wersje/ opens without waiting on the network
+    // the bot's changelog from its repository, asked for again every
+    // VERDIFF_TTL (sooner while a new version has no section in it yet), so
+    // state/wersje/ opens without waiting on the network
     verdiff();
     if (servicesDue())
         servicesCheckAll();

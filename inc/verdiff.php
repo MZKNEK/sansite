@@ -23,6 +23,9 @@
     const VERDIFF_TTL = 21600;
     // after a failed try the file is asked again this soon
     const VERDIFF_RETRY = 600;
+    // how long after the bot reports a version without a section the file is
+    // asked for every VERDIFF_RETRY instead of every VERDIFF_TTL
+    const VERDIFF_NEW = 86400;
 
     function verdiffUrl()
     {
@@ -79,17 +82,37 @@
         return $sections;
     }
 
-    // the cached changelog, asked for again when it is older than VERDIFF_TTL:
-    // ['fetched', 'hash', 'sections']. A failed try keeps the last answer and
-    // waits VERDIFF_RETRY.
+    // Whether the cached changelog ($cache, null when there is none) is asked for
+    // again: when it is older than VERDIFF_TTL, or when the newest version the
+    // bot reported ($newest, ['version', 'since'] as botVersions() has it) has
+    // no section in it yet, came in the last VERDIFF_NEW and the last try was
+    // VERDIFF_RETRY ago, so a new version gets its changes soon after the file
+    // is pushed and not hours later. A version the file never describes stops
+    // the quicker tries after VERDIFF_NEW.
+    function verdiffDue($cache, $newest, $now)
+    {
+        if ($cache === null || $now - (int)$cache['fetched'] >= VERDIFF_TTL)
+            return true;
+        if ($newest === null || isset($cache['sections'][verdiffKey($newest['version'] ?? '')]))
+            return false;
+        if ($now - (int)($newest['since'] ?? 0) >= VERDIFF_NEW)
+            return false;
+
+        return $now - (int)($cache['tried'] ?? $cache['fetched']) >= VERDIFF_RETRY;
+    }
+
+    // the cached changelog, asked for again when verdiffDue() says so:
+    // ['fetched', 'tried', 'hash', 'sections']. A failed try keeps the last
+    // answer and waits VERDIFF_RETRY.
     function verdiff()
     {
         $file = botFile('verdiff.json');
         $cache = json_decode((string)@file_get_contents($file), true);
         $known = is_array($cache) && isset($cache['fetched'], $cache['sections']);
         $url = verdiffUrl();
+        $newest = botVersions()[0] ?? null;
 
-        if ($url === '' || ($known && time() - (int)$cache['fetched'] < VERDIFF_TTL))
+        if ($url === '' || !verdiffDue($known ? $cache : null, $newest, time()))
             return $known ? $cache : ['fetched' => 0, 'hash' => '', 'sections' => []];
 
         [$body, $status] = httpRaw($url, [
@@ -105,6 +128,7 @@
             $cache = $known ? $cache : ['hash' => '', 'sections' => []];
             $cache['fetched'] = time() - VERDIFF_TTL + VERDIFF_RETRY;
         }
+        $cache['tried'] = time();
         botWriteFile($file, json_encode($cache, JSON_UNESCAPED_UNICODE));
 
         return $cache;
