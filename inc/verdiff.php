@@ -253,6 +253,29 @@
         return $sections[verdiffKey($version)] ?? null;
     }
 
+    // The list items of a section's changes as plain text, for the link preview
+    // picture: [[text, technical]], technical for the items under a level-2
+    // heading (## Techniczne). Only the top level of a list counts; the
+    // Markdown marks are taken off, a link keeps its text.
+    function verdiffItems($changes)
+    {
+        $items = [];
+        $technical = false;
+        foreach (explode("\n", str_replace(["\r\n", "\r"], "\n", (string)$changes)) as $line) {
+            if (preg_match('/^#{2,}\s/', $line))
+                $technical = true;
+            else if (preg_match('/^(?:[-*+]|\d+[.)])\s+(.+?)\s*$/', $line, $match)) {
+                $text = preg_replace('/\[([^\]]+)\]\([^)\s]+\)/', '$1', $match[1]);
+                $text = preg_replace('/(\*\*|__|~~)(.+?)\1/', '$2', $text);
+                $text = preg_replace('/`([^`]+)`/', '$1', $text);
+                $text = preg_replace('/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/', '$1', $text);
+                $items[] = [trim($text), $technical];
+            }
+        }
+
+        return $items;
+    }
+
     // The accounts the site knows, by their Discord handle and by their nick, for
     // the @nick a changelog may carry, as lower-case handle => ['name',
     // 'avatar', 'badge', 'roles']. 'badge' is the account's role as roleBadge()
@@ -285,11 +308,14 @@
     // Each entry is ['version', 'since' => time or null, 'date' => text or null,
     // 'commit' => hash or null, 'changes' => whether a section exists]. A version
     // that is only in verdiff.md and the bot has not reported yet is not listed,
-    // so the page never shows a version ahead of the bot.
+    // so the page never shows a version ahead of the bot. The versions of
+    // inc/verdiff-builtin.md came before the site logged any, so those the bot
+    // never reported are listed after the reported ones, without a start.
     function versionEntries()
     {
         $sections = verdiffSections();
         $entries = [];
+        $listed = [];
         foreach (botVersions() as $reported) {
             $key = verdiffKey($reported['version']);
             $section = $sections[$key] ?? null;
@@ -300,9 +326,23 @@
                 'commit' => $section['commit'] ?? null,
                 'changes' => $section !== null,
             ];
+            $listed[$key] = true;
         }
+        foreach (verdiffBuiltin() as $key => $section) {
+            if (isset($listed[$key]))
+                continue;
+            $entries[] = [
+                'version' => $section['version'],
+                'since' => null,
+                'date' => $section['date'],
+                'commit' => $section['commit'],
+                'changes' => true,
+            ];
+        }
+        // newest start first; the ones without a start after them, newest version first
         usort($entries, function ($a, $b) {
-            return ($b['since'] ?? 0) <=> ($a['since'] ?? 0);
+            return (($b['since'] ?? 0) <=> ($a['since'] ?? 0))
+                ?: version_compare(verdiffKey($b['version']), verdiffKey($a['version']));
         });
 
         return $entries;

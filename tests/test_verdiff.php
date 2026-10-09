@@ -18,6 +18,16 @@
         assertNull($sections['1.4.10.13']['commit'], 'a version without a commit line');
     });
 
+    test('verdiffItems lists the changes as plain text', function () {
+        $items = verdiffItems("Intro\n\n- **Bold** `code` and [a link](https://x)\n  - nested\n* *soft* change\n\n## Techniczne\n\n1. faster\n");
+        assertSame([
+            ['Bold code and a link', false],
+            ['soft change', false],
+            ['faster', true],
+        ], $items);
+        assertSame([], verdiffItems(''));
+    });
+
     test('verdiffKey ignores a leading v', function () {
         assertSame('1.2.3', verdiffKey('v1.2.3'));
         assertSame('1.2.3', verdiffKey(' 1.2.3 '));
@@ -141,7 +151,8 @@
         ]));
         $now = time();
         file_put_contents(botFile('versions.json'), json_encode([
-            ['version' => '1.4.10.11', 'since' => $now - 600, 'seen' => $now - 600],
+            ['version' => '1.4.10.12', 'since' => $now - 900, 'seen' => $now - 900],
+            ['version' => '1.4.10.15', 'since' => $now - 600, 'seen' => $now - 600],
             ['version' => '1.4.10.14', 'since' => $now - 60, 'seen' => $now - 60],
         ]));
 
@@ -149,12 +160,36 @@
         assertNull(verdiffChanges('9.9.9'));
 
         $entries = versionEntries();
-        assertSame(2, count($entries), 'only the versions the bot reported');
         assertSame('1.4.10.14', $entries[0]['version'], 'newest first');
         assertTrue($entries[0]['changes']);
         assertSame('aaaa111', $entries[0]['commit']);
-        assertSame('1.4.10.11', $entries[1]['version'], 'recorded without a section');
+        assertSame('1.4.10.15', $entries[1]['version'], 'recorded without a section');
         assertFalse($entries[1]['changes']);
+        assertSame('1.4.10.12', $entries[2]['version']);
+        assertSame('2026-10-01', $entries[2]['date'], 'the changelog section wins over the built-in one');
+    });
+
+    test('versionEntries lists the built-in versions the bot never reported', function () {
+        $now = time();
+        file_put_contents(botFile('verdiff.json'), json_encode(['fetched' => $now, 'hash' => 'x', 'sections' => []]));
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.4.10.12', 'since' => $now - 600, 'seen' => $now - 600],
+            ['version' => '1.4.10.14', 'since' => $now - 60, 'seen' => $now - 60],
+        ]));
+
+        $entries = versionEntries();
+        $versions = array_column($entries, 'version');
+        assertSame(count($versions), count(array_unique($versions)), 'a reported built-in version is listed once');
+        assertSame(2 + count(verdiffBuiltin()) - 1, count($entries));
+        assertSame(['1.4.10.14', '1.4.10.12', '1.4.10.13', '1.4.10.11'], array_slice($versions, 0, 4), 'reported first, then the rest newest first');
+        assertNull($entries[2]['since']);
+        assertSame('2026-10-08', $entries[2]['date']);
+        assertSame('333405b', $entries[2]['commit']);
+        assertTrue($entries[2]['changes']);
+        $older = array_slice($versions, 2);
+        $sorted = $older;
+        usort($sorted, function ($a, $b) { return version_compare($b, $a); });
+        assertSame($sorted, $older, 'the built-in ones newest first, the oldest last');
     });
 
     test('markdownToHtml renders the changelog and escapes', function () {
