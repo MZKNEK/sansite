@@ -13,10 +13,9 @@
   // the bot's stars, which the site mirrors from its repository (inc/pw.php)
   const pwStarsBaseUrl = '/pw/stars';
 
-  let starCnt = 0;
-  let starShape = 'Star';
-  let starColor = 'Blue';
-  let starType = 'Full';
+  let starShape = $state('Star');
+  let starColor = $state('Blue');
+  let starType = $state('Full');
 
   // the star of a shape and colour, as the bot draws it; Rainbow is a star of
   // its own, the last one, with no shapes: always its one picture (13_1)
@@ -24,11 +23,14 @@
     `${pwStarsBaseUrl}/${type}/${starColors.indexOf(color)+1}_${color === 'Rainbow' ? 1 : starShapes.indexOf(shape)+1}.png`;
   const starIcon = (shape, color, type) => `background-image: url(${starFile(shape, color, type)});`;
 
-  let selectedValue;
-  $: selectedValue = starFile(starShape, starColor, starType);
+  // how many stars and the picture of one, for the card
+  let { count: starCnt = $bindable(0), value: selectedValue = $bindable() } = $props();
+  $effect.pre(() => {
+    selectedValue = starFile(starShape, starColor, starType);
+  });
 
-  export { selectedValue as value };
-  export { starCnt as count };
+
+
 </script>
 
 <div class="field"><span class="label">Gwiazdki</span><Segmented bind:value={starCnt} options={starCount} label="Gwiazdki" /></div>

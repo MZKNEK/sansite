@@ -1,10 +1,9 @@
 <script>
-  // Wraps the card so a picture file can be dropped straight onto it; sends
-  // the file in a "file" event.
-  import { createEventDispatcher } from 'svelte';
+  // Wraps the card so a picture file can be dropped straight onto it; hands
+  // the file to onfile.
+  let { children, onfile } = $props();
 
-  const dispatch = createEventDispatcher();
-  let over = false;
+  let over = $state(false);
   let depth = 0;
 
   // only files, not pictures or text dragged from the page
@@ -39,13 +38,13 @@
       alert('Proszę przeciągnąć plik obrazu JPG lub PNG.');
       return;
     }
-    dispatch('file', file);
+    onfile?.(file);
   }
 </script>
 
 <div class="card-drop" role="region" aria-label="Karta, można na nią upuścić obraz"
-  on:dragenter={onDragEnter} on:dragover={onDragOver} on:dragleave={onDragLeave} on:drop={onDrop}>
-  <slot />
+  ondragenter={onDragEnter} ondragover={onDragOver} ondragleave={onDragLeave} ondrop={onDrop}>
+  {@render children?.()}
   {#if over}
     <div class="card-drop-over hud-corners">UPUŚĆ,<br />BY WCZYTAĆ</div>
   {/if}

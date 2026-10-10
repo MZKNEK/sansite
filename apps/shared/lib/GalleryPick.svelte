@@ -5,13 +5,14 @@
   // account with a folder of its own.
   import { account } from './account.js';
 
-  // called with the link of the chosen picture
-  export let onpick;
 
-  let open = false;
-  let loading = false;
-  let error = '';
-  let pictures = [];
+  // called with the link of the chosen picture
+  let { onpick } = $props();
+
+  let open = $state(false);
+  let loading = $state(false);
+  let error = $state('');
+  let pictures = $state([]);
 
   async function show() {
     open = true;
@@ -38,19 +39,19 @@
   }
 </script>
 
-<svelte:window on:keydown={keydown} />
+<svelte:window onkeydown={keydown} />
 
 {#if $account?.own}
-  <button type="button" class="btn-pick" on:click={show}>Z mojej galerii</button>
+  <button type="button" class="btn-pick" onclick={show}>Z mojej galerii</button>
 {/if}
 
 {#if open}
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="pick-back" on:click|self={() => { open = false; }}>
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+  <div class="pick-back" onclick={(e) => { if (e.target === e.currentTarget) open = false; }}>
     <div class="pick hud-corners" role="dialog" aria-modal="true" aria-label="Obrazek z mojej galerii">
       <div class="pick-head">
         <span>Moja galeria{pictures.length && !loading ? ` · ${pictures.length}` : ''}</span>
-        <button type="button" class="pick-close" title="Zamknij (Esc)" on:click={() => { open = false; }}>✕</button>
+        <button type="button" class="pick-close" title="Zamknij (Esc)" onclick={() => { open = false; }}>✕</button>
       </div>
       {#if loading}
         <p class="pick-note">Wczytuję…</p>
@@ -61,7 +62,7 @@
       {:else}
         <div class="pick-grid">
           {#each pictures as picture (picture.url)}
-            <button type="button" class="pick-item" title="{picture.folder}/{picture.name}" on:click={() => choose(picture)}>
+            <button type="button" class="pick-item" title="{picture.folder}/{picture.name}" onclick={() => choose(picture)}>
               <img src={picture.thumb ?? picture.url} alt="" loading="lazy" />
               <span>{picture.name}</span>
             </button>

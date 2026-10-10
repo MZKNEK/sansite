@@ -7,17 +7,18 @@
   import { account, cardName, loginUrl, saveToGallery } from './account.js';
   import { losslessWebp } from './webp.js';
 
-  // the pixels of the card as it is saved (ImageData of its canvas)
-  export let pixels;
-  // the start of its file name, the time of saving goes after it
-  export let prefix;
 
-  let busy = false;
-  let result = null;
-  let error = '';
-  let copied = false;
 
-  $: link = result ? new URL(result.url, location.href).href : '';
+  // pixels: the pixels of the card as it is saved (ImageData of its canvas);
+  // prefix: the start of its file name, the time of saving goes after it
+  let { pixels, prefix } = $props();
+
+  let busy = $state(false);
+  let result = $state(null);
+  let error = $state('');
+  let copied = $state(false);
+
+  let link = $derived(result ? new URL(result.url, location.href).href : '');
 
   async function save() {
     busy = true;
@@ -52,7 +53,7 @@
 
 {#if $account?.menu}
   {#if $account.own}
-    <button type="button" class="btn-save" on:click={save} disabled={busy}>{busy ? 'Zapisuję…' : 'Do galerii'}</button>
+    <button type="button" class="btn-save" onclick={save} disabled={busy}>{busy ? 'Zapisuję…' : 'Do galerii'}</button>
   {:else}
     <span class="note">Zapis w galerii: to konto nie ma w niej swojego folderu</span>
   {/if}
@@ -67,8 +68,8 @@
   <div class="saved" role="status">
     <span class="message">{result.message}</span>
     <div class="link">
-      <input type="text" readonly value={link} aria-label="Link do obrazka" on:focus={(e) => e.currentTarget.select()} />
-      <button type="button" on:click={copy}>{copied ? 'Skopiowano' : 'Kopiuj'}</button>
+      <input type="text" readonly value={link} aria-label="Link do obrazka" onfocus={(e) => e.currentTarget.select()} />
+      <button type="button" onclick={copy}>{copied ? 'Skopiowano' : 'Kopiuj'}</button>
     </div>
     <a href={result.folder}>Otwórz folder w galerii &rarr;</a>
   </div>

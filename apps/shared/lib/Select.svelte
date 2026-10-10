@@ -5,23 +5,25 @@
   // values, as rows with numbers ("list") or two columns with pictures ("grid").
   import { tick } from 'svelte';
 
-  export let value;
-  // values, or { value, label }
-  export let options = [];
-  export let label = '';
-  export let layout = 'list';
-  // the picture of a value: CSS for its box (a background), or null for none
-  export let icon = null;
+  let {
+    value = $bindable(),
+    // values, or { value, label }
+    options = [],
+    label = '',
+    layout = 'list',
+    // the picture of a value: CSS for its box (a background), or null for none
+    icon = null
+  } = $props();
 
-  let open = false;
-  let up = false;
-  let active = -1;
-  let root;
-  let panel;
+  let open = $state(false);
+  let up = $state(false);
+  let active = $state(-1);
+  let root = $state();
+  let panel = $state();
 
-  $: items = options.map((o) => (typeof o === 'object' ? o : { value: o, label: String(o) }));
-  $: index = items.findIndex((o) => o.value === value);
-  $: current = items[index];
+  let items = $derived(options.map((o) => (typeof o === 'object' ? o : { value: o, label: String(o) })));
+  let index = $derived(items.findIndex((o) => o.value === value));
+  let current = $derived(items[index]);
 
   const pos = (i) => String(i + 1).padStart(2, '0');
 
@@ -81,12 +83,12 @@
   }
 </script>
 
-<svelte:window on:click={onWindowClick} on:resize={place} />
+<svelte:window onclick={onWindowClick} onresize={place} />
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<div class="sel" class:open class:up bind:this={root} on:keydown={onKeydown}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="sel" class:open class:up bind:this={root} onkeydown={onKeydown}>
   <button type="button" class="sel-btn" aria-haspopup="listbox" aria-expanded={open}
-    aria-label="{label}: {current?.label ?? ''}" on:click={() => (open ? hide() : show())}>
+    aria-label="{label}: {current?.label ?? ''}" onclick={() => (open ? hide() : show())}>
     <span class="sel-pre" aria-hidden="true">
       {#if icon}
         <span class="sel-ico" style={icon(value)}></span>
@@ -102,9 +104,9 @@
   {#if open}
     <div class="sel-panel hud-corners {layout}" role="listbox" aria-label={label} bind:this={panel}>
       {#each items as item, i}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="sel-opt" role="option" tabindex="-1" aria-selected={i === index} class:active={i === active}
-          on:click={() => choose(i)} on:mouseenter={() => (active = i)}>
+          onclick={() => choose(i)} onmouseenter={() => (active = i)}>
           {#if layout === 'list'}
             <i>{pos(i)}</i>
           {:else if icon}

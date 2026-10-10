@@ -5,9 +5,9 @@
   import { onMount } from 'svelte';
   import { account, loadAccount, loginUrl } from './account.js';
 
-  export let title = '';
+  let { title = '' } = $props();
 
-  let box;
+  let box = $state();
   onMount(() => { loadAccount(box); });
 </script>
 

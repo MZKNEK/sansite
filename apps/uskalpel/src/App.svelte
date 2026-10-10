@@ -21,37 +21,37 @@
 
   // the dere's badge, cut out of the bot's picture of it (32x34 px at 221,628), in a 22 px box
   const dereIcon = (dere) => `background-image: url(${pw}/${dere}.png); background-size: 307.4px 431.6px; background-position: -142.4px -406.4px;`;
-  let variantsMap = {};
-  
-  let editMode = false;
+  let variantsMap = $state({});
 
-  let pixelCrop = { x: 0, y: 0, width: 475, height: 667 };
-  let extraPixelCrop = { x: 0, y: 0, width: 475, height: 667 };
-  let crop = { x: 0, y: 0 };
-  let extraCrop = { x: 0, y: 0 };
-  let curzoom = 1;
-  let extraZoom = 1;
-  let isUpscaling = false;
-  let isExtraUpscaling = false;
+  let editMode = $state(false);
 
-  let extraImage = null;
-  let activeLayer = 'base';
+  let pixelCrop = $state({ x: 0, y: 0, width: 475, height: 667 });
+  let extraPixelCrop = $state({ x: 0, y: 0, width: 475, height: 667 });
+  let crop = $state({ x: 0, y: 0 });
+  let extraCrop = $state({ x: 0, y: 0 });
+  let curzoom = $state(1);
+  let extraZoom = $state(1);
+  let isUpscaling = $state(false);
+  let isExtraUpscaling = $state(false);
 
-  let bgModel = 'small';
-  let bgRemoving = false;
-  let bgProgress = 0;
-  let bgProgressLabel = '';
-  let bgAutoLayer = false;
+  let extraImage = $state(null);
+  let activeLayer = $state('base');
+
+  let bgModel = $state('small');
+  let bgRemoving = $state(false);
+  let bgProgress = $state(0);
+  let bgProgressLabel = $state('');
+  let bgAutoLayer = $state(false);
 
   // the crops in % of the pictures: unlike the pixels they are not rounded
   let percentCrop = null;
   let extraPercentCrop = null;
-  let baseCropEl, extraCropEl;
+  let baseCropEl = $state(), extraCropEl = $state();
   // what the croppers show; their own numbers only if the screen has none
   const baseCrop = () => cropOnScreen(baseCropEl) ?? percentCrop;
   const topCrop = () => cropOnScreen(extraCropEl) ?? extraPercentCrop;
   // extra sharpening; without it the scaling keeps the picture as it is
-  let sharpen = 0;
+  let sharpen = $state(0);
   const sharpenLevels = [
     { value: 0, label: 'Brak', title: 'Wierne skalowanie, bez wyostrzania' },
     { value: 0.3, label: 'Lekkie' },
@@ -71,10 +71,10 @@
   // Real preview: the croppers show the pictures as the browser scales them, so
   // once a crop stops moving, the scaled and masked layers of the saved file
   // are put over them
-  let realPreview = true;
-  let basePreview = '';
-  let extraPreview = '';
-  let previewStale = true;
+  let realPreview = $state(true);
+  let basePreview = $state('');
+  let extraPreview = $state('');
+  let previewStale = $state(true);
   let previewTimer;
   let previewToken = 0;
 
@@ -108,7 +108,7 @@
     }
   }
 
-  
+
   async function syncLayers() {
     if (activeLayer === 'extra' || activeLayer === 'both') {
       // top jest dowodzący -> kopiuj top na scalp
@@ -153,20 +153,12 @@
   const card = { width: 475, height: 667 };
   const maskCropSize = card;
 
-  $: currentMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}.webp`;
-  $: extraMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}_top.webp`;
-  $: hasExtraLayer = ['Delta', 'Eta', 'Omega'].includes(selectedBorder);
-  $: if (!hasExtraLayer)  {
-    activeLayer = 'base';
-  }
-  
-  let dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
-  let zoomLevel = (typeof window !== 'undefined' && window.innerWidth < 900) ? 2 : 1;
 
-  $: finalScale = (1 / dpr) * zoomLevel;
+  let dpr = $state((typeof window !== 'undefined') ? window.devicePixelRatio : 1);
+  let zoomLevel = $state((typeof window !== 'undefined' && window.innerWidth < 900) ? 2 : 1);
+
   // but never wider than the screen, less its side margins
-  let winWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
-  $: shownScale = Math.min(finalScale, (winWidth - 32) / 475);
+  let winWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1280);
 
   onMount(() => {
     calculateScaling();
@@ -213,18 +205,17 @@
     }
   }
 
-  let image = "https://sanakan.pl/i/ss/sUwh3io.png";
-  let isLocalFile = false;
-  let showStats = false;
-  let fileName = '';
-  let extraFileName = '';
+  let image = $state("https://sanakan.pl/i/ss/sUwh3io.png");
+  let isLocalFile = $state(false);
+  let showStats = $state(false);
+  let fileName = $state('');
+  let extraFileName = $state('');
 
-  let selectedBorder = 'Delta';
-  let selectedDere = 'Mayadere';
-  let selectedStyle = '2'
-  $: styles = Object.keys(variantsMap).length ? getStyleList() : [];
-  
-  let wrapperRef;
+  let selectedBorder = $state('Delta');
+  let selectedDere = $state('Mayadere');
+  let selectedStyle = $state('2')
+
+  let wrapperRef = $state();
 
   // the croppers call these with the crop itself (svelte-easy-crop 5 has no
   // events), from inside their own effect: untracked, or what they read and set
@@ -257,7 +248,7 @@
     };
     reader.readAsDataURL(imageFile);
   }
-  
+
   function processExtraFile(file) {
     if (!file) return;
     let reader = new FileReader();
@@ -287,21 +278,21 @@
     curzoom = 1;
   }
 
-  function onFile(e) {
-    fileName = e.detail.name;
+  function onFile(file) {
+    fileName = file.name;
     isLocalFile = true;
-    processFile(e.detail);
+    processFile(file);
   }
 
-  function onExtraFile(e) {
-    extraFileName = e.detail.name;
-    processExtraFile(e.detail);
+  function onExtraFile(file) {
+    extraFileName = file.name;
+    processExtraFile(file);
   }
 
   function getStyle() {
     let variantsCount = getVariantsCount(selectedBorder);
     if (variantsCount === 0) return "";
-	
+
     let selectedStyleInt = parseInt(selectedStyle);
     if (selectedStyleInt > variantsCount || selectedStyleInt <= 0)
 	{
@@ -373,26 +364,21 @@
     }
   }
 
-  let borderUri = "";
-  let backBorderUri = "";
-  let statsUri = "";
-  let dereUri = "";
+  let borderUri = $state("");
+  let backBorderUri = $state("");
+  let statsUri = $state("");
+  let dereUri = $state("");
 
   function updateData() {
-    styles = getStyleList();
     borderUri = getBorder();
     backBorderUri = getBackBorder();
     statsUri = getStats();
     dereUri = getDere();
   }
 
-  $: if (selectedBorder || selectedDere || selectedStyle || Object.keys(variantsMap).length) updateData();
-
-  $: sharpen, realPreview, editMode, image, extraImage, currentMaskUrl, extraMaskUrl, hasExtraLayer, schedulePreview();
-
   function handleKeyDown(e) {
     if (!editMode) return;
-    
+
     const step = e.shiftKey ? 10 : 1;
 
     if (e.key === 'ArrowLeft')  moveCrop(-step, 0);
@@ -524,6 +510,29 @@
     });
   }
 
+  let currentMaskUrl = $derived(`${import.meta.env.BASE_URL}masks/${selectedBorder}.webp`);
+  let extraMaskUrl = $derived(`${import.meta.env.BASE_URL}masks/${selectedBorder}_top.webp`);
+  let hasExtraLayer = $derived(['Delta', 'Eta', 'Omega'].includes(selectedBorder));
+  $effect.pre(() => {
+    if (!hasExtraLayer)  {
+      activeLayer = 'base';
+    }
+  });
+  let finalScale = $derived((1 / dpr) * zoomLevel);
+  let shownScale = $derived(Math.min(finalScale, (winWidth - 32) / 475));
+  let styles = $derived(Object.keys(variantsMap).length ? getStyleList() : []);
+  // the pictures of the card when the frame, the dere, the style or the
+  // styles of the frames change: each read, as an effect follows only what it
+  // reads; updateData() may put the style back to 0, so it runs untracked
+  $effect.pre(() => {
+    selectedBorder, selectedDere, selectedStyle, variantsMap;
+    untrack(updateData);
+  });
+  // a new preview when what it shows changes (the crops ask for one themselves)
+  $effect(() => {
+    sharpen, realPreview, editMode, image, extraImage, currentMaskUrl, extraMaskUrl, hasExtraLayer;
+    untrack(schedulePreview);
+  });
 </script>
 <svelte:window bind:innerWidth={winWidth} />
 
@@ -544,7 +553,7 @@
 
       <section class="group">
         <h2 class="group-title"><i>02</i>Obraz</h2>
-        <DropZone bind:fileName on:file={onFile} accept=".jpg, .jpeg, .png, .webp" />
+        <DropZone bind:fileName onfile={onFile} accept=".jpg, .jpeg, .png, .webp" />
         <GalleryPick onpick={onPick} />
         {#if !isLocalFile}
           <div class="field"><span class="label">Link do obrazka</span><LinkField bind:value={image} label="Link do obrazka" placeholder="https://…" /></div>
@@ -561,11 +570,11 @@
 
           {#if hasExtraLayer}
             <DropZone compact title="Warstwa top" hint="obraz nad ramką: przeciągnij albo kliknij" accept=".jpg, .jpeg, .png, .webp"
-              bind:fileName={extraFileName} on:file={onExtraFile} />
+              bind:fileName={extraFileName} onfile={onExtraFile} />
             <div class="field"><span class="label">Usuń tło</span><Segmented bind:value={bgModel} options={bgModels} label="Model usuwania tła" words disabled={bgRemoving} /></div>
             <div class="field"><span class="label"></span>
               <div class="bg-tools">
-                <button type="button" class="btn-ai" on:click={removeBg} disabled={bgRemoving}>
+                <button type="button" class="btn-ai" onclick={removeBg} disabled={bgRemoving}>
                   {bgRemoving ? bgProgressLabel : 'Usuń tło ze scalpa'}
                 </button>
                 {#if bgRemoving}
@@ -586,10 +595,10 @@
           <div class="field top"><span class="label">Położenie</span>
             <div class="nudge">
               <div class="dpad">
-                <button type="button" class="up" title="W górę" on:click={() => moveCrop(0, -1)}>▲</button>
-                <button type="button" class="left" title="W lewo" on:click={() => moveCrop(-1, 0)}>◀</button>
-                <button type="button" class="down" title="W dół" on:click={() => moveCrop(0, 1)}>▼</button>
-                <button type="button" class="right" title="W prawo" on:click={() => moveCrop(1, 0)}>▶</button>
+                <button type="button" class="up" title="W górę" onclick={() => moveCrop(0, -1)}>▲</button>
+                <button type="button" class="left" title="W lewo" onclick={() => moveCrop(-1, 0)}>◀</button>
+                <button type="button" class="down" title="W dół" onclick={() => moveCrop(0, 1)}>▼</button>
+                <button type="button" class="right" title="W prawo" onclick={() => moveCrop(1, 0)}>▶</button>
               </div>
               <div class="nudge-side">
                 <div class="info-label">SCALP X {Math.round(crop.x)} · Y {Math.round(crop.y)} · {Math.round(pixelCrop.width)}×{Math.round(pixelCrop.height)}</div>
@@ -598,9 +607,9 @@
                 {/if}
                 <div class="hint">Strzałki na klawiaturze też działają, z Shift po 10 px.</div>
                 <div class="nudge-actions">
-                  <button type="button" class="btn-muted" on:click={resetZoom}>Reset</button>
+                  <button type="button" class="btn-muted" onclick={resetZoom}>Reset</button>
                   {#if bgAutoLayer}
-                    <button type="button" class="btn-sync" on:click={syncLayers}>Sync</button>
+                    <button type="button" class="btn-sync" onclick={syncLayers}>Sync</button>
                   {/if}
                 </div>
               </div>
@@ -611,7 +620,7 @@
     </div>
 
     <div class="card-col">
-      <CardDrop on:file={onFile}>
+      <CardDrop onfile={onFile}>
     <div class="scale-wrapper" bind:this={wrapperRef} style="width: {475 * shownScale}px; height: {667 * shownScale}px;">
       <div class="looks {editMode ? 'is-editing' : ''}" style="transform: scale({shownScale});">
         {#if editMode && hasExtraLayer && extraImage}
@@ -642,7 +651,7 @@
           {#if backBorderUri}
             <img src={backBorderUri} class="back" alt="BorderBack" />
           {/if}
-          
+
           {#if editMode}
             <div class="green-bg" style="-webkit-mask-image: url({currentMaskUrl}); mask-image: url({currentMaskUrl}); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;"></div>
             <div class="cropper-container" class:under-real={realPreview && basePreview && !previewStale} bind:this={baseCropEl}
@@ -671,26 +680,26 @@
           {:else}
             <img src={image} class="scalp" alt="Scalpel" />
           {/if}
-  
+
           {#if borderUri}
             <img src={borderUri} class="border" alt="Border" />
           {/if}
-  
+
           {#if dereUri}
             <img src={dereUri} class="dere" alt="Dere" />
           {/if}
-  
+
           {#if showStats && statsUri}
             <img src={statsUri} class="stats" alt="Stats" />
           {/if}
-          
+
       </div>
     </div>
       </CardDrop>
       <div class="card-actions">
-        <button type="button" on:click={() => zoomLevel = zoomLevel === 1 ? 2 : 1}>Skala: {zoomLevel * 100}%</button>
+        <button type="button" onclick={() => zoomLevel = zoomLevel === 1 ? 2 : 1}>Skala: {zoomLevel * 100}%</button>
         {#if editMode}
-          <button type="button" class="btn-go" on:click={downloadImage}>Pobierz obrazek</button>
+          <button type="button" class="btn-go" onclick={downloadImage}>Pobierz obrazek</button>
           <GallerySave pixels={cardPixels} prefix={'uskalpel-' + selectedBorder} />
         {/if}
       </div>
@@ -837,7 +846,7 @@
   .cropper-container.under-real :global(img) { opacity: 0; }
   .dere { z-index: 50; }
   .stats { z-index: 60; }
-  
+
   .upscale-border {
     position: absolute;
     top: 0;
@@ -856,7 +865,7 @@
     box-shadow: none !important;
     color: transparent !important;
   }
-  
+
   .green-bg {
     position: absolute;
     top: 0;

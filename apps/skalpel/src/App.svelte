@@ -31,32 +31,32 @@
   // the dere's badge, cut out of the bot's picture of it (32x34 px at 221,628), in a 22 px box
   const dereIcon = (dere) => `background-image: url(${pwAssetsBaseUrl}/${dere}.png); background-size: 307.4px 431.6px; background-position: -142.4px -406.4px;`;
 
-  let image = "https://sanakan.pl/i/ss/fga432a.png";
-  let customBorder = "";
-  let showStats = false;
-  let editMode = false;
-  let localImage = false;
-  let mirrorImage = false;
-  let fileName = '';
+  let image = $state("https://sanakan.pl/i/ss/fga432a.png");
+  let customBorder = $state("");
+  let showStats = $state(false);
+  let editMode = $state(false);
+  let localImage = $state(false);
+  let mirrorImage = $state(false);
+  let fileName = $state('');
 
-  let starCntComp = 0;
-  let selectedStarComp;
-  let selectedBorder =  'C';
-  let selectedDere = 'Kamidere';
+  let starCntComp = $state(0);
+  let selectedStarComp = $state();
+  let selectedBorder =  $state('C');
+  let selectedDere = $state('Kamidere');
 
-  let pixelCrop, profilePicture, style, borderColor;
+  let pixelCrop, profilePicture = $state(), style, borderColor = $state();
   // bound to the cropper, which takes no undefined for them
-  let minzoom = 1, curzoom = 1;
+  let minzoom = $state(1), curzoom = $state(1);
 
   // the crop in % of the picture: unlike pixelCrop it is not rounded
   let cropPercent = null;
-  let canvaEl;
+  let canvaEl = $state();
   // what the cropper shows; its own numbers only if the screen has none
   const currentCrop = () => cropOnScreen(canvaEl) ?? cropPercent;
   // the picture of the card, under its frame
   const card = { width: 448, height: 650 };
   // extra sharpening; without it the scaling keeps the picture as it is
-  let sharpen = 0;
+  let sharpen = $state(0);
   const sharpenLevels = [
     { value: 0, label: 'Brak', title: 'Wierne skalowanie, bez wyostrzania' },
     { value: 0.3, label: 'Lekkie' },
@@ -66,9 +66,9 @@
 
   // Real preview: the cropper shows the picture as the browser scales it, so
   // once the crop stops moving, the scaled crop of the saved file is put over it
-  let realPreview = true;
-  let previewUrl = '';
-  let previewStale = true;
+  let realPreview = $state(true);
+  let previewUrl = $state('');
+  let previewStale = $state(true);
   let previewTimer;
   let previewToken = 0;
 
@@ -92,11 +92,15 @@
     }
   }
 
-  $: sharpen, realPreview, editMode, image, schedulePreview();
+  // a new preview when what it shows changes (the crop asks for one itself)
+  $effect(() => {
+    sharpen, realPreview, editMode, image;
+    untrack(schedulePreview);
+  });
 
   // on narrow screens the card (481 px with its frame) is scaled down to fit
-  let winWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
-  $: fitScale = Math.min(1, (winWidth - 32) / 481);
+  let winWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1280);
+  let fitScale = $derived(Math.min(1, (winWidth - 32) / 481));
 
   // the card as it is saved, as a blob: address
   const renderCard = () => getCroppedImg(image, currentCrop(), { ...card, sharpen });
@@ -130,9 +134,9 @@
   }
 
   // a file from the drop zone or dropped onto the card
-  function onFile(e) {
-    fileName = e.detail.name;
-    readImageFile(e.detail);
+  function onFile(file) {
+    fileName = file.name;
+    readImageFile(file);
   }
 
   // a picture of the account's own folder in the gallery, by its link
@@ -218,17 +222,17 @@
 
       <section class="group">
         <h2 class="group-title"><i>02</i>Obraz</h2>
-        <DropZone bind:fileName on:file={onFile} />
+        <DropZone bind:fileName onfile={onFile} />
         <GalleryPick onpick={onPick} />
         {#if !localImage}
           <div class="field"><span class="label">Link do obrazka</span><LinkField bind:value={image} label="Link do obrazka" placeholder="https://…" /></div>
         {/if}
-        <Switch label="Odbicie lustrzane" bind:checked={mirrorImage} on:change={() => toMirrorImage()} />
+        <Switch label="Odbicie lustrzane" bind:checked={mirrorImage} onchange={() => toMirrorImage()} />
       </section>
 
       <section class="group">
         <h2 class="group-title"><i>03</i>Edycja</h2>
-        <Switch label="Tryb edycji" bind:checked={editMode} on:change={() => borderColor = ""} />
+        <Switch label="Tryb edycji" bind:checked={editMode} onchange={() => borderColor = ""} />
         {#if editMode}
           <div class="field"><span class="label">Wyostrzenie</span><Segmented bind:value={sharpen} options={sharpenLevels} label="Wyostrzenie" words /></div>
           <Switch label="Podgląd wyniku" bind:checked={realPreview}
@@ -238,7 +242,7 @@
     </div>
 
     <div class="card-col">
-      <CardDrop on:file={onFile}>
+      <CardDrop onfile={onFile}>
         <div class="card-fit" style="width: {481 * fitScale}px; height: {673 * fitScale}px;">
         <div class="looks" style="border-color: {borderColor}; transform: scale({fitScale});" >
           <img src={cardboard} class="cardboard" alt="Cardboard" />
@@ -279,7 +283,7 @@
       </CardDrop>
       {#if editMode}
         <div class="card-actions">
-          <button type="button" class="btn-go" on:click={async () => {downloadImage()}}>Zapisz</button>
+          <button type="button" class="btn-go" onclick={async () => {downloadImage()}}>Zapisz</button>
           <GallerySave pixels={cardPixels} prefix="skalpel" />
         </div>
       {/if}

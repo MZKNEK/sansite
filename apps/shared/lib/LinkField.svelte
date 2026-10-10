@@ -4,17 +4,13 @@
   // button to clear it.
   import { onDestroy } from 'svelte';
 
-  export let value = '';
-  export let placeholder = '';
-  export let label = '';
+  let { value = $bindable(''), placeholder = '', label = '' } = $props();
 
-  let input;
-  let status = '';
-  let size = '';
+  let input = $state();
+  let status = $state('');
+  let size = $state('');
   let timer;
   let probe;
-
-  $: check(value);
 
   // waits for the typing to stop, then tries to load the picture
   function check(url) {
@@ -40,6 +36,9 @@
   }
 
   onDestroy(() => clearTimeout(timer));
+  $effect(() => {
+    check(value);
+  });
 </script>
 
 <div class="link-field">
@@ -53,6 +52,6 @@
     </span>
   {/if}
   {#if value}
-    <button type="button" class="link-clear" title="Wyczyść" on:click={() => { value = ''; input.focus(); }}>✕</button>
+    <button type="button" class="link-clear" title="Wyczyść" onclick={() => { value = ''; input.focus(); }}>✕</button>
   {/if}
 </div>
