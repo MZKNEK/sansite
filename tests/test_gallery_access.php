@@ -169,6 +169,46 @@
         assertSame(['sub/s.png'], $names);
     });
 
+    // ZIP and GD are there in CI (.github/workflows/ci.yml): a test for them is
+    // left out only on a computer without them, never there
+    function needExtension($ok, $name)
+    {
+        if (!$ok && getenv('CI'))
+            test_assert(false, 'CI has no ' . $name . ', the test of it would be left out');
+
+        return $ok;
+    }
+
+    test('the real ZIP of a folder holds what the visitor may see', function () {
+        if (!needExtension(canZip(), 'ZIP'))
+            return;
+        $base = tempDir();
+        foreach (['private', 'users/9-x', 'sub'] as $dir)
+            mkdir($base . '/' . $dir, 0700, true);
+        foreach (['a.png' => 'A', 'index.php' => 'x', 'private/p.png' => 'P', 'users/9-x/u.png' => 'U', 'sub/b.png' => 'B'] as $file => $content)
+            file_put_contents($base . '/' . $file, $content);
+
+        sessionFor('sanakan-zip-real', ['id' => '111', 'name' => 'A', 'avatar' => 'a']);
+        $files = [];
+        $bytes = 0;
+        foreach (galleryZipRoots($base, [[$base, '']]) as $root)
+            zipCollect($root[0], $root[1], $root[2], $files, $bytes, 0, $root[3]);
+        sessionEnd();
+        $path = tempDir() . '/test.zip';
+        assertTrue(writeZip($files, $path));
+
+        $zip = new ZipArchive();
+        assertTrue($zip->open($path) === true);
+        $names = [];
+        for ($i = 0; $i < $zip->numFiles; $i++)
+            $names[] = $zip->getNameIndex($i);
+        sort($names);
+        assertSame(['i/a.png', 'i/sub/b.png', 'i/users/9-x/u.png'], $names, 'the private folder and the script stay out');
+        assertSame('B', $zip->getFromName('i/sub/b.png'));
+        assertSame(ZipArchive::CM_STORE, $zip->statName('i/a.png')['comp_method'], 'stored, not compressed');
+        $zip->close();
+    });
+
     test('a ZIP does not follow links', function () {
         $base = tempDir();
         $outside = tempDir();

@@ -4,10 +4,8 @@
     // be without php-gd; CI enables gd.
 
     test('the GD image helpers', function () {
-        if (!hasGd()) {
-            assertFalse(hasGd(), 'no gd here');
+        if (!needExtension(hasGd(), 'GD'))
             return;
-        }
 
         $dir = tempDir();
         $img = imagecreatetruecolor(100, 50);
@@ -37,10 +35,8 @@
     });
 
     test('stripMetadata drops a PNG text chunk', function () {
-        if (!hasGd()) {
-            assertFalse(hasGd());
+        if (!needExtension(hasGd(), 'GD'))
             return;
-        }
         $dir = tempDir();
         $img = imagecreatetruecolor(4, 4);
         imagepng($img, $dir . '/a.png');

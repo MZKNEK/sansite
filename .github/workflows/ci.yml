@@ -19,7 +19,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, curl, gd
+          # gd and zip: their tests fail rather than being left out without them
+          extensions: mbstring, curl, gd, zip
           ini-values: error_reporting=-1, display_errors=On
           coverage: none
 

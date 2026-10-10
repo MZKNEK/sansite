@@ -148,3 +148,25 @@
         assertSame('a.png', restoreFromTrash($base, $id, $error));
         assertSame([], glob(operationsDir() . '/*.json') ?: []);
     });
+
+    test('the inventory finds what the new limits and checks would refuse', function () {
+        $gallery = tempDir();
+        mkdir($gallery . '/users/556-U', 0755, true);
+        file_put_contents($gallery . '/users/556-U/a.png', 'x');
+        file_put_contents($gallery . '/users/556-U/b.png', 'x');
+        writeData('access', ['uploadLimits' => ['556' => 1]]);
+        // a picture too big by its header alone
+        $ihdr = pack('NNCCCCC', 30000, 30000, 8, 6, 0, 0, 0);
+        file_put_contents($gallery . '/bomb.png', "\x89PNG\r\n\x1a\n" . pack('N', 13) . 'IHDR' . $ihdr . pack('N', crc32('IHDR' . $ihdr)));
+        file_put_contents(dataDir() . '/broken.json', '{"cut');
+        $odd = @file_put_contents($gallery . "/zdj\xEAcie.png", 'x') !== false && is_file($gallery . "/zdj\xEAcie.png");
+
+        $report = maintenanceInventory($gallery);
+        assertSame(['broken.json: uszkodzony (zmiany go nie nadpiszą)'], $report['json']);
+        assertSame(1, count($report['accounts']));
+        assertTrue(strpos($report['accounts'][0], '2 z 1 plików') !== false, $report['accounts'][0]);
+        assertTrue(strpos(implode("\n", $report['pictures']), 'bomb.png') !== false);
+        if ($odd)
+            assertSame(1, count($report['names']), 'a name that is not UTF-8');
+        assertTrue(is_file(dataDir() . '/broken.json') && is_file($gallery . '/users/556-U/b.png'), 'nothing is changed');
+    });

@@ -56,3 +56,29 @@
             }
         }
     });
+
+    // writeData() puts a whole document in place of what is there: right for
+    // what one writer makes whole each time, wrong for a list others change
+    // too, which goes through updateData() (inc/storage.php). A new use has to
+    // be one of the first kind and be added here.
+    test('a whole document is written over only where nothing else changes it', function () {
+        $allowed = [
+            // "log out everyone": the time sessions start from, all of it
+            'inc/admin/actions.php' => ['sessions'],
+            // the state of the automatic blocking, only its run (under autoblock.lock) writes it
+            'inc/autoblock.php' => ['autoblock'],
+            // what Cloudflare said, made again from its answers
+            'inc/cloudflare.php' => ['cloudflare-pause', 'cloudflare-list'],
+            // the panel's numbers, counted again whole
+            'inc/panel-stats.php' => ['panel-stats'],
+            // the mirror of the cards' pictures, only its sync (under pw.lock) writes it
+            'inc/pw.php' => ['pw'],
+        ];
+        $root = dirname(__DIR__);
+        $found = [];
+        foreach (siteSources() as $file)
+            if (preg_match_all("/\bwriteData\('([\w-]+)'/", (string)file_get_contents($root . '/' . $file), $match))
+                $found[$file] = array_values(array_unique($match[1]));
+        ksort($found);
+        assertSame($allowed, $found);
+    });

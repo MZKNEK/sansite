@@ -94,19 +94,9 @@
 
         @set_time_limit(0);
         $tmp = @tempnam(sys_get_temp_dir(), 'sanakan-zip-');
-        $zip = new ZipArchive();
-        if ($tmp === false || $zip->open($tmp, ZipArchive::OVERWRITE) !== true)
-            $fail('Nie udało się utworzyć pliku ZIP.');
-        foreach ($files as $file) {
-            if ($file[0] === null) {
-                $zip->addEmptyDir($file[1]);
-            } else {
-                $zip->addFile($file[0], $file[1]);
-                $zip->setCompressionName($file[1], ZipArchive::CM_STORE);
-            }
-        }
-        if (!$zip->close()) {
-            @unlink($tmp);
+        if ($tmp === false || !writeZip($files, $tmp)) {
+            if ($tmp !== false)
+                @unlink($tmp);
             $fail('Nie udało się utworzyć pliku ZIP.');
         }
 
@@ -118,4 +108,24 @@
         readfile($tmp);
         @unlink($tmp);
         exit;
+    }
+
+    // Writes the files of zipCollect() ([full path or null for an empty folder,
+    // path in the ZIP] each) into a ZIP at $path, stored without compression;
+    // false when it could not be written.
+    function writeZip($files, $path)
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true)
+            return false;
+        foreach ($files as $file) {
+            if ($file[0] === null) {
+                $zip->addEmptyDir($file[1]);
+            } else {
+                $zip->addFile($file[0], $file[1]);
+                $zip->setCompressionName($file[1], ZipArchive::CM_STORE);
+            }
+        }
+
+        return $zip->close();
     }
