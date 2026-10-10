@@ -118,11 +118,10 @@
     function botRecordCheck($online, $now, $ms = null, $shinden = null, $name = 'status-history.txt')
     {
         $history = [];
-        $fp = @fopen(botFile($name), 'c+');
-        $locked = $fp !== false && flock($fp, LOCK_EX);
+        $lock = fileLock(botFile($name) . '.lock', true);
 
-        if ($locked) {
-            while (($line = fgets($fp)) !== false) {
+        if ($lock !== null) {
+            foreach (@file(botFile($name)) ?: [] as $line) {
                 $check = botParseCheck($line);
                 if ($check && $check[0] > $now - BOT_HISTORY_SPAN)
                     $history[] = $check;
@@ -131,21 +130,19 @@
 
         $history[] = [$now, $online, $ms, $shinden];
 
-        if ($locked) {
-            ftruncate($fp, 0);
-            rewind($fp);
+        if ($lock !== null) {
+            $text = '';
             foreach ($history as $entry) {
                 $line = $entry[0] . ' ' . ($entry[1] ? '1' : '0');
                 if ($entry[2] !== null || $entry[3] !== null)
                     $line .= ' ' . ($entry[2] ?? '-');
                 if ($entry[3] !== null)
                     $line .= ' ' . $entry[3];
-                fwrite($fp, $line . "\n");
+                $text .= $line . "\n";
             }
-            flock($fp, LOCK_UN);
+            replaceFile(botFile($name), $text);
+            fclose($lock);
         }
-        if ($fp !== false)
-            fclose($fp);
 
         // checks during a planned break do not count, as its outages do not
         $windows = botMaintenanceWindows();
@@ -210,14 +207,11 @@
     // day the history reaches is filled from it.
     function botRecordDay($online, $now, $name = 'days.json', $historyName = 'status-history.txt')
     {
-        $fp = @fopen(botFile($name), 'c+');
-        if ($fp === false || !flock($fp, LOCK_EX)) {
-            if ($fp !== false)
-                fclose($fp);
+        $lock = fileLock(botFile($name) . '.lock', true);
+        if ($lock === null)
             return;
-        }
 
-        $days = json_decode((string)stream_get_contents($fp), true);
+        $days = json_decode((string)@file_get_contents(botFile($name)), true);
         $first = !is_array($days);
         $days = $first ? [] : $days;
         $today = date('Y-m-d', $now);
@@ -243,9 +237,8 @@
         ksort($days);
         $days = array_slice($days, -BOT_DAYS_KEEP, null, true);
 
-        rewriteLocked($fp, encodeData($days));
-        flock($fp, LOCK_UN);
-        fclose($fp);
+        writeJsonFile(botFile($name), $days);
+        fclose($lock);
     }
 
     function botDays($name = 'days.json')
@@ -274,14 +267,11 @@
     // time, they are read from the 24 h history instead.
     function botRecordIncident($online, $now)
     {
-        $fp = @fopen(botFile('incidents.json'), 'c+');
-        if ($fp === false || !flock($fp, LOCK_EX)) {
-            if ($fp !== false)
-                fclose($fp);
+        $lock = fileLock(botFile('incidents.json') . '.lock', true);
+        if ($lock === null)
             return;
-        }
 
-        $incidents = json_decode((string)stream_get_contents($fp), true);
+        $incidents = json_decode((string)@file_get_contents(botFile('incidents.json')), true);
         $before = $incidents;
         if (!is_array($incidents)) {
             // the history already has this check in it
@@ -295,10 +285,9 @@
         // most checks change nothing, then the file is not rewritten
         if ($incidents !== $before) {
             $incidents = array_slice($incidents, -BOT_INCIDENTS_KEEP);
-            rewriteLocked($fp, encodeData($incidents));
+            writeJsonFile(botFile('incidents.json'), $incidents);
         }
-        flock($fp, LOCK_UN);
-        fclose($fp);
+        fclose($lock);
     }
 
     function botAddToIncidents(&$incidents, $online, $time)
@@ -462,14 +451,11 @@
 
     function botTrackCommands($data, $now)
     {
-        $fp = @fopen(botFile('commands-index.json'), 'c+');
-        if ($fp === false || !flock($fp, LOCK_EX)) {
-            if ($fp !== false)
-                fclose($fp);
+        $lock = fileLock(botFile('commands-index.json') . '.lock', true);
+        if ($lock === null)
             return;
-        }
 
-        $stored = json_decode((string)stream_get_contents($fp), true);
+        $stored = json_decode((string)@file_get_contents(botFile('commands-index.json')), true);
         $index = botCommandIndex($data);
         // an index of an older format differs from the new one by its keys and
         // texts, not by what the bot changed, so it is only written again
@@ -503,10 +489,9 @@
                 botWriteFile(botFile('commands-changes.json'), json_encode(array_slice($log, -BOT_CHANGES_KEEP), JSON_UNESCAPED_UNICODE));
             }
 
-            rewriteLocked($fp, encodeData(['since' => $stored['since'] ?? $now, 'format' => COMMAND_INDEX_FORMAT, 'commands' => $index], JSON_UNESCAPED_UNICODE));
+            writeJsonFile(botFile('commands-index.json'), ['since' => $stored['since'] ?? $now, 'format' => COMMAND_INDEX_FORMAT, 'commands' => $index], JSON_UNESCAPED_UNICODE);
         }
-        flock($fp, LOCK_UN);
-        fclose($fp);
+        fclose($lock);
     }
 
     // the logged changes, newest first
@@ -950,14 +935,11 @@
         if ($version === '')
             return;
 
-        $fp = @fopen(botFile('versions.json'), 'c+');
-        if ($fp === false || !flock($fp, LOCK_EX)) {
-            if ($fp !== false)
-                fclose($fp);
+        $lock = fileLock(botFile('versions.json') . '.lock', true);
+        if ($lock === null)
             return;
-        }
 
-        $versions = json_decode((string)stream_get_contents($fp), true);
+        $versions = json_decode((string)@file_get_contents(botFile('versions.json')), true);
         $versions = is_array($versions) ? $versions : [];
         $last = $versions ? $versions[count($versions) - 1] : null;
 
@@ -968,10 +950,9 @@
                 $started = $now;
             $versions[] = ['version' => $version, 'since' => $started, 'seen' => $now];
             $versions = array_slice($versions, -BOT_VERSIONS_KEEP);
-            rewriteLocked($fp, encodeData($versions, JSON_UNESCAPED_UNICODE));
+            writeJsonFile(botFile('versions.json'), $versions, JSON_UNESCAPED_UNICODE);
         }
-        flock($fp, LOCK_UN);
-        fclose($fp);
+        fclose($lock);
     }
 
     // the version changes, newest first, as ['version', 'since' => when it

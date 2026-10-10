@@ -124,9 +124,14 @@
         if (isset($cached['time'], $cached['items']) && $cached['time'] > time() - CLOUDFLARE_ITEMS_FRESH)
             return [$cached['items'], null];
 
+        $asked = time();
         [$items, $error] = cloudflareReadBlocked();
         if ($items !== null) {
-            writeData('cloudflare-items', ['time' => time(), 'items' => $items]);
+            // a change of the site's own made while the list was being read
+            // (cloudflareListChanged()) keeps it to be read again
+            updateData('cloudflare-items', function (&$stored) use ($asked, $items) {
+                $stored = ($stored['changed'] ?? 0) >= $asked ? ['items' => $items] + $stored : ['time' => time(), 'items' => $items];
+            });
 
             return [$items, null];
         }
@@ -138,9 +143,10 @@
     // cloudflareBlocked(), the one read before kept for when that fails
     function cloudflareListChanged()
     {
-        $cached = readData('cloudflare-items');
-        if (isset($cached['items']))
-            writeData('cloudflare-items', ['time' => 0, 'items' => $cached['items']]);
+        updateData('cloudflare-items', function (&$cached) {
+            if (isset($cached['items']))
+                $cached = ['time' => 0, 'changed' => time(), 'items' => $cached['items']];
+        });
     }
 
     // the list as Cloudflare has it now (cloudflareBlocked())

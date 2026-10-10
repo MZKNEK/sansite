@@ -12,9 +12,7 @@
     require __DIR__ . '/pw.php';
 
     if (in_array('--force', $argv, true)) {
-        $state = readData('pw');
-        $state['checked'] = 0;
-        writeData('pw', $state);
+        updateData('pw', function (&$state) { $state['checked'] = 0; });
     }
     $done = pwSync(time(), 600);
     $status = pwStatus();

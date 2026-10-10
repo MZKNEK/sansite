@@ -423,34 +423,43 @@
                 if ($config !== true && in_array($id, $config, true))
                     reply(false, 'To konto jest już na tej liście w konfiguracji.', 409);
 
-                $access = readData('access');
-                if (isset($access[$list][$id]))
-                    reply(false, 'To konto jest już na tej liście.', 409);
-
-                $access[$list][$id] = [
+                $entry = [
                     'note' => cutText(trim((string)($_POST['note'] ?? '')), 60),
                     'added' => time(),
                     'by' => $user['id']
                 ];
-                if (!writeData('access', $access))
+                $saved = updateData('access', function (&$access) use ($list, $id, $entry) {
+                    if (isset($access[$list][$id]))
+                        return false;
+                    $access[$list][$id] = $entry;
+                    return true;
+                }, $added);
+                if (!$saved)
                     reply(false, dataError(), 500);
-                // a request of this account is answered now
+                if (!$added)
+                    reply(false, 'To konto jest już na tej liście.', 409);
+                // a request of this account is answered now; the right is written
+                // first, and a request a failure here leaves goes at the next look
+                // at the panel (the requests of accounts let in are dropped there)
                 $for = $list === 'apiViewers' ? 'api' : 'gallery';
-                $requests = readData('requests');
-                if (isset($requests[$for][$id])) {
+                updateData('requests', function (&$requests) use ($for, $id) {
                     unset($requests[$for][$id]);
-                    writeData('requests', $requests);
-                }
+                });
                 done('access', 'Dodano ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'revoke':
-                $access = readData('access');
-                if (!isset(ACCESS_LISTS[$list]) || !isset($access[$list][$id]))
+                if (!isset(ACCESS_LISTS[$list]))
                     reply(false, 'Nie ma takiego wpisu (wpisy z konfiguracji zmienia się w inc/config.php).', 404);
-
-                unset($access[$list][$id]);
-                if (!writeData('access', $access))
+                $saved = updateData('access', function (&$access) use ($list, $id) {
+                    if (!isset($access[$list][$id]))
+                        return false;
+                    unset($access[$list][$id]);
+                    return true;
+                }, $found);
+                if (!$saved)
                     reply(false, dataError(), 500);
+                if (!$found)
+                    reply(false, 'Nie ma takiego wpisu (wpisy z konfiguracji zmienia się w inc/config.php).', 404);
                 done('access', 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'upload-limit':
@@ -459,24 +468,28 @@
                 $limit = (int)($_POST['limit'] ?? 0);
                 if ($limit < 1 || $limit > USER_FILES_MAX)
                     reply(false, 'Limit to od 1 do ' . USER_FILES_MAX . ' zdjęć.', 400);
-                $access = readData('access');
-                if ($limit === USER_FILES_DEFAULT)
-                    unset($access['uploadLimits'][$id]);
-                else
-                    $access['uploadLimits'][$id] = $limit;
-                if (!writeData('access', $access))
+                $saved = updateData('access', function (&$access) use ($id, $limit) {
+                    if ($limit === USER_FILES_DEFAULT)
+                        unset($access['uploadLimits'][$id]);
+                    else
+                        $access['uploadLimits'][$id] = $limit;
+                });
+                if (!$saved)
                     reply(false, dataError(), 500);
                 done('access', 'Limit zdjęć we własnym folderze ' . accountLabel($id, $logins) . ': ' . $limit . '.');
 
             case 'share-revoke':
                 $token = (string)($_POST['token'] ?? '');
-                $shares = readData('shares');
-                if (!isset($shares[$token]['rel']))
-                    reply(false, 'Tego linku już nie ma, odśwież stronę.', 404);
-                $rel = (resolvePath($galleryDir, $shares[$token]['rel'], true) ?? [null, $shares[$token]['rel']])[1];
-                unset($shares[$token]);
-                if (!writeData('shares', $shares))
+                $saved = updateData('shares', function (&$shares) use ($token) {
+                    $share = $shares[$token] ?? null;
+                    unset($shares[$token]);
+                    return $share;
+                }, $share);
+                if (!$saved)
                     reply(false, dataError(), 500);
+                if (!isset($share['rel']))
+                    reply(false, 'Tego linku już nie ma, odśwież stronę.', 404);
+                $rel = (resolvePath($galleryDir, $share['rel'], true) ?? [null, $share['rel']])[1];
                 done('share', 'Wyłączono link do ' . galleryPath($rel) . '.');
 
             case 'test-rights':
@@ -508,12 +521,18 @@
 
             case 'request-dismiss':
                 $for = (string)($_POST['for'] ?? '');
-                $requests = readData('requests');
-                if (!isset(REQUEST_LABELS[$for], $requests[$for][$id]))
+                if (!isset(REQUEST_LABELS[$for]))
                     reply(false, 'Tej prośby już nie ma, odśwież stronę.', 404);
-                unset($requests[$for][$id]);
-                if (!writeData('requests', $requests))
+                $saved = updateData('requests', function (&$requests) use ($for, $id) {
+                    if (!isset($requests[$for][$id]))
+                        return false;
+                    unset($requests[$for][$id]);
+                    return true;
+                }, $found);
+                if (!$saved)
                     reply(false, dataError(), 500);
+                if (!$found)
+                    reply(false, 'Tej prośby już nie ma, odśwież stronę.', 404);
                 done('access', 'Odrzucono prośbę o dostęp do ' . REQUEST_LABELS[$for] . ': ' . accountLabel($id, $logins) . '.');
 
             case 'backup':
@@ -522,8 +541,9 @@
                 // without the logins of the moment (sessions), which would only log people
                 // in again, the thumbnails, which are made again by themselves, and the
                 // availability checks of the last days, and the pictures of the cards,
-                // which cron mirrors from the bot's repository again (inc/pw.php)
-                $roots = [[dataDir(), 'data', ['sessions', 'thumbs', 'diag', 'pw']]];
+                // which cron mirrors from the bot's repository again (inc/pw.php), and
+                // the empty lock files (inc/storage.php)
+                $roots = [[dataDir(), 'data', ['sessions', 'thumbs', 'diag', 'pw', 'locks']]];
                 if ($withGallery)
                     $roots[] = [$galleryDir, 'i', ['index.php']];
                 addHistory('backup', 'Pobrano kopię danych' . ($withGallery ? ' z galerią' : '') . '.');
@@ -542,9 +562,10 @@
                     reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
                 if ($id === $user['id'])
                     reply(false, 'Siebie wyloguj z menu konta w rogu strony.', 400);
-                $sessions = readData('sessions');
-                $sessions['accounts'][$id] = time();
-                if (!writeData('sessions', $sessions))
+                $saved = updateData('sessions', function (&$sessions) use ($id) {
+                    $sessions['accounts'][$id] = time();
+                });
+                if (!$saved)
                     reply(false, dataError(), 500);
                 done('sessions', 'Wylogowano ' . accountLabel($id, $logins) . ' na wszystkich urządzeniach.');
 
@@ -586,14 +607,14 @@
                 done('notice', 'Usunięto ogłoszenie.');
 
             case 'quality':
-                $settings = readData('settings');
+                $qualities = [];
                 $parts = [];
                 foreach (['jpg' => 'JPG', 'png' => 'PNG', 'gif' => 'GIF', 'avif' => 'AVIF'] as $kind => $label) {
                     $value = max(WEBP_QUALITY_MIN, min(WEBP_QUALITY_MAX, (int)($_POST['quality' . ucfirst($kind)] ?? 0)));
-                    $settings['quality' . ucfirst($kind)] = $value;
+                    $qualities['quality' . ucfirst($kind)] = $value;
                     $parts[] = $label . ' ' . $value;
                 }
-                if (!writeData('settings', $settings))
+                if (!updateData('settings', function (&$settings) use ($qualities) { $settings = $qualities + $settings; }))
                     reply(false, dataError(), 500);
                 done('quality', 'Zmieniono jakość konwersji na WebP: ' . implode(', ', $parts) . '.');
 
@@ -661,16 +682,13 @@
             case 'auto-block':
                 if (!cloudflareConfigured())
                     reply(false, 'Blokowanie w Cloudflare nie jest ustawione.', 503);
-                $settings = readData('settings');
-                $settings['autoBlock'] = ($_POST['on'] ?? '') === '1';
-                if (!writeData('settings', $settings))
+                $on = ($_POST['on'] ?? '') === '1';
+                if (!updateData('settings', function (&$settings) use ($on) { $settings['autoBlock'] = $on; }))
                     reply(false, dataError(), 500);
-                done('cloudflare', $settings['autoBlock'] ? 'Włączono automatyczne blokowanie skanerów w Cloudflare.' : 'Wyłączono automatyczne blokowanie skanerów w Cloudflare.');
+                done('cloudflare', $on ? 'Włączono automatyczne blokowanie skanerów w Cloudflare.' : 'Wyłączono automatyczne blokowanie skanerów w Cloudflare.');
 
             case 'diag-clear':
-                $settings = readData('settings');
-                $settings['diagSince'] = time();
-                if (!writeData('settings', $settings))
+                if (!updateData('settings', function (&$settings) { $settings['diagSince'] = time(); }))
                     reply(false, dataError(), 500);
                 done('diag', 'Wyczyszczono awarie: karta dostępności liczy od ' . date('j.m.Y H:i') . '.');
 
@@ -764,21 +782,25 @@
         $panelAdmins = configList('PANEL_ADMINS');
         $notice = botNotice();
 
-        // requests for access, newest first; ones of accounts let in meanwhile go away
+        // requests for access, newest first; ones of accounts let in meanwhile go
+        // away, dropped from the file as it is at that moment
+        $keep = function ($stored) {
+            $kept = [];
+            foreach (array_keys(REQUEST_LABELS) as $for)
+                foreach ($stored[$for] ?? [] as $id => $request)
+                    if (!($for === 'gallery' ? canViewGalleryId((string)$id) : canViewApiId((string)$id)))
+                        $kept[$for][(string)$id] = $request;
+
+            return $kept;
+        };
         $stored = readData('requests');
-        $kept = [];
-        $requests = [];
-        foreach (REQUEST_LABELS as $for => $label) {
-            foreach ($stored[$for] ?? [] as $id => $request) {
-                $id = (string)$id;
-                if ($for === 'gallery' ? canViewGalleryId($id) : canViewApiId($id))
-                    continue;
-                $kept[$for][$id] = $request;
-                $requests[] = $request + ['id' => $id, 'for' => $for];
-            }
-        }
+        $kept = $keep($stored);
         if ($kept != $stored)
-            writeData('requests', $kept);
+            updateData('requests', function (&$stored) use ($keep) { $stored = $keep($stored); });
+        $requests = [];
+        foreach ($kept as $for => $list)
+            foreach ($list as $id => $request)
+                $requests[] = $request + ['id' => (string)$id, 'for' => $for];
         usort($requests, function ($a, $b) { return $b['time'] <=> $a['time']; });
 
         // what deploy.sh put on the server: commit, its date and subject

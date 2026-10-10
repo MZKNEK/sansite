@@ -73,9 +73,9 @@
     // automatically again. $target as the list has it (an IPv6 /64).
     function autoBlockReleased($target)
     {
-        $released = readData('autoblock-released');
-        $released[$target] = time();
-        writeData('autoblock-released', $released);
+        updateData('autoblock-released', function (&$released) use ($target) {
+            $released[$target] = time();
+        });
     }
 
     // the lock of a run, so two cron runs do not work at once; false when taken

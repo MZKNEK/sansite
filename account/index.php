@@ -32,9 +32,10 @@
             // like "log out everyone" of the panel, for this account: the sessions
             // started before now end, this one starts again now
             $now = time();
-            $sessions = readData('sessions');
-            $sessions['accounts'][$user['id']] = $now;
-            if (!writeData('sessions', $sessions)) {
+            $saved = updateData('sessions', function (&$sessions) use ($user, $now) {
+                $sessions['accounts'][$user['id']] = $now;
+            });
+            if (!$saved) {
                 setFlash('Nie udało się zapisać, spróbuj później.');
             } else {
                 $_SESSION['login_time'] = $now;

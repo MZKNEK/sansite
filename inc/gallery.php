@@ -944,11 +944,13 @@
         static $tokens = null;
         if ($tokens === null)
             $tokens = readData('user-folders');
-        if ($id !== null && !isset($tokens[$id]))
-            updateDataFile('user-folders.json', function ($data) use ($id, &$tokens) {
-                $data[$id] = $data[$id] ?? bin2hex(random_bytes(8));
-                return $tokens = $data;
-            });
+        // a token that could not be written is not given out: the link would
+        // not lead anywhere after this request
+        if ($id !== null && !isset($tokens[$id]) && updateDataFile('user-folders.json', function ($data) use ($id, &$made) {
+            $data[$id] = $data[$id] ?? bin2hex(random_bytes(8));
+            return $made = $data;
+        }))
+            $tokens = $made;
 
         return $tokens;
     }
@@ -1198,9 +1200,9 @@
     // ZIP open without a login.
 
     // the shares still valid, expired ones dropped
-    function activeShares()
+    function activeShares($shares = null)
     {
-        return array_filter(readData('shares'), function ($share) {
+        return array_filter($shares ?? readData('shares'), function ($share) {
             return is_array($share) && isset($share['rel']) && ($share['expires'] === null || $share['expires'] > time());
         });
     }
@@ -1208,12 +1210,15 @@
     // a new link for a folder, $days from SHARE_DAYS: its token, or null
     function createShare($rel, $days, $user)
     {
-        $shares = activeShares();
         $token = bin2hex(random_bytes(12));
-        $shares[$token] = ['rel' => publicRel($rel), 'by' => $user['id'], 'name' => $user['name'], 'created' => time(),
+        $share = ['rel' => publicRel($rel), 'by' => $user['id'], 'name' => $user['name'], 'created' => time(),
             'expires' => $days > 0 ? time() + $days * 86400 : null];
+        $saved = updateData('shares', function (&$shares) use ($token, $share) {
+            $shares = activeShares($shares);
+            $shares[$token] = $share;
+        });
 
-        return writeData('shares', $shares) ? $token : null;
+        return $saved ? $token : null;
     }
 
     // the folders shared with this visitor, by the tokens in its session
@@ -2062,8 +2067,17 @@
         };
         $walk($from === '' ? $base : $base . '/' . $from, $from, 0);
 
-        if ($cache !== $before)
-            writeData('hashes', $cache);
+        // the files were hashed without holding the file; only the hashes made
+        // now go in, over what others wrote meanwhile
+        $made = [];
+        foreach ($cache as $rel => $entry)
+            if (($before[$rel] ?? null) !== $entry)
+                $made[$rel] = $entry;
+        if ($made)
+            updateData('hashes', function (&$fresh) use ($made) {
+                foreach ($made as $rel => $entry)
+                    $fresh[$rel] = $entry;
+            });
 
         return $matches;
     }
@@ -2072,31 +2086,34 @@
     {
         $cache = readData('hashes');
         fileHash($full, $rel, $cache);
-        $cache[$rel]['source'] = $source;
-        writeData('hashes', $cache);
+        $entry = ['source' => $source] + $cache[$rel];
+        updateData('hashes', function (&$fresh) use ($rel, $entry) {
+            $fresh[$rel] = $entry;
+        });
     }
 
     // after a move or rename the cached hashes follow the file, or everything in the folder
     function moveHashes($fromRel, $toRel)
     {
-        $cache = readData('hashes');
-        $moved = [];
-        foreach ($cache as $rel => $entry) {
-            $rel = (string)$rel;
-            if ($rel === $fromRel || strpos($rel, $fromRel . '/') === 0)
-                $rel = $toRel . substr($rel, strlen($fromRel));
-            $moved[$rel] = $entry;
-        }
-        writeData('hashes', $moved);
+        updateData('hashes', function (&$cache) use ($fromRel, $toRel) {
+            $moved = [];
+            foreach ($cache as $rel => $entry) {
+                $rel = (string)$rel;
+                if ($rel === $fromRel || strpos($rel, $fromRel . '/') === 0)
+                    $rel = $toRel . substr($rel, strlen($fromRel));
+                $moved[$rel] = $entry;
+            }
+            $cache = $moved;
+        });
     }
 
     function dropHashes($fromRel)
     {
-        $cache = readData('hashes');
-        foreach (array_keys($cache) as $rel)
-            if ((string)$rel === $fromRel || strpos((string)$rel, $fromRel . '/') === 0)
-                unset($cache[$rel]);
-        writeData('hashes', $cache);
+        updateData('hashes', function (&$cache) use ($fromRel) {
+            foreach (array_keys($cache) as $rel)
+                if ((string)$rel === $fromRel || strpos((string)$rel, $fromRel . '/') === 0)
+                    unset($cache[$rel]);
+        });
     }
 
     // ---- Pictures changed to WebP -----------------------------------------------
@@ -2111,13 +2128,13 @@
     {
         $from = publicRel($fromRel);
         $to = publicRel($toRel);
-        $links = readData('moved');
-        foreach ($links as $old => $new)
-            if ($new === $from)
-                $links[$old] = $to;
-        $links[$from] = $to;
-        unset($links[$to]);
-        writeData('moved', $links);
+        updateData('moved', function (&$links) use ($from, $to) {
+            foreach ($links as $old => $new)
+                if ($new === $from)
+                    $links[$old] = $to;
+            $links[$from] = $to;
+            unset($links[$to]);
+        });
     }
 
     // after a move or rename the links follow the file, or everything in the folder
@@ -2125,16 +2142,11 @@
     {
         $from = publicRel($fromRel);
         $to = publicRel($toRel);
-        $links = readData('moved');
-        $changed = false;
-        foreach ($links as $old => $new) {
-            if ($new === $from || strpos($new, $from . '/') === 0) {
-                $links[$old] = $to . substr($new, strlen($from));
-                $changed = true;
-            }
-        }
-        if ($changed)
-            writeData('moved', $links);
+        updateData('moved', function (&$links) use ($from, $to) {
+            foreach ($links as $old => $new)
+                if ($new === $from || strpos($new, $from . '/') === 0)
+                    $links[$old] = $to . substr($new, strlen($from));
+        });
     }
 
     // a picture that is not there: on to where it went, or a 404
@@ -2362,7 +2374,7 @@
     function clearFinishedMediaJobs($id)
     {
         $removed = 0;
-        updateDataFile('media-jobs.json', function ($data) use ($id, &$removed) {
+        $saved = updateDataFile('media-jobs.json', function ($data) use ($id, &$removed) {
             foreach ($data as $jobId => $job) {
                 if (!is_array($job) || (string)($job['by'] ?? '') !== (string)$id || mediaJobActive($job))
                     continue;
@@ -2372,12 +2384,13 @@
             return $data;
         });
 
-        return $removed;
+        return $saved ? $removed : 0;
     }
 
     // Adds a file to the queue; the request answers without waiting for it.
     // $kind is 'webp' or 'webm'; $source is the hash of what was uploaded, so the
-    // changed file still recognises the original
+    // changed file still recognises the original. Null when it could not be
+    // queued (the file then stays as it was uploaded).
     function addMediaJob($rel, $id, $name, $size, $kind, $source = '')
     {
         $jobId = date('YmdHis') . '-' . bin2hex(random_bytes(4));
@@ -2396,12 +2409,12 @@
             'sizeFrom' => (int)$size,
             'sizeTo' => null
         ];
-        updateDataFile('media-jobs.json', function ($data) use ($jobId, $job) {
+        $saved = updateDataFile('media-jobs.json', function ($data) use ($jobId, $job) {
             $data[$jobId] = $job;
             return $data;
         });
 
-        return $jobId;
+        return $saved ? $jobId : null;
     }
 
     function updateMediaJob($id, $changes)
@@ -2413,11 +2426,12 @@
         });
     }
 
-    // the oldest file still waiting, taken for conversion; null when there is none
+    // the oldest file still waiting, taken for conversion; null when there is
+    // none, or when taking it could not be written (it is not taken then)
     function claimMediaJob()
     {
         $claimed = null;
-        updateDataFile('media-jobs.json', function ($data) use (&$claimed) {
+        $saved = updateDataFile('media-jobs.json', function ($data) use (&$claimed) {
             $best = null;
             foreach ($data as $id => $job) {
                 if (!is_array($job) || ($job['status'] ?? '') !== 'pending')
@@ -2435,7 +2449,7 @@
             return $data;
         });
 
-        return $claimed;
+        return $saved ? $claimed : null;
     }
 
     // drops jobs that finished long ago and takes back the ones a restart left
@@ -2778,12 +2792,14 @@
     // can still bring it back.
     function hideTrashItem($id)
     {
-        $items = readData('trash');
-        if (!isset($items[$id]))
-            return false;
-        $items[$id]['hidden'] = time();
+        $saved = updateData('trash', function (&$items) use ($id) {
+            if (!isset($items[$id]))
+                return false;
+            $items[$id]['hidden'] = time();
+            return true;
+        }, $found);
 
-        return writeData('trash', $items);
+        return $saved && $found;
     }
 
     function moveToTrash($full, $rel)
@@ -2801,8 +2817,7 @@
         }
 
         $user = siteUser();
-        $items = readData('trash');
-        $items[$id] = [
+        $item = [
             'name' => basename($rel),
             'from' => $rel,
             'folder' => $folder,
@@ -2810,8 +2825,15 @@
             'deleted' => time(),
             'by' => $user['name'] ?? ''
         ];
+        if (updateData('trash', function (&$items) use ($id, $item) { $items[$id] = $item; }))
+            return true;
 
-        return writeData('trash', $items);
+        // without its entry the file could not be found or brought back: it
+        // goes back where it was
+        if (@rename($dir . '/' . basename($rel), $full))
+            @rmdir($dir);
+
+        return false;
     }
 
     // back where it was deleted from (that folder is made again when it is gone);
@@ -2833,23 +2855,26 @@
         if (!file_exists($source) || !@rename($source, $folder . '/' . $name))
             return null;
 
+        if (!updateData('trash', function (&$items) use ($id) { unset($items[$id]); })) {
+            // the entry would stay without its file: the file goes back to the trash
+            @rename($folder . '/' . $name, $source);
+            return null;
+        }
         @rmdir(trashDir() . '/' . $id);
-        unset($items[$id]);
-        writeData('trash', $items);
 
         return ltrim($folderRel . '/' . $name, '/');
     }
 
+    // the entry goes only once its files are gone; what could not be removed
+    // stays in the trash to be tried again
     function deleteFromTrash($id)
     {
-        $items = readData('trash');
-        if (!isset($items[$id]))
+        if (!isset(readData('trash')[$id]))
+            return false;
+        if (!removeTree(trashDir() . '/' . $id) && file_exists(trashDir() . '/' . $id))
             return false;
 
-        removeTree(trashDir() . '/' . $id);
-        unset($items[$id]);
-
-        return writeData('trash', $items);
+        return updateData('trash', function (&$items) use ($id) { unset($items[$id]); });
     }
 
     // [full path, path inside the item] of a picture or film in the trash: the

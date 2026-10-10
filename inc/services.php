@@ -67,14 +67,11 @@
     // records checks as [key => [up, milliseconds]], made at $now
     function servicesRecord($results, $now)
     {
-        $fp = @fopen(botFile('services.json'), 'c+');
-        if ($fp === false || !flock($fp, LOCK_EX)) {
-            if ($fp !== false)
-                fclose($fp);
+        $lock = fileLock(botFile('services.json') . '.lock', true);
+        if ($lock === null)
             return;
-        }
 
-        $data = json_decode((string)stream_get_contents($fp), true);
+        $data = json_decode((string)@file_get_contents(botFile('services.json')), true);
         $data = is_array($data) ? $data : [];
         $day = date('Y-m-d', $now);
         foreach ($results as $key => [$up, $ms]) {
@@ -91,9 +88,8 @@
             $data[$key] = $entry;
         }
 
-        rewriteLocked($fp, encodeData($data));
-        flock($fp, LOCK_UN);
-        fclose($fp);
+        writeJsonFile(botFile('services.json'), $data);
+        fclose($lock);
     }
 
     // every service as ['key', 'name', 'url', 'up' (null: not checked yet),

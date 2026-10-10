@@ -424,19 +424,13 @@
     }
 
     // Opens a summary file of inc/data/diag/ locked, gives its data to $change
-    // and writes back what that returns.
+    // and writes back what that returns (updateJsonFile(), a broken summary
+    // starts again empty). False when nothing was written.
     function diagUpdate($name, $change)
     {
-        $handle = @fopen(diagDir() . '/' . $name, 'c+');
-        if ($handle === false || !flock($handle, LOCK_EX)) {
-            if ($handle !== false)
-                fclose($handle);
-            return;
-        }
-        $data = json_decode((string)stream_get_contents($handle), true);
-        rewriteLocked($handle, encodeData($change(is_array($data) ? $data : []), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        flock($handle, LOCK_UN);
-        fclose($handle);
+        return updateJsonFile(diagDir() . '/' . $name, diagDir() . '/locks/' . $name . '.lock', function (&$data) use ($change) {
+            $data = $change($data);
+        }, $result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE, true);
     }
 
     // Adds the requests of this round to the scanners: of the addresses that

@@ -140,15 +140,20 @@
             'text' => $text
         ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n";
 
+        // one lock for adding and trimming, so no line is added to the file a
+        // trim is just replacing
         $file = historyFile();
-        @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        $lock = fileLock(dataLockFile('history'), true);
+        @file_put_contents($file, $line, FILE_APPEND);
 
-        // trimmed now and then instead of on every write
+        // trimmed now and then instead of on every write, the whole file at once
         clearstatcache();
-        if (@filesize($file) > 600000) {
+        if ($lock !== null && @filesize($file) > 600000) {
             $lines = @file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-            @file_put_contents($file, implode("\n", array_slice($lines, -HISTORY_KEEP)) . "\n", LOCK_EX);
+            replaceFile($file, implode("\n", array_slice($lines, -HISTORY_KEEP)) . "\n");
         }
+        if ($lock !== null)
+            fclose($lock);
     }
 
     // the newest entries first
@@ -439,6 +444,7 @@
         $age = time() - max($entry['checked'] ?? 0, $entry['tried'] ?? 0);
 
         if ($refresh && $age >= BOT_ROLES_TTL && botAppKey() !== '' && preg_match('/^\d{17,20}$/', $id)) {
+            $asked = time();
             $answer = botAppGet(botRolesUrl($id));
             if ($answer !== null) {
                 $roles = ['onGuild' => !empty($answer['onGuild'])];
@@ -450,13 +456,20 @@
                 $entry = ['tried' => time()] + ($entry ?? []);
             }
 
-            // read again, another request may have written meanwhile
-            $known = readData('roles');
-            $known[$id] = $entry;
-            uasort($known, function ($a, $b) {
-                return max($b['checked'] ?? 0, $b['tried'] ?? 0) <=> max($a['checked'] ?? 0, $a['tried'] ?? 0);
+            // another request may have asked meanwhile: an answer newer than
+            // this question is not overwritten by this one
+            updateData('roles', function (&$known) use ($id, $asked, &$entry) {
+                $stored = $known[$id] ?? null;
+                if ($stored !== null && max($stored['checked'] ?? 0, $stored['tried'] ?? 0) > $asked) {
+                    $entry = $stored;
+                    return;
+                }
+                $known[$id] = $entry;
+                uasort($known, function ($a, $b) {
+                    return max($b['checked'] ?? 0, $b['tried'] ?? 0) <=> max($a['checked'] ?? 0, $a['tried'] ?? 0);
+                });
+                $known = array_slice($known, 0, BOT_ROLES_KEEP, true);
             });
-            writeData('roles', array_slice($known, 0, BOT_ROLES_KEEP, true));
         }
 
         return $entry['roles'] ?? null;
@@ -613,13 +626,12 @@
         if (!isset(HUD_MODES[$mode]) || !isset(HUD_COLORS[$color]))
             return false;
 
-        $all = readData('hud');
-        if ($mode === 'default' && $color === 'own')
-            unset($all[(string)$id]);
-        else
-            $all[(string)$id] = ['mode' => $mode, 'color' => $color];
-
-        return writeData('hud', $all);
+        return updateData('hud', function (&$all) use ($id, $mode, $color) {
+            if ($mode === 'default' && $color === 'own')
+                unset($all[(string)$id]);
+            else
+                $all[(string)$id] = ['mode' => $mode, 'color' => $color];
+        });
     }
 
     // the attributes for <html> that put the chosen HUD and its colour on the
@@ -731,17 +743,22 @@
     function handleAccessRequest($for, $allowed, $back)
     {
         $user = siteUser();
-        $requests = readData('requests');
-        $pending = $requests[$for][$user['id']] ?? null;
 
         if ($allowed) {
             setFlash('To konto ma już dostęp do ' . REQUEST_LABELS[$for] . '.');
-        } else if ($pending && $pending['time'] > time() - 3600) {
-            setFlash('Prośba już czeka na administratora.');
         } else {
             $note = cutText(trim((string)($_POST['note'] ?? '')), REQUEST_NOTE_LENGTH);
-            $requests[$for][$user['id']] = ['name' => $user['name'], 'note' => $note, 'time' => time()];
-            if (writeData('requests', $requests)) {
+            // whether one waits already is decided on the file as it is now
+            $saved = updateData('requests', function (&$requests) use ($for, $user, $note) {
+                $pending = $requests[$for][$user['id']] ?? null;
+                if ($pending && $pending['time'] > time() - 3600)
+                    return false;
+                $requests[$for][$user['id']] = ['name' => $user['name'], 'note' => $note, 'time' => time()];
+                return true;
+            }, $added);
+            if ($saved && !$added) {
+                setFlash('Prośba już czeka na administratora.');
+            } else if ($saved) {
                 addHistory('request', 'Prośba o dostęp do ' . REQUEST_LABELS[$for] . ($note === '' ? '.' : ': „' . $note . '”.'));
                 setFlash('Wysłano prośbę o dostęp. Administrator zobaczy ją w panelu.');
             } else {
@@ -1164,16 +1181,15 @@
     // recent logins, also of accounts without access, so the panel can let them in
     function recordLogin($id, $name, $avatar, $username)
     {
-        $logins = readData('logins');
-        $count = isset($logins[$id]['count']) ? (int)$logins[$id]['count'] : 0;
-        unset($logins[$id]);
-        $logins = [$id => [
-            'name' => $name,
-            'username' => $username,
-            'avatar' => $avatar,
-            'last' => time(),
-            'count' => $count + 1
-        ]] + $logins;
-
-        writeData('logins', array_slice($logins, 0, LOGIN_LOG_SIZE, true));
+        updateData('logins', function (&$logins) use ($id, $name, $avatar, $username) {
+            $count = isset($logins[$id]['count']) ? (int)$logins[$id]['count'] : 0;
+            unset($logins[$id]);
+            $logins = array_slice([$id => [
+                'name' => $name,
+                'username' => $username,
+                'avatar' => $avatar,
+                'last' => time(),
+                'count' => $count + 1
+            ]] + $logins, 0, LOGIN_LOG_SIZE, true);
+        });
     }
