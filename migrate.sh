@@ -1083,7 +1083,7 @@ step_final() {
 step_tune() {
     load_new
     [ -n "${N[prepared]}" ] || die "Najpierw ./migrate.sh prepare $old $new"
-    confirm "Na $new: plik swap (jeśli go nie ma), pula PHP-FPM do 8 procesów i SSH tylko kluczem."
+    confirm "Na $new: plik swap (jeśli go nie ma), pula PHP-FPM do 8 procesów i SSH tylko kluczem (konto ubuntu także hasłem)."
     on "$new" new_tune
 }
 
