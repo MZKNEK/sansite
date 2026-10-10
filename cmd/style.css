@@ -385,13 +385,22 @@ code {
     color: rgba(220, 221, 222, 0.5);
 }
 
+/* only what changed stands out; the text around it is dimmed */
+.change-what .same {
+    color: rgba(220, 221, 222, 0.5);
+}
+
 .change-what del {
-    color: rgba(240, 138, 135, 0.8);
+    color: rgba(240, 138, 135, 0.9);
+    background: rgba(240, 138, 135, 0.1);
+    border-radius: 2px;
 }
 
 .change-what ins {
     text-decoration: none;
     color: #8fe0b0;
+    background: rgba(143, 224, 176, 0.1);
+    border-radius: 2px;
 }
 
 @media only screen and (max-width: 760px) {

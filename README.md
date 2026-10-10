@@ -8,7 +8,7 @@ Website of [Sanakan](https://sanakan.pl), a Discord bot written in C#. Every pag
 | `/cmd/` | The bot's commands, read from its API: search, modules, copyable examples, a link to every command (`/cmd/#daily`, short: `/cmd/daily`, also by an alias), marks on commands new or changed in the last 14 days; the bot's admins and devs and the panel admins also see the moderator and debug commands, marked red with a padlock |
 | `/cmd/zmiany/` | History of the changes in the commands, noticed by comparing every command list with the one before |
 | `/api/` | API documentation (Swagger UI) with an endpoint search, behind a Discord login; the bot's devs, admins, semi-admins and testers get in by their role, an account without access can ask for it |
-| `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version — the version links to `/state/wersje/`), availability over the last 24 hours (quarters of an hour: yellow when less than half the checks went unanswered, red from half on, blue for a planned maintenance break) and 90 days, planned breaks not counted, the Discord ping and Shinden's answer time, whether Shinden and the database answered the bot over 24 hours (from its reports), the bot API as the site sees it (its last check, availability over 24 hours and 90 days, its answer time; a failed last check makes the bot "działa, ale API bota nie odpowiada"), the outages of the last 90 days (outages less than 30 minutes apart shown as one, with how many there were and the time down without the gaps) and the notice from the panel; below, this site (checked every 10 seconds) and the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 90 days. Its link preview is a picture of the current state (`/state/og.php`) |
+| `/state/` | Public bot status: the bot's own report (Discord, database, Shinden, commands, version — the version links to `/state/wersje/`), availability over the last 24 hours (quarters of an hour: yellow when less than half the checks went unanswered, red from half on, blue for a planned maintenance break) and 90 days, planned breaks not counted, the Discord ping and Shinden's answer time, whether Shinden and the database answered the bot over 24 hours (from its reports), the bot API as the site sees it (its last check, availability over 24 hours and 90 days, its answer time; a failed last check makes the bot "działa, ale API bota nie odpowiada"), the outages of the last 90 days (outages less than 30 minutes apart shown as one, with how many there were and the time down without the gaps) and the notice from the panel; below, this site (checked every 10 seconds) and the other Sanakan sites (wiki, Waifu, Alter, Skalpelator, USkalpelator) with their state and 90 days. Every page links it in the footer, next to the privacy notice. Its link preview is a picture of the current state (`/state/og.php`) |
 | `/state/wersje/` | The bot's version history: every version it reported, from when until when it ran and for how long (`?v=<version>` opens one), and below them the older versions written in `inc/verdiff-builtin.md` (1.0.0.0-alpha on) with their date. The versions are listed in series (`1.4.10.x`) that open and close, the newest open, each version one row with its first change; a search box above shows only the versions whose number or changes have the words typed (`js/versions.js`). A version's page links the previous and the next version that have changes, also on the left and right arrow keys. The changes come from `verdiff.md` in the bot's repository (read over HTTP, `BOT_REPO_VERDIFF_URL`), matched to a version by its string, and are rendered on the page with the site's own small Markdown renderer (`inc/markdown.php`); a version the file knows opens from its row and shows its commit if the file has one, and an `@nick` of an account that logged in is drawn as its avatar and nickname. It is reached from the version on `/state/`. Its link preview is the history (`/og.php?p=wersje`), or a version's own with `&v=` |
 | `/i/` | Gallery of pictures (PNG, JPG, GIF, WebP, AVIF, and HEIC written as WebP) and films (WebM, and MP4 written as WebM when smaller), behind a Discord login, with a search across all folders. Files are added with a button, by dragging them onto the page or by pasting a picture (Ctrl+V); photo metadata such as the place they were taken is removed on upload. The line of upload tips in the toolbar can be folded away with a small button, and the choice is remembered in the browser (handy on a phone). Videos get a frame as thumbnail. Folders and picked items download as ZIP. A picture open in the viewer can be renamed (F2) or deleted (Delete) on its own; after a change the page comes back with the same search and sorting, with the renamed picture open again, or with the viewer closed after a delete. A picture or film can be zoomed with the wheel (towards the pointer), dragged once zoomed, and a double click goes back to fit; a click on a film's own controls still works and a drag does not pause it. Admins can turn pictures by 90° and change PNG, JPG, GIF and still WebP files to WebP: the "Na WebP" button asks for a quality, the server makes the WebP aside and shows it next to the original, and only what the admin accepts replaces the original (which goes to the trash); a bigger result is dropped. An uploaded picture (PNG, JPG, GIF, AVIF) or film (MP4) is saved at once and changed to WebP or WebM in the background (kept when the result is smaller; otherwise the original stays; the original goes to the trash and its old link opens the new file). While a file is still waiting or converting, the gallery shows its status to the account that uploaded it, and the file's tile carries a badge; a finished one stays in that panel for five minutes. A HEIC or HEIF from a phone is always written as WebP, an AVIF is treated like a PNG. Every account with a role on the bot's server, user and up, the gallery admins too (so it stays theirs should they lose the rights), has a folder of its own, `i/users/<id>-<nick>`, made the first time it opens the gallery (in links `i/u/<random token>`, so the ID is never in one; the gallery shows it by the nick alone, with the end of the ID when two accounts share a nick, and the folder follows a new nick), and without other access sees only that one (and the gallery admins it): it creates and deletes folders there, adds pictures (saved as WebP when that comes out smaller), renames, turns and deletes them, up to 50 pictures (set per account in its panel profile), 10 MB each and 100 MB in all. The accounts on the `GALLERY_UPLOADERS` list have it blocked, and one that loses its role has no way in either; their folder and files stay. What it deletes lands in its own trash for 30 days, where it can bring it back or take the entry out of its list; that hides it only for the account, the file stays and the panel can still restore it. A gallery admin can share a folder by a link that opens it without a login, for 1, 7 or 30 days or until it is turned off in the panel. An account without access can ask for it |
 | `/admin/` | Admin panel, behind a Discord login: bot status line with the server's clock (its time zones, NTP, and how far it is from the clock of the computer looking), the notice for `/state/` and planned maintenance breaks (the status shows "do not disturb" meanwhile; the dates are picked in the Polish way, dd.mm.rrrr and 24 hours), requests for access, trying other rights for a while to see the live site as an account with them would (with or without the panel, any place in the gallery, with or without the private folder, on or off the API list, any role on the bot's server, 15 minutes by default; for the admin's own session only, with a bar on every page that turns it off), gallery and API access (also the accounts with a folder of their own), the shared gallery links, recent logins with their roles on the bot's server and a column per right (gallery, own folder, panel, API), each row opening to where its rights come from and the buttons to give more and logging everyone out, trash (with a preview of what is in it), change history, gallery statistics and disk space, the availability of the site (checked every 10 seconds through Cloudflare and on the server itself, the wiki for comparison; every failure with what the server went through meanwhile and the addresses that sent most requests, from the nginx log ("Wyczyść awarie" makes the card count from that moment, e.g. after a move to a new server); the scanners of the last 3 days, blocking an address in Cloudflare with one button or the scanners automatically, and the time PHP took per page), the server's resources (processor use, load, waiting for the disk and time taken by the host, memory and swap, charts of processor and memory use over 24 hours, the programs using the most memory, OPcache), server checks, the deployed version and a backup of the data as ZIP. Every account has a profile, `/admin/?konto=ID`: its roles, what it may open (given and taken there), the requests from its addresses in the last 24 hours, the devices it is logged in on (each can be logged out, or all at once), the addresses it came from in the last 30 days and the other accounts at the same ones, what it did in the gallery, its own gallery folder and its photo limit, its requests and history. The search under the title finds accounts by name, @name or ID and addresses whole or by their start, with whose they are. An address of an account of the panel, or the one the admin uses, cannot be blocked |
@@ -41,13 +41,13 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/services.php` | The Sanakan sites, this one included: whether they answer, since when, per day counts |
 | `inc/auth.php` | Discord login (OAuth2), a session of a week kept in `inc/data/sessions/`, access lists, the account's roles on the bot's server (asked with the site's key, kept 10 minutes), change history |
 | `inc/gallery.php` | Gallery: thumbnails (also of videos), uploads without metadata, pictures changed to WebP and films to WebM in the background, the manual change to WebP with a quality and a preview, search, duplicate check, trash, renaming, rotating, ZIP downloads |
-| `inc/text.php` | Escaping, lower case, Polish plurals, byte sizes and thousands, shared by every page (`e()`, `plural()`, `formatSize()`) |
+| `inc/text.php` | Escaping, lower case, Polish plurals, byte sizes and thousands, and what changed between two texts, shared by every page (`e()`, `plural()`, `formatSize()`, `textDiff()`) |
 | `inc/panel-stats.php` | The gallery's numbers and the room `inc/data` takes, counted by `inc/check-bot.php` in the background and only read by the panel |
 | `inc/status-card.php`, `inc/meta.php` | Bot status card and link preview tags (Open Graph) |
 | `inc/verdiff.php`, `inc/verdiff-builtin.md`, `inc/markdown.php` | The bot's changelog (`verdiff.md` in its repository, read over HTTP and cached; the versions from 1.0.0.0-alpha to 1.4.10.13, which the file never described, written in `inc/verdiff-builtin.md` from the bot's commits and listed on the page even when the bot never reported them), the @nick of a known account as its avatar, and the small dependency-free Markdown renderer the version history `state/wersje/` uses |
 | `fonts/`, `css/fonts.css` | The site's fonts (Lato, Sanakan Mono, JetBrains Mono, SIL Open Font License; Sanakan Mono is Share Tech Mono with the Polish letters it lacks added), served from the site instead of Google Fonts, so no visitor's address goes to Google |
 | `inc/fonts/` | Lato and Sanakan Mono (SIL Open Font License) for the preview picture of `/state/` |
-| `privacy/` | Privacy notice, linked from the footer of every page |
+| `privacy/` | Privacy notice, linked from the footer of every page, next to the bot status |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/` and the API documentation |
@@ -68,21 +68,21 @@ The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (serve
 
 ## Server
 
-The site runs on nginx with PHP-FPM, currently Ubuntu with PHP 8.1. Required packages:
+The site runs on nginx with PHP-FPM, currently Ubuntu with PHP 8.5, and the wiki on Node.js 22 (see Wiki below). The code still runs on PHP 8.1 and up, which CI checks too. Required packages (for another PHP version, its number in their names):
 
 ```bash
-apt-get install -y php8.1-fpm php8.1-cli php8.1-gd php8.1-zip php8.1-curl webp ffmpeg imagemagick
+apt-get install -y php8.5-fpm php8.5-cli php8.5-gd php8.5-zip php8.5-curl webp ffmpeg imagemagick
 ```
 
-- `php8.1-gd` makes thumbnails and reads PNG and JPG for the change to WebP.
+- `php8.5-gd` makes thumbnails and reads PNG and JPG for the change to WebP.
 - `webp` (`cwebp`, `gif2webp`, `webpmux`) writes PNG and JPG as WebP: a JPEG or PNG goes through `cwebp` itself, which reads it as it is and keeps its ICC colour profile, so a photo in Display P3 or Adobe RGB does not come out duller or shifted (a JPEG that has to be turned takes GD, and its profile is passed along by hand); without `cwebp` GD writes them. The quality is set per kind (JPG, PNG, GIF, AVIF/HEIC) in the panel, and an AVIF keeps its Exif and XMP out (its metadata items are emptied). It also converts GIFs to animated WebP and makes their thumbnails. An uploaded picture is saved first and changed in the background (by `inc/check-bot.php` from cron), so adding many at once does not wait, and the gallery shows the status meanwhile.
 - `ffmpeg` takes a frame of every film for its thumbnail and writes an uploaded MP4 as WebM (VP9, VP8 where the build has no VP9) when that comes out smaller; the film is saved first and changed in the background (by `inc/check-bot.php` from cron), so a big upload does not wait, and the gallery shows the status meanwhile; without it the tile loads the video itself and MP4 files stay MP4.
 - `imagemagick` (or `ffmpeg`) reads a HEIC or HEIF from a phone and writes it as WebP; without either, such an upload is refused with a message. `apt-get install imagemagick` pulls in libheif on Ubuntu. An AVIF is read by GD when the build has `imagecreatefromavif`, by ImageMagick or ffmpeg otherwise.
-- `php8.1-zip` packs folders for download; without it the ZIP buttons are not shown.
-- `php8.1-cli` runs the bot check from cron.
-- `php8.1-curl` runs the availability checks of the panel, several at once.
+- `php8.5-zip` packs folders for download; without it the ZIP buttons are not shown.
+- `php8.5-cli` runs the bot check from cron.
+- `php8.5-curl` runs the availability checks of the panel, several at once.
 
-The site does not need `php8.1-mbstring` and must keep working without it: code that cuts or counts UTF-8 text checks `function_exists('mb_...')` or uses `preg` instead, as `cutText()` in `inc/auth.php` and the link preview pictures do.
+The site does not need `php8.5-mbstring` and must keep working without it: code that cuts or counts UTF-8 text checks `function_exists('mb_...')` or uses `preg` instead, as `cutText()` in `inc/auth.php` and the link preview pictures do.
 
 ### nginx
 
@@ -113,7 +113,7 @@ ssh sanakan 'bash -s' < server/ufw-cloudflare.sh
 
 ### Wiki
 
-The wiki (Wiki.js 2, `/var/www/wiki` on the same server, without Docker) gets the site's look by hand, from `server/wiki/`:
+The wiki (Wiki.js 2 on Node.js 22, `/var/www/wiki` on the same server, without Docker) gets the site's look by hand, from `server/wiki/`:
 
 - `nginx-site.conf` is the wiki's server block (`/etc/nginx/sites-available/wiki`, enabled by the link `sites-enabled/wiki`): https from Cloudflare with the same certificate as the site, passed to Wiki.js on `127.0.0.1:3000` (`bindIP: 127.0.0.1` in its `config.yml`, so it listens on the server itself only).
 - `theme.css` goes into its Administration → Theme → Code Injection → CSS Override, `head.html` into Head HTML Injection. Wiki.js 2 writes its `og:image` empty and its blue `theme-color` before anything injected, and Discord takes those first ones, so nginx replaces them with the link preview picture `https://sanakan.pl/wiki-og.png` and the site's purple: `nginx-og.conf` goes to `/etc/nginx/snippets/wiki-og.conf`, which `nginx-site.conf` includes. Both are sent by `deploy.sh` like the site's rules:
@@ -136,19 +136,19 @@ Wiki.js keeps `/favicon.ico` in memory, hence the restart. Cloudflare keeps the 
 
 ### PHP-FPM
 
-For the availability checks the pool shows its state and logs where a slow request is stuck. In `/etc/php/8.1/fpm/pool.d/www.conf`:
+For the availability checks the pool shows its state and logs where a slow request is stuck. In `/etc/php/8.5/fpm/pool.d/www.conf`:
 
 ```ini
 pm.status_path = /fpm-status
 request_slowlog_timeout = 5s
-slowlog = /var/log/php8.1-fpm.slow.log
+slowlog = /var/log/php8.5-fpm.slow.log
 ```
 
 The slow log is written by PHP-FPM's master process, as root. When the panel says it cannot read it, let the web server read it:
 
 ```bash
-systemctl restart php8.1-fpm
-touch /var/log/php8.1-fpm.slow.log && chmod 644 /var/log/php8.1-fpm.slow.log
+systemctl restart php8.5-fpm
+touch /var/log/php8.5-fpm.slow.log && chmod 644 /var/log/php8.5-fpm.slow.log
 ```
 
 Upload limit for the gallery (nginx accepts only 1 MB by default):
@@ -158,7 +158,7 @@ Upload limit for the gallery (nginx accepts only 1 MB by default):
 client_max_body_size 64M;
 ```
 
-The same limit goes into `/etc/php/8.1/fpm/php.ini`:
+The same limit goes into `/etc/php/8.5/fpm/php.ini`:
 
 ```ini
 upload_max_filesize = 64M
@@ -209,7 +209,9 @@ const CLOUDFLARE_LIST = 'sanakan_blokada';
 
 The "Ustawienie" list of the card says whether the panel reaches the list.
 
-The scanners can also be blocked automatically ("Blokuj skanery w Cloudflare automatycznie" above the list of scanners; off until turned on). The cron of the availability checks then blocks, every minute, an address that asked in the last day for at least 3 different paths nobody asks for on this site (`/.env`, `/.git/…`, `/wp-login.php`, PHP files the site does not have…); a scanning tool's user agent alone is not enough. It never blocks local and Cloudflare addresses, the addresses logged-in accounts came from, the bot's address (where its reports to `/alive/` come from; the panel cannot block it either), or crawlers and research scanners whose reverse DNS name is under a known domain (Google, Bing, Apple, Yandex, Baidu, Censys, Shodan, Shadowserver… in `AUTO_BLOCK_TRUSTED`) and points back to the address, so one only calling itself Googlebot is blocked. An address unblocked in the panel is not blocked again automatically; automatic blocks come off after 30 days.
+Cloudflare limits how fast its API may be asked and answers too many requests with "Please wait and consider throttling your request speed" (HTTP 429, error 971). So the site asks it as little as it can (`inc/cloudflare.php`): the list is read at most every 2 minutes, not at every opening of the panel or of an account's profile, and again right after a change of its own; all the addresses of one change go in one request; whether Cloudflare has made a change is asked after 0.5, 1 and 1.5 seconds and then every 2 (10 times at most); and after such an answer nothing is asked for 5 minutes (the panel says until when, still showing the list read last).
+
+The scanners can also be blocked automatically ("Blokuj skanery w Cloudflare automatycznie" above the list of scanners; off until turned on). The cron of the availability checks then blocks, every minute, at most 5 at once in one change of the list, an address that asked in the last day for at least 3 different paths nobody asks for on this site (`/.env`, `/.git/…`, `/wp-login.php`, PHP files the site does not have…); a scanning tool's user agent alone is not enough. It never blocks local and Cloudflare addresses, the addresses logged-in accounts came from, the bot's address (where its reports to `/alive/` come from; the panel cannot block it either), or crawlers and research scanners whose reverse DNS name is under a known domain (Google, Bing, Apple, Yandex, Baidu, Censys, Shodan, Shadowserver… in `AUTO_BLOCK_TRUSTED`) and points back to the address, so one only calling itself Googlebot is blocked. An address unblocked in the panel is not blocked again automatically; automatic blocks come off after 30 days, all of a day in one change. While Cloudflare asks to slow down, the automatic blocking waits.
 
 ### Cron
 
@@ -289,4 +291,4 @@ Covered: the text helpers and Polish plurals, the safe paths, the file names, th
 
 Not unit-tested: the DNS reverse lookup of the automatic blocking (`autoBlockTrustedHost()`), the external tool conversions (`cwebp`, `ffmpeg`) beyond the GD path, and a browser's JavaScript beyond `node --check`.
 
-GitHub Actions runs the lint, the suite and the HTTP smoke test on PHP 8.1 and 8.2, and `node --check` on the scripts (`.github/workflows/ci.yml`). `tests/`, `.github/` and `tools/` are `export-ignore`, so `deploy.sh` never sends them to the server.
+GitHub Actions runs the lint, the suite and the HTTP smoke test on PHP 8.5, the server's, and on 8.1, the oldest the code keeps working on (a deprecation notice of PHP fails the lint, the suite and the smoke test, so a newer PHP's are seen before the server shows them), and `node --check` on the scripts with Node.js 22 (`.github/workflows/ci.yml`). `tests/`, `.github/` and `tools/` are `export-ignore`, so `deploy.sh` never sends them to the server.

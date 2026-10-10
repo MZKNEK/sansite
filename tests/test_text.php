@@ -53,3 +53,13 @@
         assertSame('0', formatCount(0));
         assertSame('1 000 000', formatCount(1000000));
     });
+
+    test('textDiff finds what changed, a word at a time', function () {
+        assertSame(['pozwala wyświetlić ', 'liste figurę', 'listę figurek', '/ustawić aktywną figurkę'],
+            textDiff('pozwala wyświetlić liste figurę/ustawić aktywną figurkę', 'pozwala wyświetlić listę figurek/ustawić aktywną figurkę'));
+        assertSame(['a · b', '', ' · c', ''], textDiff('a · b', 'a · b · c'), 'a parameter added at the end');
+        assertSame(['używa ', 'przedmiot', 'przedmiotu', ' na karcie'], textDiff('używa przedmiot na karcie', 'używa przedmiotu na karcie'));
+        assertSame(['', '', 'nowe', ''], textDiff('', 'nowe'));
+        assertSame(['', 'ab', 'aXb', ''], textDiff('ab', 'aXb'), 'never half a word');
+        assertSame(['zażółć ', 'gęślą', 'jaźń', ''], textDiff('zażółć gęślą', 'zażółć jaźń'));
+    });

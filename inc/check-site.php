@@ -17,7 +17,7 @@
     require __DIR__ . '/autoblock.php';
 
     if (!diagAvailable()) {
-        fwrite(STDERR, "Brak rozszerzenia curl: apt-get install -y php8.1-curl\n");
+        fwrite(STDERR, "Brak rozszerzenia curl: apt-get install -y " . PHP_PACKAGE . "-curl\n");
         exit(1);
     }
     diagRun();

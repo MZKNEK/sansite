@@ -83,6 +83,8 @@
         foreach ($change['added'] as $key)
             $marks[$key] = 'new';
     }
+    // the keys of the commands as the change log has them (commandKey() in inc/bot.php)
+    $seenKeys = [];
     $latest = $changes[0] ?? null;
     $latestParts = [];
     if ($latest) {
@@ -166,7 +168,7 @@ include 'sanakan.head.html';
         }));
         $usage = trim($command['name'] . ' ' . $command['example']);
         $id = commandId($smprefix, $command['name']);
-        $mark = $marks[trim($smprefix . $command['name'])] ?? null;
+        $mark = $marks[commandKey($smprefix, $command['name'], $seenKeys)] ?? null;
 ?>
         <article class="cmd" id="<?=e($id)?>">
           <div class="cmd-name">

@@ -29,14 +29,15 @@
     foreach ($files as $file) {
         $output = [];
         $status = 1;
-        exec('php -l ' . escapeshellarg($root . '/' . ltrim($file, '/')) . ' 2>&1', $output, $status);
-        if ($status !== 0) {
+        // -d shows the deprecations PHP finds while compiling, which -l lets pass
+        exec('php -d error_reporting=-1 -d display_errors=1 -l ' . escapeshellarg($root . '/' . ltrim($file, '/')) . ' 2>&1', $output, $status);
+        if ($status !== 0 || preg_grep('/Deprecated:/', $output)) {
             $bad++;
             fwrite(STDOUT, implode("\n", $output) . "\n");
         }
     }
     if ($bad) {
-        fwrite(STDOUT, $bad . " file(s) with a syntax error\n");
+        fwrite(STDOUT, $bad . " file(s) with a syntax error or a deprecation\n");
         exit(1);
     }
     fwrite(STDOUT, 'PHP syntax OK (' . count($files) . " files)\n");

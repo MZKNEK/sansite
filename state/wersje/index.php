@@ -86,7 +86,7 @@
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <link href="../../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
@@ -183,7 +183,7 @@
     <p class="state-note">Wersje i zmiany z repozytorium bota.</p>
 <?php endif; ?>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
   <script src="../../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 

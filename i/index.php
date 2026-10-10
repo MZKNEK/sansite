@@ -251,7 +251,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
 </head>
 
@@ -343,7 +343,7 @@
         <span class="media-job-dot" aria-hidden="true"></span>
         <span class="media-task-name"><?=e($job['name'])?></span>
         <span class="media-task-state"><?=e(mediaJobText($job))?></span>
-        <span class="media-task-time"><?=e(date('d.m H:i', $job['updated'] ?? $job['created'] ?? 0))?></span>
+        <span class="media-task-time"><?=e(date('j.m H:i', $job['updated'] ?? $job['created'] ?? 0))?></span>
       </div>
 <?php endforeach; endif; ?>
     </div>
@@ -382,7 +382,7 @@
           <b><?=e($item['name'])?></b>
           <code><?=e(displayPath($item['from'] ?? ''))?></code>
         </span>
-        <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(date('d.m.Y H:i', $item['deleted'] ?? 0))?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
+        <span class="trash-info"><?=e(formatSize($item['size'] ?? 0))?> &middot; usunięte <?=e(date('j.m.Y H:i', $item['deleted'] ?? 0))?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?></span>
         <span class="trash-actions">
           <button type="button" class="admin-btn" data-action="restore" data-item="<?=e($itemId)?>">Przywróć</button>
           <button type="button" class="admin-btn danger" data-action="trash-delete" data-item="<?=e($itemId)?>" data-confirm="Usunąć <?=e($item['name'])?> z kosza? Plik zostanie jeszcze przez <?=TRASH_DAYS?> dni; administrator może go przywrócić.">Usuń z kosza</button>
@@ -498,7 +498,7 @@
       <a class="tile file hud-corners" href="<?=e(fileUrl($file['rel']))?>" target="_blank" rel="noopener" data-rel="<?=e(publicRel($file['rel']))?>"
          data-name="<?=e(lower($file['name']))?>" data-date="<?=$file['mtime']?>" data-size="<?=$file['size']?>"
          data-kind="<?=$file['kind']?>" data-title="<?=e($file['name'])?>"
-         data-details="<?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size']), date('d.m.Y', $file['mtime'])])))?>">
+         data-details="<?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size']), date('j.m.Y', $file['mtime'])])))?>">
         <span class="thumb">
 <?php if ($manage): ?>
           <span class="check" aria-hidden="true"></span>
@@ -536,7 +536,7 @@
 <?php endif; ?>
 <?php endif; ?>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <?php if (!$locked): ?>
   <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Podgląd">

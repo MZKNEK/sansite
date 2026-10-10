@@ -150,7 +150,7 @@
         if ($seconds < 86400)
             return floor($seconds / 3600) . ' godz. temu';
 
-        return date('d.m.Y H:i', $time);
+        return date('j.m.Y H:i', $time);
     }
 
     // checks in the last hour; cron makes about 60, visits alone far fewer
@@ -310,7 +310,7 @@
             <b class="service-uptime" title="Dostępność w ostatnich <?=DAYS_SHOWN?> dniach"><?=e(partsUptime($service['days']))?></b>
             <span class="timeline service-bar" aria-label="Dostępność <?=e($service['name'])?> w ostatnich <?=DAYS_SHOWN?> dniach, po dniu">
 <?php foreach ($service['days'] as $part): ?>
-              <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
+              <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('j.m', $part['from']), $part))?>"></span>
 <?php endforeach; ?>
             </span>
           </li>
@@ -410,10 +410,10 @@
           <div class="bar-head"><span>Ostatnie <?=DAYS_SHOWN?> dni</span><b><?=e(partsUptime($days))?></b></div>
           <div class="timeline days" aria-label="Dostępność w ostatnich <?=DAYS_SHOWN?> dniach, po dniu">
 <?php foreach ($days as $part): ?>
-            <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
+            <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('j.m', $part['from']), $part))?>"></span>
 <?php endforeach; ?>
           </div>
-          <div class="bar-ends"><span><?=e(date('d.m', $days[0]['from']))?></span><span>dziś</span></div>
+          <div class="bar-ends"><span><?=e(date('j.m', $days[0]['from']))?></span><span>dziś</span></div>
         </div>
 <?php if (array_sum(array_column($apiDays, 'checks'))): ?>
 
@@ -421,10 +421,10 @@
           <div class="bar-head"><span>API bota, ostatnie <?=DAYS_SHOWN?> dni</span><b><?=e(partsUptime($apiDays))?></b></div>
           <div class="timeline days" aria-label="Dostępność API bota w ostatnich <?=DAYS_SHOWN?> dniach, po dniu">
 <?php foreach ($apiDays as $part): ?>
-            <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('d.m', $part['from']), $part))?>"></span>
+            <span class="<?=partClass($part)?>" title="<?=e(partTitle(date('j.m', $part['from']), $part))?>"></span>
 <?php endforeach; ?>
           </div>
-          <div class="bar-ends"><span><?=e(date('d.m', $apiDays[0]['from']))?></span><span>dziś</span></div>
+          <div class="bar-ends"><span><?=e(date('j.m', $apiDays[0]['from']))?></span><span>dziś</span></div>
         </div>
 <?php endif; ?>
 

@@ -92,4 +92,4 @@
     // nginx log and PHP-FPM's slow log.
     // const DIAG_LOCAL_ORIGIN = 'http://127.0.0.1';
     // const DIAG_ACCESS_LOG = '/var/log/nginx/sanakan-access.log';
-    // const DIAG_SLOW_LOG = '/var/log/php8.1-fpm.slow.log';
+    // const DIAG_SLOW_LOG = '/var/log/php8.5-fpm.slow.log'; (the version the site runs on)

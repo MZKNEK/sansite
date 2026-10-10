@@ -539,7 +539,7 @@
         imagesavealpha($img, true);
         $tmp = $target . '.' . getmypid();
         $ok = writeWebp($img, $tmp, $quality, imageIccProfile($source)) && @rename($tmp, $target);
-        imagedestroy($img);
+        unset($img);
         if (!$ok)
             @unlink($tmp);
 
@@ -681,8 +681,8 @@
         if ($ok)
             $ok = @rename($tmp, $target);
 
-        imagedestroy($img);
-        imagedestroy($thumb);
+        unset($img);
+        unset($thumb);
 
         return $ok;
     }
@@ -1442,7 +1442,7 @@
         if ($turn) {
             $turned = imagerotate($img, $turn, 0);
             if ($turned) {
-                imagedestroy($img);
+                unset($img);
                 $img = $turned;
             }
         }
@@ -1802,7 +1802,7 @@
         if (!$img)
             return false;
         $rotated = imagerotate($img, $angle, imagecolorallocatealpha($img, 0, 0, 0, 127));
-        imagedestroy($img);
+        unset($img);
         if (!$rotated)
             return false;
         imagealphablending($rotated, false);
@@ -1816,7 +1816,7 @@
             $ok = writeWebp($rotated, $tmp);
         else
             $ok = @imagejpeg($rotated, $tmp, 92);
-        imagedestroy($rotated);
+        unset($rotated);
 
         $mtime = filemtime($path);
         if (!$ok || !@rename($tmp, $path)) {

@@ -10,15 +10,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.1', '8.2']
+        # the server's PHP, and the oldest the code keeps working on
+        php: ['8.5', '8.1']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, curl, gd
+          ini-values: error_reporting=-1, display_errors=On
           coverage: none
 
       - name: Lint every PHP file
@@ -31,9 +33,10 @@ jobs:
         run: php tests/http.php
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          # the server's Node.js (the wiki runs on it)
+          node-version: '22'
 
       - name: Check the JavaScript
         run: |

@@ -43,7 +43,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
 </head>
 
@@ -85,7 +85,7 @@
 <?php endif; ?>
     </section>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>
@@ -112,7 +112,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=ec855414d1" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=a52b240f16" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -200,7 +200,7 @@
 <p class="api-flash" role="status"><?=e($flash)?></p>
 <?php endif; ?>
 
-<footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+<footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <script src="./swagger-ui-bundle.js?v=9910755d8a"> </script>
 <script src="./swagger-ui-standalone-preset.js?v=0ba407ddfc"> </script>

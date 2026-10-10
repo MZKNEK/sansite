@@ -165,7 +165,7 @@
         $kinds = ['nowe' => '#23a55a', 'zmienione' => '#f0b232', 'usunięte' => '#d9534f'];
         foreach ($rows as $i => [$time, $kind, $key, $label, $what]) {
             $y = 362 + $i * 50;
-            text($img, OG_MONO, 22, 80, $y, color($img, '#dcddde', 50), date('d.m', $time));
+            text($img, OG_MONO, 22, 80, $y, color($img, '#dcddde', 50), date('j.m', $time));
             imagefilledrectangle($img, 170 * OG_SCALE, ($y - 25) * OG_SCALE, 300 * OG_SCALE, ($y + 9) * OG_SCALE, color($img, $kinds[$kind], 95));
             text($img, OG_BOLD, 17, 235 - textWidth(OG_BOLD, 17, $kind) / 2, $y - 2, color($img, $kinds[$kind]), $kind);
             text($img, OG_BOLD, 26, 322, $y, color($img, '#efe2f7'), $key);
@@ -414,7 +414,7 @@
             imagecopy($img, $layer, $shift * OG_SCALE, $top * OG_SCALE, 0, $top * OG_SCALE, OG_WIDTH * OG_SCALE, $height * OG_SCALE);
             $top += $height;
         }
-        imagedestroy($layer);
+        unset($layer);
 
         // the scan lines: thin gaps of background across the whole name
         for ($y = 134; $y < 200; $y += 6)

@@ -123,9 +123,10 @@
         return diagSetting('DIAG_ACCESS_LOG', '/var/log/nginx/sanakan-access.log');
     }
 
+    // by default the path of the README, for the PHP version the site runs on
     function diagSlowLog()
     {
-        return diagSetting('DIAG_SLOW_LOG', '/var/log/php8.1-fpm.slow.log');
+        return diagSetting('DIAG_SLOW_LOG', '/var/log/' . PHP_PACKAGE . '-fpm.slow.log');
     }
 
     function diagDir()
@@ -597,7 +598,7 @@
                 $ms = (int)round(1000 * curl_getinfo($curl, CURLINFO_TOTAL_TIME));
                 $body = curl_multi_getcontent($curl);
                 curl_multi_remove_handle($multi, $curl);
-                curl_close($curl);
+                unset($curl);
 
                 $result = [$status, $ms];
                 if ($info['result'] !== CURLE_OK)

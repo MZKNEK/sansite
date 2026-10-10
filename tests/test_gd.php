@@ -13,13 +13,13 @@
         $img = imagecreatetruecolor(100, 50);
         imagefill($img, 0, 0, imagecolorallocate($img, 200, 100, 50));
         imagepng($img, $dir . '/a.png');
-        imagedestroy($img);
+        unset($img);
 
         $loaded = loadImage($dir . '/a.png');
         assertTrue($loaded !== false);
         assertSame(100, imagesx($loaded));
         assertSame(50, imagesy($loaded));
-        imagedestroy($loaded);
+        unset($loaded);
 
         assertTrue(makeThumb($dir . '/a.png', $dir . '/thumb'), 'a thumbnail is made');
         assertTrue(is_file($dir . '/thumb'));
@@ -44,7 +44,7 @@
         $dir = tempDir();
         $img = imagecreatetruecolor(4, 4);
         imagepng($img, $dir . '/a.png');
-        imagedestroy($img);
+        unset($img);
 
         // a real PNG with a tEXt chunk added right after IHDR
         $png = (string)file_get_contents($dir . '/a.png');

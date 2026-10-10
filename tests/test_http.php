@@ -222,6 +222,72 @@
         assertNull(cloudflareWait([], 1), 'nothing to wait for');
     });
 
+    test('cloudflareApi stops asking after Cloudflare says to slow down', function () {
+        withHttp(['/rules/lists' => [json_encode(['success' => false, 'errors' => [['code' => 971, 'message' => 'Please wait and consider throttling your request speed']]]), 200]]);
+        $answer = cloudflareApi('GET', '/acc/rules/lists');
+        withoutHttp();
+        assertFalse($answer[0]);
+        assertSame(429, $answer[2]);
+        assertContains('wolniejsze', $answer[1]);
+        assertTrue(cloudflarePausedUntil() > time());
+
+        // meanwhile nothing is asked (the stub would answer)
+        withHttp(['/rules/lists' => [json_encode(['success' => true, 'result' => []]), 200]]);
+        $answer = cloudflareApi('GET', '/acc/rules/lists');
+        withoutHttp();
+        assertFalse($answer[0], 'paused');
+
+        writeData('cloudflare-pause', []);
+        withHttp(['/rules/lists' => ['', 429]]);
+        cloudflareApi('GET', '/acc/rules/lists');
+        withoutHttp();
+        assertTrue(cloudflarePausedUntil() > time(), 'HTTP 429 pauses too');
+    });
+
+    test('cloudflareBlocked reads the list again only after a while or a change', function () {
+        writeData('cloudflare-list', ['name' => CLOUDFLARE_LIST, 'id' => 'L9']);
+        $list = function ($ip) {
+            return ['/L9/items' => [json_encode(['success' => true, 'result' => [['id' => 'i1', 'ip' => $ip, 'comment' => '', 'created_on' => '2026-01-01T00:00:00Z']]]), 200]];
+        };
+        withHttp($list('8.8.8.8'));
+        assertSame('8.8.8.8', cloudflareBlocked()[0][0]['ip']);
+        withoutHttp();
+
+        withHttp([]);
+        [$items, $error] = cloudflareBlocked();
+        withoutHttp();
+        assertSame('8.8.8.8', $items[0]['ip'], 'kept for a while, Cloudflare not asked');
+        assertNull($error);
+
+        // a change of the site's own reads it again; a failed read keeps the last one
+        withHttp(['/L9/items' => [json_encode(['success' => true, 'result' => ['operation_id' => null]]), 200]]);
+        assertNull(cloudflareBlock('1.1.1.1', 'test'));
+        withoutHttp();
+        withHttp(['/L9/items' => ['', 429]]);
+        [$items, $error] = cloudflareBlocked();
+        withoutHttp();
+        assertSame('8.8.8.8', $items[0]['ip'], 'the list read last');
+        assertContains('wolniejsze', $error);
+        assertSame('L9', readData('cloudflare-list')['id'] ?? null, 'the list id stays');
+    });
+
+    test('cloudflareBlockMany and cloudflareUnblock send one request', function () {
+        writeData('cloudflare-list', ['name' => CLOUDFLARE_LIST, 'id' => 'L9']);
+        $sent = [];
+        $GLOBALS['SANAKAN_HTTP'] = function ($url, $options) use (&$sent) {
+            $sent[] = [$options['method'], json_decode($options['content'] ?? 'null', true)];
+
+            return [json_encode(['success' => true, 'result' => []]), 200];
+        };
+        assertNull(cloudflareBlockMany([['8.8.8.8', 'a'], ['2001:4860::1', 'b']]));
+        assertNull(cloudflareUnblock(['i1', 'i2']));
+        withoutHttp();
+        assertSame(2, count($sent));
+        assertSame(['8.8.8.8', '2001:4860::/64'], array_column($sent[0][1], 'ip'));
+        assertSame([['id' => 'i1'], ['id' => 'i2']], $sent[1][1]['items']);
+        assertContains('publiczny', cloudflareBlockMany([['10.0.0.1', 'x']]));
+    });
+
     test('serviceCheck counts a page that answers', function () {
         withHttp(['sanakan.pl' => ['<html>', 200]]);
         [$up, $ms] = serviceCheck('https://sanakan.pl/');

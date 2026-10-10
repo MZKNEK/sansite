@@ -21,9 +21,15 @@
     // one GET: [status, body]
     function get($url)
     {
-        $body = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => true]]));
+        $fp = @fopen($url, 'r', false, stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => true]]));
+        if ($fp === false)
+            return [0, ''];
+        $body = stream_get_contents($fp);
+        // as httpRaw() does it ($http_response_header is deprecated from PHP 8.5)
+        $headers = stream_get_meta_data($fp)['wrapper_data'] ?? [];
+        fclose($fp);
         $status = 0;
-        foreach ($http_response_header ?? [] as $line)
+        foreach (is_array($headers) ? $headers : [] as $line)
             if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
                 $status = (int)$match[1];
 
@@ -38,7 +44,8 @@
     {
         $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
         $server = proc_open(
-            [$php, '-S', '127.0.0.1:' . $port, $router],
+            // every notice shown in the page, so a deprecated call fails it too
+            [$php, '-d', 'error_reporting=-1', '-d', 'display_errors=1', '-S', '127.0.0.1:' . $port, $router],
             [0 => ['pipe', 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']],
             $pipes, $cwd, $env
         );
@@ -111,7 +118,7 @@
     $failures = 0;
     foreach ($pages as [$path, $ok]) {
         [$status, $body] = get($base . $path);
-        $error = (bool)preg_match('~Fatal error|Parse error|Uncaught~', $body);
+        $error = (bool)preg_match('~Fatal error|Parse error|Uncaught|Deprecated:~', $body);
         if (!in_array($status, $ok, true) || $error) {
             $failures++;
             echo 'FAIL ', $path, ' -> ', $status, ($error ? ' (PHP error)' : ''), "\n", substr($body, 0, 300), "\n\n";

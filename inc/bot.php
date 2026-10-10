@@ -401,23 +401,46 @@
     // changed goes to a log, newest last: ['time', 'added' => [key...],
     // 'removed' => [key...], 'changed' => [key => [field => [before, after]]]],
     // and the commands themselves to an index, so a removed one keeps its module
-    // and description. A key is the module prefix and the name, e.g. "pw daily".
+    // and description. A key is the module prefix and the name, e.g. "pw daily";
+    // the second command of the same name (the bot has a few with other
+    // parameters) is "zgłoś #2", the third "zgłoś #3", in the order of the list.
 
     const COMMAND_FIELDS = ['description' => 'opis', 'aliases' => 'aliasy', 'parameters' => 'parametry', 'example' => 'przykład'];
 
-    // the address of a command on cmd/, e.g. "pw-daily"
+    // what the parameters are joined with; their descriptions have commas of their own
+    const COMMAND_PARAMETERS_GLUE = ' · ';
+
+    // the version of commands-index.json; an index of an older one is written
+    // again without logging the difference as a change (2: the keys of commands
+    // of the same name, the parameters joined with COMMAND_PARAMETERS_GLUE)
+    const COMMAND_INDEX_FORMAT = 2;
+
+    // the address of a command on cmd/, e.g. "pw-daily"; a dash the name ends
+    // with stays, so "karta-" does not take the address of "karta"
     function commandSlug($key)
     {
         $key = lower($key);
-        $slug = trim(preg_replace('/[^\p{L}\p{N}]+/u', '-', $key), '-');
+        $slug = preg_replace('/[^\p{L}\p{N}]+/u', '-', $key);
+        $slug = substr($key, -1) === '-' ? ltrim($slug, '-') : trim($slug, '-');
 
         return $slug === '' || strpos($slug, 'module-') === 0 ? 'cmd-' . $slug : $slug;
+    }
+
+    // The key of a command, "pw daily", or "zgłoś #2" for the second of the same
+    // name; $seen counts the names met so far, in the order of the list
+    function commandKey($prefix, $name, &$seen)
+    {
+        $key = trim($prefix . ' ' . $name);
+        $seen[$key] = ($seen[$key] ?? 0) + 1;
+
+        return $seen[$key] > 1 ? $key . ' #' . $seen[$key] : $key;
     }
 
     // every command of an API answer as key => [module, name, description, aliases, parameters, example]
     function botCommandIndex($data)
     {
         $index = [];
+        $seen = [];
         foreach ($data['modules'] ?? [] as $module) {
             foreach ($module['subModules'] ?? [] as $submodule) {
                 $prefix = trim((string)($submodule['prefix'] ?? ''));
@@ -427,12 +450,12 @@
                     $parameters = [];
                     foreach ($command['attributes'] ?? [] as $attr)
                         $parameters[] = (string)($attr['description'] ?? $attr['name'] ?? '');
-                    $index[trim($prefix . ' ' . $name)] = [
+                    $index[commandKey($prefix, $name, $seen)] = [
                         'module' => (string)($module['name'] ?? ''),
                         'name' => $name,
                         'description' => (string)($command['description'] ?? ''),
                         'aliases' => implode(', ', $aliases),
-                        'parameters' => implode(', ', $parameters),
+                        'parameters' => implode(COMMAND_PARAMETERS_GLUE, $parameters),
                         'example' => trim($name . ' ' . ($command['example'] ?? ''))
                     ];
                 }
@@ -453,7 +476,9 @@
 
         $stored = json_decode((string)stream_get_contents($fp), true);
         $index = botCommandIndex($data);
-        $old = $stored['commands'] ?? null;
+        // an index of an older format differs from the new one by its keys and
+        // texts, not by what the bot changed, so it is only written again
+        $old = ($stored['format'] ?? 1) === COMMAND_INDEX_FORMAT ? $stored['commands'] ?? null : null;
 
         $change = ['time' => $now, 'added' => [], 'removed' => [], 'changed' => []];
         if (is_array($old)) {
@@ -485,7 +510,7 @@
 
             ftruncate($fp, 0);
             rewind($fp);
-            fwrite($fp, json_encode(['since' => $stored['since'] ?? $now, 'commands' => $index], JSON_UNESCAPED_UNICODE));
+            fwrite($fp, json_encode(['since' => $stored['since'] ?? $now, 'format' => COMMAND_INDEX_FORMAT, 'commands' => $index], JSON_UNESCAPED_UNICODE));
         }
         flock($fp, LOCK_UN);
         fclose($fp);

@@ -34,11 +34,14 @@
     $user = siteUser();
     // the HUD colour chosen in the profile also goes into cookies, so the pages
     // that render no account menu (the home page, the privacy notice, the 404,
-    // the public status) can apply it too (js/hud.js)
+    // the public status) can apply it too (js/hud.js); a session that ended
+    // without logging out (expired, or ended in the panel) takes them along too
     if ($user !== null) {
         $badge = roleBadge(siteRoles());
         setcookie('hud', hudMode($user['id']), time() + 31536000, '/');
         setcookie('hudrole', hudColorKey($user['id'], $badge), time() + 31536000, '/');
+    } else {
+        forgetHudCookies();
     }
     echo json_encode($user === null ? [
         'login' => authConfigured()

@@ -20,7 +20,7 @@
         assertSame('2 min temu', ago($now - 120));
         assertSame('2 godz. temu', ago($now - 7200));
         $old = mktime(0, 0, 0, 1, 1, 2020);
-        assertSame(date('d.m.Y H:i', $old), ago($old));
+        assertSame(date('j.m.Y H:i', $old), ago($old));
     });
 
     test('checksLastHour counts the recent ones', function () {

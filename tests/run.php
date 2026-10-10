@@ -32,6 +32,12 @@
         fwrite(STDOUT, "\nFailures:\n");
         foreach ($failures as $failure)
             fwrite(STDOUT, '  ' . $failure . "\n");
-        exit(1);
     }
+    if ($GLOBALS['__deprecations']) {
+        fwrite(STDOUT, "\nDeprecated on PHP " . PHP_VERSION . ":\n");
+        foreach (array_keys($GLOBALS['__deprecations']) as $notice)
+            fwrite(STDOUT, '  ' . $notice . "\n");
+    }
+    if ($failed || $GLOBALS['__deprecations'])
+        exit(1);
     fwrite(STDOUT, "OK\n");

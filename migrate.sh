@@ -612,9 +612,10 @@ new_start() {
         echo "  /etc/cron.d/${f##*/}"
     done
 
-    # the panel reads PHP-FPM's slow log at the 8.1 path unless told otherwise
+    # the panel reads PHP-FPM's slow log at the path of its PHP version
+    # (diagSlowLog() in inc/diag.php) unless told otherwise
     slow=$(sed -nE 's/^[[:space:]]*slowlog[[:space:]]*=[[:space:]]*//p' "/etc/php/$v/fpm/pool.d/www.conf" | tail -1)
-    if [ -f "$config" ] && [ -n "$slow" ] && [ "$slow" != /var/log/php8.1-fpm.slow.log ]; then
+    if [ -f "$config" ] && [ -n "$slow" ] && [ "$slow" != "/var/log/php$v-fpm.slow.log" ]; then
         if grep -qE '^[[:space:]]*const[[:space:]]+DIAG_SLOW_LOG' "$config"; then
             sed -i -E "s#^([[:space:]]*const[[:space:]]+DIAG_SLOW_LOG[[:space:]]*=[[:space:]]*)'[^']*'#\1'$slow'#" "$config"
         else

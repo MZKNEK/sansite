@@ -1170,7 +1170,12 @@ a.hud-corners:hover {
 }
 
 /* The footer of every page: the author and the privacy note, quiet at the bottom */
+/* on a narrow phone the links go to the next line whole, never broken in two */
 .site-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 6px;
     margin-top: auto;
     padding: 28px 16px 18px;
     text-align: center;

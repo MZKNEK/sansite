@@ -79,7 +79,7 @@
         // what it may open: [label, yes, why]
         $since = function ($list) use ($id) {
             $added = panelList($list)[$id]['added'] ?? 0;
-            return $added ? 'nadany ' . date('d.m.Y', $added) : 'nadany w panelu';
+            return $added ? 'nadany ' . date('j.m.Y', $added) : 'nadany w panelu';
         };
         $why = function ($list) use ($id, $since) {
             $config = configList(ACCESS_LISTS[$list]);
@@ -139,7 +139,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
@@ -223,7 +223,7 @@
 <?php foreach ($devices as $key => [$since, $last, $ip, $cc, $agent]): ?>
           <li>
             <span class="device-name" title="<?=e($agent)?>"><?=e(deviceName($agent))?><?=(string)$key === $thisDevice ? ' <span class="role protected">to urządzenie</span>' : ''?></span>
-            <span class="muted">zalogowane <?=e(date('d.m H:i', $since))?> &middot; ostatnio <?=e(ago($last))?></span>
+            <span class="muted">zalogowane <?=e(date('j.m H:i', $since))?> &middot; ostatnio <?=e(ago($last))?></span>
 <?php if ((string)$key !== $thisDevice): ?>
             <form method="post" action="./">
               <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
@@ -263,7 +263,7 @@
             <h3>Ostatnio dodane</h3>
             <ul class="stat-list">
 <?php foreach ($uploads as $upload): $there = is_file($galleryRoot . $upload['rel']); ?>
-              <li style="--share: 0"><?=$there ? '<a href="' . e(siteRoot() . 'i/' . fileUrl($upload['rel'])) . '" target="_blank" rel="noopener">' . e('i/' . $upload['rel']) . '</a>' : '<span class="muted" title="Plik przeniesiono albo usunięto">' . e('i/' . $upload['rel']) . '</span>'?><span><?=e(date('d.m.Y H:i', $upload['time']))?></span></li>
+              <li style="--share: 0"><?=$there ? '<a href="' . e(siteRoot() . 'i/' . fileUrl($upload['rel'])) . '" target="_blank" rel="noopener">' . e('i/' . $upload['rel']) . '</a>' : '<span class="muted" title="Plik przeniesiono albo usunięto">' . e('i/' . $upload['rel']) . '</span>'?><span><?=e(date('j.m.Y H:i', $upload['time']))?></span></li>
 <?php endforeach; ?>
             </ul>
           </div>
@@ -282,7 +282,7 @@
         <ol class="history own-history">
 <?php foreach ($history as $entry): ?>
           <li>
-            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('d.m H:i', $entry['time'] ?? 0))?></time>
+            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('j.m H:i', $entry['time'] ?? 0))?></time>
             <span class="history-text"><?=e($entry['text'] ?? '')?></span>
           </li>
 <?php endforeach; ?>
@@ -331,7 +331,7 @@
     </div>
 <?php endif; ?>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>

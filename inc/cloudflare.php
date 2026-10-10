@@ -8,15 +8,28 @@
     // Account Filter Lists: Edit), CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_LIST.
     // Cloudflare changes a list in the background, so a change waits a few
     // seconds for it to finish.
+    //
+    // Cloudflare limits how fast its API may be asked, and answers too many
+    // requests with "Please wait and consider throttling your request speed"
+    // (HTTP 429, error 971). So the list is read at most every
+    // CLOUDFLARE_ITEMS_FRESH seconds (not at every opening of the panel), the
+    // addresses of one change go in one request, a change is asked about
+    // less and less often, and after such an answer nothing is asked for
+    // CLOUDFLARE_PAUSE seconds.
     require_once __DIR__ . '/auth.php';
 
     const CLOUDFLARE_API = 'https://api.cloudflare.com/client/v4';
     const CLOUDFLARE_TIMEOUT = 8;
     const CLOUDFLARE_COMMENT_LENGTH = 100;
-    // how long a change waits for Cloudflare to finish it, in half seconds;
-    // Cloudflare changes a list in the background, so a change usually takes a
-    // few seconds, and a slower one is reported as unconfirmed rather than done
-    const CLOUDFLARE_WAIT_STEPS = 20;
+    // how many times a change asks whether Cloudflare has finished it, after
+    // 0.5 s, 1 s, 1.5 s and then every 2 s (17 s in all); Cloudflare changes a
+    // list in the background, so a change usually takes a few seconds, and a
+    // slower one is reported as unconfirmed rather than done
+    const CLOUDFLARE_WAIT_STEPS = 10;
+    // how long the list read from Cloudflare is shown without asking again
+    const CLOUDFLARE_ITEMS_FRESH = 120;
+    // how long nothing is asked after Cloudflare said to slow down
+    const CLOUDFLARE_PAUSE = 300;
 
     function cloudflareConfigured()
     {
@@ -27,9 +40,26 @@
             && defined('CLOUDFLARE_LIST') && CLOUDFLARE_LIST !== '';
     }
 
-    // a call to the Cloudflare API: [true, result, result_info] or [false, error message]
+    // until when Cloudflare is not asked, after it said to slow down; 0 when it may be
+    function cloudflarePausedUntil()
+    {
+        $until = (int)(readData('cloudflare-pause')['until'] ?? 0);
+
+        return $until > time() ? $until : 0;
+    }
+
+    function cloudflarePauseText($until)
+    {
+        return 'Cloudflare prosi o wolniejsze zapytania, strona nie pyta go do ' . date('H:i', $until) . '.';
+    }
+
+    // A call to the Cloudflare API: [true, result, result_info] or [false, error
+    // message, HTTP status]. While Cloudflare asked to slow down it is not asked.
     function cloudflareApi($method, $path, $body = null)
     {
+        if ($until = cloudflarePausedUntil())
+            return [false, cloudflarePauseText($until), 429];
+
         $http = [
             'method' => $method,
             'timeout' => CLOUDFLARE_TIMEOUT,
@@ -44,12 +74,18 @@
         if ($body !== null)
             $http['content'] = json_encode($body);
 
-        [$json] = httpRaw(CLOUDFLARE_API . $path, $http);
+        [$json, $status] = httpRaw(CLOUDFLARE_API . $path, $http);
         $data = $json === false ? null : json_decode($json, true);
+        if ($status === 429 || in_array(971, array_column($data['errors'] ?? [], 'code'), true)) {
+            $until = time() + CLOUDFLARE_PAUSE;
+            writeData('cloudflare-pause', ['until' => $until]);
+
+            return [false, cloudflarePauseText($until), 429];
+        }
         if (!is_array($data))
-            return [false, 'Cloudflare nie odpowiedział.'];
+            return [false, 'Cloudflare nie odpowiedział.', $status];
         if (empty($data['success']))
-            return [false, 'Cloudflare: ' . ($data['errors'][0]['message'] ?? 'nieznany błąd') . '.'];
+            return [false, 'Cloudflare: ' . ($data['errors'][0]['message'] ?? 'nieznany błąd') . '.', $status];
 
         return [true, $data['result'] ?? null, $data['result_info'] ?? null];
     }
@@ -79,8 +115,36 @@
     }
 
     // What is on the list, newest first: [[['id', 'ip', 'comment', 'created'], ...], null]
-    // or [null, error]
+    // or [null, error]. Read from Cloudflare at most every CLOUDFLARE_ITEMS_FRESH
+    // seconds, and again at once after a change of the site's own; when it
+    // cannot be read, the list read last comes with the error.
     function cloudflareBlocked()
+    {
+        $cached = readData('cloudflare-items');
+        if (isset($cached['time'], $cached['items']) && $cached['time'] > time() - CLOUDFLARE_ITEMS_FRESH)
+            return [$cached['items'], null];
+
+        [$items, $error] = cloudflareReadBlocked();
+        if ($items !== null) {
+            writeData('cloudflare-items', ['time' => time(), 'items' => $items]);
+
+            return [$items, null];
+        }
+
+        return [$cached['items'] ?? null, $error];
+    }
+
+    // after a change of the site's own the list is read again at the next
+    // cloudflareBlocked(), the one read before kept for when that fails
+    function cloudflareListChanged()
+    {
+        $cached = readData('cloudflare-items');
+        if (isset($cached['items']))
+            writeData('cloudflare-items', ['time' => 0, 'items' => $cached['items']]);
+    }
+
+    // the list as Cloudflare has it now (cloudflareBlocked())
+    function cloudflareReadBlocked()
     {
         [$id, $error] = cloudflareListId();
         if ($id === null)
@@ -91,8 +155,10 @@
         for ($page = 0; $page < 10; $page++) {
             $answer = cloudflareApi('GET', cloudflareListsPath() . '/' . rawurlencode($id) . '/items?per_page=500' . ($cursor !== null ? '&cursor=' . rawurlencode($cursor) : ''));
             if (!$answer[0]) {
-                // a list deleted and made again has a new id
-                writeData('cloudflare-list', []);
+                // a list deleted and made again has a new id; a request
+                // Cloudflare did not answer or asked to slow down says nothing of it
+                if ($answer[2] >= 400 && $answer[2] !== 429)
+                    writeData('cloudflare-list', []);
                 return [null, $answer[1]];
             }
             foreach ($answer[1] ?: [] as $item)
@@ -132,10 +198,14 @@
             return null;
 
         for ($i = 0; $i < $steps; $i++) {
-            usleep(500000);
+            usleep(min(4, $i + 1) * 500000);
             $answer = cloudflareApi('GET', cloudflareListsPath() . '/bulk_operations/' . rawurlencode($operation));
+            // a failed poll says nothing about the change, but one Cloudflare
+            // asked to slow down is not repeated
+            if (!$answer[0] && $answer[2] === 429)
+                break;
             if (!$answer[0])
-                continue;   // the poll failed, which says nothing about the change
+                continue;
             $status = $answer[1]['status'] ?? '';
             if ($status === 'completed')
                 return null;
@@ -149,28 +219,46 @@
     // puts an address on the list: null, or an error message
     function cloudflareBlock($ip, $comment)
     {
-        $target = cloudflareTarget($ip);
-        if ($target === null)
-            return 'To nie jest publiczny adres IP.';
+        return cloudflareBlockMany([[$ip, $comment]]);
+    }
+
+    // puts addresses on the list in one change, [[ip, comment], ...]: null, or an error message
+    function cloudflareBlockMany($entries)
+    {
+        $items = [];
+        foreach ($entries as [$ip, $comment]) {
+            $target = cloudflareTarget($ip);
+            if ($target === null)
+                return 'To nie jest publiczny adres IP.';
+            $items[] = ['ip' => $target, 'comment' => cutText($comment, CLOUDFLARE_COMMENT_LENGTH)];
+        }
+        if (!$items)
+            return null;
         [$id, $error] = cloudflareListId();
         if ($id === null)
             return $error;
 
-        $answer = cloudflareApi('POST', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', [
-            ['ip' => $target, 'comment' => cutText($comment, CLOUDFLARE_COMMENT_LENGTH)]
-        ]);
+        $answer = cloudflareApi('POST', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', $items);
+        if (!$answer[0])
+            return $answer[1];
+        cloudflareListChanged();
 
-        return $answer[0] ? cloudflareWait($answer[1]) : $answer[1];
+        return cloudflareWait($answer[1]);
     }
 
-    // takes an item (by its id from cloudflareBlocked) off the list: null, or an error message
-    function cloudflareUnblock($itemId)
+    // takes items (by their ids from cloudflareBlocked, one or a list) off the
+    // list in one change: null, or an error message
+    function cloudflareUnblock($itemIds)
     {
         [$id, $error] = cloudflareListId();
         if ($id === null)
             return $error;
 
-        $answer = cloudflareApi('DELETE', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', ['items' => [['id' => $itemId]]]);
+        $items = array_map(function ($itemId) { return ['id' => $itemId]; }, (array)$itemIds);
+        $answer = cloudflareApi('DELETE', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', ['items' => $items]);
+        if (!$answer[0])
+            return $answer[1];
+        cloudflareListChanged();
 
-        return $answer[0] ? cloudflareWait($answer[1]) : $answer[1];
+        return cloudflareWait($answer[1]);
     }

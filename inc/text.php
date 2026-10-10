@@ -1,7 +1,7 @@
 <?php
     // Small text helpers shared by every page and the panel: escaping, lower
-    // case (also without the mbstring extension), Polish plurals, byte sizes and
-    // thousands. inc/auth.php pulls this in, so any page that loads the login
+    // case (also without the mbstring extension), Polish plurals, byte sizes,
+    // thousands and what changed between two texts. inc/auth.php pulls this in, so any page that loads the login
     // (every page that needs them) has them; kept here so the pages do not each
     // define their own copy.
     if (!function_exists('e')) {
@@ -86,5 +86,40 @@
         function formatCount($n)
         {
             return number_format((int)$n, 0, ',', ' ');
+        }
+    }
+
+    if (!function_exists('textDiff')) {
+        // What changed between two texts, as [the same start, the old middle,
+        // the new middle, the same end]. Both ends stop at the edge of a word,
+        // so a word that changed shows whole ("liste" → "listę", not "e" → "ę").
+        function textDiff($old, $new)
+        {
+            $a = preg_split('//u', (string)$old, -1, PREG_SPLIT_NO_EMPTY);
+            $b = preg_split('//u', (string)$new, -1, PREG_SPLIT_NO_EMPTY);
+            $word = function ($char) { return $char !== null && preg_match('/[\p{L}\p{N}]/u', $char) === 1; };
+
+            $max = min(count($a), count($b));
+            $start = 0;
+            while ($start < $max && $a[$start] === $b[$start])
+                $start++;
+            while ($start > 0 && $word($a[$start - 1]) && ($word($a[$start] ?? null) || $word($b[$start] ?? null)))
+                $start--;
+
+            $end = 0;
+            while ($end < $max - $start && $a[count($a) - 1 - $end] === $b[count($b) - 1 - $end])
+                $end++;
+            while ($end > 0 && $word($a[count($a) - $end])
+                && ($word($a[count($a) - $end - 1] ?? null) || $word($b[count($b) - $end - 1] ?? null)))
+                $end--;
+
+            $part = function ($chars, $from, $to) { return implode('', array_slice($chars, $from, $to - $from)); };
+
+            return [
+                $part($a, 0, $start),
+                $part($a, $start, count($a) - $end),
+                $part($b, $start, count($b) - $end),
+                $part($a, count($a) - $end, count($a))
+            ];
         }
     }

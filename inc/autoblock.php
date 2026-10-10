@@ -94,11 +94,13 @@
         return $lock;
     }
 
-    // One run: blocks up to AUTO_BLOCK_PER_RUN new scanners, and once a day
-    // takes the automatic blocks older than AUTO_BLOCK_DAYS off.
+    // One run: blocks up to AUTO_BLOCK_PER_RUN new scanners, all in one change
+    // of the list, and once a day takes the automatic blocks older than
+    // AUTO_BLOCK_DAYS off, also in one. While Cloudflare asked to slow down
+    // (inc/cloudflare.php) the run waits for the next one.
     function autoBlockRun()
     {
-        if (!autoBlockEnabled())
+        if (!autoBlockEnabled() || cloudflarePausedUntil())
             return;
         $lock = autoBlockLock();
         if (!$lock)
@@ -117,16 +119,23 @@
             unset($state['blocked'][$target]);
 
         $addresses = readData('addresses');
-        $blocked = 0;
+        $batch = [];
+        $listed = null;
         $lookups = 0;
         foreach (diagScanners() as $ip => $scanner) {
-            if ($blocked >= AUTO_BLOCK_PER_RUN || $lookups >= 2 * AUTO_BLOCK_PER_RUN)
+            if (count($batch) >= AUTO_BLOCK_PER_RUN || $lookups >= 2 * AUTO_BLOCK_PER_RUN)
                 break;
             if (count($scanner['probes']) < AUTO_BLOCK_PROBES || $scanner['last'] < $now - 86400)
                 continue;
             $target = cloudflareTarget($ip);
             if ($target === null || diagIsCloudflare($ip) || accountsAtAddress($ip, $addresses) || botIsAddress($ip)
-                    || isset($state['blocked'][$target]) || isset($released[$target]) || isset($state['trusted'][$target]) || isset($state['failed'][$target]))
+                    || isset($state['blocked'][$target]) || isset($released[$target]) || isset($state['trusted'][$target]) || isset($state['failed'][$target])
+                    || isset($batch[$target]))
+                continue;
+            // one already on the list (blocked in the panel) would fail the whole change
+            if ($listed === null)
+                $listed = array_flip(array_column(cloudflareBlocked()[0] ?? [], 'ip'));
+            if (isset($listed[$target]))
                 continue;
 
             $lookups++;
@@ -135,33 +144,43 @@
                 continue;
             }
 
-            $why = cutText(implode(', ', array_slice($scanner['probes'], 0, 3)), 70);
-            $error = cloudflareBlock($ip, AUTO_BLOCK_COMMENT . ', ' . count($scanner['probes']) . ' ścieżek: ' . $why);
-            // tried again in a day; a problem with Cloudflare itself stops the run
-            if ($error !== null) {
-                $state['failed'][$target] = $now;
-                $state['error'] = [$now, $target . ': ' . $error];
-                break;
-            }
-            $state['blocked'][$target] = [$now, $why];
-            unset($state['error']);
-            addHistory('cloudflare', 'Automatycznie zablokowano w Cloudflare ' . $target . ': pytał o ' . count($scanner['probes']) . ' ścieżek, których nikt tu nie szuka (' . $why . ').', 'automat');
-            $blocked++;
+            $batch[$target] = [$ip, count($scanner['probes']), cutText(implode(', ', array_slice($scanner['probes'], 0, 3)), 70)];
         }
 
-        // once a day the old automatic blocks come off, by the comment on the list
-        if (($state['pruned'] ?? 0) < $now - 86400) {
+        if ($batch) {
+            $error = cloudflareBlockMany(array_map(function ($entry) {
+                return [$entry[0], AUTO_BLOCK_COMMENT . ', ' . $entry[1] . ' ścieżek: ' . $entry[2]];
+            }, array_values($batch)));
+            if ($error === null) {
+                foreach ($batch as $target => [$ip, $probes, $why]) {
+                    $state['blocked'][$target] = [$now, $why];
+                    addHistory('cloudflare', 'Automatycznie zablokowano w Cloudflare ' . $target . ': pytał o ' . $probes . ' ścieżek, których nikt tu nie szuka (' . $why . ').', 'automat');
+                }
+                unset($state['error']);
+            } else {
+                // tried again in a day; when Cloudflare only asked to slow
+                // down, at the first run after the pause
+                if (!cloudflarePausedUntil())
+                    foreach (array_keys($batch) as $target)
+                        $state['failed'][$target] = $now;
+                $state['error'] = [$now, implode(', ', array_keys($batch)) . ': ' . $error];
+            }
+        }
+
+        // once a day the old automatic blocks come off, by the comment on the
+        // list, in one change; tried again the next day when it fails
+        if (($state['pruned'] ?? 0) < $now - 86400 && !cloudflarePausedUntil()) {
             $state['pruned'] = $now;
             [$items] = cloudflareBlocked();
-            $removed = [];
+            $old = [];
             foreach ($items ?: [] as $item)
-                if (strpos($item['comment'], AUTO_BLOCK_COMMENT . ',') === 0 && $item['created'] && $item['created'] < $now - AUTO_BLOCK_DAYS * 86400
-                        && cloudflareUnblock($item['id']) === null) {
-                    unset($state['blocked'][$item['ip']]);
-                    $removed[] = $item['ip'];
-                }
-            if ($removed)
-                addHistory('cloudflare', 'Po ' . AUTO_BLOCK_DAYS . ' dniach odblokowano w Cloudflare: ' . implode(', ', $removed) . '.', 'automat');
+                if (strpos($item['comment'], AUTO_BLOCK_COMMENT . ',') === 0 && $item['created'] && $item['created'] < $now - AUTO_BLOCK_DAYS * 86400)
+                    $old[$item['id']] = $item['ip'];
+            if ($old && cloudflareUnblock(array_keys($old)) === null) {
+                foreach ($old as $ip)
+                    unset($state['blocked'][$ip]);
+                addHistory('cloudflare', 'Po ' . AUTO_BLOCK_DAYS . ' dniach odblokowano w Cloudflare: ' . implode(', ', $old) . '.', 'automat');
+            }
         }
 
         writeData('autoblock', $state);

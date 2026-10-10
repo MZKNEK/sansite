@@ -9,6 +9,10 @@
 
     const SYSTEM_TOP_PROCESSES = 8;
 
+    // Ubuntu's name of the PHP this runs on, as its packages and PHP-FPM have
+    // it ("php8.5"), for the install hints of the panel and the default paths
+    const PHP_PACKAGE = 'php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+
     // the cpu line of /proc/stat as [busy, idle, iowait, steal, total] jiffies, or null
     function systemCpuTimes()
     {

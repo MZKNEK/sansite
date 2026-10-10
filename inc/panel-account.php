@@ -45,7 +45,7 @@
                 else if (in_array($id, $config, true))
                     $access[] = [$label, false, 'zablokowany w inc/config.php', null];
                 else if ($entry !== null)
-                    $access[] = [$label, false, 'zablokowany w panelu' . (!empty($entry['added']) ? ', ' . date('d.m.Y', $entry['added']) : '')
+                    $access[] = [$label, false, 'zablokowany w panelu' . (!empty($entry['added']) ? ', ' . date('j.m.Y', $entry['added']) : '')
                         . (!empty($entry['by']) ? ', zablokował(a) ' . ($logins[$entry['by']]['name'] ?? $entry['by']) : '')
                         . (($entry['note'] ?? '') !== '' ? ': „' . $entry['note'] . '”' : ''), $list];
                 else if (!hasServerRole($id))
@@ -59,7 +59,7 @@
             else if (in_array($id, $config, true))
                 $access[] = [$label, true, 'inc/config.php', null];
             else if ($entry !== null)
-                $access[] = [$label, true, 'panel' . (!empty($entry['added']) ? ', ' . date('d.m.Y', $entry['added']) : '')
+                $access[] = [$label, true, 'panel' . (!empty($entry['added']) ? ', ' . date('j.m.Y', $entry['added']) : '')
                     . (!empty($entry['by']) ? ', nadał(a) ' . ($logins[$entry['by']]['name'] ?? $entry['by']) : '')
                     . (($entry['note'] ?? '') !== '' ? ': „' . $entry['note'] . '”' : ''), $list];
             else if ($list === 'apiViewers' && hasBotRole($id, API_ROLES))
@@ -249,7 +249,7 @@
 <?php foreach ($p['devices'] as $key => [$login, $last, $ip, $cc, $agent]): ?>
           <li>
             <span class="device-name" title="<?=e($agent)?>"><?=e(deviceName($agent))?><?=(string)$key === $thisDevice ? ' <span class="role protected">to urządzenie</span>' : ''?></span>
-            <span class="muted"><?=e($ip)?><?=$cc !== '' ? ' ' . e($cc) : ''?> &middot; zalogowane <?=e(date('d.m H:i', $login))?> &middot; ostatnio <?=e(ago($last))?></span>
+            <span class="muted"><?=e($ip)?><?=$cc !== '' ? ' ' . e($cc) : ''?> &middot; zalogowane <?=e(date('j.m H:i', $login))?> &middot; ostatnio <?=e(ago($last))?></span>
 <?php if ((string)$key !== $thisDevice): ?>
             <button type="button" class="admin-btn small danger" data-action="logout-session" data-id="<?=e($id)?>" data-session="<?=e($key)?>" data-confirm="<?=e('Wylogować ' . $p['name'] . ' na tym urządzeniu (' . deviceName($agent) . ')?')?>">Wyloguj</button>
 <?php endif; ?>
@@ -271,7 +271,7 @@
             <?=diagIpCell($ip, $cc, 'konto ' . $p['name'], $p['marks'])?>
 
             <span class="diag-count"><?=formatCount($times)?>&times;</span>
-            <span class="diag-agent"><span><?=e(date('d.m H:i', $first))?><?=$last - $first >= 60 ? '–' . e(date(date('Y-m-d', $first) === date('Y-m-d', $last) ? 'H:i' : 'd.m H:i', $last)) : ''?> <span class="muted">(ostatnio <?=e(ago($last))?>)</span></span><span title="<?=e($ua)?>"><?=e($ua !== '' ? $ua : 'bez user agenta')?></span></span>
+            <span class="diag-agent"><span><?=e(date('j.m H:i', $first))?><?=$last - $first >= 60 ? '–' . e(date(date('Y-m-d', $first) === date('Y-m-d', $last) ? 'H:i' : 'j.m H:i', $last)) : ''?> <span class="muted">(ostatnio <?=e(ago($last))?>)</span></span><span title="<?=e($ua)?>"><?=e($ua !== '' ? $ua : 'bez user agenta')?></span></span>
           </li>
 <?php endforeach; ?>
         </ul>
@@ -305,7 +305,7 @@
             <h3>Ostatnio dodane</h3>
             <ul class="stat-list">
 <?php foreach ($p['uploads'] as $upload): $there = is_file($galleryRoot . $upload['rel']); ?>
-              <li style="--share: 0"><?=$there ? '<a href="' . e(siteRoot() . 'i/' . fileUrl($upload['rel'])) . '" target="_blank" rel="noopener">' . e('i/' . $upload['rel']) . '</a>' : '<span class="muted" title="Plik przeniesiono albo usunięto">' . e('i/' . $upload['rel']) . '</span>'?><span><?=e(date('d.m.Y H:i', $upload['time']))?></span></li>
+              <li style="--share: 0"><?=$there ? '<a href="' . e(siteRoot() . 'i/' . fileUrl($upload['rel'])) . '" target="_blank" rel="noopener">' . e('i/' . $upload['rel']) . '</a>' : '<span class="muted" title="Plik przeniesiono albo usunięto">' . e('i/' . $upload['rel']) . '</span>'?><span><?=e(date('j.m.Y H:i', $upload['time']))?></span></li>
 <?php endforeach; ?>
             </ul>
           </div>
@@ -323,7 +323,7 @@
         <ol class="history">
 <?php foreach ($p['history'] as $entry): ?>
           <li>
-            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('d.m H:i', $entry['time'] ?? 0))?></time>
+            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('j.m H:i', $entry['time'] ?? 0))?></time>
             <span class="history-who"><?=$entry['own'] || empty($entry['id']) ? e(($entry['name'] ?? '') ?: ($entry['id'] ?? '')) : '<a href="?konto=' . e($entry['id']) . '">' . e(($entry['name'] ?? '') ?: $entry['id']) . '</a>'?></span>
             <span class="history-text"><?=e($entry['text'] ?? '')?></span>
           </li>

@@ -432,14 +432,17 @@
         if (isset($GLOBALS['SANAKAN_HTTP']) && is_callable($GLOBALS['SANAKAN_HTTP']))
             return ($GLOBALS['SANAKAN_HTTP'])($url, $options, $maxLen);
 
-        $context = stream_context_create(['http' => $options]);
-        // a length of 0 means "read nothing" to file_get_contents, so a missing
-        // max length has to leave the argument out
-        $body = $maxLen > 0
-            ? @file_get_contents($url, false, $context, 0, $maxLen)
-            : @file_get_contents($url, false, $context);
+        $fp = @fopen($url, 'r', false, stream_context_create(['http' => $options]));
+        if ($fp === false)
+            return [false, 0];
+        $body = stream_get_contents($fp, $maxLen > 0 ? $maxLen : -1);
+        // the answer's headers, every redirect's among them, the last status
+        // line the one that counts ($http_response_header is deprecated from
+        // PHP 8.5); a file:// URL has none
+        $headers = stream_get_meta_data($fp)['wrapper_data'] ?? [];
+        fclose($fp);
         $status = 0;
-        foreach ($http_response_header ?? [] as $line)
+        foreach (is_array($headers) ? $headers : [] as $line)
             if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
                 $status = (int)$match[1];
 
@@ -1097,6 +1100,17 @@
         $_SESSION = [];
         session_destroy();
         setcookie(SITE_SESSION, '', time() - 3600, '/');
+        forgetHudCookies();
+    }
+
+    // The HUD colour kept in cookies for the pages without an account menu
+    // (account.php, js/hud.js) goes with the account, so a logged-out browser
+    // shows the site's own purple, like the pages that know the account
+    function forgetHudCookies()
+    {
+        foreach (['hud', 'hudrole'] as $name)
+            if (isset($_COOKIE[$name]))
+                setcookie($name, '', time() - 3600, '/');
     }
 
     // ---- Discord login -------------------------------------------------------------

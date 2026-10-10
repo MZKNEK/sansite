@@ -16,6 +16,17 @@
         assertSame('daily', commandSlug('daily'));
         assertSame('zwycięzca', commandSlug('zwycięzca'));
         assertSame('cmd-module-x', commandSlug('module x'), 'a slug starting with module- is prefixed');
+        assertSame('karta-', commandSlug('karta-'), 'a dash the name ends with stays');
+        assertSame('daleko-jeszcze', commandSlug('daleko jeszcze?'));
+        assertSame('zgłoś-2', commandSlug('zgłoś #2'), 'the second of a name gets the anchor cmd/ gives it');
+    });
+
+    test('commandKey numbers the commands of the same name', function () {
+        $seen = [];
+        assertSame('zgłoś', commandKey('', 'zgłoś', $seen));
+        assertSame('pw karta', commandKey('pw', 'karta', $seen));
+        assertSame('zgłoś #2', commandKey('', 'zgłoś', $seen));
+        assertSame('zgłoś #3', commandKey('', 'zgłoś', $seen));
     });
 
     test('botCommandIndex flattens the API answer', function () {
@@ -39,6 +50,17 @@
         assertSame('d', $index['m daily']['aliases'], 'the name is dropped from the aliases');
         assertSame('ile', $index['m daily']['parameters']);
         assertSame('daily 3', $index['m daily']['example']);
+    });
+
+    test('botCommandIndex keeps the commands of the same name apart', function () {
+        $data = ['modules' => [['name' => 'Mod', 'subModules' => [['prefix' => '', 'commands' => [
+            ['name' => 'zgłoś', 'description' => 'jeden', 'attributes' => [['description' => 'powód']]],
+            ['name' => 'zgłoś', 'description' => 'dwa', 'attributes' => [['description' => 'id, wiadomości'], ['description' => 'powód']]],
+        ]]]]]];
+        $index = botCommandIndex($data);
+        assertSame(['zgłoś', 'zgłoś #2'], array_keys($index));
+        assertSame('jeden', $index['zgłoś']['description']);
+        assertSame('id, wiadomości · powód', $index['zgłoś #2']['parameters'], 'the parameters apart from their own commas');
     });
 
     test('duration picks the unit', function () {

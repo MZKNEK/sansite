@@ -31,6 +31,24 @@
         return $name . (isset($command['module']) && $command['module'] !== '' ? '<small>' . e($command['module']) . '</small>' : '');
     }
 
+    // A changed text once, with only what changed in it marked: the part taken
+    // out struck through, the part put in highlighted, the rest dimmed
+    // (textDiff() in inc/text.php). A text taken out whole says "(brak)".
+    function changedText($old, $new)
+    {
+        if ($new === '')
+            return '<del>' . e($old) . '</del> &rarr; <ins>(brak)</ins>';
+
+        [$same, $was, $now, $after] = textDiff($old, $new);
+        $html = $same !== '' ? '<span class="same">' . e($same) . '</span>' : '';
+        if ($was !== '')
+            $html .= '<del>' . e($was) . '</del>' . ($now !== '' ? ' ' : '');
+        if ($now !== '')
+            $html .= '<ins>' . e($now) . '</ins>';
+
+        return $html . ($after !== '' ? '<span class="same">' . e($after) . '</span>' : '');
+    }
+
     function summary($change)
     {
         $parts = [];
@@ -57,8 +75,8 @@
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
-  <link href="../style.css?v=afbc72ec2c" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
+  <link href="../style.css?v=1500472fbe" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="cmd-page">
@@ -96,7 +114,7 @@
           <span class="change-name"><?=commandName((string)$key, $index[$key] ?? [], isset($index[$key]))?></span>
           <span class="change-what">
 <?php foreach ($fields as $field => $values): ?>
-            <p><b><?=e(COMMAND_FIELDS[$field] ?? $field)?>:</b> <?php if ($values[0] !== ''): ?><del><?=e($values[0])?></del> &rarr; <?php endif; ?><ins><?=$values[1] === '' ? '(brak)' : e($values[1])?></ins></p>
+            <p><b><?=e(COMMAND_FIELDS[$field] ?? $field)?>:</b> <?=changedText((string)$values[0], (string)$values[1])?></p>
 <?php endforeach; ?>
           </span>
         </li>
@@ -112,7 +130,7 @@
     </section>
 <?php endforeach; ?>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
   <script src="../../js/account.js?v=c8dfe2b1f3"></script>
   <script src="../../js/netsphere.js?v=1c8be049a6"></script>
 </body>

@@ -151,6 +151,10 @@
         if (me.role) document.documentElement.classList.add('role-' + me.role);
       }
       if (!me.menu) {
+        // the colour of an account that is gone (js/hud.js read it from the
+        // cookies account.php has just removed)
+        document.documentElement.removeAttribute('data-hud');
+        document.documentElement.className = document.documentElement.className.replace(/\brole-\S+/g, '').trim();
         if (!me.login) return;
         var login = document.createElement('a');
         login.href = 'account.php?login';

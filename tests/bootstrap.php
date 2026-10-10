@@ -16,6 +16,19 @@
         register_shutdown_function(function () use ($dir) { rmtree($dir); });
     }
 
+    // PHP's deprecation notices, also those of a PHP newer than the code (the
+    // server's), are gathered and fail the run at its end (tests/run.php); one
+    // silenced with @ is left alone, as PHP would
+    $GLOBALS['__deprecations'] = [];
+    error_reporting(error_reporting() | E_DEPRECATED | E_USER_DEPRECATED);
+    set_error_handler(function ($no, $str, $file, $line) {
+        if (!(error_reporting() & $no))
+            return false;
+        $GLOBALS['__deprecations'][$str . ' (' . basename($file) . ':' . $line . ')'] = true;
+
+        return true;
+    }, E_DEPRECATED | E_USER_DEPRECATED);
+
     function rmtree($path)
     {
         if (is_link($path) || is_file($path))

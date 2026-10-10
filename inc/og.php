@@ -56,11 +56,11 @@
     {
         $out = imagecreatetruecolor(OG_WIDTH, OG_HEIGHT);
         imagecopyresampled($out, $img, 0, 0, 0, 0, OG_WIDTH, OG_HEIGHT, OG_WIDTH * OG_SCALE, OG_HEIGHT * OG_SCALE);
-        imagedestroy($img);
+        unset($img);
 
         $tmp = $file . '.' . getmypid();
         $ok = @imagepng($out, $tmp, 6) && @rename($tmp, $file);
-        imagedestroy($out);
+        unset($out);
         if (!$ok)
             @unlink($tmp);
 
@@ -292,7 +292,7 @@
         $d = 2 * $r * OG_SCALE;
         $scaled = imagecreatetruecolor($d, $d);
         imagecopyresampled($scaled, $logo, 0, 0, 0, 0, $d, $d, imagesx($logo), imagesy($logo));
-        imagedestroy($logo);
+        unset($logo);
         $left = ($cx - $r) * OG_SCALE;
         $top = ($cy - $r) * OG_SCALE;
         $r2 = ($d / 2) ** 2;
@@ -300,7 +300,7 @@
             for ($x = 0; $x < $d; $x++)
                 if (($x - $d / 2 + 0.5) ** 2 + ($y - $d / 2 + 0.5) ** 2 <= $r2)
                     imagesetpixel($img, $left + $x, $top + $y, imagecolorat($scaled, $x, $y));
-        imagedestroy($scaled);
+        unset($scaled);
 
         if ($status !== null) {
             $background = color($img, OG_BACKGROUND);

@@ -24,6 +24,25 @@
         assertSame('y', $changes[0]['gone']['p a']['description'], 'the text from just before it went');
     });
 
+    test('botTrackCommands writes an index of an older format again without a change', function () {
+        $data = ['modules' => [['name' => 'M', 'subModules' => [['prefix' => '', 'commands' => [
+            ['name' => 'a', 'description' => 'x', 'attributes' => [['description' => 'p, q'], ['description' => 'r']]],
+            ['name' => 'a', 'description' => 'y'],
+        ]]]]]];
+        // as the first format had it: one key for both, the parameters joined by a comma
+        file_put_contents(botFile('commands-index.json'), json_encode(['since' => 500, 'commands' => [
+            'a' => ['module' => 'M', 'name' => 'a', 'description' => 'y', 'aliases' => '', 'parameters' => '', 'example' => 'a'],
+        ]]));
+
+        botTrackCommands($data, 1000);
+        assertSame([], botCommandChanges(), 'the new keys and texts are not a change of the bot');
+        assertSame(500, botCommandsWatchedSince(), 'the start of the log stays');
+        $stored = json_decode(file_get_contents(botFile('commands-index.json')), true);
+        assertSame(COMMAND_INDEX_FORMAT, $stored['format']);
+        assertSame(['a', 'a #2'], array_keys($stored['commands']));
+        assertSame('p, q · r', $stored['commands']['a']['parameters']);
+    });
+
     test('botRecordDay and the daily parts', function () {
         $day = strtotime('today');
         file_put_contents(botFile('status-history.txt'), implode("\n", [

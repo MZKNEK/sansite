@@ -355,8 +355,8 @@
                 . '<span class="diag-count">' . formatCount($scanner['n']) . '</span>'
                 . '<span class="diag-agent"><span>' . e($scanner['reason'])
                     . (count($scanner['probes']) > 1 ? ' <span class="muted" title="' . e(implode(' ', $scanner['probes'])) . '">(' . count($scanner['probes']) . ' takich ścieżek)</span>' : '')
-                    . ' &middot; ' . e(date('d.m H:i', $scanner['first']))
-                    . ($scanner['last'] - $scanner['first'] >= 60 ? '–' . e(date($sameDay ? 'H:i' : 'd.m H:i', $scanner['last'])) : '') . '</span>'
+                    . ' &middot; ' . e(date('j.m H:i', $scanner['first']))
+                    . ($scanner['last'] - $scanner['first'] >= 60 ? '–' . e(date($sameDay ? 'H:i' : 'j.m H:i', $scanner['last'])) : '') . '</span>'
                 . '<span title="' . e($scanner['ua']) . '">' . e($scanner['ua'] !== '' ? $scanner['ua'] : 'bez user agenta') . '</span>'
                 . '<code title="' . e(implode(' ', $paths)) . '">' . e(implode(' ', array_slice($paths, 0, 3))) . '</code></span>'
                 . '</li>';
@@ -670,7 +670,7 @@
                 $settings['diagSince'] = time();
                 if (!writeData('settings', $settings))
                     reply(false, dataError(), 500);
-                done('diag', 'Wyczyszczono awarie: karta dostępności liczy od ' . date('d.m.Y H:i') . '.');
+                done('diag', 'Wyczyszczono awarie: karta dostępności liczy od ' . date('j.m.Y H:i') . '.');
 
             case 'trash-empty':
                 $removed = 0;
@@ -858,7 +858,7 @@
         if ($entry === null)
             return '';
 
-        return 'panel' . (!empty($entry['added']) ? ', ' . date('d.m.Y', $entry['added']) : '')
+        return 'panel' . (!empty($entry['added']) ? ', ' . date('j.m.Y', $entry['added']) : '')
             . (!empty($entry['by']) ? ', nadał(a) ' . ($logins[$entry['by']]['name'] ?? $entry['by']) : '')
             . (($entry['note'] ?? '') !== '' ? ': „' . $entry['note'] . '”' : '');
     }
@@ -948,7 +948,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=ec855414d1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
@@ -1007,7 +1007,7 @@
         <h2><i>!</i>Cron nie sprawdza bota</h2>
         <p><?=$cronLast === null
             ? 'Automatyczne sprawdzanie jeszcze ani razu nie zadziałało.'
-            : 'Ostatnie automatyczne sprawdzenie było ' . e(ago($cronLast)) . ' (' . e(date('d.m H:i', $cronLast)) . ').'?>
+            : 'Ostatnie automatyczne sprawdzenie było ' . e(ago($cronLast)) . ' (' . e(date('j.m H:i', $cronLast)) . ').'?>
           Bez niego historia dostępności ma dziury, a awarie, gdy nikt nie odwiedza strony, nie są zapisywane.</p>
         <p class="hint">Zadanie cron (na serwerze, jako root): <code><?=e($cronCommand)?></code><br />Czy cron działa: <code>systemctl status cron</code></p>
       </section>
@@ -1308,7 +1308,7 @@
               <a href="<?=e($root . 'i/' . folderUrl($shared[1] ?? $share['rel']))?>"><b><?=e(displayPath($shared[1] ?? $share['rel']))?></b></a>
               <code class="share-link"><?=e($shareUrl)?></code>
             </span>
-            <span class="trash-info">od <?=e(ago($share['created']))?><?=($share['name'] ?? '') !== '' ? ', ' . e($share['name']) : ''?> &middot; <?=$share['expires'] === null ? 'bez końca' : 'do ' . e(date('d.m.Y H:i', $share['expires']))?><?=$shared ? '' : ' &middot; <b class="warn">folderu już nie ma</b>'?></span>
+            <span class="trash-info">od <?=e(ago($share['created']))?><?=($share['name'] ?? '') !== '' ? ', ' . e($share['name']) : ''?> &middot; <?=$share['expires'] === null ? 'bez końca' : 'do ' . e(date('j.m.Y H:i', $share['expires']))?><?=$shared ? '' : ' &middot; <b class="warn">folderu już nie ma</b>'?></span>
             <span class="login-actions">
               <button type="button" class="admin-btn small danger" data-action="share-revoke" data-token="<?=e($token)?>" data-confirm="<?=e('Wyłączyć link do ' . displayPath($shared[1] ?? $share['rel']) . '? Kto go ma, przestanie widzieć folder.')?>">Wyłącz</button>
             </span>
@@ -1389,7 +1389,7 @@
         <ol class="history">
 <?php foreach ($history as $entry): ?>
           <li>
-            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('d.m H:i', $entry['time'] ?? 0))?></time>
+            <time datetime="<?=e(date('c', $entry['time'] ?? 0))?>"><?=e(date('j.m H:i', $entry['time'] ?? 0))?></time>
             <span class="history-who"><?=e($entry['name'] ?: $entry['id'])?></span>
             <span class="history-text"><?=e($entry['text'] ?? '')?></span>
           </li>
@@ -1439,7 +1439,7 @@
 <?php endif; ?>
         </div>
 
-        <h3 class="diag-title"><i><?=$diagLetter()?></i><?=$diagSince > $now - 86400 ? 'Awarie od ' . e(date(date('Y-m-d', $diagSince) === date('Y-m-d') ? 'H:i' : 'd.m H:i', $diagSince)) : 'Awarie w ostatnich 24 godzinach'?><?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i><?=$diagSince > $now - 86400 ? 'Awarie od ' . e(date(date('Y-m-d', $diagSince) === date('Y-m-d') ? 'H:i' : 'j.m H:i', $diagSince)) : 'Awarie w ostatnich 24 godzinach'?><?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
 <?php if (!$diagEpisodes): ?>
         <p class="nobody">Strona cały czas odpowiadała.</p>
 <?php else: ?>
@@ -1447,7 +1447,7 @@
 <?php foreach (array_slice($diagEpisodes, 0, 20) as $i => $episode): ?>
           <details class="diag-episode<?=$episode['ongoing'] ? ' ongoing' : ''?>"<?=$i === 0 ? ' open' : ''?>>
             <summary>
-              <time><?=e(date(date('Y-m-d', $episode['from']) === date('Y-m-d') ? 'H:i:s' : 'd.m H:i:s', $episode['from']))?></time>
+              <time><?=e(date(date('Y-m-d', $episode['from']) === date('Y-m-d') ? 'H:i:s' : 'j.m H:i:s', $episode['from']))?></time>
               <b><?=$episode['ongoing'] ? 'trwa' : e(diagSeconds($episode['to'] - $episode['from']))?></b>
               <span><?=e(diagVerdict($episode))?></span>
             </summary>
@@ -1528,7 +1528,7 @@
 <?php foreach ($cfItems as $item): ?>
             <li>
               <code><?=e($item['ip'])?></code>
-              <span><?=e($item['comment'])?><?=$item['created'] ? ' <span class="muted">' . e(date('d.m.Y H:i', $item['created'])) . '</span>' : ''?></span>
+              <span><?=e($item['comment'])?><?=$item['created'] ? ' <span class="muted">' . e(date('j.m.Y H:i', $item['created'])) . '</span>' : ''?></span>
               <button type="button" class="admin-btn small" data-action="cf-unblock" data-item="<?=e($item['id'])?>" data-ip="<?=e($item['ip'])?>" data-confirm="<?=e('Odblokować ' . $item['ip'] . '?')?>">Odblokuj</button>
             </li>
 <?php endforeach; ?>
@@ -1566,7 +1566,7 @@
         <dl class="server">
           <dt>Pomiary</dt>
           <dd><?=!diagAvailable()
-              ? '<b class="warn">brak rozszerzenia curl</b>: <code>apt-get install -y php8.1-curl &amp;&amp; systemctl restart php8.1-fpm</code>'
+              ? '<b class="warn">brak rozszerzenia curl</b>: <code>apt-get install -y ' . PHP_PACKAGE . '-curl &amp;&amp; systemctl restart ' . PHP_PACKAGE . '-fpm</code>'
               : ($diagLast && time() - $diagLast['t'] < 180
                   ? 'działają: ostatni ' . e(ago($diagLast['t']))
                   : '<b class="warn">nie działają</b>' . ($diagLast ? ': ostatni ' . e(ago($diagLast['t'])) : '') . '. Zadanie cron: <code>' . e($diagCron) . '</code>')?></dd>
@@ -1711,7 +1711,7 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
           <dd><?=function_exists('imagecreatefromavif') ? 'czyta GD' : (findTool('magick') || findTool('convert') || findTool('ffmpeg') ? 'przez imagemagick lub ffmpeg' : '<b class="warn">brak obsługi AVIF</b>: plik się wyświetli, ale bez miniatury. Instalacja: <code>apt-get install -y imagemagick</code>')?></dd>
 
           <dt>Pobieranie ZIP</dt>
-          <dd><?=canZip() ? 'włączone' : '<b class="warn">brak modułu ZIP</b>: przyciski pobierania są ukryte. Instalacja: <code>apt-get install -y php8.1-zip &amp;&amp; systemctl restart php8.1-fpm</code>'?></dd>
+          <dd><?=canZip() ? 'włączone' : '<b class="warn">brak modułu ZIP</b>: przyciski pobierania są ukryte. Instalacja: <code>apt-get install -y ' . PHP_PACKAGE . '-zip &amp;&amp; systemctl restart ' . PHP_PACKAGE . '-fpm</code>'?></dd>
 
           <dt>Limit wysyłania</dt>
           <dd><?=e(formatSize(uploadLimit()))?> <span class="muted">(PHP; nginx ma osobny client_max_body_size)</span></dd>
@@ -1766,7 +1766,7 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
             </form>
             <span class="muted">inc/data: <?=e(formatSize($dataBytes))?> (dostępy, historia, statusy, awarie, kosz). Bez inc/config.php, w którym jest sekret aplikacji Discord.</span>
 <?php else: ?>
-            <b class="warn">brak modułu ZIP</b>: <code>apt-get install -y php8.1-zip &amp;&amp; systemctl restart php8.1-fpm</code>
+            <b class="warn">brak modułu ZIP</b>: <code>apt-get install -y <?=PHP_PACKAGE?>-zip &amp;&amp; systemctl restart <?=PHP_PACKAGE?>-fpm</code>
 <?php endif; ?>
           </dd>
         </dl>
@@ -1776,7 +1776,7 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
     </div>
 <?php endif; ?>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>
