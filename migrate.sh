@@ -553,15 +553,29 @@ new_tune() {
     systemctl restart "php$v-fpm"
     echo "  pm.max_children = 8 (2 czekają gotowe, do 4 wolnych), proces odnawiany co 500 zapytań"
 
-    # the key this session came with is there, so passwords can go
+    # The key this session came with is there, so passwords can go, except for
+    # the ubuntu account: its password stays as the way in should the keys be
+    # lost (fail2ban, from prepare, bans the addresses guessing it; root then
+    # comes with sudo). The Match block is closed with "Match all", as the
+    # files of sshd_config.d are read at the top of sshd_config and an open
+    # block would take in the lines that follow there.
     say "SSH"
     if [ -s /root/.ssh/authorized_keys ] && grep -qE '^(ssh-|ecdsa-|sk-)' /root/.ssh/authorized_keys; then
-        printf '%s\n' '# written by migrate.sh: keys only, root too (read before 50-cloud-init.conf)' \
+        printf '%s\n' '# written by migrate.sh: keys only, root too (read before 50-cloud-init.conf),' \
+            '# but the ubuntu account keeps its password, the way in should the keys be lost' \
             'PasswordAuthentication no' 'KbdInteractiveAuthentication no' 'PermitRootLogin prohibit-password' \
+            'Match User ubuntu' '    PasswordAuthentication yes' 'Match all' \
             > /etc/ssh/sshd_config.d/10-sanakan.conf
         sshd -t || { rm -f /etc/ssh/sshd_config.d/10-sanakan.conf; die "Konfiguracja SSH nie przeszła testu, zostaje jak była."; }
         systemctl reload ssh
-        echo "  logowanie tylko kluczem: $(sshd -T | grep -iE '^(passwordauthentication|permitrootlogin)' | tr '\n' ' ')"
+        echo "  root i pozostali tylko kluczem: $(sshd -T -C user=root,host=x,addr=192.0.2.1 | grep -iE '^(passwordauthentication|permitrootlogin)' | tr '\n' ' ')"
+        echo "  ubuntu także hasłem: $(sshd -T -C user=ubuntu,host=x,addr=192.0.2.1 | grep -iE '^passwordauthentication' | tr '\n' ' ')"
+        if ! id ubuntu >/dev/null 2>&1; then
+            warn "Nie ma konta ubuntu, zapasowe logowanie hasłem nie zadziała (useradd -m -s /bin/bash -G sudo ubuntu && passwd ubuntu)."
+        elif [ "$(passwd -S ubuntu | awk '{print $2}')" != P ]; then
+            warn "Konto ubuntu nie ma hasła, zapasowe logowanie nie zadziała, dopóki go nie ustawisz (passwd ubuntu)."
+        fi
+        systemctl is-active --quiet fail2ban || warn "fail2ban nie działa, a ubuntu loguje się hasłem: systemctl enable --now fail2ban."
     else
         warn "root nie ma klucza w /root/.ssh/authorized_keys, logowanie hasłem zostaje."
     fi
