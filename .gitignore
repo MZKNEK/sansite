@@ -13,3 +13,6 @@
 
 # The packages of Skalpelator and USkalpelator (apps/), installed by npm for their build
 node_modules/
+
+# The local preview of tools/preview.sh: its made-up data and logs
+/.preview/

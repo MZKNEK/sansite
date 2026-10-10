@@ -58,7 +58,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `server/nginx/` | nginx: the site's server block (https from Cloudflare with its Origin Certificate), blocked `inc/`, 404 page, short links to commands, security headers (Skalpelator's and USkalpelator's of their own), browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
 | `server/ufw-cloudflare.sh` | The server's firewall: SSH for everyone, port 443 only for Cloudflare (see Firewall below) |
 | `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), `nginx-site.conf`, its nginx server block, with `nginx-og.conf` (its link preview picture and purple), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
-| `tools/` | Development helpers, sent on the server never: `asset-versions.php` rewrites the `?v=` of every CSS and JS in the pages to the first ten characters of the file's hash, and `install-hooks.sh` makes git run it before every commit, so the version follows the content without anyone raising a number by hand; `build-apps.sh` builds Skalpelator and USkalpelator |
+| `tools/` | Development helpers, sent on the server never: `asset-versions.php` rewrites the `?v=` of every CSS and JS in the pages to the first ten characters of the file's hash, and `install-hooks.sh` makes git run it before every commit, so the version follows the content without anyone raising a number by hand; `build-apps.sh` builds Skalpelator and USkalpelator; `preview.sh` and `preview-stop.sh` run and stop the local preview with made-up data (`preview/`, see Running locally) |
 | `tests/`, `.github/` | The dependency-free test suite (`php tests/run.php`, `php tests/lint.php`) and the CI that runs it, also sent on the server never (see Tests below) |
 | `deploy.sh` | Deployment to the server over SSH |
 | `migrate.sh` | Moving the site and the wiki to a new server (see Moving to a new server below) |
@@ -288,11 +288,15 @@ They ran on GitHub Pages at `skalpel.sanakan.pl` and `uskalpel.sanakan.pl` befor
 
 ## Running locally
 
+The whole site, without the wiki, runs locally with made-up data, to look at and test (Git Bash or any shell with PHP 8.1 or newer):
+
 ```bash
-php -d extension=gd -S 127.0.0.1:8765 -t .
+tools/preview.sh              # http://127.0.0.1:8765/, or tools/preview.sh 8080
+tools/preview-stop.sh         # stops it; with --clean also removes its data
+tools/preview.sh --reset      # the made-up data from scratch
 ```
 
-The site is then at http://127.0.0.1:8765/. The Discord login works only with a local `DISCORD_REDIRECT_URI` in `inc/config.php` that is also listed under Redirects in the Discord application.
+It runs `php -S` with `tools/preview/router.php`, which does what nginx does on the server (`inc/` and the dot files kept out, the gallery's links of the accounts' folders, the short links of the commands, the security headers of `server/nginx/`, the croppers' own), and a made-up bot API next to it on the following port (`tools/preview/bot-api.php`: the roles, the commands, `api/health`). `tools/preview/cron.php` runs the site's own `inc/check-bot.php` every minute, so the status keeps its history and uploaded pictures are changed to WebP. The data lives in `.preview/data` (with the logs in `.preview/`, out of git), filled the first time by `tools/preview/seed.php`: 24 hours of checks with an outage, 120 days of availability with a planned break, the versions, a week of changes in the commands, the other sites, a notice saying the data is made up, an access request and a few pictures in the gallery (`i/Podgląd`). `/__login` (where every login of the site goes in the preview, never to Discord) logs in as one of the accounts of `tools/preview/data.php`: dev with the panel and the whole gallery, admin, moderator, user, and a guest without a role. Its settings are `tools/preview/config.php` instead of `inc/config.php`, so it refuses to start while there is one. `npm run dev` of a cropper (apps/) takes the site from it.
 
 ## Tests
 
