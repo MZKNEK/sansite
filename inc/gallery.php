@@ -58,6 +58,8 @@
     const THUMB_KEEP_DAYS = 30;
     const SEARCH_LIMIT = 300;
     const ZIP_MAX_BYTES = 1073741824;
+    // goes up when what browsers may keep of the thumbnails changes (thumbQuery())
+    const THUMB_URL_VERSION = 2;
     const ROTATE_TYPES = ['png', 'jpg', 'jpeg', 'webp'];
     const MAX_NAME_LENGTH = 150;
     // the folders of the accounts with one, right in the top folder, and what
@@ -338,13 +340,21 @@
         return hasGd() && findTool('ffmpeg') !== null;
     }
 
+    // ?thumb= of a file: its time, so a changed picture gets a new URL, and
+    // THUMB_URL_VERSION, so no browser goes on using a thumbnail it was once
+    // allowed to keep for a year (before sendThumb() said no-store)
+    function thumbQuery($rel, $full)
+    {
+        return '?thumb=' . rawurlencode(publicRel($rel)) . '&v=' . filemtime($full) . '&c=' . THUMB_URL_VERSION;
+    }
+
     // thumbnail URL of a picture or a video, or null when it should get a placeholder
     function thumbUrl($rel, $full)
     {
         if (isVideo($rel))
-            return canThumbVideo() ? '?thumb=' . rawurlencode(publicRel($rel)) . '&v=' . filemtime($full) : null;
+            return canThumbVideo() ? thumbQuery($rel, $full) : null;
         if (hasGd())
-            return '?thumb=' . rawurlencode(publicRel($rel)) . '&v=' . filemtime($full);
+            return thumbQuery($rel, $full);
 
         return filesize($full) <= THUMBLESS_MAX_BYTES ? fileUrl($rel) : null;
     }
@@ -721,10 +731,13 @@
         return $removed;
     }
 
-    // Thumbnail of one picture, made on first use and then served from the cache.
-    // The URL has the file time in it, so browsers may keep it for good.
+    // Thumbnail of one picture, made on first use and then served from the cache
+    // on the server. Whether the visitor may see it is checked on every request
+    // (i/index.php), so no browser or proxy keeps the answer: a logout, another
+    // account or a link turned off must not leave the thumbnail reachable.
     function sendThumb($base, $rel)
     {
+        header('Cache-Control: private, no-store');
         $file = resolvePath($base, $rel, false);
         $video = $file && isVideo($file[1]);
         if (!$file || (!isImage($file[1]) && !($video && canThumbVideo()))) {
@@ -749,7 +762,6 @@
                     fclose($lock);
                     http_response_code(503);
                     header('Retry-After: 2');
-                    header('Cache-Control: no-store');
                     return;
                 }
                 usleep(100000);
@@ -775,7 +787,6 @@
             @touch($cache);
 
         header('Content-Type: ' . ($webp ? 'image/webp' : 'image/png'));
-        header('Cache-Control: public, max-age=31536000, immutable');
         readfile($cache);
     }
 
@@ -856,22 +867,37 @@
     // folders shared with it.
     function galleryCanSee($base, $rel)
     {
-        if (inPrivateDir($rel)) {
-            if (galleryCanSeePrivate())
+        return galleryAccess($base)($rel);
+    }
+
+    // the rule of galleryCanSee() as a function of the path, with the visitor's
+    // rights read once, for checking many paths (the files of a ZIP)
+    function galleryAccess($base)
+    {
+        $private = galleryCanSeePrivate();
+        $admin = galleryIsAdmin();
+        $view = galleryCanView();
+        $shares = sessionShares($base);
+        $homes = galleryHomes($base);
+
+        return function ($rel) use ($private, $admin, $view, $shares, $homes) {
+            if (inPrivateDir($rel)) {
+                if ($private)
+                    return true;
+                foreach ($shares as $home)
+                    if (inFolder($rel, $home))
+                        return true;
+
+                return false;
+            }
+            if ($admin)
                 return true;
-            foreach (sessionShares($base) as $home)
+            foreach ($homes as $home)
                 if (inFolder($rel, $home))
                     return true;
 
-            return false;
-        }
-        if (galleryIsAdmin())
-            return true;
-        foreach (galleryHomes($base) as $home)
-            if (inFolder($rel, $home))
-                return true;
-
-        return !inUsersDir($rel) && galleryCanView();
+            return !inUsersDir($rel) && $view;
+        };
     }
 
     // The folders a visitor who does not see the whole gallery starts from: its
@@ -1842,16 +1868,19 @@
     }
 
     // files under a path for the ZIP as [full path or null for an empty folder,
-    // path in the ZIP]; hidden files and the names in $skip (only right in the
-    // given folder, e.g. the gallery script) stay out
-    function zipCollect($full, $local, $skip, &$files, &$bytes, $depth = 0)
+    // path in the ZIP]; hidden files, links and the names in $skip (only right in
+    // the given folder, e.g. the gallery script) stay out, and so does every file
+    // or folder (with all in it) $allow, given its full path, says no to
+    function zipCollect($full, $local, $skip, &$files, &$bytes, $depth = 0, $allow = null)
     {
+        if (is_link($full) || ($allow !== null && !$allow($full)))
+            return;
         if (is_file($full)) {
             $files[] = [$full, $local];
             $bytes += filesize($full);
             return;
         }
-        if (!is_dir($full) || is_link($full) || $depth > 10)
+        if (!is_dir($full) || $depth > 10)
             return;
 
         $names = [];
@@ -1861,7 +1890,7 @@
         if (!$names)
             $files[] = [null, $local . '/'];
         foreach ($names as $name)
-            zipCollect($full . '/' . $name, $local . '/' . $name, [], $files, $bytes, $depth + 1);
+            zipCollect($full . '/' . $name, $local . '/' . $name, [], $files, $bytes, $depth + 1, $allow);
     }
 
     // the name the gallery shows for a folder or file, and gives it in a ZIP:
@@ -1904,21 +1933,34 @@
     }
 
     // gallery items ([full path, rel] each) as what sendZip() takes: the top
-    // folder is "i" and loses its index.php, the others keep their own name
-    function galleryZipRoots($items)
+    // folder is "i" and loses its index.php, the others keep their own name. Each
+    // file and folder in them goes by the visitor's rights (galleryAccess()), so
+    // the ZIP of a folder holds what the gallery shows of it and no more: no
+    // private folder, no folders of other accounts, no siblings of a shared one.
+    function galleryZipRoots($base, $items)
     {
+        $access = galleryAccess($base);
+        $base = str_replace('\\', '/', $base);
+        $allow = function ($full) use ($base, $access) {
+            $full = str_replace('\\', '/', $full);
+            if ($full !== $base && strpos($full, $base . '/') !== 0)
+                return false;
+
+            return $access(ltrim(substr($full, strlen($base)), '/'));
+        };
+
         $roots = [];
         foreach ($items as $item)
-            $roots[] = [$item[0], $item[1] === '' ? 'i' : displayName($item[1]),
-                $item[1] === '' ? (galleryIsAdmin() ? ['index.php'] : ['index.php', USERS_DIR]) : []];
+            $roots[] = [$item[0], $item[1] === '' ? 'i' : displayName($item[1]), $item[1] === '' ? ['index.php'] : [], $allow];
 
         return $roots;
     }
 
     // Sends files and folders ([full path, name in the ZIP, names to leave out
-    // right in it] each) as one ZIP, stored without compression, since
-    // pictures and videos are compressed already. $maxBytes null means no limit
-    // but the free disk space. A problem goes back to $backUrl as a message.
+    // right in it, optionally what zipCollect() lets in] each) as one ZIP, stored
+    // without compression, since pictures and videos are compressed already.
+    // $maxBytes null means no limit but the free disk space. A problem goes back
+    // to $backUrl as a message.
     function sendZip($roots, $zipName, $backUrl, $maxBytes = ZIP_MAX_BYTES)
     {
         $fail = function ($message) use ($backUrl) {
@@ -1932,7 +1974,7 @@
         $files = [];
         $bytes = 0;
         foreach ($roots as $root)
-            zipCollect($root[0], $root[1], $root[2], $files, $bytes);
+            zipCollect($root[0], $root[1], $root[2], $files, $bytes, 0, $root[3] ?? null);
         if (!array_filter(array_column($files, 0)))
             $fail('Nie ma tu żadnych plików do pobrania.');
         if ($maxBytes !== null && $bytes > $maxBytes)
@@ -2974,7 +3016,7 @@
                 if (!galleryCanView() && !galleryHomes($base))
                     reply(false, 'To konto nie ma dostępu do galerii.', 403);
                 $dir = resolvePath($base, $_POST['dir'] ?? '', true);
-                sendZip(galleryZipRoots(postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : displayName($dir[1])) . ' - wybrane.zip',
+                sendZip(galleryZipRoots($base, postedItems($base)), (!$dir || $dir[1] === '' ? 'galeria' : displayName($dir[1])) . ' - wybrane.zip',
                     localBack($_POST['back'] ?? ''));
 
             case 'upload':

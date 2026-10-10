@@ -108,10 +108,78 @@
 
     test('galleryZipRoots names the top folder i', function () {
         $dir = tempDir();
-        $roots = galleryZipRoots([[$dir . '/a.png', 'a.png'], [$dir, '']]);
+        $roots = galleryZipRoots($dir, [[$dir . '/a.png', 'a.png'], [$dir, '']]);
         assertSame('a.png', $roots[0][1]);
         assertSame('i', $roots[1][1]);
         assertContains('index.php', $roots[1][2], 'the gallery script is left out');
+    });
+
+    // the names a ZIP of these gallery items would hold for the visitor now
+    function zipNames($base, $items)
+    {
+        $files = [];
+        $bytes = 0;
+        foreach (galleryZipRoots($base, $items) as $root)
+            zipCollect($root[0], $root[1], $root[2], $files, $bytes, 0, $root[3]);
+
+        return array_column($files, 1);
+    }
+
+    test('a ZIP holds only what the visitor may see', function () {
+        $base = tempDir();
+        foreach (['private/sub', 'users/9-x', 'shared', 'other'] as $dir)
+            mkdir($base . '/' . $dir, 0700, true);
+        foreach (['a.png', 'index.php', 'private/p.png', 'private/sub/s.png', 'users/9-x/u.png', 'shared/h.png', 'other/o.png'] as $file)
+            file_put_contents($base . '/' . $file, 'x');
+
+        // an admin of the gallery without the right to the private folder
+        sessionFor('sanakan-zip-admin', ['id' => '111', 'name' => 'A', 'avatar' => 'a']);
+        $names = zipNames($base, [[$base, '']]);
+        assertContains('i/a.png', $names);
+        assertContains('i/users/9-x/u.png', $names, 'an admin gets the account folders');
+        foreach ($names as $name)
+            assertFalse(strpos($name, 'i/private') === 0, 'but nothing of the private folder: ' . $name);
+        assertFalse(in_array('i/index.php', $names, true));
+        sessionEnd();
+
+        sessionFor('sanakan-zip-viewer', ['id' => '222', 'name' => 'V', 'avatar' => 'a']);
+        $names = zipNames($base, [[$base, '']]);
+        assertContains('i/a.png', $names);
+        assertContains('i/other/o.png', $names);
+        foreach ($names as $name)
+            assertTrue(strpos($name, 'i/private') !== 0 && strpos($name, 'i/users') !== 0, 'a viewer gets neither: ' . $name);
+        sessionEnd();
+
+        sessionFor('sanakan-zip-private', ['id' => '444', 'name' => 'P', 'avatar' => 'a']);
+        assertSame(['private/p.png', 'private/sub/s.png'], zipNames($base, [[$base . '/private', 'private']]),
+            'whoever may see the private folder gets it whole');
+        sessionEnd();
+    });
+
+    test('a ZIP by a shared link holds only the shared folder', function () {
+        $base = tempDir();
+        mkdir($base . '/private/sub', 0700, true);
+        file_put_contents($base . '/private/p.png', 'x');
+        file_put_contents($base . '/private/sub/s.png', 'x');
+
+        sessionFor('sanakan-zip-share', ['id' => '606', 'name' => 'S', 'avatar' => 'a']);
+        openShare($base, createShare('private/sub', 7, siteUser()));
+        $names = zipNames($base, [[$base . '/private', 'private'], [$base . '/private/sub', 'private/sub']]);
+        sessionEnd();
+        assertSame(['sub/s.png'], $names);
+    });
+
+    test('a ZIP does not follow links', function () {
+        $base = tempDir();
+        $outside = tempDir();
+        file_put_contents($outside . '/secret.png', 'x');
+        file_put_contents($base . '/a.png', 'x');
+        if (!@symlink($outside, $base . '/linked') || !@symlink($outside . '/secret.png', $base . '/s.png'))
+            return; // links cannot be made here (Windows without the right to)
+
+        sessionFor('sanakan-zip-links', ['id' => '111', 'name' => 'A', 'avatar' => 'a']);
+        assertSame(['i/a.png'], zipNames($base, [[$base, '']]));
+        sessionEnd();
     });
 
     test('accountActivity counts what an account did', function () {

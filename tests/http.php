@@ -18,12 +18,12 @@
         return @rmdir($path);
     }
 
-    // one GET: [status, body]
+    // one GET: [status, body, header lines]
     function get($url)
     {
         $fp = @fopen($url, 'r', false, stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => true]]));
         if ($fp === false)
-            return [0, ''];
+            return [0, '', []];
         $body = stream_get_contents($fp);
         // as httpRaw() does it ($http_response_header is deprecated from PHP 8.5)
         $headers = stream_get_meta_data($fp)['wrapper_data'] ?? [];
@@ -33,7 +33,7 @@
             if (preg_match('~^HTTP/\S+\s+(\d{3})~', $line, $match))
                 $status = (int)$match[1];
 
-        return [$status, (string)$body];
+        return [$status, (string)$body, is_array($headers) ? $headers : []];
     }
 
     // Starts php -S with a router; returns the process resource or null. The
@@ -94,7 +94,7 @@
         exit(1);
     }
 
-    // [path, accepted statuses]
+    // [path, accepted statuses, optionally a header line the answer must have]
     $pages = [
         ['/', [200]],
         ['/404.html', [200]],
@@ -114,6 +114,8 @@
         ['/og.php?p=uskalpel', [200, 302]],
         ['/i/', [200, 503]],
         ['/i/?pick', [401]],
+        // a thumbnail depends on the session, so no cache may keep it, a refusal neither
+        ['/i/?thumb=a.png&v=1&c=2', [403, 404], 'Cache-Control: private, no-store'],
         ['/account/', [200, 503]],
         ['/admin/', [200, 503]],
         ['/api/', [200, 503]],
@@ -121,12 +123,14 @@
     ];
 
     $failures = 0;
-    foreach ($pages as [$path, $ok]) {
-        [$status, $body] = get($base . $path);
+    foreach ($pages as $page) {
+        [$path, $ok] = $page;
+        [$status, $body, $headers] = get($base . $path);
         $error = (bool)preg_match('~Fatal error|Parse error|Uncaught|Deprecated:~', $body);
-        if (!in_array($status, $ok, true) || $error) {
+        $missing = isset($page[2]) && !in_array(strtolower($page[2]), array_map('strtolower', $headers), true);
+        if (!in_array($status, $ok, true) || $error || $missing) {
             $failures++;
-            echo 'FAIL ', $path, ' -> ', $status, ($error ? ' (PHP error)' : ''), "\n", substr($body, 0, 300), "\n\n";
+            echo 'FAIL ', $path, ' -> ', $status, ($error ? ' (PHP error)' : ''), ($missing ? ' (no "' . $page[2] . '")' : ''), "\n", substr($body, 0, 300), "\n\n";
         } else {
             echo 'ok   ', $path, ' (', $status, ")\n";
         }

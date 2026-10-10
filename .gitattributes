@@ -6,6 +6,7 @@ server/ export-ignore
 tools/ export-ignore
 apps/ export-ignore
 tests/ export-ignore
+tofix.md export-ignore
 .github/ export-ignore
 .gitignore export-ignore
 .gitattributes export-ignore

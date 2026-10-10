@@ -101,7 +101,7 @@
             http_response_code($zipDir || !galleryCanView() ? 403 : 404);
             exit;
         }
-        sendZip(galleryZipRoots([$zipDir]), ($zipDir[1] === '' ? 'galeria' : displayName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
+        sendZip(galleryZipRoots($base, [$zipDir]), ($zipDir[1] === '' ? 'galeria' : displayName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
     }
 
     // ?preview=token: the WebP made for a manual change, shown next to the
@@ -124,6 +124,8 @@
     }
 
     if (isset($_GET['thumb'])) {
+        // every answer, a refusal too, depends on the session (sendThumb())
+        header('Cache-Control: private, no-store');
         $thumb = resolvePath($base, $_GET['thumb'], false);
         $canView = $thumb && galleryCanSee($base, $thumb[1]);
         // PHP locks the session file until the request ends; closed, the many
