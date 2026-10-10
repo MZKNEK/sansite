@@ -31,6 +31,8 @@ if [ "${1:-}" = "--clean" ]; then
     fi
     # the folders of the made-up accounts (tools/preview/data.php), by their IDs
     rm -rf -- i/users/10000000000000000[1-9]-* 2>/dev/null || true
+    # and the folder of the accounts' folders, when the preview made it alone
+    rmdir i/users 2>/dev/null || true
     rm -rf -- "$dir"
     echo "Dane podglądu usunięte."
 fi
