@@ -1,11 +1,14 @@
 <?php
     // The Discord account for the static pages (the home page, the privacy
-    // notice and the 404 cannot render it, so they ask here, js/account.js):
-    // the account menu of the top right corner (accountMenuHtml() in
-    // inc/auth.php) and whether the account may read the API. ?login starts the
-    // login and comes back to the home page. A POST with the CSRF token logs
-    // out, or ends trying other rights (the bar of testRights()); every page's
-    // account menu sends it here, with the page to go back to.
+    // notice, the 404, Skalpelator and USkalpelator cannot render it, so they
+    // ask here, js/account.js): the account menu of the top right corner
+    // (accountMenuHtml() in inc/auth.php), whether the account may read the API,
+    // and for the croppers whether it has a folder of its own in the gallery to
+    // save a card into, with the CSRF token that saving needs. ?back= is the
+    // page asking, where logging out comes back to. ?login starts the login
+    // and comes back to ?back=, or to the home page. A POST with the CSRF token
+    // logs out, or ends trying other rights (the bar of testRights()); every
+    // page's account menu sends it here, with the page to go back to.
     require __DIR__ . '/inc/auth.php';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,7 +27,7 @@
     }
 
     if (isset($_GET['login']) && authConfigured()) {
-        startLogin(siteRoot());
+        startLogin(localPath($_GET['back'] ?? ''));
         exit;
     }
 
@@ -48,8 +51,10 @@
     echo json_encode($user === null ? [
         'login' => authConfigured()
     ] : [
-        'menu' => accountMenuHtml($user, siteRoles(), siteRoot()),
+        'menu' => accountMenuHtml($user, siteRoles(), localPath($_GET['back'] ?? '')),
         'api' => canViewApiId($user['id']),
+        'own' => isGalleryUploaderId($user['id']),
+        'csrf' => siteCsrf(),
         'hud' => hudMode($user['id']),
         'role' => hudColorKey($user['id'], $badge),
         'flash' => takeFlash()

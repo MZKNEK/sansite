@@ -7,6 +7,9 @@
   import CardDrop from '../../shared/lib/CardDrop.svelte';
   import Select from '../../shared/lib/Select.svelte';
   import LinkField from '../../shared/lib/LinkField.svelte';
+  import Header from '../../shared/lib/Header.svelte';
+  import GallerySave from '../../shared/lib/GallerySave.svelte';
+  import { cardName } from '../../shared/lib/account.js';
 
   import Cropper from "svelte-easy-crop";
 	import { getCroppedImg, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
@@ -95,9 +98,22 @@
   let winWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
   $: fitScale = Math.min(1, (winWidth - 32) / 481);
 
+  // the card as it is saved, as a blob: address
+  const renderCard = () => getCroppedImg(image, currentCrop(), { ...card, sharpen });
+
+  // the same as a Blob, for the gallery
+  async function cardBlob() {
+    const url = await renderCard();
+    try {
+      return await (await fetch(url)).blob();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
   async function downloadImage() {
     try {
-      const croppedImage = await getCroppedImg(image, currentCrop(), { ...card, sharpen });
+      const croppedImage = await renderCard();
       const downloadLink = document.createElement("a");
       downloadLink.href = croppedImage;
       downloadLink.download = "skalpelek.png";
@@ -180,13 +196,7 @@
 
 <svelte:window bind:innerWidth={winWidth} />
 
-<header class="page-head">
-  <div class="page-top">
-    <a class="back hud-corners" href="/" title="Strona główna">&larr; Sanakan</a>
-  </div>
-  <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
-  <h1 class="hud-title">Skalpelator</h1>
-</header>
+<Header title="Skalpelator" />
 
 <main class="content">
   <div class="app-layout">
@@ -263,6 +273,7 @@
       {#if editMode}
         <div class="card-actions">
           <button type="button" class="btn-go" on:click={async () => {downloadImage()}}>Zapisz</button>
+          <GallerySave render={cardBlob} name={() => cardName('skalpel')} />
         </div>
       {/if}
     </div>

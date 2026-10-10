@@ -8,6 +8,9 @@
   import CardDrop from '../../shared/lib/CardDrop.svelte';
   import Select from '../../shared/lib/Select.svelte';
   import LinkField from '../../shared/lib/LinkField.svelte';
+  import Header from '../../shared/lib/Header.svelte';
+  import GallerySave from '../../shared/lib/GallerySave.svelte';
+  import { cardName } from '../../shared/lib/account.js';
 
 
   let borders = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Jota', 'Lambda', 'Omega' ]
@@ -455,39 +458,50 @@
     }
   }
 
+  // the card as it is saved: its layers, cropped and masked, on one canvas
+  async function composeCard() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 475;
+    canvas.height = 667;
+    const ctx = canvas.getContext('2d');
+
+    // Kolejność warstw: gdy bgAutoLayer (removeBg), scalp jest nad top
+    // Normalnie: top jest nad scalp
+    let mainImagePart;
+    if (editMode) {
+      mainImagePart = await getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen });
+    } else {
+      mainImagePart = image;
+    }
+    const imgMain = await loadImg(mainImagePart);
+
+    if (hasExtraLayer && extraImage) {
+      const croppedExtra = await getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen });
+      const imgExtra = await loadImg(croppedExtra);
+      if (bgAutoLayer) {
+        // removeBg: najpierw top (wycięta postać), potem scalp (oryginał z maską) na wierzchu
+        ctx.drawImage(imgExtra, 0, 0);
+        ctx.drawImage(imgMain, 0, 0);
+      } else {
+        // normalnie: scalp, potem top
+        ctx.drawImage(imgMain, 0, 0);
+        ctx.drawImage(imgExtra, 0, 0);
+      }
+    } else {
+      ctx.drawImage(imgMain, 0, 0);
+    }
+    return canvas;
+  }
+
+  // the same as a PNG Blob, for the gallery
+  async function cardBlob() {
+    const canvas = await composeCard();
+    return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob')), 'image/png'));
+  }
+
   async function downloadImage() {
     try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 475;
-      canvas.height = 667;
-      const ctx = canvas.getContext('2d');
-
-      // Kolejność warstw: gdy bgAutoLayer (removeBg), scalp jest nad top
-      // Normalnie: top jest nad scalp
-      let mainImagePart;
-      if (editMode) {
-        mainImagePart = await getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen });
-      } else {
-        mainImagePart = image;
-      }
-      const imgMain = await loadImg(mainImagePart);
-
-      if (hasExtraLayer && extraImage) {
-        const croppedExtra = await getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen });
-        const imgExtra = await loadImg(croppedExtra);
-        if (bgAutoLayer) {
-          // removeBg: najpierw top (wycięta postać), potem scalp (oryginał z maską) na wierzchu
-          ctx.drawImage(imgExtra, 0, 0);
-          ctx.drawImage(imgMain, 0, 0);
-        } else {
-          // normalnie: scalp, potem top
-          ctx.drawImage(imgMain, 0, 0);
-          ctx.drawImage(imgExtra, 0, 0);
-        }
-      } else {
-        ctx.drawImage(imgMain, 0, 0);
-      }
-
+      const canvas = await composeCard();
       // Finalizacja pobierania
       const finalUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
@@ -516,13 +530,7 @@
 </script>
 <svelte:window bind:innerWidth={winWidth} />
 
-<header class="page-head">
-  <div class="page-top">
-    <a class="back hud-corners" href="/" title="Strona główna">&larr; Sanakan</a>
-  </div>
-  <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
-  <h1 class="hud-title">USkalpelator</h1>
-</header>
+<Header title="USkalpelator" />
 
 <main class="content">
   <div class="app-layout">
@@ -685,6 +693,7 @@
         <button type="button" on:click={() => zoomLevel = zoomLevel === 1 ? 2 : 1}>Skala: {zoomLevel * 100}%</button>
         {#if editMode}
           <button type="button" class="btn-go" on:click={downloadImage}>Pobierz obrazek</button>
+          <GallerySave render={cardBlob} name={() => cardName('uskalpel-' + selectedBorder)} />
         {/if}
       </div>
     </div>

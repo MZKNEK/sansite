@@ -34,6 +34,27 @@
         assertSame('users/123-Sniku/a.png', $file[1]);
     });
 
+    test('uploadedLinks gives the link of the file and its folder, by token', function () {
+        writeData('user-folders', ['123' => 'abcdef0123456789']);
+        $saved = $_SERVER['SCRIPT_NAME'] ?? null;
+        $savedFile = $_SERVER['SCRIPT_FILENAME'] ?? null;
+        unset($_SERVER['SCRIPT_FILENAME']);
+        $_SERVER['SCRIPT_NAME'] = '/i/index.php';
+        try {
+            // a card of the croppers, in the folder of an account: the ID never in a link
+            assertSame([
+                'url' => '/i/u/abcdef0123456789/Skalpelator/karta%201.png',
+                'folder' => '/i/?p=u%2Fabcdef0123456789%2FSkalpelator'
+            ], uploadedLinks('users/123-Sniku/' . CROPPER_DIR . '/karta 1.png'));
+            // a file in the top folder has the gallery itself as its folder
+            assertSame(['url' => '/i/a.png', 'folder' => '/i/'], uploadedLinks('a.png'));
+        } finally {
+            $_SERVER['SCRIPT_NAME'] = $saved;
+            if ($savedFile !== null)
+                $_SERVER['SCRIPT_FILENAME'] = $savedFile;
+        }
+    });
+
     test('hashes follow a move and the duplicate check walks a folder', function () {
         $base = tempDir();
         mkdir($base . '/sub');

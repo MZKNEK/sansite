@@ -64,6 +64,9 @@
     // links say instead: u/<the folder's token>
     const USERS_DIR = 'users';
     const USERS_URL = 'u';
+    // the folder Skalpelator and USkalpelator (/skalpel/, /uskalpel/) save the
+    // cards into, inside the folder of the account
+    const CROPPER_DIR = 'Skalpelator';
     // the folder only the panel admins and the GALLERY_PRIVATE list see, and
     // whose files nginx never gives straight from the disk
     const PRIVATE_DIR = 'private';
@@ -1230,10 +1233,10 @@
 
     // a change went fine: it goes to the history, then the page gets the answer,
     // where the folders of the accounts go by the nick alone (displayPath())
-    function done($action, $history, $message = null)
+    function done($action, $history, $message = null, $extra = [])
     {
         addHistory($action, $history);
-        reply(true, $message ?? preg_replace('~i/' . USERS_DIR . '/\d+-(?=[^/])~', 'i/' . USERS_DIR . '/', $history));
+        reply(true, $message ?? preg_replace('~i/' . USERS_DIR . '/\d+-(?=[^/])~', 'i/' . USERS_DIR . '/', $history), 200, $extra);
     }
 
     function reply($ok, $message, $status = 200, $extra = [])
@@ -2929,6 +2932,14 @@
         if ($action === 'request-access')
             handleAccessRequest('gallery', galleryCanView(), $_POST['back'] ?? '');
 
+        // a card from Skalpelator or USkalpelator: into the folder of the
+        // account, in the folder of the croppers there, and from then on an
+        // upload like any other, with the same limits and the change to WebP
+        if ($action === 'cropper') {
+            $_POST['dir'] = publicRel(cropperFolder($base));
+            $action = 'upload';
+        }
+
         // an account with a folder of its own changes only what is in it, and
         // there only adds, renames, turns and deletes pictures
         if (!galleryIsAdmin()) {
@@ -3171,6 +3182,34 @@
         reply(false, 'Nieznana akcja.', 400);
     }
 
+    // The folder the croppers save the cards into, inside the folder of the
+    // account (CROPPER_DIR), made the first time; an account without a folder
+    // of its own gets the answer that it has none.
+    function cropperFolder($base)
+    {
+        $own = ownFolder($base);
+        if ($own === null)
+            reply(false, 'To konto nie ma swojego folderu w galerii (trzeba mieć rolę na serwerze bota).', 403);
+
+        $rel = $own . '/' . CROPPER_DIR;
+        if (!is_dir($base . '/' . $rel)) {
+            if (!@mkdir($base . '/' . $rel, 0755) && !is_dir($base . '/' . $rel))
+                reply(false, 'Nie udało się utworzyć folderu ' . CROPPER_DIR . ' w galerii.', 500);
+            addHistory('mkdir', 'Utworzono folder ' . galleryPath($rel) . '.');
+        }
+
+        return $rel;
+    }
+
+    // where an uploaded file can be opened and its folder seen, for the page
+    // that sent it (the croppers show the link, which also works without a login)
+    function uploadedLinks($rel)
+    {
+        $dir = dirname($rel) === '.' ? '' : dirname($rel);
+
+        return ['url' => siteRoot() . 'i/' . fileUrl($rel), 'folder' => siteRoot() . 'i/' . ($dir === '' ? '' : folderUrl($dir))];
+    }
+
     // one file per request, so every file gets its own progress and its own error
     function uploadFile($base)
     {
@@ -3237,7 +3276,7 @@
             recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
             $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
             done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
-                'Dodano ' . $name . ' jako ' . $target . $sizes . '.');
+                'Dodano ' . $name . ' jako ' . $target . $sizes . '.', uploadedLinks(ltrim($dir[1] . '/' . $target, '/')));
         }
 
         $target = freeName($dir[0], $name);
@@ -3270,5 +3309,5 @@
 
         done('upload', 'Dodano ' . galleryPath($rel) . '.',
             ($target === $name ? 'Dodano ' . $name . '.' : 'Dodano ' . $name . ' jako ' . $target . ' (nazwa była zajęta).')
-            . ($stripped ? ' Usunięto metadane (np. miejsce i czas zrobienia).' : '') . $note);
+            . ($stripped ? ' Usunięto metadane (np. miejsce i czas zrobienia).' : '') . $note, uploadedLinks($rel));
     }

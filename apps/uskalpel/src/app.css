@@ -7,6 +7,14 @@
   --accent: #9b59b6;
   --accent-light: #b670d3;
   --accent-dark: #713b87;
+  /* the same as rgb triples, for the account menu (css/account.css of the
+     site), which also turns them to the colour of the role in the HUD the
+     account picked */
+  --accent-rgb: 155, 89, 182;
+  --accent-light-rgb: 182, 112, 211;
+  --accent-dark-rgb: 113, 59, 135;
+  --hud-rgb: 155, 89, 182;
+  --hud-light-rgb: 182, 112, 211;
   --bg-dark: #080909;
   --bg-mid: #202225;
   --text: #dcddde;

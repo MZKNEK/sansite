@@ -34,12 +34,17 @@ window.SanakanAccount = (function () {
     });
   }
 
+  // this page, where logging out (and a login started here) comes back to
+  function here() {
+    return location.pathname + location.search;
+  }
+
   // Asks account.php for the account, puts its menu into box and its HUD
   // colour on the page; resolves to what account.php said, or null.
   function load(box) {
     var root = document.documentElement;
 
-    return fetch(ROOT + 'account.php', { credentials: 'same-origin', cache: 'no-store' })
+    return fetch(ROOT + 'account.php?back=' + encodeURIComponent(here()), { credentials: 'same-origin', cache: 'no-store' })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (me) {
         if (!me) return null;
@@ -69,5 +74,10 @@ window.SanakanAccount = (function () {
   document.querySelectorAll('.account-menu').forEach(bind);
   document.querySelectorAll('[data-account-slot]').forEach(load);
 
-  return { bind: bind, load: load };
+  // the address of a Discord login that comes back to this page
+  function loginUrl() {
+    return ROOT + 'account.php?login&back=' + encodeURIComponent(here());
+  }
+
+  return { bind: bind, load: load, loginUrl: loginUrl };
 })();

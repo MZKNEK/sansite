@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
-import { cropperConfig } from '../shared/vite.js'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { cropperConfig, svelteOptions } from '../shared/vite.mjs'
 
 // onnxruntime-web names its WebAssembly and the .mjs that loads it, so Vite
 // copies them (24 MB) into the build; IMG.LY's background removal never asks
@@ -13,7 +14,7 @@ const dropUnusedOrt = {
 }
 
 export default defineConfig(cropperConfig('uskalpel', {
-  plugins: [dropUnusedOrt],
+  plugins: [svelte(svelteOptions), dropUnusedOrt],
   optimizeDeps: {
     exclude: ['@imgly/background-removal', 'onnxruntime-web'],
   },

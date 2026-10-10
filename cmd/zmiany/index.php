@@ -75,7 +75,8 @@
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=69bec81e97" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=211839634d" type="text/css" rel="stylesheet" />
+  <link href="../../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../style.css?v=56725895df" type="text/css" rel="stylesheet" />
   <script src="../../js/hud.js?v=2894733f39"></script>
 </head>
@@ -132,7 +133,7 @@
 <?php endforeach; ?>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
-  <script src="../../js/account.js?v=51972de250"></script>
+  <script src="../../js/account.js?v=292db1badf"></script>
   <script src="../../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 

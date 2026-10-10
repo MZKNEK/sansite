@@ -251,7 +251,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=69bec81e97" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=211839634d" type="text/css" rel="stylesheet" />
+  <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
@@ -727,7 +728,7 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
-  <script src="../js/account.js?v=51972de250"></script>
+  <script src="../js/account.js?v=292db1badf"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>
   <script src="../js/explorer-admin.js?v=42b6f19501"></script>
