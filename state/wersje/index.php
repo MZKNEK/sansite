@@ -86,7 +86,7 @@
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=65c844eb95" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <link href="../../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
@@ -95,7 +95,7 @@
 <?php if ($around['newer']): ?>
   <link rel="next" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" />
 <?php endif; ?>
-  <script src="../../js/hud.js?v=0effb1151f"></script>
+  <script src="../../js/hud.js?v=cfc5ebaa78"></script>
   <script src="../../js/versions.js?v=2fa8a60efb" defer></script>
 </head>
 

@@ -300,7 +300,7 @@ body.gbe-shot main.hero {
 .role-semiAdmin { --role: #f0a35e; --role-rgb: 240, 163, 94; --role-light-rgb: 246, 192, 140; --role-dark-rgb: 176, 110, 47; }
 .role-tester { --role: #e8d36a; --role-rgb: 232, 211, 106; --role-light-rgb: 240, 226, 154; --role-dark-rgb: 171, 154, 56; }
 .role-moderator { --role: #5fd38d; --role-rgb: 95, 211, 141; --role-light-rgb: 143, 227, 175; --role-dark-rgb: 55, 156, 94; }
-.role-user { --role: var(--accent-light); --role-rgb: 182, 112, 211; --role-light-rgb: 182, 112, 211; --role-dark-rgb: 113, 59, 135; }
+.role-user { --role: #b670d3; --role-rgb: 182, 112, 211; --role-light-rgb: 182, 112, 211; --role-dark-rgb: 113, 59, 135; }
 .role-none,
 .role-out { --role: #80848e; --role-rgb: 128, 132, 142; --role-light-rgb: 160, 164, 173; --role-dark-rgb: 85, 88, 95; }
 
@@ -980,6 +980,24 @@ a.hud-corners:hover {
     color: #fff;
 }
 
+/* a coloured HUD gives Alter its colour too, mixed the way the lilac above
+   comes from the site's purple: a pale corner and text, a deep fill (the
+   "below" variant already follows the accent) */
+@supports (color: color-mix(in srgb, red, blue)) {
+    html[data-hud="accent"] .link-swap:not(.below) a.swap-alt,
+    html[data-hud="full"] .link-swap:not(.below) a.swap-alt {
+        --corner: color-mix(in srgb, rgb(var(--accent-light-rgb)) 60%, #fff);
+        --fill: color-mix(in srgb, rgb(var(--accent-dark-rgb)) 50%, #000);
+        color: var(--corner);
+    }
+
+    html[data-hud="accent"] .link-swap:not(.below) a.swap-alt:hover,
+    html[data-hud="full"] .link-swap:not(.below) a.swap-alt:hover {
+        --fill: color-mix(in srgb, rgb(var(--accent-dark-rgb)) 80%, #000);
+        color: #fff;
+    }
+}
+
 .link-swap:hover a.swap-main {
     transform: translateY(calc(100% + 14px));
 }
@@ -1047,14 +1065,14 @@ a.hud-corners:hover {
         content: none;
     }
 
+    /* the second buttons stand in the row as buttons of their own */
     .link-swap {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
+        display: contents;
     }
 
     .links a.swap-alt {
         position: static;
+        width: auto;
         opacity: 1;
         visibility: visible;
     }
@@ -1143,7 +1161,7 @@ a.hud-corners:hover {
 
 @media only screen and (max-width: 720px) {
     .links a,
-    .link-swap {
+    .links a.swap-alt {
         width: 100%;
     }
 }
@@ -1166,6 +1184,18 @@ a.hud-corners:hover {
 
     .links a i {
         margin-right: 7px;
+    }
+}
+
+/* a touch screen wider than a phone (a tablet, Android's desktop mode) slides
+   nothing in on hover, so its seven buttons wrap into rows of even buttons */
+@media (hover: none) and (min-width: 721px) {
+    .links {
+        flex-wrap: wrap;
+    }
+
+    .links a {
+        min-width: 170px;
     }
 }
 

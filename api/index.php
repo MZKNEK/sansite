@@ -43,8 +43,9 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=a52b240f16" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=65c844eb95" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
+  <script src="../js/hud.js?v=cfc5ebaa78"></script>
 </head>
 
 <body>
@@ -112,8 +113,9 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=a52b240f16" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=65c844eb95" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
+  <script src="../js/hud.js?v=cfc5ebaa78"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
