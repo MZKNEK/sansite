@@ -1,7 +1,8 @@
 // state/wersje/: the arrow keys step to the previous (older) and the next
 // (newer) version on a version's page, and on the list the search box shows
 // only the versions whose number or changes have every word typed, opening
-// the series they are in. "/" goes to the search box.
+// the series they are in, and the older line (1.3, 1.2, ...) the series is
+// folded into. "/" goes to the search box.
 (function () {
   function typing(t) {
     return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
@@ -23,8 +24,10 @@
     var info = document.getElementById('version-search-info');
     var none = document.getElementById('version-search-none');
     var groups = [].slice.call(document.querySelectorAll('.version-group'));
-    // which series were open before a search, to put back when it is cleared
+    var lines = [].slice.call(document.querySelectorAll('.version-line'));
+    // which series and lines were open before a search, to put back when it is cleared
     var opened = groups.map(function (group) { return group.open; });
+    var openedLines = lines.map(function (line) { return line.open; });
     var timer = null;
 
     function plural(n, one, few, many) {
@@ -48,6 +51,11 @@
         group.open = words.length ? shown > 0 : opened[i];
         found += shown;
       });
+      lines.forEach(function (line, i) {
+        var shown = line.querySelector('.version-group:not([hidden])') !== null;
+        line.hidden = !shown;
+        line.open = words.length ? shown : openedLines[i];
+      });
       info.textContent = words.length ? found + ' ' + plural(found, 'wersja pasuje', 'wersje pasują', 'wersji pasuje') : '';
       none.hidden = !words.length || found > 0;
     }
@@ -62,10 +70,15 @@
         filter();
       }
     });
-    // a series opened or closed by hand stays so after the search is cleared
+    // a series or a line opened or closed by hand stays so after the search is cleared
     groups.forEach(function (group, i) {
       group.addEventListener('toggle', function () {
         if (!input.value.trim()) opened[i] = group.open;
+      });
+    });
+    lines.forEach(function (line, i) {
+      line.addEventListener('toggle', function () {
+        if (!input.value.trim()) openedLines[i] = line.open;
       });
     });
     document.addEventListener('keydown', function (e) {

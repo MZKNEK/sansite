@@ -617,7 +617,8 @@ window.SanakanGallery = (function () {
 
 // The line of tips in the toolbar takes a lot of room on a phone. A small
 // button folds it away, and the choice is kept in this browser so it stays
-// folded (or shown) on the next visit.
+// folded (or shown) on the next visit. Before any choice a phone starts with
+// it folded: dragging files and Ctrl+V do not apply there.
 (function () {
   var HINT_KEY = 'gallery-hint';
 
@@ -638,8 +639,11 @@ window.SanakanGallery = (function () {
       toggle.setAttribute('aria-label', toggle.title);
     }
 
-    var collapsed = false;
-    try { collapsed = localStorage.getItem(HINT_KEY) === 'hidden'; } catch (err) {}
+    var collapsed = window.matchMedia('(max-width: 720px)').matches;
+    try {
+      var saved = localStorage.getItem(HINT_KEY);
+      if (saved) collapsed = saved === 'hidden';
+    } catch (err) {}
 
     toggle.addEventListener('click', function () {
       collapsed = !collapsed;

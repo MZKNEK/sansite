@@ -144,7 +144,6 @@
 <?php endforeach; ?>
         </ul>
 <?php endif; ?>
-        <p class="hint status-more"><a href="./">&larr; Panel</a></p>
       </section>
     </div>
 <?php

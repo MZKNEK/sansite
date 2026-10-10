@@ -43,8 +43,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=c6ba77c342" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=69bec81e97" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -94,7 +94,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=6728775ca3"></script>
+  <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=51972de250"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
@@ -109,12 +109,13 @@
 <html lang="pl"<?=hudHtmlAttributes($user)?>>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 <?=metaTags('API', $description, '/api/', 'api')?>
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=c6ba77c342" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=69bec81e97" />
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
   <script src="../js/hud.js?v=2894733f39"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -214,7 +215,7 @@
 <script src="./search.js?v=52c2c6eb3f"> </script>
 <script src="../js/account.js?v=51972de250"></script>
 <script src="./init.js?v=9e46400eb6"></script>
-<script src="../js/to-top.js?v=81af7c0f05"></script>
+<script src="../js/to-top.js?v=6ce6e2481f"></script>
 <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>

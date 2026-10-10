@@ -92,6 +92,15 @@ main.content {
     border-bottom: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
+/* on a phone the toolbar would cover a third of the screen: it stays at the
+   top of the page, the arrow in the corner brings it back (js/to-top.js);
+   while files are being selected it is kept in sight for their actions */
+@media only screen and (max-width: 720px) {
+    body:not(.selecting) .toolbar {
+        position: static;
+    }
+}
+
 .toolbar .search {
     flex: 1 1 320px;
 }

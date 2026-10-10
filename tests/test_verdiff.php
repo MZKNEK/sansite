@@ -204,6 +204,15 @@
         assertSame([], versionGroups([]));
     });
 
+    test('versionLines puts the series in lines of their first two numbers', function () {
+        $entries = array_map(function ($version) { return ['version' => $version]; }, ['1.4.10.1', '1.4.9.39', '1.3.28.2', '1.3.27.5', '1.0.0.0-alpha']);
+        $lines = versionLines(versionGroups($entries));
+        assertSame(['1.4', '1.3', '1.0'], array_column($lines, 'line'));
+        assertSame(['1.4.10', '1.4.9'], array_column($lines[0]['groups'], 'series'));
+        assertSame(2, count($lines[1]['groups']));
+        assertSame([], versionLines([]));
+    });
+
     test('versionNeighbours skips the versions without changes', function () {
         $entries = [
             ['version' => '1.4.10.16', 'changes' => true],

@@ -251,8 +251,8 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=c6ba77c342" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=69bec81e97" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -401,7 +401,7 @@
     <div class="toolbar" id="toolbar">
       <label class="search hud-corners">
         <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
-        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj po nazwie, Enter: <?=$whole ? 'w całej galerii' : ($user ? 'we wszystkich twoich folderach' : 'w całym udostępnionym folderze')?>" aria-label="Szukaj po nazwie"
+        <input id="ex-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj (Enter: wszędzie)" title="Szukaj po nazwie, Enter: <?=$whole ? 'w całej galerii' : ($user ? 'we wszystkich twoich folderach' : 'w całym udostępnionym folderze')?>" aria-label="Szukaj po nazwie"
                value="<?=e($query)?>" data-dir="<?=e(publicRel($dirRel))?>" data-searching="<?=$searching ? '1' : '0'?>" />
         <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
       </label>
@@ -538,6 +538,10 @@
 <?php endif; ?>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+
+  <button type="button" class="to-top hud-corners" id="to-top" data-focus="ex-search" title="Na górę" aria-label="Na górę strony" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+  </button>
 
 <?php if (!$locked): ?>
   <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Podgląd">
@@ -721,7 +725,8 @@
 <?php endif; ?>
 
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=6728775ca3"></script>
+  <script src="../js/explorer.js?v=0247b47c99"></script>
+  <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=51972de250"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($manage && !$showTrash): ?>

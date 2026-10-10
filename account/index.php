@@ -139,10 +139,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=c6ba77c342" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=303fe8ce60" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=d13e53eeb9" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=69bec81e97" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=3f034c50f4" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -339,7 +339,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=6728775ca3"></script>
+  <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=51972de250"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>

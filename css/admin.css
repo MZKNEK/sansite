@@ -353,6 +353,11 @@
     color: #efe2f7;
 }
 
+/* "to urządzenie" a little apart from the browser's name */
+.device-name .role {
+    margin-left: 8px;
+}
+
 /* the profile of an account */
 .profile-head {
     display: flex;
@@ -1095,13 +1100,17 @@ a.who-name:hover {
     color: rgba(220, 221, 222, 0.55);
 }
 
+/* running text, so "GD wyłączone: duże pliki…" keeps its colon in place; a
+   button or form after the text stands a little apart */
 .server dd {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 12px;
     margin: 0;
     overflow-wrap: anywhere;
+}
+
+.server dd > .admin-btn,
+.server dd > form {
+    margin-left: 8px;
+    vertical-align: middle;
 }
 
 .server dd a {
@@ -1813,8 +1822,43 @@ a.who-name:hover {
         grid-template-columns: 1fr;
     }
 
+    /* above the cards there is no room for the list of all of them: the
+       filter and the five sections as buttons in a row */
     .admin-nav {
         position: static;
+    }
+
+    .admin-layout.has-nav .admin-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .admin-nav .nav-filter {
+        flex: 1 1 100%;
+        margin: 0 0 4px;
+    }
+
+    .admin-nav .nav-sub {
+        display: none;
+    }
+
+    .admin-nav a.nav-section {
+        padding: 6px 10px;
+        border: 1px solid rgba(var(--accent-rgb), 0.35);
+    }
+}
+
+/* a phone: card titles smaller and less spaced, so most fit one line, and a
+   folded card ends right below its title */
+@media only screen and (max-width: 600px) {
+    .card h2 {
+        font-size: 14px;
+        letter-spacing: 0.12em;
+    }
+
+    .card.collapsible.collapsed > h2 {
+        margin-bottom: 0;
     }
 }
 
@@ -1828,6 +1872,13 @@ a.who-name:hover {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px 18px;
+}
+
+/* a phone: one field under the other, so neither cuts its choice short */
+@media only screen and (max-width: 600px) {
+    .hud-fields {
+        grid-template-columns: 1fr;
+    }
 }
 
 .hud-field {

@@ -160,7 +160,6 @@
 <?php endif; ?>
           </dd>
         </dl>
-        <p class="hint status-more"><a href="./">&larr; Panel</a></p>
       </section>
 
       <section class="card wide">

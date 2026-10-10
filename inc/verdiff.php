@@ -375,6 +375,25 @@
         return $groups;
     }
 
+    // The series of versionGroups() in runs of a line, the first two numbers
+    // ("1.4" of "1.4.10"): [['line' => '1.4', 'groups' => [...]], ...], newest
+    // first. The list shows the newest line's series as they are and folds each
+    // older line into one row.
+    function versionLines($groups)
+    {
+        $lines = [];
+        foreach ($groups as $group) {
+            $line = implode('.', array_slice(explode('.', $group['series']), 0, 2));
+            $last = count($lines) - 1;
+            if ($last >= 0 && $lines[$last]['line'] === $line)
+                $lines[$last]['groups'][] = $group;
+            else
+                $lines[] = ['line' => $line, 'groups' => [$group]];
+        }
+
+        return $lines;
+    }
+
     // The versions next to one in versionEntries() that have changes to show:
     // ['older' => entry or null, 'newer' => entry or null]. Both are null for
     // a version that is not listed.

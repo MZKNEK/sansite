@@ -556,6 +556,16 @@ body {
     hyphens: auto;
 }
 
+/* a phone's narrow line has too few words to share the gaps: to the left */
+@media only screen and (max-width: 720px) {
+    .swagger-ui .info .markdown p,
+    .swagger-ui .info .renderedMarkdown p,
+    .swagger-ui .info li {
+        text-align: left;
+        text-align-last: auto;
+    }
+}
+
 .swagger-ui .markdown code,
 .swagger-ui .renderedMarkdown code {
     padding: 2px 8px;

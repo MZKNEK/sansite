@@ -1239,7 +1239,7 @@ a.hud-corners:hover {
     }
 }
 
-/* Back to the top (the commands, the API): a HUD button in the bottom right
+/* Back to the top (the commands, the API, the gallery): a HUD button in the bottom right
    corner, faded in by js/to-top.js once the header is out of sight */
 .to-top {
     position: fixed;

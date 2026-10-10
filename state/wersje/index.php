@@ -30,11 +30,24 @@
     $section = $shown !== null && $shown['changes'] ? verdiffChanges($shown['version']) : null;
     $changes = $section !== null ? markdownToHtml($section['changes'], mentionUsers()) : '';
 
-    // the line under the title: when the version was introduced, its commit
+    // the line under the title: when the version was introduced and how long
+    // it ran (until the next, newer version started; the newest runs on), its commit
     $introParts = [];
     if ($shown !== null) {
+        $until = null;
+        foreach ($entries as $i => $entry) {
+            if (strcasecmp($entry['version'], $shown['version']) !== 0)
+                continue;
+            for ($j = $i - 1; $j >= 0 && $until === null; $j--)
+                if (!empty($entries[$j]['since']))
+                    $until = $entries[$j]['since'];
+            break;
+        }
         if ($shown['since'])
-            $introParts[] = 'wprowadzona ' . e(date('j.m.Y H:i', $shown['since'])) . ' (' . e(duration(time() - $shown['since'])) . ' temu)';
+            $introParts[] = 'wprowadzona ' . e(date('j.m.Y H:i', $shown['since']))
+                . ($until !== null
+                    ? ' &middot; działała ' . e(duration($until - $shown['since'])) . ', do ' . e(date('j.m.Y H:i', $until))
+                    : ' &middot; działa ' . e(duration(time() - $shown['since'])));
         else if ($shown['date'])
             $introParts[] = 'data w changelogu: ' . e($shown['date']);
         if ($shown['commit'])
@@ -87,9 +100,9 @@
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=c6ba77c342" type="text/css" rel="stylesheet" />
-  <link href="../../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=303fe8ce60" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=69bec81e97" type="text/css" rel="stylesheet" />
+  <link href="../../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
   <link rel="prev" href="?v=<?=e(rawurlencode($around['older']['version']))?>" />
 <?php endif; ?>
@@ -97,11 +110,11 @@
   <link rel="next" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" />
 <?php endif; ?>
   <script src="../../js/hud.js?v=2894733f39"></script>
-  <script src="../../js/versions.js?v=2fa8a60efb" defer></script>
+  <script src="../../js/versions.js?v=0d6b8bb80a" defer></script>
 </head>
 
 <body class="state-page">
-  <main class="content state-content">
+  <main class="content state-content<?=$shown !== null ? ' version-page' : ''?>">
     <header class="ex-header">
       <div class="ex-top">
         <a class="back hud-corners" href="../" title="Status bota">&larr; Status</a>
@@ -128,7 +141,7 @@
 <?php else: ?>
       <span class="version-step older empty"></span>
 <?php endif; ?>
-      <a class="version-step all" href="./" title="Wszystkie wersje">Wszystkie wersje</a>
+      <a class="version-step all hud-corners" href="./" title="Wszystkie wersje">Wszystkie wersje</a>
 <?php if ($around['newer']): ?>
       <a class="version-step newer hud-corners" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" rel="next" title="Następna wersja (strzałka w prawo)"><small>Następna &rarr;</small><b><?=e($around['newer']['version'])?></b></a>
 <?php else: ?>
@@ -147,16 +160,30 @@
         <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
       </label>
       <div class="search-info" id="version-search-info" aria-live="polite"></div>
-<?php foreach ($groups as $g => $group): $first = $group['entries'][0]; $last = end($group['entries']); $count = count($group['entries']); ?>
 <?php
-        // the days the series covers: from its oldest version to its newest
-        $from = versionDate($last);
-        $to = versionDate($first);
-        $from = $from !== null ? preg_replace('/ \d+:\d+$/', '', $from) : null;
-        $to = $to !== null ? preg_replace('/ \d+:\d+$/', '', $to) : null;
-        $span = $from !== null && $to !== null && $from !== $to ? $from . ' – ' . $to : ($to ?? $from);
+        // the days a series or a line covers: from its oldest version to its newest
+        $days = function ($newest, $oldest) {
+            $from = versionDate($oldest);
+            $to = versionDate($newest);
+            $from = $from !== null ? preg_replace('/ \d+:\d+$/', '', $from) : null;
+            $to = $to !== null ? preg_replace('/ \d+:\d+$/', '', $to) : null;
+
+            return $from !== null && $to !== null && $from !== $to ? $from . ' – ' . $to : ($to ?? $from);
+        };
+        $g = 0;
 ?>
-      <details class="version-group"<?=$g === 0 ? ' open' : ''?>>
+<?php foreach (versionLines($groups) as $l => $line): ?>
+<?php if ($l > 0): $lastGroup = end($line['groups']); $versions = array_sum(array_map(function ($group) { return count($group['entries']); }, $line['groups'])); $span = $days($line['groups'][0]['entries'][0], end($lastGroup['entries'])); ?>
+      <details class="version-line">
+        <summary>
+          <span class="version-series"><?=e($line['line'])?><i>.x.x</i></span>
+          <span class="version-count"><?=count($line['groups'])?> <?=plural(count($line['groups']), 'seria', 'serie', 'serii')?> &middot; <?=$versions?> <?=plural($versions, 'wersja', 'wersje', 'wersji')?></span>
+          <span class="version-span"><?=$span !== null ? e($span) : ''?></span>
+        </summary>
+        <div class="version-line-body">
+<?php endif; ?>
+<?php foreach ($line['groups'] as $group): $count = count($group['entries']); $span = $days($group['entries'][0], end($group['entries'])); ?>
+      <details class="version-group"<?=$g++ === 0 ? ' open' : ''?>>
         <summary>
           <span class="version-series"><?=e($group['series'])?><i>.x</i></span>
           <span class="version-count"><?=$count?> <?=plural($count, 'wersja', 'wersje', 'wersji')?></span>
@@ -180,6 +207,11 @@
 <?php endforeach; ?>
         </ul>
       </details>
+<?php endforeach; ?>
+<?php if ($l > 0): ?>
+        </div>
+      </details>
+<?php endif; ?>
 <?php endforeach; ?>
       <p class="incidents-none" id="version-search-none" hidden>Żadna wersja nie pasuje.</p>
 <?php endif; ?>
