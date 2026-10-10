@@ -14,10 +14,10 @@
   import Cropper from "svelte-easy-crop";
 	import { getCroppedImg, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
 
-  import cardboard  from './assets/empty.png'
-  import def        from './assets/shield.png'
-  import fire       from './assets/fire.png'
-  import health     from './assets/heart.png'
+  import cardboard  from './assets/empty.webp'
+  import def        from './assets/shield.webp'
+  import fire       from './assets/fire.webp'
+  import health     from './assets/heart.webp'
 
   let borders = [ 'SSS', 'SS', 'S', 'A', 'B', 'C', 'D', 'E' ]
 

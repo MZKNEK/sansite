@@ -152,8 +152,8 @@
   const card = { width: 475, height: 667 };
   const maskCropSize = card;
 
-  $: currentMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}.png`;
-  $: extraMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}_top.png`;
+  $: currentMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}.webp`;
+  $: extraMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}_top.webp`;
   $: hasExtraLayer = ['Delta', 'Eta', 'Omega'].includes(selectedBorder);
   $: if (!hasExtraLayer)  {
     activeLayer = 'base';

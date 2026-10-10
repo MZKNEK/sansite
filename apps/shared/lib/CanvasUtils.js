@@ -101,7 +101,7 @@ export async function getMirroredImg(imageSrc) {
  * @param {string} imageSrc - picture address
  * @param {Object} percent - crop from svelte-easy-crop, in % of the picture
  * @param {{width: number, height: number, mask?: string, sharpen?: number}} card
- *   size of the result; mask: PNG of that size, its alpha cuts the picture;
+ *   size of the result; mask: picture of that size, its alpha cuts the picture;
  *   sharpen: extra sharpening, 0 = none
  */
 export async function getCroppedImg(imageSrc, percent, { width, height, mask = null, sharpen = 0 }) {
