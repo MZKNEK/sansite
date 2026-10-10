@@ -274,7 +274,7 @@
         ob_start();
 ?>
         <div class="bar">
-          <div class="bar-head"><span><?=e($title)?>, 24 godziny</span><b><?=$average === null ? '–' : 'średnio ' . e(milliseconds($average)) . ' &middot; najdłużej ' . e(milliseconds($slowest))?></b></div>
+          <div class="bar-head"><span><?=e($title)?>, 24 godziny</span><b><?=$average === null ? '–' : '<span>średnio ' . e(milliseconds($average)) . '</span> &middot; <span>najdłużej ' . e(milliseconds($slowest)) . '</span>'?></b></div>
           <div class="response-chart" aria-label="<?=e($title)?> w ostatnich 24 godzinach, średnio po 15 minut">
 <?php foreach ($times as $part): ?>
             <span title="<?=e(date('H:i', $part['from']) . '-' . date('H:i', $part['from'] + 900) . ': ' . ($part['avg'] === null ? 'brak pomiaru' : 'średnio ' . milliseconds($part['avg']) . ', najdłużej ' . milliseconds($part['max'])))?>"><?php if ($part['avg'] !== null): ?><i style="height: <?=max(4, round(100 * $part['avg'] / max(1, $scale)))?>%"></i><?php endif; ?></span>
@@ -429,11 +429,15 @@
 <?php endif; ?>
 
         <div class="timeline-legend">
-          <span><i class="ok"></i>działał <i class="warn"></i>częściowo <i class="fail"></i>nie działał <i class="planned"></i>przerwa techniczna <i class="none"></i>brak sprawdzeń</span>
+          <span><i class="ok"></i>działał</span>
+          <span><i class="warn"></i>częściowo</span>
+          <span><i class="fail"></i>nie działał</span>
+          <span><i class="planned"></i>przerwa techniczna</span>
+          <span><i class="none"></i>brak sprawdzeń</span>
         </div>
 
         <div class="bar incidents">
-          <div class="bar-head"><span>Awarie w ostatnich <?=DAYS_SHOWN?> dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; razem ' . e(duration($downtime)) : ''?><?=$breaks ? ' &middot; <span class="planned-count">' . $breaks . ' ' . plural($breaks, 'przerwa techniczna', 'przerwy techniczne', 'przerw technicznych') . '</span>' : ''?></b></div>
+          <div class="bar-head"><span>Awarie w ostatnich <?=DAYS_SHOWN?> dniach</span><b><?=$unplanned?><?=$unplanned ? ' &middot; <span>razem ' . e(duration($downtime)) . '</span>' : ''?><?=$breaks ? ' &middot; <span class="planned-count">' . $breaks . ' ' . plural($breaks, 'przerwa techniczna', 'przerwy techniczne', 'przerw technicznych') . '</span>' : ''?></b></div>
 <?php if (!$incidents): ?>
           <p class="incidents-none">Bez awarii.</p>
 <?php else: ?>

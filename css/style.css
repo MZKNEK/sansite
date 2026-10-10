@@ -1065,8 +1065,9 @@ a.hud-corners:hover {
         content: none;
     }
 
-    /* the second buttons stand in the column as buttons of their own (a wide
-       touch screen hangs them below their first ones instead, further down) */
+    /* the second buttons stand as buttons of their own, a phone puts them
+       next to their first ones (a wide touch screen hangs them below their
+       first ones instead, further down) */
     .link-swap {
         display: contents;
     }
@@ -1161,15 +1162,44 @@ a.hud-corners:hover {
 }
 
 /* narrow windows: the Morse line, about 700px wide, would not fit; a wide
-   touch screen (a tablet, Android's desktop mode) keeps it */
+   touch screen (a tablet, Android's desktop mode) keeps it. The buttons go in
+   pairs, Alter and USkalpelator next to their first ones, API across, and with
+   a smaller logo the whole page fits a phone's screen without scrolling */
 @media only screen and (max-width: 720px) {
     .motto {
         display: none;
     }
 
+    main.hero {
+        padding: 24px 0;
+    }
+
+    img.logo {
+        width: 220px;
+    }
+
+    .links {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 24px;
+    }
+
     .links a,
     .links a.swap-alt {
-        width: 100%;
+        width: auto;
+        min-width: 0;
+        padding: 11px 6px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+    }
+
+    .links a i {
+        margin-right: 6px;
+    }
+
+    .links a.short {
+        grid-column: 1 / -1;
     }
 }
 
@@ -1335,6 +1365,15 @@ a.hud-corners:hover {
 .prose li {
     text-align: justify;
     hyphens: auto;
+}
+
+/* a phone's narrow line has too few words to share the gaps, so they would
+   open wide: there the text keeps to the left */
+@media only screen and (max-width: 720px) {
+    .prose p,
+    .prose li {
+        text-align: left;
+    }
 }
 
 .prose .updated {

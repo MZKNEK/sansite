@@ -139,10 +139,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=5026edd054" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=c6ba77c342" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=303fe8ce60" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=d13e53eeb9" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">

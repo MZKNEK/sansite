@@ -132,7 +132,7 @@ include 'sanakan.head.html';
     <div class="toolbar" id="toolbar">
       <label class="search hud-corners">
         <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
-        <input id="cmd-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj polecenia, aliasu lub opisu" aria-label="Szukaj polecenia" />
+        <input id="cmd-search" type="search" autocomplete="off" spellcheck="false" placeholder="Szukaj: nazwa, alias, opis" aria-label="Szukaj polecenia" />
         <kbd aria-hidden="true" title="Naciśnij /, żeby szukać">/</kbd>
       </label>
       <nav class="module-chips" aria-label="Moduły">

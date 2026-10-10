@@ -948,10 +948,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=5026edd054" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=c6ba77c342" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=415f163d30" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=303fe8ce60" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=d13e53eeb9" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -1334,7 +1334,7 @@
           <div class="disk-bar" title="Zajęte <?=e(formatSize($diskUsed))?>, w tym galeria <?=e(formatSize($stats['bytes']))?>">
             <span class="gallery" style="width: <?=share($stats['bytes'], $diskTotal)?>"></span><span class="used" style="width: <?=share(max(0, $diskUsed - $stats['bytes']), $diskTotal)?>"></span>
           </div>
-          <div class="timeline-legend"><span><i class="gallery"></i>galeria <i class="used"></i>reszta serwera <i class="none"></i>wolne</span></div>
+          <div class="timeline-legend"><span><i class="gallery"></i>galeria</span><span><i class="used"></i>reszta serwera</span><span><i class="none"></i>wolne</span></div>
         </div>
 <?php endif; ?>
 <?php if ($stats['files']): ?>
@@ -1419,7 +1419,10 @@
 <?=diagBar('Wiki przez Cloudflare', $diagRounds, ['wiki'])?>
         <div class="bar-ends"><span>24 h temu</span><span>teraz</span></div>
         <div class="timeline-legend">
-          <span><i class="ok"></i>odpowiadała <i class="warn"></i>wolno <i class="fail"></i>bez odpowiedzi <i class="none"></i>brak pomiarów</span>
+          <span><i class="ok"></i>odpowiadała</span>
+          <span><i class="warn"></i>wolno</span>
+          <span><i class="fail"></i>bez odpowiedzi</span>
+          <span><i class="none"></i>brak pomiarów</span>
         </div>
 
 <?=diagTrafficChart($diagRounds)?>

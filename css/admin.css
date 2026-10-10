@@ -512,10 +512,6 @@ a.who-name:hover {
     margin-top: 8px;
 }
 
-.disk .timeline-legend i:first-child {
-    margin-left: 0;
-}
-
 /* Server resources: a bar per resource, yellow from 75%, red from 90% */
 .meters {
     display: grid;

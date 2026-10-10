@@ -152,3 +152,25 @@
   updateToolbarHeight();
   showLinked();
 })();
+
+// The module chips scroll sideways when they do not fit (a phone): their
+// right edge fades out while there are more to see (.more, cmd/style.css)
+(function () {
+  var nav = document.querySelector('.module-chips');
+  if (!nav) return;
+
+  function update() {
+    nav.classList.toggle('more', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1);
+  }
+
+  nav.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  // the search hides the chips of the modules with nothing found
+  var input = document.getElementById('cmd-search');
+  if (input) {
+    input.addEventListener('input', update);
+    input.addEventListener('keydown', update);
+  }
+  if (document.fonts) document.fonts.ready.then(update);
+  update();
+})();
