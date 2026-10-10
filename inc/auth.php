@@ -761,8 +761,9 @@
 
     // ---- Session ------------------------------------------------------------------
 
-    // Whether the visitor's browser talks https. Cloudflare ends https and asks
-    // the server over plain http, saying the visitor's scheme in CF-Visitor
+    // Whether the visitor's browser talks https. Cloudflare asks the server over
+    // https with its Origin Certificate (HTTPS set); in its Flexible mode it
+    // asks over plain http, saying the visitor's scheme in CF-Visitor
     // (X-Forwarded-Proto from other proxies). Sent by anyone talking to the
     // server directly, these only make that one's own cookie https-only.
     function visitorUsesHttps()

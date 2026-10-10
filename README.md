@@ -51,11 +51,13 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/` and the API documentation |
-| `server/nginx/` | nginx rules: blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
-| `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), `nginx-og.conf` for its nginx site (its link preview picture and purple), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
+| `server/nginx/` | nginx: the site's server block (https from Cloudflare with its Origin Certificate), blocked `inc/`, 404 page, short links to commands, security headers, browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
+| `server/ufw-cloudflare.sh` | The server's firewall: SSH for everyone, port 443 only for Cloudflare (see Firewall below) |
+| `server/wiki/` | The site's look for the wiki (Wiki.js 2, dark mode): `theme.css` and `head.html` pasted by hand into its Administration → Theme → Code Injection (CSS Override, Head HTML), `nginx-site.conf`, its nginx server block, with `nginx-og.conf` (its link preview picture and purple), and in `assets/` the site's icon in the sizes Wiki.js uses, with its manifest, copied over the wiki's own `assets/` (see Wiki below) |
 | `tools/` | Development helpers, sent on the server never: `asset-versions.php` rewrites the `?v=` of every CSS and JS in the pages to the first ten characters of the file's hash, and `install-hooks.sh` makes git run it before every commit, so the version follows the content without anyone raising a number by hand |
 | `tests/`, `.github/` | The dependency-free test suite (`php tests/run.php`, `php tests/lint.php`) and the CI that runs it, also sent on the server never (see Tests below) |
 | `deploy.sh` | Deployment to the server over SSH |
+| `migrate.sh` | Moving the site and the wiki to a new server (see Moving to a new server below) |
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
@@ -84,41 +86,42 @@ The site does not need `php8.1-mbstring` and must keep working without it: code 
 
 ### nginx
 
-The rules are in `server/nginx/`, which `deploy.sh` does not send:
+The rules are in `server/nginx/`, which git archive leaves out of the site's files:
 
-- `sanakan.conf` blocks `inc/`, which holds the configuration and data, sets up the 404 page, sends short links such as `/cmd/daily` to `/cmd/#daily` (the 404 page does the same where the rule is missing), and lets browsers keep CSS and JS for a year (every page links them with a `?v=` version, the first ten characters of the file's hash, kept up to date by `tools/asset-versions.php`, which `tools/install-hooks.sh` has git run before every commit) and pictures and videos for a day. It also keeps `i/users/`, the folders of the accounts with their IDs in the names, from being served straight from the disk, and sends their links, `i/u/<token>/<file>` (also in a subfolder, `i/u/<token>/<folder>/<file>`), to `i/index.php`; without these two rules those links answer 404 and the files are reachable by the ID. A PNG, JPG, GIF, WebM or MP4 of the gallery that is not on the disk goes to `i/index.php` too, which sends the old link of a picture changed to WebP, or of a film changed to WebM, on to the new one.
+- `site.conf` is the site's server block (`/etc/nginx/sites-available/default`). Cloudflare asks it over https on port 443, with the Cloudflare Origin Certificate of `sanakan.pl` and `*.sanakan.pl` in `/etc/ssl/cloudflare/sanakan.pem` and `sanakan.key` (Cloudflare → SSL/TLS → Origin Server → Create Certificate). Cloudflare checks it, with SSL set to Full (strict) for this server's names only, by a configuration rule (Rules → Configuration Rules, hostname `sanakan.pl` or `wiki.sanakan.pl`): the zone's own SSL/TLS mode stays as it is, for the other subdomains on other servers. Port 80 stays for the server itself: the availability checks ask `http://127.0.0.1`. It passes PHP to `/run/php/php-fpm.sock`, the link PHP-FPM's service on Debian and Ubuntu keeps to the socket of the PHP version installed, so a newer PHP needs no change here. It hides nginx's version and refuses every path with a part starting with a dot (`.env`, `.git`), except `.well-known`.
+- `sanakan.conf`, included by `site.conf`, blocks `inc/`, which holds the configuration and data, sets up the 404 page, sends short links such as `/cmd/daily` to `/cmd/#daily` (the 404 page does the same where the rule is missing), and lets browsers keep CSS and JS for a year (every page links them with a `?v=` version, the first ten characters of the file's hash, kept up to date by `tools/asset-versions.php`, which `tools/install-hooks.sh` has git run before every commit) and pictures and videos for a day. It also keeps `i/users/`, the folders of the accounts with their IDs in the names, from being served straight from the disk, and sends their links, `i/u/<token>/<file>` (also in a subfolder, `i/u/<token>/<folder>/<file>`), to `i/index.php`; without these two rules those links answer 404 and the files are reachable by the ID. A PNG, JPG, GIF, WebM or MP4 of the gallery that is not on the disk goes to `i/index.php` too, which sends the old link of a picture changed to WebP, or of a film changed to WebM, on to the new one. It writes the site's own log `/var/log/nginx/sanakan-access.log` and serves `/nginx-status` and `/fpm-status` only to the server itself, for the availability checks.
 - `sanakan-headers.conf` adds the security headers: Content-Security-Policy, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy and HSTS. A new outside resource (a script, font or picture from another domain) has to be allowed in the policy first. Scripts run only from the site's own files, never inline in a page (`script-src 'self'`), so a page needs its script in a `.js` file.
+- `sanakan-realip.conf` takes the visitor's own address from `CF-Connecting-IP` for requests that come from Cloudflare (otherwise every log line shows Cloudflare), for every site of the server, the wiki too.
+- `sanakan-log.conf` is the format of the site's log (one JSON line per request).
 
-- `sanakan.conf` also takes the visitor's own address from `CF-Connecting-IP` for requests that come from Cloudflare (otherwise every log line shows Cloudflare), writes the site's own log `/var/log/nginx/sanakan-access.log`, and serves `/nginx-status` and `/fpm-status` only to the server itself, for the availability checks.
-- `sanakan-log.conf` is the format of that log (one JSON line per request). `log_format` works only in the http block, so this file goes to `/etc/nginx/conf.d/` instead.
-
-The first two go to `/etc/nginx/snippets/`, and the server block of the site includes the first one:
-
-```nginx
-include snippets/sanakan.conf;
-```
+Where they go (`deploy.sh` and `migrate.sh` know the same list): `site.conf` to `/etc/nginx/sites-available/default`, `sanakan.conf` and `sanakan-headers.conf` to `/etc/nginx/snippets/`, `sanakan-realip.conf` and `sanakan-log.conf`, which work only in the http block, to `/etc/nginx/conf.d/`. `migrate.sh prepare` puts them on a new server, the wiki's too (see Wiki). Later changes are sent by `deploy.sh` when it sees them changed since the previous deploy, and it runs `nginx -t` and reloads for you (rolling the files back and stopping when the test fails). By hand:
 
 ```bash
+scp server/nginx/site.conf sanakan:/etc/nginx/sites-available/default
 scp server/nginx/sanakan.conf server/nginx/sanakan-headers.conf sanakan:/etc/nginx/snippets/
-scp server/nginx/sanakan-log.conf sanakan:/etc/nginx/conf.d/
+scp server/nginx/sanakan-realip.conf server/nginx/sanakan-log.conf sanakan:/etc/nginx/conf.d/
 ssh sanakan 'nginx -t && systemctl reload nginx'
 ```
 
-The first time, or by hand. Later changes to these files are sent by `deploy.sh` when it sees them changed since the previous deploy, and it runs `nginx -t` and reloads for you (rolling the files back and stopping when the test fails).
+### Firewall
 
-`/fpm-status` in `sanakan.conf` goes to `unix:/run/php/php8.1-fpm.sock`, the socket of Ubuntu's PHP 8.1; where the site's PHP location uses another one, change it there too.
+Only Cloudflare reaches the web ports, so nothing gets to the site or the wiki past Cloudflare and the addresses blocked there: `server/ufw-cloudflare.sh` lets SSH in for everyone, port 443 only from Cloudflare's ranges (read from https://www.cloudflare.com/ips/ when it runs) and port 80 from nobody outside the server. `migrate.sh prepare` runs it; when Cloudflare changes its ranges it is run again, and `sanakan-realip.conf` and `CLOUDFLARE_RANGES` in `inc/diag.php` get the same list:
+
+```bash
+ssh sanakan 'bash -s' < server/ufw-cloudflare.sh
+```
 
 ### Wiki
 
 The wiki (Wiki.js 2, `/var/www/wiki` on the same server, without Docker) gets the site's look by hand, from `server/wiki/`:
 
-- `theme.css` goes into its Administration → Theme → Code Injection → CSS Override, `head.html` into Head HTML Injection. Wiki.js 2 writes its `og:image` empty and its blue `theme-color` before anything injected, and Discord takes those first ones, so nginx replaces them with the link preview picture `https://sanakan.pl/wiki-og.png` and the site's purple: `nginx-og.conf` goes into the wiki's nginx site, in the location with `proxy_pass` to Wiki.js, next to its other `proxy_set_header` lines:
+- `nginx-site.conf` is the wiki's server block (`/etc/nginx/sites-available/wiki`, enabled by the link `sites-enabled/wiki`): https from Cloudflare with the same certificate as the site, passed to Wiki.js on `127.0.0.1:3000` (`bindIP: 127.0.0.1` in its `config.yml`, so it listens on the server itself only).
+- `theme.css` goes into its Administration → Theme → Code Injection → CSS Override, `head.html` into Head HTML Injection. Wiki.js 2 writes its `og:image` empty and its blue `theme-color` before anything injected, and Discord takes those first ones, so nginx replaces them with the link preview picture `https://sanakan.pl/wiki-og.png` and the site's purple: `nginx-og.conf` goes to `/etc/nginx/snippets/wiki-og.conf`, which `nginx-site.conf` includes. Both are sent by `deploy.sh` like the site's rules:
 
 ```bash
+scp server/wiki/nginx-site.conf sanakan:/etc/nginx/sites-available/wiki
 scp server/wiki/nginx-og.conf sanakan:/etc/nginx/snippets/wiki-og.conf
-ssh sanakan 'grep -ln "wiki.sanakan.pl" /etc/nginx/sites-enabled/*'   # the wiki's site
-# there, in the location with proxy_pass:  include snippets/wiki-og.conf;
-ssh sanakan 'nginx -t && systemctl reload nginx'
+ssh sanakan 'ln -sfn /etc/nginx/sites-available/wiki /etc/nginx/sites-enabled/wiki && nginx -t && systemctl reload nginx'
 ```
 
 Discord keeps a preview it has made for a while; a link with something added, e.g. `https://wiki.sanakan.pl/?1`, shows the new one at once.
@@ -242,7 +245,23 @@ With an SSH key (`ssh-keygen -t ed25519`, the `.pub` line added to `/root/.ssh/a
 ./deploy.sh sanakan
 ```
 
-`deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. It leaves the commit with its date and subject in `inc/data/deployed-info`, which the panel shows. The nginx rules (`server/nginx/` and `server/wiki/nginx-og.conf`) are not part of the site's files, so it sends them on their own when they changed since the previous deploy: each to its place under a temporary name, then `nginx -t`; a configuration that does not pass is rolled back and the deploy stops, so a broken file never stays behind. The wiki's theme, head and assets are still pasted by hand (see Wiki). `./deploy.sh --dry-run sanakan` reads only the deployed marker and shows what it would send, delete and reload, writing nothing. The site goes to `/var/www/html` unless another folder is given as the second argument.
+`deploy.sh` sends the files of the last commit over SSH. It never touches `inc/config.php`, `inc/data/` or the pictures in `i/`. It deletes on the server the files that were deleted from the repository since the previous deploy. It refuses to run with uncommitted changes. It leaves the commit with its date and subject in `inc/data/deployed-info`, which the panel shows. The nginx rules (`server/nginx/`, `server/wiki/nginx-site.conf` and `server/wiki/nginx-og.conf`) are not part of the site's files, so it sends them on their own when they changed since the previous deploy: each to its place under a temporary name, then `nginx -t`; a configuration that does not pass is rolled back and the deploy stops, so a broken file never stays behind. The wiki's theme, head and assets are still pasted by hand (see Wiki). `./deploy.sh --dry-run sanakan` reads only the deployed marker and shows what it would send, delete and reload, writing nothing. The site goes to `/var/www/html` unless another folder is given as the second argument.
+
+## Moving to a new server
+
+`migrate.sh` moves the site and the wiki from one server to another over SSH. Everything goes through the computer running it (`ssh old … | ssh new …`), so the servers need no keys to each other, but both need key login as root (it opens many connections). It runs in steps, each with the two SSH targets, best host aliases in `~/.ssh/config` (e.g. `sanakan` and `sanakan-new`):
+
+| Step | What it does |
+|---|---|
+| `./migrate.sh check sanakan sanakan-new` | Reads both servers, changing nothing: their system, PHP and sizes, the nginx sites that move (the one including `snippets/sanakan.conf` and the wiki's), the certificates they point at, the wiki's service, Node.js and database, and what it does **not** move (other nginx sites, own systemd services, other cron files and crontabs, other folders in `/var/www`, ufw rules) |
+| `prepare` | Sets up the new server: the packages of the Server section, the PHP modules the old one had in the new PHP version, nginx with the rules of this repository (the two sites, the snippets, `conf.d/`; the old server's own files of `snippets/` and `conf.d/` too, its `nginx.conf` only when it was changed from Ubuntu's), the Cloudflare Origin Certificate (given as `ORIGIN_CERT=… ORIGIN_KEY=… ./migrate.sh prepare …`, from two files kept outside the repository, or already in `/etc/ssl/cloudflare/`; without it `prepare` stops before changing anything), the firewall (`server/ufw-cloudflare.sh`), the old PHP-FPM pool and the changes of the old `php.ini` against its stock one (in `conf.d/99-sanakan-migrated.ini`), all with the PHP version and socket paths changed, Node.js of the wiki's exact version from nodejs.org in `/opt` (with `NODE_VERSION=22 ./migrate.sh prepare …` also the newest 22.x, which the wiki then runs on; `/usr/local/bin/node` points at the one used, the old one stays beside it as the way back), the wiki's service (not started), its database server and user, fail2ban and the time zone. The old configuration stays in `/root/sanakan-migration/old-root/` on the new server, and the new server's own nginx in `nginx-fresh/` |
+| `copy` | Copies `/var/www/html` (with `inc/config.php`, `inc/data/` and the gallery, without the thumbnail cache) and `/var/www/wiki` while the old server keeps running. Run again, it sends only what changed since (by the files' change time) and deletes what is gone from the old server |
+| `wiki-test` | Runs the wiki on the new server on the copy before `final`: starts its service, asks it through nginx on the server itself, shows its log, stops it and puts its folder back as copied, so the test leaves nothing in its SQLite database. When it does not answer, pointing `/usr/local/bin/node` back at the old Node.js is the way back |
+| `final` | Moves the sanakan cron files of the old server aside to `/root/sanakan-migration/cron.d-off/` and stops the wiki there (the old site keeps answering), sends the last changes, dumps the wiki's database (a PostgreSQL or MySQL one; SQLite goes with the files) and restores it on the new server, installs the cron files there, starts the wiki (listening on `127.0.0.1` only) and asks the pages on the new server itself, past Cloudflare |
+| `undo` | Before the DNS switch only: the crons and the wiki run on the old server again, the new one stops them |
+| `tune` | Also the end of `prepare`: a 2 GB swap file when there is none (`vm.swappiness` 10), the PHP-FPM pool set to 8 processes at most (`pm.max_children`, 2 to 4 waiting idle, a process renewed every 500 requests) and SSH by key only, when root has a key |
+
+After `final`, by hand in Cloudflare and one right after the other: the DNS records of `sanakan.pl` and `wiki.sanakan.pl` (and `www` when it named the old server) to the new address (still proxied), and the configuration rule setting SSL to Full (strict) for those names turned on (made beforehand and saved as a draft), as the new server takes only https from Cloudflare and the old one only http. The zone's SSL/TLS mode is not changed, the other subdomains on other servers use it. The `sanakan` alias in `~/.ssh/config` then has to name the new server, so `deploy.sh` goes there. Until the switch the old site answers, and what is uploaded or changed on it meanwhile does not reach the new server. Nothing is ever deleted on the old server. When the new server has another PHP version, `final` points `DIAG_SLOW_LOG` in `inc/config.php` at its slow log.
 
 ## Running locally
 

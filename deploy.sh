@@ -2,10 +2,10 @@
 # Puts the committed site on the server over SSH. Only files tracked by git go
 # out, so inc/config.php, inc/data/ and the pictures in i/ are never sent or
 # replaced. Files deleted from the repository since the last deploy are deleted
-# on the server too. The nginx rules (server/nginx/ and server/wiki/nginx-og.conf),
-# which git archive leaves out, are sent on their own when they changed since the
-# last deploy, then nginx -t runs and nginx reloads; a configuration that does
-# not pass is rolled back and the deploy stops. Run it from Git Bash or any shell
+# on the server too. The nginx rules (server/nginx/ and the wiki's nginx-og.conf
+# and nginx-site.conf in server/wiki/), which git archive leaves out, are sent on
+# their own when they changed since the last deploy, then nginx -t runs and nginx
+# reloads; a configuration that does not pass is rolled back and the deploy stops. Run it from Git Bash or any shell
 # with ssh and tar:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
@@ -27,13 +27,17 @@ target=${1:?"Użycie: ./deploy.sh [--dry-run] użytkownik@serwer [folder strony,
 root=${2:-/var/www/html}
 cd "$(dirname "$0")"
 
-# where a file of server/ goes on the server; the wiki's theme and assets are
-# pasted by hand and have no place here, so they are not among the rules sent
+# where a file of server/ goes on the server (migrate.sh has the same list);
+# the wiki's theme and assets are pasted by hand and have no place here, so they
+# are not among the rules sent
 nginx_dest() {
     case "$1" in
-        server/nginx/sanakan-log.conf) echo "/etc/nginx/conf.d/$(basename "$1")" ;;
-        server/nginx/*)                echo "/etc/nginx/snippets/$(basename "$1")" ;;
-        server/wiki/nginx-og.conf)     echo "/etc/nginx/snippets/$(basename "$1")" ;;
+        server/nginx/sanakan-log.conf|server/nginx/sanakan-realip.conf)
+                                       echo "/etc/nginx/conf.d/$(basename "$1")" ;;
+        server/nginx/site.conf)        echo /etc/nginx/sites-available/default ;;
+        server/nginx/*.conf)           echo "/etc/nginx/snippets/$(basename "$1")" ;;
+        server/wiki/nginx-og.conf)     echo /etc/nginx/snippets/wiki-og.conf ;;
+        server/wiki/nginx-site.conf)   echo /etc/nginx/sites-available/wiki ;;
         *)                             return 1 ;;
     esac
 }
@@ -84,10 +88,10 @@ fi
 config_files=()
 config_dests=()
 if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
-    changed_config=$(git diff --name-only --diff-filter=ACMR "$previous" HEAD -- server/nginx/ server/wiki/nginx-og.conf)
+    changed_config=$(git diff --name-only --diff-filter=ACMR "$previous" HEAD -- server/nginx/ server/wiki/nginx-og.conf server/wiki/nginx-site.conf)
 else
     # no marker yet (the first deploy): send them, it is harmless
-    changed_config=$(git ls-files -- server/nginx/ server/wiki/nginx-og.conf)
+    changed_config=$(git ls-files -- server/nginx/ server/wiki/nginx-og.conf server/wiki/nginx-site.conf)
 fi
 
 if [ -n "$changed_config" ]; then
