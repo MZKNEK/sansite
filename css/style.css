@@ -701,8 +701,9 @@ html[data-hud="full"].role-admin {
     opacity: 0.7;
 }
 
-/* the motto in Morse code, barely visible at the very top of the page, desktop only;
-   the script in index.html builds the symbols, without JS the plain text shows */
+/* the motto in Morse code, barely visible at the very top of the page, in
+   wide windows only (see the narrow ones below); js/home.js builds the
+   symbols, without JS the plain text shows */
 .motto {
     position: absolute;
     top: 14px;
@@ -1054,15 +1055,11 @@ a.hud-corners:hover {
     height: calc(100% + 14px);
 }
 
-/* touch screens and narrow windows: show both buttons, no animations, no Morse.
+/* touch screens and narrow windows: show both buttons, no animations.
    any-hover, not hover: a touch screen with a mouse plugged in (Android's
    desktop mode) has the touch as its main pointer, yet the mouse can hover, so
    it gets the sliding buttons; the query follows the mouse as it comes and goes */
 @media (any-hover: none), only screen and (max-width: 720px) {
-    .motto {
-        display: none;
-    }
-
     .links .below a.swap-main::after,
     .link-swap:hover::after {
         content: none;
@@ -1162,7 +1159,13 @@ a.hud-corners:hover {
     }
 }
 
+/* narrow windows: the Morse line, about 700px wide, would not fit; a wide
+   touch screen (a tablet, Android's desktop mode) keeps it */
 @media only screen and (max-width: 720px) {
+    .motto {
+        display: none;
+    }
+
     .links a,
     .links a.swap-alt {
         width: 100%;
