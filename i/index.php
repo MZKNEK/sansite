@@ -256,8 +256,11 @@
         $summary[] = 'pokazano pierwsze ' . SEARCH_LIMIT;
     if (!$admin && in_array($dirRel, sessionShares($base), true) && $dirRel !== $own)
         $summary[] = 'udostępnione linkiem';
+    // the bytes count the entries taken out of the list too: their files stay
+    // until TRASH_DAYS pass
     if ($showTrash)
-        $summary = ['Kosz: ' . count($ownTrash) . ' ' . plural(count($ownTrash), 'element', 'elementy', 'elementów')];
+        $summary = ['Kosz: ' . count($ownTrash) . ' ' . plural(count($ownTrash), 'element', 'elementy', 'elementów'),
+            formatSize(userTrashBytes((string)$user['id'])) . ' z ' . formatSize(USER_TRASH_MAX_BYTES)];
 
 ?>
 <!DOCTYPE html>
@@ -473,7 +476,7 @@
 <?php if (!$searching && $admin): ?>
         <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą mniejsze; status zobaczysz wyżej. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
-        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>, kosz <b><?=e(formatSize(userTrashBytes((string)$user['id'])))?> z <?=e(formatSize(USER_TRASH_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>

@@ -108,6 +108,7 @@
             'uploads' => $uploads,
             'folder' => $folder,
             'folderUse' => $folder !== null ? treeUse($galleryBase . '/' . $folder) : [0, 0],
+            'trashBytes' => userTrashBytes($id),
             'filesLimit' => userFilesLimit($id),
             'marks' => diagMarks($scanners, $cfItems),
             'cfError' => $cfError,
@@ -187,6 +188,7 @@
           <dd>
             <?=$p['folder'] !== null ? '<a href="' . e(siteRoot() . 'i/' . folderUrl($p['folder'])) . '">' . e(galleryPath($p['folder'])) . '</a>' : '<span class="muted">powstanie przy pierwszym wejściu do galerii</span>'?>
             &middot; <?=$p['folderUse'][0]?> z <?=$p['filesLimit']?> <?=plural($p['filesLimit'], 'zdjęcia', 'zdjęć', 'zdjęć')?> &middot; <?=e(formatSize($p['folderUse'][1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?>
+            &middot; kosz <?=e(formatSize($p['trashBytes']))?> z <?=e(formatSize(USER_TRASH_MAX_BYTES))?>
           </dd>
           <dt>Limit zdjęć</dt>
           <dd>

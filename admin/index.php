@@ -32,7 +32,7 @@
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
         'galleryUploaders' => ['Zablokowane własne foldery', 'Każde konto z rolą na serwerze bota (od user w górę), także administratorzy galerii, ma własny folder i/' . USERS_DIR . '/ID-nick: dodaje zdjęcia tylko tam i bez innego dostępu tylko go widzi. Do '
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
-            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy. Konta z tej listy mają go zablokowanego, a konto bez roli go nie ma; folder i pliki zostają.'],
+            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy; to, co z niego usunie, czeka w koszu do ' . USER_TRASH_MAX_BYTES / 1048576 . ' MB. Konta z tej listy mają go zablokowanego, a konto bez roli go nie ma; folder i pliki zostają.'],
         'galleryPrivate' => ['Prywatny folder galerii', 'Widzą i/' . PRIVATE_DIR . '. Administratorzy panelu zawsze, reszta z tej listy. Pliki nie otwierają się bezpośrednim linkiem.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
@@ -637,9 +637,9 @@
                 $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
                 if (!$item)
                     reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
-                $where = restoreFromTrash($galleryDir, (string)$_POST['item']);
+                $where = restoreFromTrash($galleryDir, (string)$_POST['item'], $error);
                 if ($where === null)
-                    reply(false, 'Nie udało się przywrócić ' . $item['name'] . '.', 500);
+                    reply(false, $error, 409);
                 done('restore', 'Przywrócono z kosza ' . galleryPath($where) . '.');
 
             case 'trash-delete':
@@ -911,10 +911,12 @@
             $details[] = ['Prywatny folder', $join('widzi i/' . PRIVATE_DIR, isPanelAdminId($id) ? 'właściciel strony (panel)' : accessFrom('galleryPrivate', $id, $logins))];
 
         $folder = userFolder($galleryDir, $id);
-        [$files, $bytes] = $folder !== null ? folderUse($galleryDir . '/' . $folder) : [0, 0];
+        // counted as the limits count it: subfolders included
+        [$files, $bytes] = $folder !== null ? treeUse($galleryDir . '/' . $folder) : [0, 0];
         if (isGalleryUploaderId($id)) {
             $limit = userFilesLimit($id);
-            $use = $files . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', ' . formatSize($bytes) . ' z ' . formatSize(USER_TOTAL_MAX_BYTES);
+            $use = $files . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', ' . formatSize($bytes) . ' z ' . formatSize(USER_TOTAL_MAX_BYTES)
+                . ', kosz ' . formatSize(userTrashBytes($id)) . ' z ' . formatSize(USER_TRASH_MAX_BYTES);
             $cells['folder'] = [$files . '/' . $limit, 'on', 'Własny folder: ' . $use];
             $details[] = ['Własny folder', ($folder !== null ? displayPath($folder) . ', ' : 'jeszcze nie założony, ') . $use];
         } else {

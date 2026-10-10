@@ -76,6 +76,10 @@
     const USER_FILES_MAX = 1000;
     const USER_FILE_MAX_BYTES = 10485760;
     const USER_TOTAL_MAX_BYTES = 104857600;
+    // what the trash may hold of what was deleted from the folder of one account
+    // (hidden entries and the originals of conversions included), apart from
+    // what the folder itself holds
+    const USER_TRASH_MAX_BYTES = 52428800;
     // what a shared link can last, in days; 0 is until it is taken back
     const SHARE_DAYS = [1, 7, 30, 0];
 
@@ -1155,12 +1159,19 @@
         return [$count, $bytes];
     }
 
-    // files in a folder and all its subfolders, and their bytes: [count, bytes]
+    // files in a folder and all its subfolders, their bytes and the biggest one:
+    // [count, bytes, biggest]; a file alone counts as itself
     function treeUse($dirPath)
     {
+        if (is_file($dirPath) && !is_link($dirPath)) {
+            $size = (int)filesize($dirPath);
+            return [1, $size, $size];
+        }
+
         $count = 0;
         $bytes = 0;
-        $walk = function ($path) use (&$walk, &$count, &$bytes) {
+        $biggest = 0;
+        $walk = function ($path) use (&$walk, &$count, &$bytes, &$biggest) {
             foreach (@scandir($path) ?: [] as $name) {
                 if ($name[0] === '.')
                     continue;
@@ -1168,14 +1179,67 @@
                 if (is_dir($full) && !is_link($full)) {
                     $walk($full);
                 } else if (is_file($full)) {
+                    $size = (int)filesize($full);
                     $count++;
-                    $bytes += filesize($full);
+                    $bytes += $size;
+                    $biggest = max($biggest, $size);
                 }
             }
         };
         $walk($dirPath);
 
-        return [$count, $bytes];
+        return [$count, $bytes, $biggest];
+    }
+
+    // the ID of the account whose folder a gallery path is in, or null
+    function folderOwner($rel)
+    {
+        return preg_match('~^' . USERS_DIR . '/(\d+)(?:-[^/]*)?(?:/|$)~', (string)$rel, $match) ? $match[1] : null;
+    }
+
+    // Holds the folder of an account and its trash while something makes them
+    // grow (an upload, a restore, a delete into the trash, the conversion by
+    // cron), so two devices of one account, or a device and cron, do not both
+    // see room for one more. The same request may take it again; the function
+    // returned lets go of it, and the end of the request does too. Null when it
+    // could not be had in DATA_LOCK_WAIT seconds.
+    function accountLock($id)
+    {
+        static $held = [];
+        $id = (string)$id;
+        if (!isset($held[$id])) {
+            $handle = fileLock(dataDir() . '/locks/account-' . $id . '.lock', true);
+            if ($handle === null)
+                return null;
+            $held[$id] = [$handle, 0];
+        }
+        $held[$id][1]++;
+
+        return function () use (&$held, $id) {
+            if (isset($held[$id]) && --$held[$id][1] === 0) {
+                fclose($held[$id][0]);
+                unset($held[$id]);
+            }
+        };
+    }
+
+    // Why $count more files of $bytes (the biggest $biggest) do not fit in the
+    // folder of the account $id, or null when they do. A folder over its limits
+    // already (from before the limits were checked everywhere) keeps its files,
+    // it only takes no more.
+    function accountRoomError($base, $id, $count, $bytes, $biggest)
+    {
+        $folder = userFolder($base, $id);
+        [$has, $used] = $folder === null ? [0, 0] : treeUse($base . '/' . $folder);
+        $limit = userFilesLimit($id);
+        if ($biggest > USER_FILE_MAX_BYTES)
+            return 'plik ma ' . formatSize($biggest) . ', a limit jednego to ' . formatSize(USER_FILE_MAX_BYTES);
+        if ($has + $count > $limit)
+            return 'w folderze konta jest ' . $has . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', a to ' . $count . ' ' . plural($count, 'plik', 'pliki', 'plików');
+        if ($used + $bytes > USER_TOTAL_MAX_BYTES)
+            return 'w folderze konta zostało ' . formatSize(max(0, USER_TOTAL_MAX_BYTES - $used)) . ' wolnego z ' . formatSize(USER_TOTAL_MAX_BYTES) . ', a to zajmuje ' . formatSize($bytes);
+
+        return null;
     }
 
     // a file just saved in the folder of an account goes away again when the
@@ -2299,9 +2363,9 @@
             $source = fileHash($full, $rel, $hashes);
 
         $ok = swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel,
-            (int)filesize($full), (int)filesize($candidateFull), 'WebP', $source, (string)($user['name'] ?? ''), false);
+            (int)filesize($full), (int)filesize($candidateFull), 'WebP', $source, (string)($user['name'] ?? ''), false, $why);
         if (!$ok)
-            return 'nie udało się zapisać WebP';
+            return 'nie udało się zapisać WebP' . ($why !== null ? ': ' . $why : '');
         dropWebpPreview((string)$token);
 
         return ['target' => $target];
@@ -2507,24 +2571,38 @@
     // it could not be put in place. $candidateFull is where the new file is now
     // (the same place as the target for a background job, a preview file for a
     // manual change); a re-encoded WebP keeps its own name and link.
-    function swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, $byName, $background = false)
+    function swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, $byName, $background = false, &$error = null)
     {
-        $mtime = (int)@filemtime($full);
-        if ($targetFull === $full) {
-            // the new file takes the old name: the original has to go first
-            if (!moveToTrash($full, $rel))
-                return false;
-            if (!@rename($candidateFull, $targetFull))
-                return false;
-        } else {
-            if ($candidateFull !== $targetFull && !@rename($candidateFull, $targetFull)) {
-                @unlink($candidateFull);
-                return false;
+        // the folder of an account is held while its original goes to its trash
+        $owner = folderOwner($rel);
+        $release = $owner === null ? null : accountLock($owner);
+        if ($owner !== null && $release === null) {
+            $error = 'folder konta był zajęty';
+            return false;
+        }
+        try {
+            $mtime = (int)@filemtime($full);
+            if ($targetFull === $full) {
+                // the new file takes the old name: the original has to go first
+                if (!moveToTrash($full, $rel, $error))
+                    return false;
+                if (!@rename($candidateFull, $targetFull))
+                    return false;
+            } else {
+                if ($candidateFull !== $targetFull && !@rename($candidateFull, $targetFull)) {
+                    @unlink($candidateFull);
+                    return false;
+                }
+                // no room for the original in the trash: the original stays and
+                // the converted file goes
+                if (!moveToTrash($full, $rel, $error)) {
+                    @unlink($targetFull);
+                    return false;
+                }
             }
-            if (!moveToTrash($full, $rel)) {
-                @unlink($targetFull);
-                return false;
-            }
+        } finally {
+            if ($release !== null)
+                $release();
         }
         @chmod($targetFull, 0644);
         @touch($targetFull, $mtime);
@@ -2550,8 +2628,8 @@
             $source = fileHash($full, $rel, $hashes);
         }
         $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
-        if (!swapInConverted($full, $rel, $targetFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, (string)($job['byName'] ?? ''), true))
-            finishMediaJob($job, 'failed', 'nie udało się przenieść oryginału do kosza', ['sizeFrom' => $sizeFrom]);
+        if (!swapInConverted($full, $rel, $targetFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, (string)($job['byName'] ?? ''), true, $why))
+            finishMediaJob($job, 'failed', $why !== null ? 'oryginał został, bo ' . $why : 'nie udało się przenieść oryginału do kosza', ['sizeFrom' => $sizeFrom]);
         else
             finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
     }
@@ -2766,7 +2844,8 @@
         return dataDir() . '/trash';
     }
 
-    // [id => ['name', 'from' (rel), 'folder' (bool), 'size', 'deleted' (time), 'by']], newest first
+    // [id => ['name', 'from' (rel), 'folder' (bool), 'size', 'deleted' (time), 'by',
+    // 'owner' (the account whose folder it came from)]], newest first
     function trashItems()
     {
         $items = readData('trash');
@@ -2802,79 +2881,183 @@
         return $saved && $found;
     }
 
-    function moveToTrash($full, $rel)
+    // whose budget a trash entry counts against: the account it was deleted from,
+    // by its ID (older entries have it only in their path)
+    function trashOwner($item)
     {
-        $id = date('YmdHis') . '-' . bin2hex(random_bytes(4));
-        $dir = trashDir() . '/' . $id;
-        if (!@mkdir($dir, 0750, true))
-            return false;
-
-        $folder = is_dir($full);
-        $size = treeSize($full);
-        if (!@rename($full, $dir . '/' . basename($rel))) {
-            @rmdir($dir);
-            return false;
-        }
-
-        $user = siteUser();
-        $item = [
-            'name' => basename($rel),
-            'from' => $rel,
-            'folder' => $folder,
-            'size' => $size,
-            'deleted' => time(),
-            'by' => $user['name'] ?? ''
-        ];
-        if (updateData('trash', function (&$items) use ($id, $item) { $items[$id] = $item; }))
-            return true;
-
-        // without its entry the file could not be found or brought back: it
-        // goes back where it was
-        if (@rename($dir . '/' . basename($rel), $full))
-            @rmdir($dir);
-
-        return false;
+        return isset($item['owner']) ? (string)$item['owner'] : folderOwner($item['from'] ?? '');
     }
 
-    // back where it was deleted from (that folder is made again when it is gone);
-    // returns where it ended up, or null
-    function restoreFromTrash($base, $id)
+    // bytes in the trash deleted from the folder of an account, hidden ones too
+    function userTrashBytes($id)
     {
-        $items = readData('trash');
-        if (!isset($items[$id]))
-            return null;
+        $bytes = 0;
+        foreach (readData('trash') as $item)
+            if (trashOwner($item) === (string)$id)
+                $bytes += (int)($item['size'] ?? 0);
 
-        $item = $items[$id];
-        $source = trashDir() . '/' . $id . '/' . $item['name'];
-        $folderRel = dirname($item['from']) === '.' ? '' : dirname($item['from']);
-        $folder = $base . ($folderRel === '' ? '' : '/' . $folderRel);
-        if (!is_dir($folder) && !@mkdir($folder, 0755, true))
-            return null;
+        return $bytes;
+    }
 
-        $name = freeName($folder, $item['name']);
-        if (!file_exists($source) || !@rename($source, $folder . '/' . $name))
-            return null;
+    // One lock for taking things out of the trash (restoring, deleting for good),
+    // so a restore and the cleanup never work on one entry at once; inside the
+    // lock of the account (accountLock()) when both are held.
+    function trashLock()
+    {
+        return fileLock(dataLockFile('trash-ops'), true);
+    }
 
-        if (!updateData('trash', function (&$items) use ($id) { unset($items[$id]); })) {
-            // the entry would stay without its file: the file goes back to the trash
-            @rename($folder . '/' . $name, $source);
+    // Moves a file or folder to the trash; false when it stays where it is, with
+    // the reason in $error when it is one the visitor can do something about.
+    // What is deleted from the folder of an account counts against its trash
+    // (USER_TRASH_MAX_BYTES): when that is full, the entries of it that are past
+    // TRASH_DAYS go first, and when there is still no room the file stays. A
+    // gallery admin deleting is not held to it (its entries still count).
+    function moveToTrash($full, $rel, &$error = null)
+    {
+        $error = null;
+        $owner = folderOwner($rel);
+        $release = $owner === null ? null : accountLock($owner);
+        if ($owner !== null && $release === null) {
+            $error = 'folder konta jest teraz zajęty, spróbuj za chwilę';
+            return false;
+        }
+
+        try {
+            $size = treeSize($full);
+            if ($owner !== null && !galleryIsAdmin() && userTrashBytes($owner) + $size > USER_TRASH_MAX_BYTES) {
+                purgeTrash($owner);
+                $used = userTrashBytes($owner);
+                if ($used + $size > USER_TRASH_MAX_BYTES) {
+                    $error = 'kosz folderu jest pełny (' . formatSize($used) . ' z ' . formatSize(USER_TRASH_MAX_BYTES) . ', a to ' . formatSize($size)
+                        . '); rzeczy znikają z niego po ' . TRASH_DAYS . ' dniach';
+                    return false;
+                }
+            }
+
+            $id = date('YmdHis') . '-' . bin2hex(random_bytes(4));
+            $dir = trashDir() . '/' . $id;
+            if (!@mkdir($dir, 0750, true))
+                return false;
+
+            $folder = is_dir($full);
+            if (!@rename($full, $dir . '/' . basename($rel))) {
+                @rmdir($dir);
+                return false;
+            }
+
+            $user = siteUser();
+            $item = [
+                'name' => basename($rel),
+                'from' => $rel,
+                'folder' => $folder,
+                'size' => $size,
+                'deleted' => time(),
+                'by' => $user['name'] ?? ''
+            ] + ($owner !== null ? ['owner' => $owner] : []);
+            if (updateData('trash', function (&$items) use ($id, $item) { $items[$id] = $item; }))
+                return true;
+
+            // without its entry the file could not be found or brought back: it
+            // goes back where it was
+            if (@rename($dir . '/' . basename($rel), $full))
+                @rmdir($dir);
+
+            return false;
+        } finally {
+            if ($release !== null)
+                $release();
+        }
+    }
+
+    // Back where it was deleted from (that folder is made again when it is gone;
+    // the folder of an account is the one it has now, whatever its nick was).
+    // Back into the folder of an account only within its limits, a folder with
+    // all that is in it; when it does not fit it stays in the trash. Returns
+    // where it ended up, or null with the reason in $error.
+    function restoreFromTrash($base, $id, &$error = null)
+    {
+        $error = null;
+        $item = readData('trash')[$id] ?? null;
+        if ($item === null) {
+            $error = 'Tego już nie ma w koszu, odśwież stronę.';
             return null;
         }
-        @rmdir(trashDir() . '/' . $id);
+        $owner = folderOwner($item['from']);
+        $release = $owner === null ? null : accountLock($owner);
+        $lock = ($owner === null || $release !== null) ? trashLock() : null;
+        if ($lock === null) {
+            if ($release !== null)
+                $release();
+            $error = 'Kosz jest teraz zajęty, spróbuj za chwilę.';
+            return null;
+        }
 
-        return ltrim($folderRel . '/' . $name, '/');
+        try {
+            // what another request did meanwhile counts
+            forgetData('trash');
+            $item = readData('trash')[$id] ?? null;
+            $source = trashDir() . '/' . $id . '/' . ($item['name'] ?? '');
+            if ($item === null || !file_exists($source)) {
+                $error = 'Tego już nie ma w koszu, odśwież stronę.';
+                return null;
+            }
+
+            $from = $item['from'];
+            if ($owner !== null && ($current = userFolder($base, $owner)) !== null)
+                $from = preg_replace('~^' . USERS_DIR . '/[^/]+~', $current, $from);
+            if ($owner !== null) {
+                [$count, $bytes, $biggest] = treeUse($source);
+                $why = accountRoomError($base, $owner, $count, $bytes, $biggest);
+                if ($why !== null) {
+                    $error = 'Nie przywrócono ' . $item['name'] . ': ' . $why . '. Zostaje w koszu; zrób miejsce i spróbuj jeszcze raz.';
+                    return null;
+                }
+            }
+
+            $folderRel = dirname($from) === '.' ? '' : dirname($from);
+            $folder = $base . ($folderRel === '' ? '' : '/' . $folderRel);
+            $name = (is_dir($folder) || @mkdir($folder, 0755, true)) ? freeName($folder, $item['name']) : null;
+            if ($name === null || !@rename($source, $folder . '/' . $name)) {
+                $error = 'Nie udało się przywrócić ' . $item['name'] . '.';
+                return null;
+            }
+
+            if (!updateData('trash', function (&$items) use ($id) { unset($items[$id]); })) {
+                // the entry would stay without its file: the file goes back to the trash
+                @rename($folder . '/' . $name, $source);
+                $error = 'Nie udało się przywrócić ' . $item['name'] . '.';
+                return null;
+            }
+            @rmdir(trashDir() . '/' . $id);
+
+            return ltrim($folderRel . '/' . $name, '/');
+        } finally {
+            fclose($lock);
+            if ($release !== null)
+                $release();
+        }
     }
 
     // the entry goes only once its files are gone; what could not be removed
     // stays in the trash to be tried again
     function deleteFromTrash($id)
     {
-        if (!isset(readData('trash')[$id]))
-            return false;
-        if (!removeTree(trashDir() . '/' . $id) && file_exists(trashDir() . '/' . $id))
+        $lock = trashLock();
+        if ($lock === null)
             return false;
 
-        return updateData('trash', function (&$items) use ($id) { unset($items[$id]); });
+        try {
+            forgetData('trash');
+            if (!isset(readData('trash')[$id]))
+                return false;
+            if (!removeTree(trashDir() . '/' . $id) && file_exists(trashDir() . '/' . $id))
+                return false;
+
+            return updateData('trash', function (&$items) use ($id) { unset($items[$id]); });
+        } finally {
+            fclose($lock);
+        }
     }
 
     // [full path, path inside the item] of a picture or film in the trash: the
@@ -2931,11 +3114,12 @@
         return [$files, $count];
     }
 
-    // what has been in the trash longer than TRASH_DAYS goes for good
-    function purgeTrash()
+    // what has been in the trash longer than TRASH_DAYS goes for good; with
+    // $owner only what was deleted from the folder of that account
+    function purgeTrash($owner = null)
     {
         foreach (readData('trash') as $id => $item)
-            if (($item['deleted'] ?? 0) < time() - TRASH_DAYS * 86400)
+            if (($item['deleted'] ?? 0) < time() - TRASH_DAYS * 86400 && ($owner === null || trashOwner($item) === (string)$owner))
                 deleteFromTrash($id);
     }
 
@@ -3068,12 +3252,14 @@
                 $items = postedItems($base);
                 $trashed = [];
                 $failed = [];
+                $refused = false;
                 foreach ($items as $item) {
-                    if (moveToTrash($item[0], $item[1])) {
+                    if (moveToTrash($item[0], $item[1], $why)) {
                         $trashed[] = galleryPath($item[1]);
                         dropHashes($item[1]);
                     } else {
-                        $failed[] = basename($item[1]);
+                        $failed[] = basename($item[1]) . ($why !== null ? ' (' . $why . ')' : '');
+                        $refused = $refused || $why !== null;
                     }
                 }
 
@@ -3081,7 +3267,7 @@
                     addHistory('delete', 'Do kosza: ' . implode(', ', $trashed) . '.');
                 $message = 'Przeniesiono do kosza ' . countLabel(count($trashed)) . ' (na ' . TRASH_DAYS . ' dni, można je przywrócić w koszu).';
                 if ($failed)
-                    reply(false, $message . ' Nie udało się: ' . implode(', ', $failed) . '.', 500);
+                    reply(false, $message . ' Nie udało się: ' . implode(', ', $failed) . '.', $refused ? 409 : 500);
                 reply(true, $message);
 
             case 'rotate':
@@ -3154,9 +3340,9 @@
                     reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
                 if (!galleryIsAdmin() && !inUserFolder($item['from'] ?? '', siteUser()['id']))
                     reply(false, 'Możesz przywracać tylko rzeczy ze swojego folderu.', 403);
-                $where = restoreFromTrash($base, (string)$_POST['item']);
+                $where = restoreFromTrash($base, (string)$_POST['item'], $error);
                 if ($where === null)
-                    reply(false, 'Nie udało się przywrócić ' . $item['name'] . '.', 500);
+                    reply(false, $error, 409);
                 done('restore', 'Przywrócono z kosza ' . galleryPath($where) . '.');
 
             case 'trash-delete':
@@ -3222,16 +3408,29 @@
                 if (!$target)
                     reply(false, 'Nie ma takiego folderu docelowego.', 404);
 
+                // into the folder of an account only within its limits, as for
+                // its own uploads; held until the request ends
+                $owner = folderOwner($target[1]);
+                if ($owner !== null && accountLock($owner) === null)
+                    reply(false, 'Folder konta jest teraz zajęty, spróbuj za chwilę.', 503);
+
                 $moved = [];
                 $problems = [];
                 foreach (postedItems($base) as $item) {
                     $name = basename($item[1]);
+                    $room = null;
+                    if ($owner !== null && folderOwner($item[1]) !== $owner) {
+                        [$count, $bytes, $biggest] = treeUse($item[0]);
+                        $room = accountRoomError($base, $owner, $count, $bytes, $biggest);
+                    }
                     if ($target[0] === $item[0] || strpos($target[0] . '/', $item[0] . '/') === 0) {
                         $problems[] = $name . ' (folderu nie da się przenieść do niego samego)';
                     } else if (dirname($item[0]) === $target[0]) {
                         $problems[] = $name . ' (już tam jest)';
                     } else if (file_exists($target[0] . '/' . $name)) {
                         $problems[] = $name . ' (w folderze docelowym jest już coś o tej nazwie)';
+                    } else if ($room !== null) {
+                        $problems[] = $name . ' (' . $room . ')';
                     } else if (!@rename($item[0], $target[0] . '/' . $name)) {
                         $problems[] = $name . ' (nie udało się)';
                     } else {
@@ -3348,10 +3547,13 @@
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
 
         // an account with a folder of its own: only pictures, within its limits,
-        // counted over its whole folder with the subfolders
+        // counted over its whole folder with the subfolders; the folder is held
+        // until the request ends, so two uploads at once do not both fit
         $own = !galleryIsAdmin();
         $ownDir = $own ? $base . '/' . ownFolder($base) : null;
         if ($own) {
+            if (accountLock(siteUser()['id']) === null)
+                reply(false, $name . ': folder jest teraz zajęty, spróbuj za chwilę.', 503);
             if (isVideo($name))
                 reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
             if ($file['size'] > USER_FILE_MAX_BYTES)
