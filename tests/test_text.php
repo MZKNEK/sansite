@@ -13,6 +13,22 @@
         assertSame('', lower(''));
     });
 
+    // the servers run without mbstring, so its stand-in is tested on its own
+    test('lowerWithoutMb lowers what mbstring would', function () {
+        assertSame('zażółć gęślą jaźń', lowerWithoutMb('ZAŻÓŁĆ GĘŚLĄ JAŹŃ'));
+        assertSame('łowiec abc 123', lowerWithoutMb('Łowiec ABC 123'));
+        assertSame('àéîõüýþ ÷×', lowerWithoutMb('ÀÉÎÕÜÝÞ ÷×'));
+        assertSame('ďĺňřšťůž ÿ', lowerWithoutMb('ĎĹŇŘŠŤŮŽ Ÿ'));
+        assertSame('αβγ ωϊ', lowerWithoutMb('ΑΒΓ ΩΪ'));
+        assertSame('привет ёђ', lowerWithoutMb('ПРИВЕТ ЁЂ'));
+        assertSame('już małe', lowerWithoutMb('już małe'));
+        assertSame('', lowerWithoutMb(null));
+        if (function_exists('mb_strtolower')) {
+            $text = 'ZAŻÓŁĆ Ĳ Ŋ Ő Ű ŒŠŽ ΆΈ ΣΤ ЀЏ АЯ ĂĊĠĦĨĪĬĮ';
+            assertSame(mb_strtolower($text, 'UTF-8'), lowerWithoutMb($text));
+        }
+    });
+
     test('plural follows the Polish rules', function () {
         assertSame('plik', plural(1, 'plik', 'pliki', 'plików'));
         assertSame('pliki', plural(2, 'plik', 'pliki', 'plików'));

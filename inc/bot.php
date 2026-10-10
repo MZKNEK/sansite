@@ -408,7 +408,7 @@
     // the address of a command on cmd/, e.g. "pw-daily"
     function commandSlug($key)
     {
-        $key = function_exists('mb_strtolower') ? mb_strtolower($key, 'UTF-8') : strtolower($key);
+        $key = lower($key);
         $slug = trim(preg_replace('/[^\p{L}\p{N}]+/u', '-', $key), '-');
 
         return $slug === '' || strpos($slug, 'module-') === 0 ? 'cmd-' . $slug : $slug;

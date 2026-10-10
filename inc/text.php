@@ -15,7 +15,41 @@
         // lower case for the search, also without the mbstring extension
         function lower($text)
         {
-            return function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
+            return function_exists('mb_strtolower') ? mb_strtolower((string)$text, 'UTF-8') : lowerWithoutMb($text);
+        }
+
+        // Without mbstring: strtolower changes only A-Z, so the capitals of
+        // Latin-1, Latin Extended-A (all the Polish ones), Greek and Cyrillic are
+        // changed by a table, built once. Every one of them is two bytes in UTF-8.
+        function lowerWithoutMb($text)
+        {
+            static $map = null;
+            if ($map === null) {
+                $utf8 = function ($code) { return chr(0xC0 | $code >> 6) . chr(0x80 | $code & 0x3F); };
+                $pairs = [0x178 => 0xFF];
+                for ($code = 0xC0; $code <= 0xDE; $code++)
+                    if ($code !== 0xD7)
+                        $pairs[$code] = $code + 0x20;
+                // Latin Extended-A: a capital and its small letter side by side,
+                // the capital even or odd by range (İ and ĸ have no pair here)
+                foreach ([[0x100, 0x12F, 0], [0x132, 0x137, 0], [0x139, 0x148, 1], [0x14A, 0x177, 0], [0x179, 0x17E, 1]] as [$from, $to, $odd])
+                    for ($code = $from; $code < $to; $code++)
+                        if ($code % 2 === $odd)
+                            $pairs[$code] = $code + 1;
+                for ($code = 0x391; $code <= 0x3AB; $code++)
+                    if ($code !== 0x3A2)
+                        $pairs[$code] = $code + 0x20;
+                $pairs += [0x386 => 0x3AC, 0x388 => 0x3AD, 0x389 => 0x3AE, 0x38A => 0x3AF, 0x38C => 0x3CC, 0x38E => 0x3CD, 0x38F => 0x3CE];
+                for ($code = 0x400; $code <= 0x40F; $code++)
+                    $pairs[$code] = $code + 0x50;
+                for ($code = 0x410; $code <= 0x42F; $code++)
+                    $pairs[$code] = $code + 0x20;
+                $map = [];
+                foreach ($pairs as $upper => $small)
+                    $map[$utf8($upper)] = $utf8($small);
+            }
+
+            return strtr(strtolower((string)$text), $map);
         }
     }
 

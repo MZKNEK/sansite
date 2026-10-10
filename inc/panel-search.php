@@ -13,7 +13,7 @@
     const SEARCH_SHOWN = 50;
 
     $search = (function ($query) {
-        $lower = function ($text) { return function_exists('mb_strtolower') ? mb_strtolower((string)$text, 'UTF-8') : strtolower((string)$text); };
+        $lower = 'lower';
         $needle = $lower($query);
         $logins = readData('logins');
         $addresses = readData('addresses');
