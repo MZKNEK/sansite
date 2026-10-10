@@ -31,7 +31,7 @@
   // the dere's badge, cut out of the bot's picture of it (32x34 px at 221,628), in a 22 px box
   const dereIcon = (dere) => `background-image: url(${pwAssetsBaseUrl}/${dere}.png); background-size: 307.4px 431.6px; background-position: -142.4px -406.4px;`;
 
-  let image = $state("https://sanakan.pl/i/ss/fga432a.png");
+  let image = $state("https://sanakan.pl/i/ss/fga432a.webp");
   let customBorder = $state("");
   let showStats = $state(false);
   let editMode = $state(false);

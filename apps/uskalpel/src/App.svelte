@@ -205,7 +205,7 @@
     }
   }
 
-  let image = $state("https://sanakan.pl/i/ss/sUwh3io.png");
+  let image = $state("https://sanakan.pl/i/ss/sUwh3io.webp");
   let isLocalFile = $state(false);
   let showStats = $state(false);
   let fileName = $state('');
@@ -266,7 +266,7 @@
     selectedDere = 'Mayadere';
     selectedStyle = '2';
     showStats = false;
-    image = "https://sanakan.pl/i/ss/sUwh3io.png";
+    image = "https://sanakan.pl/i/ss/sUwh3io.webp";
   }
 
   // a file from the drop zone or dropped onto the card

@@ -155,6 +155,8 @@
         if (!$pending && $now - (int)($state['checked'] ?? 0) < $wait)
             return 0;
 
+        if (!is_dir(dataDir()))
+            @mkdir(dataDir(), 0750, true);
         $lock = @fopen(dataDir() . '/pw.lock', 'c');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if ($lock !== false)
