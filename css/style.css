@@ -1206,6 +1206,74 @@ a.hud-corners:hover {
     }
 }
 
+/* Back to the top (the commands, the API): a HUD button in the bottom right
+   corner, faded in by js/to-top.js once the header is out of sight */
+.to-top {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    --fill: rgba(14, 14, 17, 0.88);
+    color: var(--accent-light);
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.25s, transform 0.25s, visibility 0s 0.25s, background-size 0.25s, background-color 0.25s, color 0.2s;
+}
+
+.to-top.shown {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity 0.25s, transform 0.25s, visibility 0s, background-size 0.25s, background-color 0.25s, color 0.2s;
+}
+
+.to-top:hover,
+.to-top:focus-visible {
+    --arm: 18px;
+    --fill: rgba(40, 26, 48, 0.92);
+    color: #fff;
+    outline: none;
+}
+
+.to-top svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .to-top {
+        transform: none;
+    }
+}
+
+@media only screen and (max-width: 760px) {
+    .to-top {
+        right: 16px;
+        bottom: 16px;
+    }
+
+    /* the footer's links stay clear of the arrow */
+    .site-foot:has(~ .to-top) {
+        padding-bottom: 72px;
+    }
+}
+
 /* The footer of every page: the author and the privacy note, quiet at the bottom */
 /* on a narrow phone the links go to the next line whole, never broken in two */
 .site-foot {

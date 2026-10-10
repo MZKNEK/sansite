@@ -43,7 +43,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=61db60f595" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=3504cf8c8e" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
@@ -113,7 +113,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=61db60f595" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=3504cf8c8e" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
   <script src="../js/hud.js?v=2894733f39"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
@@ -204,12 +204,17 @@
 
 <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
 
+<button type="button" class="to-top hud-corners" id="to-top" data-focus="api-search" title="Na górę" aria-label="Na górę strony" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+</button>
+
 <script src="./swagger-ui-bundle.js?v=9910755d8a"> </script>
 <script src="./swagger-ui-standalone-preset.js?v=0ba407ddfc"> </script>
 <script src="../js/sanakan-util.js?v=f417e538a8"></script>
 <script src="./search.js?v=52c2c6eb3f"> </script>
 <script src="../js/account.js?v=51972de250"></script>
 <script src="./init.js?v=9e46400eb6"></script>
+<script src="../js/to-top.js?v=81af7c0f05"></script>
 <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
