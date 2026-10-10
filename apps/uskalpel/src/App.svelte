@@ -1,13 +1,13 @@
 <script>
   import { onMount, tick, untrack } from 'svelte';
   import Cropper from "svelte-easy-crop";
-  import { getCroppedImg, cropOnScreen } from './lib/CanvasUtils.js';
-  import Segmented from './lib/Segmented.svelte';
-  import Switch from './lib/Switch.svelte';
-  import DropZone from './lib/DropZone.svelte';
-  import CardDrop from './lib/CardDrop.svelte';
-  import Select from './lib/Select.svelte';
-  import LinkField from './lib/LinkField.svelte';
+  import { getCroppedImg, cropOnScreen } from '../../shared/lib/CanvasUtils.js';
+  import Segmented from '../../shared/lib/Segmented.svelte';
+  import Switch from '../../shared/lib/Switch.svelte';
+  import DropZone from '../../shared/lib/DropZone.svelte';
+  import CardDrop from '../../shared/lib/CardDrop.svelte';
+  import Select from '../../shared/lib/Select.svelte';
+  import LinkField from '../../shared/lib/LinkField.svelte';
 
 
   let borders = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Jota', 'Lambda', 'Omega' ]
@@ -86,8 +86,8 @@
     try {
       const withExtra = hasExtraLayer && extraImage && extraPercentCrop;
       const [base, extra] = await Promise.all([
-        getCroppedImg(image, baseCrop(), currentMaskUrl, sharpen),
-        withExtra ? getCroppedImg(extraImage, topCrop(), extraMaskUrl, sharpen) : '',
+        getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen }),
+        withExtra ? getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen }) : '',
       ]);
       if (token !== previewToken) {
         URL.revokeObjectURL(base);
@@ -145,7 +145,9 @@
     }
   }
 
-  const maskCropSize = { width: 475, height: 667 };
+  // the whole card, which the masks of the frames cut
+  const card = { width: 475, height: 667 };
+  const maskCropSize = card;
 
   $: currentMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}.png`;
   $: extraMaskUrl = `${import.meta.env.BASE_URL}masks/${selectedBorder}_top.png`;
@@ -464,14 +466,14 @@
       // Normalnie: top jest nad scalp
       let mainImagePart;
       if (editMode) {
-        mainImagePart = await getCroppedImg(image, baseCrop(), currentMaskUrl, sharpen);
+        mainImagePart = await getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen });
       } else {
         mainImagePart = image;
       }
       const imgMain = await loadImg(mainImagePart);
 
       if (hasExtraLayer && extraImage) {
-        const croppedExtra = await getCroppedImg(extraImage, topCrop(), extraMaskUrl, sharpen);
+        const croppedExtra = await getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen });
         const imgExtra = await loadImg(croppedExtra);
         if (bgAutoLayer) {
           // removeBg: najpierw top (wycięta postać), potem scalp (oryginał z maską) na wierzchu

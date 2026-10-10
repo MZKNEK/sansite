@@ -30,7 +30,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `sanakan-og.png` | The home page's picture without the status dot, sent when GD cannot draw |
 | `wiki-og.png` | The wiki's link preview picture, a fixed file (a fan of Pocket Waifu cards), linked from `server/wiki/head.html` |
 | `cmd/`, `api/`, `state/`, `i/`, `admin/`, `account/` | Subpages |
-| `apps/skalpel/`, `apps/uskalpel/` | The sources of Skalpelator and USkalpelator (Svelte and Vite), sent on the server never |
+| `apps/skalpel/`, `apps/uskalpel/`, `apps/shared/` | The sources of Skalpelator and USkalpelator (Svelte and Vite) and the code they share (the crop, its worker, the fields of their panels, their Vite configuration), sent on the server never |
 | `skalpel/`, `uskalpel/` | Their build, written by `tools/build-apps.sh` and committed, so the server serves plain files and needs no Node.js for them |
 | `status.php` | Bot status for the home page |
 | `alive/` | The bot's report sent by the bot itself, kept for `inc/bot.php` |
@@ -278,7 +278,7 @@ The two croppers are Svelte apps with their sources in `apps/skalpel/` and `apps
 tools/build-apps.sh            # both, or: tools/build-apps.sh skalpel
 ```
 
-and its sources go into the commit together with the build. CI builds them again (`npm ci`, so exactly the versions of `package-lock.json`) and fails when the committed build is not the one of the sources. For working on one, `npm run dev` in its folder serves it with live reload.
+and its sources go into the commit together with the build. CI builds them again (`npm ci`, so exactly the versions of `package-lock.json`) and fails when the committed build is not the one of the sources. For working on one, `npm run dev` in its folder serves it with live reload; what belongs to the site (its fonts, icons, `account.php`, the gallery) it takes from the site running locally (see Running locally), or from the address in `SANAKAN_SITE`. The code both use is in `apps/shared/`, and their fonts are the site's own (`css/fonts.css`, linked in their `index.html`, its `?v=` kept up to date by `tools/asset-versions.php` like any page's).
 
 They run in the browser alone: the frames come from the bot's repository on GitHub, and USkalpelator's background removal (`@imgly/background-removal`) takes its model and onnxruntime's WebAssembly from IMG.LY's CDN, so the build leaves out the copies onnxruntime brings (24 MB nobody asks for; `vite.config.js`). `onnxruntime-web` stays at the exact version `@imgly/background-removal` asks for.
 

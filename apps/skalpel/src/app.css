@@ -1,7 +1,7 @@
 /* The look of sanakan.pl (sansite/css/style.css): dark graphite with a purple
    glow and the targeting corners of the Safeguard scanner HUD from BLAME!.
-   Share Tech Mono for HUD labels (it has no Polish letters), Lato for text,
-   JetBrains Mono for numbers. */
+   Sanakan Mono for HUD labels, Lato for text, JetBrains Mono for numbers,
+   all from the site itself (css/fonts.css, linked in index.html). */
 
 :root {
   --accent: #9b59b6;
@@ -94,7 +94,7 @@ main.content {
   gap: 12px;
   max-width: 360px;
   margin: 18px auto 10px;
-  font: 13px "Share Tech Mono", monospace;
+  font: 13px "Sanakan Mono", monospace;
   letter-spacing: 0.3em;
   color: var(--accent-light);
 }
@@ -169,7 +169,7 @@ a.back {
   display: inline-block;
   padding: 8px 16px;
   color: var(--text);
-  font: 13px/1.5 "Share Tech Mono", monospace;
+  font: 13px/1.5 "Sanakan Mono", monospace;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -179,7 +179,7 @@ button {
   border: 0;
   border-radius: 0;
   color: var(--text);
-  font: 14px/1.5 "Share Tech Mono", monospace;
+  font: 14px/1.5 "Sanakan Mono", monospace;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
@@ -266,7 +266,7 @@ button.btn-go:hover:not(:disabled) {
   align-items: center;
   gap: 10px;
   margin: 0 0 2px;
-  font: 12px "Share Tech Mono", monospace;
+  font: 12px "Sanakan Mono", monospace;
   letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--accent-light);
@@ -437,7 +437,7 @@ input::placeholder {
 .sel-pos {
   align-self: center;
   padding-right: 10px;
-  font: 11px "Share Tech Mono", monospace;
+  font: 11px "Sanakan Mono", monospace;
   letter-spacing: 0.1em;
   color: rgba(182, 112, 211, 0.6);
 }
@@ -508,7 +508,7 @@ input::placeholder {
 
 .sel-opt i {
   width: 18px;
-  font: 11px "Share Tech Mono", monospace;
+  font: 11px "Sanakan Mono", monospace;
   font-style: normal;
   color: rgba(155, 89, 182, 0.7);
 }
@@ -582,7 +582,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   padding: 0 10px;
-  font: 11px "Share Tech Mono", monospace;
+  font: 11px "Sanakan Mono", monospace;
   letter-spacing: 0.12em;
   white-space: nowrap;
   color: rgba(220, 221, 222, 0.5);
@@ -636,7 +636,7 @@ input::placeholder {
   --corner: rgba(182, 112, 211, 0.4);
   padding: 5px 9px;
   color: rgba(220, 221, 222, 0.65);
-  font: 13px/1.5 "Share Tech Mono", monospace;
+  font: 13px/1.5 "Sanakan Mono", monospace;
   letter-spacing: 0.06em;
   text-transform: none;
 }
@@ -682,7 +682,7 @@ input::placeholder {
 .switch-state {
   min-width: 26px;
   text-align: right;
-  font: 11px "Share Tech Mono", monospace;
+  font: 11px "Sanakan Mono", monospace;
   letter-spacing: 0.15em;
   color: rgba(220, 221, 222, 0.4);
 }
@@ -768,7 +768,7 @@ input::placeholder {
 }
 
 .drop b {
-  font: 13px "Share Tech Mono", monospace;
+  font: 13px "Sanakan Mono", monospace;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #efe2f7;
@@ -831,7 +831,7 @@ input::placeholder {
   align-items: center;
   justify-content: center;
   background-color: rgba(20, 12, 26, 0.78);
-  font: 14px "Share Tech Mono", monospace;
+  font: 14px "Sanakan Mono", monospace;
   letter-spacing: 0.25em;
   text-align: center;
   color: #fff;
@@ -843,7 +843,7 @@ input::placeholder {
   margin-top: auto;
   padding: 28px 16px 18px;
   text-align: center;
-  font: 11px "Share Tech Mono", monospace;
+  font: 11px "Sanakan Mono", monospace;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }

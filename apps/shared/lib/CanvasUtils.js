@@ -96,13 +96,16 @@ export async function getMirroredImg(imageSrc) {
 }
 
 /**
- * The picture of the card, 448x650, as the saved file and the real preview show it.
+ * The picture of the card as the saved file and the real preview show it:
+ * 448x650 in Skalpelator, 475x667 with a mask in USkalpelator.
  * @param {string} imageSrc - picture address
  * @param {Object} percent - crop from svelte-easy-crop, in % of the picture
- * @param {number} [sharpen] - extra sharpening, 0 = none
+ * @param {{width: number, height: number, mask?: string, sharpen?: number}} card
+ *   size of the result; mask: PNG of that size, its alpha cuts the picture;
+ *   sharpen: extra sharpening, 0 = none
  */
-export async function getCroppedImg(imageSrc, percent, sharpen = 0) {
-  const img = await render({ src: imageSrc, percent, width: 448, height: 650, sharpen })
+export async function getCroppedImg(imageSrc, percent, { width, height, mask = null, sharpen = 0 }) {
+  const img = await render({ src: imageSrc, percent, width, height, mask, sharpen })
   const canvas = document.createElement('canvas')
   canvas.width = img.width
   canvas.height = img.height

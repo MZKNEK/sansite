@@ -1,6 +1,6 @@
 <script>
-  import Segmented from './Segmented.svelte';
-  import Select from './Select.svelte';
+  import Segmented from '../../../shared/lib/Segmented.svelte';
+  import Select from '../../../shared/lib/Select.svelte';
 
   let starCount = [ 0, 1, 2, 3, 4, 5, 6 ]
 

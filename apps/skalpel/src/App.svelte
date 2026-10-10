@@ -1,15 +1,15 @@
 <script>
   import { untrack } from 'svelte';
   import Stars from './lib/StarSettings.svelte';
-  import Segmented from './lib/Segmented.svelte';
-  import Switch from './lib/Switch.svelte';
-  import DropZone from './lib/DropZone.svelte';
-  import CardDrop from './lib/CardDrop.svelte';
-  import Select from './lib/Select.svelte';
-  import LinkField from './lib/LinkField.svelte';
+  import Segmented from '../../shared/lib/Segmented.svelte';
+  import Switch from '../../shared/lib/Switch.svelte';
+  import DropZone from '../../shared/lib/DropZone.svelte';
+  import CardDrop from '../../shared/lib/CardDrop.svelte';
+  import Select from '../../shared/lib/Select.svelte';
+  import LinkField from '../../shared/lib/LinkField.svelte';
 
   import Cropper from "svelte-easy-crop";
-	import { getCroppedImg, getMirroredImg, cropOnScreen } from "./lib/CanvasUtils.js"
+	import { getCroppedImg, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
 
   import cardboard  from './assets/empty.png'
   import def        from './assets/shield.png'
@@ -48,6 +48,8 @@
   let canvaEl;
   // what the cropper shows; its own numbers only if the screen has none
   const currentCrop = () => cropOnScreen(canvaEl) ?? cropPercent;
+  // the picture of the card, under its frame
+  const card = { width: 448, height: 650 };
   // extra sharpening; without it the scaling keeps the picture as it is
   let sharpen = 0;
   const sharpenLevels = [
@@ -75,7 +77,7 @@
   async function updatePreview() {
     const token = ++previewToken;
     try {
-      const url = await getCroppedImg(image, currentCrop(), sharpen);
+      const url = await getCroppedImg(image, currentCrop(), { ...card, sharpen });
       if (token !== previewToken) { URL.revokeObjectURL(url); return; }
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = url;
@@ -95,7 +97,7 @@
 
   async function downloadImage() {
     try {
-      const croppedImage = await getCroppedImg(image, currentCrop(), sharpen);
+      const croppedImage = await getCroppedImg(image, currentCrop(), { ...card, sharpen });
       const downloadLink = document.createElement("a");
       downloadLink.href = croppedImage;
       downloadLink.download = "skalpelek.png";

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { cropperConfig } from '../shared/vite.js'
 
 // onnxruntime-web names its WebAssembly and the .mjs that loads it, so Vite
 // copies them (24 MB) into the build; IMG.LY's background removal never asks
@@ -12,16 +12,9 @@ const dropUnusedOrt = {
   },
 }
 
-// served by the site at /uskalpel/; the build goes straight into the site's
-// uskalpel/ folder, which is committed and deployed with the rest of the site
-export default defineConfig({
-  plugins: [svelte(), dropUnusedOrt],
-  base: '/uskalpel/',
-  build: {
-    outDir: '../../uskalpel',
-    emptyOutDir: true,
-  },
+export default defineConfig(cropperConfig('uskalpel', {
+  plugins: [dropUnusedOrt],
   optimizeDeps: {
     exclude: ['@imgly/background-removal', 'onnxruntime-web'],
   },
-})
+}))
