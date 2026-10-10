@@ -20,6 +20,11 @@ export function cropperConfig(name, rest = {}) {
   const fromSite = ['/css/', '/fonts/', '/js/', '/favicon', '/apple-touch-icon', '/account.php', '/i/', '/__login', '/__preview.css']
   return {
     base: `/${name}/`,
+    // packages the shared code imports, found in the app's own node_modules
+    // (apps/shared/ has none)
+    resolve: {
+      dedupe: ['svelte', '@jsquash/webp'],
+    },
     build: {
       outDir: `../../${name}`,
       emptyOutDir: true,

@@ -104,11 +104,16 @@ export async function getMirroredImg(imageSrc) {
  *   size of the result; mask: picture of that size, its alpha cuts the picture;
  *   sharpen: extra sharpening, 0 = none
  */
-export async function getCroppedImg(imageSrc, percent, { width, height, mask = null, sharpen = 0 }) {
+export async function getCroppedImg(imageSrc, percent, card) {
+  return createBlobUrl(await getCroppedCanvas(imageSrc, percent, card))
+}
+
+// the same on a canvas, whose pixels (getImageData) go to the gallery as WebP
+export async function getCroppedCanvas(imageSrc, percent, { width, height, mask = null, sharpen = 0 }) {
   const img = await render({ src: imageSrc, percent, width, height, mask, sharpen })
   const canvas = document.createElement('canvas')
   canvas.width = img.width
   canvas.height = img.height
   canvas.getContext('2d').putImageData(img, 0, 0)
-  return createBlobUrl(canvas)
+  return canvas
 }

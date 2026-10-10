@@ -10,10 +10,9 @@
   import Header from '../../shared/lib/Header.svelte';
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
-  import { cardName } from '../../shared/lib/account.js';
 
   import Cropper from "svelte-easy-crop";
-	import { getCroppedImg, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
+	import { getCroppedImg, getCroppedCanvas, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
 
   import cardboard  from './assets/empty.webp'
   import def        from './assets/shield.webp'
@@ -100,14 +99,10 @@
   // the card as it is saved, as a blob: address
   const renderCard = () => getCroppedImg(image, currentCrop(), { ...card, sharpen });
 
-  // the same as a Blob, for the gallery
-  async function cardBlob() {
-    const url = await renderCard();
-    try {
-      return await (await fetch(url)).blob();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+  // its pixels, for the gallery
+  async function cardPixels() {
+    const canvas = await getCroppedCanvas(image, currentCrop(), { ...card, sharpen });
+    return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
   }
 
   async function downloadImage() {
@@ -272,7 +267,7 @@
       {#if editMode}
         <div class="card-actions">
           <button type="button" class="btn-go" on:click={async () => {downloadImage()}}>Zapisz</button>
-          <GallerySave render={cardBlob} name={() => cardName('skalpel')} />
+          <GallerySave pixels={cardPixels} prefix="skalpel" />
         </div>
       {/if}
     </div>

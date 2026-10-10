@@ -2,13 +2,15 @@
   // Saving the card into the account's folder in the gallery, next to saving
   // it as a file: a button for an account with a folder of its own, a login for
   // a visitor, and after saving the link of the picture to copy (for the bot)
-  // and its folder in the gallery.
-  import { account, loginUrl, saveToGallery } from './account.js';
+  // and its folder in the gallery. The card goes as a lossless WebP, so the
+  // gallery keeps it as it is and changes nothing in the background.
+  import { account, cardName, loginUrl, saveToGallery } from './account.js';
+  import { losslessWebp } from './webp.js';
 
-  // the card as it is saved, a PNG Blob
-  export let render;
-  // its file name
-  export let name;
+  // the pixels of the card as it is saved (ImageData of its canvas)
+  export let pixels;
+  // the start of its file name, the time of saving goes after it
+  export let prefix;
 
   let busy = false;
   let result = null;
@@ -24,11 +26,11 @@
     try {
       let blob;
       try {
-        blob = await render();
+        blob = await losslessWebp(await pixels());
       } catch {
         throw new Error('Nie udało się przygotować obrazka, spróbuj z innym lub użyj lokalnego pliku.');
       }
-      result = await saveToGallery(blob, name());
+      result = await saveToGallery(blob, cardName(prefix, 'webp'));
     } catch (e) {
       error = e.message || 'Nie udało się zapisać w galerii.';
     }

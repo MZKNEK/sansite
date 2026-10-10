@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@imgly/background-removal": "1.7.0",
+    "@jsquash/webp": "1.5.0",
     "onnxruntime-web": "1.21.0",
     "svelte-easy-crop": "^5.0.1"
   }

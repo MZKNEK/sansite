@@ -27,7 +27,7 @@ export function loginUrl() {
 
 /**
  * Saves a card into the account's folder in the gallery.
- * @param {Blob} blob - the card as PNG
+ * @param {Blob} blob - the card (a lossless WebP from the croppers)
  * @param {string} name - its file name
  * @returns {Promise<{message: string, url: string, folder: string}>} what the
  *   gallery said: url is the picture's link (it opens without a login too),
@@ -53,8 +53,8 @@ export async function saveToGallery(blob, name) {
 }
 
 // a file name with the time it was saved, so cards never take each other's name
-export function cardName(prefix) {
+export function cardName(prefix, ext = 'png') {
   const d = new Date()
   const two = (n) => String(n).padStart(2, '0')
-  return `${prefix}-${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}.png`
+  return `${prefix}-${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}.${ext}`
 }

@@ -11,7 +11,6 @@
   import Header from '../../shared/lib/Header.svelte';
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
-  import { cardName } from '../../shared/lib/account.js';
 
   let borders = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Jota', 'Lambda', 'Omega' ]
   let deres = [ 'Bodere', 'Dandere', 'Deredere', 'Kamidere', 'Kuudere', 'Mayadere', 'Tsundere', 'Yandere', 'Raito', 'Yami', 'Yato' ]
@@ -491,10 +490,10 @@
     return canvas;
   }
 
-  // the same as a PNG Blob, for the gallery
-  async function cardBlob() {
+  // its pixels, for the gallery
+  async function cardPixels() {
     const canvas = await composeCard();
-    return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob')), 'image/png'));
+    return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
   }
 
   async function downloadImage() {
@@ -691,7 +690,7 @@
         <button type="button" on:click={() => zoomLevel = zoomLevel === 1 ? 2 : 1}>Skala: {zoomLevel * 100}%</button>
         {#if editMode}
           <button type="button" class="btn-go" on:click={downloadImage}>Pobierz obrazek</button>
-          <GallerySave render={cardBlob} name={() => cardName('uskalpel-' + selectedBorder)} />
+          <GallerySave pixels={cardPixels} prefix={'uskalpel-' + selectedBorder} />
         {/if}
       </div>
     </div>

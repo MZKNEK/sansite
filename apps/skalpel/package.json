@@ -14,6 +14,7 @@
     "vite": "^8.3.4"
   },
   "dependencies": {
+    "@jsquash/webp": "1.5.0",
     "svelte-easy-crop": "^5.0.1"
   }
 }
