@@ -4,7 +4,8 @@
   // values, or { value, label, title }
   export let options = [];
   export let label = '';
-  // the values are words, not codes: set in Lato instead of the HUD font
+  // the values are words, not codes: set in JetBrains Mono, as the site's
+  // plain buttons, instead of the HUD font
   export let words = false;
   export let disabled = false;
 

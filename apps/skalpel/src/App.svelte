@@ -8,6 +8,7 @@
   import Select from '../../shared/lib/Select.svelte';
   import LinkField from '../../shared/lib/LinkField.svelte';
   import Header from '../../shared/lib/Header.svelte';
+  import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
   import { cardName } from '../../shared/lib/account.js';
 
@@ -91,8 +92,6 @@
   }
 
   $: sharpen, realPreview, editMode, image, schedulePreview();
-
-  const year = new Date().getFullYear();
 
   // on narrow screens the card (481 px with its frame) is scaled down to fit
   let winWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
@@ -280,7 +279,7 @@
   </div>
 </main>
 
-<footer class="site-foot"><span>&copy; 2017&ndash;{year} Sniku</span><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
+<Footer />
 
 <style>
   .looks {

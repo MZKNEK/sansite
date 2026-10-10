@@ -1,7 +1,10 @@
 /* The look of sanakan.pl (sansite/css/style.css): dark graphite with a purple
    glow and the targeting corners of the Safeguard scanner HUD from BLAME!.
-   Sanakan Mono for HUD labels, Lato for text, JetBrains Mono for numbers,
-   all from the site itself (css/fonts.css, linked in index.html). */
+   Sanakan Mono for HUD labels and buttons, Lato for text and titles,
+   JetBrains Mono, as on the site, for the fields, the buttons of words and
+   the numbers, all from the site itself (css/fonts.css, linked in
+   index.html). The colours follow the HUD the account picked (data-hud of
+   css/account.css): the page's chrome --hud-*, the rest --accent-*. */
 
 :root {
   --accent: #9b59b6;
@@ -42,7 +45,7 @@ body {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: radial-gradient(ellipse at top right, rgba(155, 89, 182, 0.18), transparent 55%),
+  background: radial-gradient(ellipse at top right, rgba(var(--hud-rgb), 0.18), transparent 55%),
               linear-gradient(to top right, var(--bg-dark), var(--bg-mid));
   background-attachment: fixed;
   background-repeat: no-repeat;
@@ -112,7 +115,7 @@ main.content {
   content: "";
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(182, 112, 211, 0.6));
+  background: linear-gradient(90deg, transparent, rgba(var(--hud-light-rgb), 0.6));
 }
 
 .tag::after {
@@ -134,7 +137,7 @@ main.content {
   font-weight: 700;
   letter-spacing: 0.38em;
   text-transform: uppercase;
-  text-shadow: 0 0 18px rgba(155, 89, 182, 0.7);
+  text-shadow: 0 0 18px rgba(var(--hud-rgb), 0.7);
 }
 
 .tag,
@@ -149,8 +152,8 @@ main.content {
 /* targeting corners like the Safeguard scanner; they grow on hover */
 .hud-corners,
 button {
-  --corner: rgba(182, 112, 211, 0.9);
-  --fill: rgba(155, 89, 182, 0.05);
+  --corner: rgba(var(--accent-light-rgb), 0.9);
+  --fill: rgba(var(--accent-rgb), 0.05);
   --arm: 10px;
   background:
     linear-gradient(var(--corner), var(--corner)) left top / var(--arm) 2px no-repeat,
@@ -168,7 +171,7 @@ button {
 a.hud-corners:hover,
 button:hover:not(:disabled) {
   --arm: 16px;
-  --fill: rgba(155, 89, 182, 0.18);
+  --fill: rgba(var(--accent-rgb), 0.18);
   color: #fff;
 }
 
@@ -194,7 +197,7 @@ button {
 }
 
 button:focus-visible {
-  outline: 1px solid rgba(182, 112, 211, 0.6);
+  outline: 1px solid rgba(var(--accent-light-rgb), 0.6);
   outline-offset: 2px;
 }
 
@@ -290,7 +293,7 @@ button.btn-go:hover:not(:disabled) {
   content: "";
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(182, 112, 211, 0.6), transparent);
+  background: linear-gradient(90deg, rgba(var(--accent-light-rgb), 0.6), transparent);
 }
 
 /* one option: its name on the left, the control filling the rest */
@@ -343,22 +346,22 @@ button.btn-go:hover:not(:disabled) {
 input:not([type="checkbox"]):not([type="file"]):not(.bare) {
   height: 34px;
   padding: 0 10px;
-  border: 1px solid rgba(155, 89, 182, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 0;
   background-color: rgba(8, 9, 9, 0.55);
   color: var(--text);
-  font: 15px Lato, sans-serif;
+  font: 16px "JetBrains Mono", Consolas, monospace;
   outline: 0;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 input:not([type="checkbox"]):not([type="file"]):not(.bare):hover {
-  border-color: rgba(182, 112, 211, 0.7);
+  border-color: rgba(var(--accent-light-rgb), 0.7);
 }
 
 input:not([type="checkbox"]):not([type="file"]):not(.bare):focus {
   border-color: var(--accent-light);
-  box-shadow: 0 0 10px rgba(155, 89, 182, 0.35);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 input::placeholder {
@@ -379,10 +382,10 @@ input::placeholder {
   width: 100%;
   height: 38px;
   padding: 0;
-  border: 1px solid rgba(155, 89, 182, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   background: rgba(8, 9, 9, 0.55);
   color: var(--text);
-  font: 15px Lato, sans-serif;
+  font: 16px "JetBrains Mono", Consolas, monospace;
   letter-spacing: 0;
   text-transform: none;
   text-align: left;
@@ -391,14 +394,14 @@ input::placeholder {
 
 .sel-btn:hover:not(:disabled),
 .link-field:hover {
-  border-color: rgba(182, 112, 211, 0.7);
+  border-color: rgba(var(--accent-light-rgb), 0.7);
   color: var(--text);
 }
 
 .sel.open .sel-btn,
 .link-field:focus-within {
   border-color: var(--accent-light);
-  box-shadow: 0 0 10px rgba(155, 89, 182, 0.35);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 .sel-pre,
@@ -408,8 +411,8 @@ input::placeholder {
   align-items: center;
   justify-content: center;
   width: 38px;
-  border-right: 1px solid rgba(155, 89, 182, 0.25);
-  background: rgba(155, 89, 182, 0.08);
+  border-right: 1px solid rgba(var(--accent-rgb), 0.25);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 
 .sel-ico {
@@ -452,19 +455,19 @@ input::placeholder {
   padding-right: 10px;
   font: 11px "Sanakan Mono", monospace;
   letter-spacing: 0.1em;
-  color: rgba(182, 112, 211, 0.6);
+  color: rgba(var(--accent-light-rgb), 0.6);
 }
 
 .sel-end {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border-left: 1px solid rgba(155, 89, 182, 0.25);
+  border-left: 1px solid rgba(var(--accent-rgb), 0.25);
   transition: background-color 0.2s;
 }
 
 .sel.open .sel-end {
-  background: rgba(155, 89, 182, 0.18);
+  background: rgba(var(--accent-rgb), 0.18);
 }
 
 .sel-end svg {
@@ -491,7 +494,7 @@ input::placeholder {
   z-index: 50;
   min-width: 100%;
   padding: 6px 0;
-  border: 1px solid rgba(155, 89, 182, 0.3);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
   animation: sel-in 0.14s ease-out;
 }
@@ -523,11 +526,11 @@ input::placeholder {
   width: 18px;
   font: 11px "Sanakan Mono", monospace;
   font-style: normal;
-  color: rgba(155, 89, 182, 0.7);
+  color: rgba(var(--accent-rgb), 0.7);
 }
 
 .sel-opt.active {
-  background: rgba(155, 89, 182, 0.16);
+  background: rgba(var(--accent-rgb), 0.16);
   color: #fff;
 }
 
@@ -540,7 +543,7 @@ input::placeholder {
   left: 0;
   width: 3px;
   background: var(--accent-light);
-  box-shadow: 0 0 8px rgba(182, 112, 211, 0.9);
+  box-shadow: 0 0 8px rgba(var(--accent-light-rgb), 0.9);
 }
 
 .list .sel-opt[aria-selected="true"] {
@@ -569,13 +572,13 @@ input::placeholder {
 }
 
 .grid .sel-opt.active {
-  border-color: rgba(155, 89, 182, 0.45);
-  background: rgba(155, 89, 182, 0.12);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.12);
 }
 
 .grid .sel-opt[aria-selected="true"] {
   border-color: var(--accent-light);
-  background: rgba(155, 89, 182, 0.25);
+  background: rgba(var(--accent-rgb), 0.25);
   color: #fff;
 }
 
@@ -587,7 +590,7 @@ input::placeholder {
   border: 0;
   background: transparent;
   color: var(--text);
-  font: 15px Lato, sans-serif;
+  font: 16px "JetBrains Mono", Consolas, monospace;
   outline: 0;
 }
 
@@ -613,7 +616,7 @@ input::placeholder {
   --arm: 0px;
   padding: 0 12px;
   border: 0;
-  border-left: 1px solid rgba(155, 89, 182, 0.25);
+  border-left: 1px solid rgba(var(--accent-rgb), 0.25);
   background: transparent;
   font-size: 15px;
   letter-spacing: 0;
@@ -622,7 +625,7 @@ input::placeholder {
 
 .link-clear:hover:not(:disabled) {
   --arm: 0px;
-  background: rgba(155, 89, 182, 0.15);
+  background: rgba(var(--accent-rgb), 0.15);
   color: #fff;
 }
 
@@ -646,7 +649,7 @@ input::placeholder {
 
 .seg button {
   --arm: 5px;
-  --corner: rgba(182, 112, 211, 0.4);
+  --corner: rgba(var(--accent-light-rgb), 0.4);
   padding: 5px 9px;
   color: rgba(220, 221, 222, 0.65);
   font: 13px/1.5 "Sanakan Mono", monospace;
@@ -655,18 +658,18 @@ input::placeholder {
 }
 
 .seg.words button {
-  font: 13px/1.5 Lato, sans-serif;
+  font: 13px/1.5 "JetBrains Mono", Consolas, monospace;
   letter-spacing: 0.02em;
 }
 
 .seg button:hover:not(:disabled) {
   --arm: 8px;
-  --fill: rgba(155, 89, 182, 0.15);
+  --fill: rgba(var(--accent-rgb), 0.15);
 }
 
 .seg button[aria-checked="true"] {
   --corner: var(--accent-light);
-  --fill: rgba(155, 89, 182, 0.35);
+  --fill: rgba(var(--accent-rgb), 0.35);
   color: #fff;
 }
 
@@ -705,7 +708,7 @@ input::placeholder {
   flex: none;
   width: 40px;
   height: 20px;
-  border: 1px solid rgba(182, 112, 211, 0.55);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.55);
   background: rgba(8, 9, 9, 0.6);
   transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
@@ -731,23 +734,23 @@ input::placeholder {
 
 .switch input:checked ~ .switch-track {
   border-color: var(--accent-light);
-  background: rgba(155, 89, 182, 0.25);
+  background: rgba(var(--accent-rgb), 0.25);
 }
 
 .switch input:checked ~ .switch-track::before {
   transform: translateX(20px);
   background: var(--accent-light);
-  box-shadow: 0 0 8px rgba(182, 112, 211, 0.9);
+  box-shadow: 0 0 8px rgba(var(--accent-light-rgb), 0.9);
 }
 
 .switch input:focus-visible ~ .switch-track {
-  box-shadow: 0 0 0 2px rgba(182, 112, 211, 0.5);
+  box-shadow: 0 0 0 2px rgba(var(--accent-light-rgb), 0.5);
 }
 
 /* The place for a picture file: click or drop it here */
 .drop {
   --arm: 14px;
-  --fill: rgba(155, 89, 182, 0.04);
+  --fill: rgba(var(--accent-rgb), 0.04);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -755,7 +758,7 @@ input::placeholder {
   gap: 4px;
   min-height: 120px;
   padding: 14px;
-  outline: 1px dashed rgba(155, 89, 182, 0.35);
+  outline: 1px dashed rgba(var(--accent-rgb), 0.35);
   outline-offset: -6px;
   text-align: center;
   cursor: pointer;
@@ -765,8 +768,8 @@ input::placeholder {
 .drop:focus-visible,
 .drop.over {
   --arm: 26px;
-  --fill: rgba(155, 89, 182, 0.14);
-  outline-color: rgba(182, 112, 211, 0.8);
+  --fill: rgba(var(--accent-rgb), 0.14);
+  outline-color: rgba(var(--accent-light-rgb), 0.8);
 }
 
 .drop svg {
@@ -836,7 +839,7 @@ input::placeholder {
 .card-drop-over {
   --arm: 22px;
   --corner: #d6b4ec;
-  --fill: rgba(155, 89, 182, 0.2);
+  --fill: rgba(var(--accent-rgb), 0.2);
   position: absolute;
   inset: 0;
   z-index: 1000;
@@ -852,7 +855,12 @@ input::placeholder {
 }
 
 /* The footer of every page of sanakan.pl */
+/* on a narrow phone the links go to the next line whole, never broken in two */
 .site-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 6px;
   margin-top: auto;
   padding: 28px 16px 18px;
   text-align: center;
@@ -864,6 +872,7 @@ input::placeholder {
 .site-foot,
 .site-foot a {
   color: rgba(220, 221, 222, 0.35);
+  text-decoration: none;
   transition: color 0.2s;
 }
 
@@ -906,12 +915,12 @@ input::placeholder {
 
 /* the strong one, for the heavy work (removing the background) */
 button.btn-ai {
-  --fill: rgba(155, 89, 182, 0.3);
+  --fill: rgba(var(--accent-rgb), 0.3);
   color: #fff;
 }
 
 button.btn-ai:hover:not(:disabled) {
-  --fill: rgba(155, 89, 182, 0.5);
+  --fill: rgba(var(--accent-rgb), 0.5);
 }
 
 button.btn-muted {

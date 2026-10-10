@@ -9,9 +9,9 @@
   import Select from '../../shared/lib/Select.svelte';
   import LinkField from '../../shared/lib/LinkField.svelte';
   import Header from '../../shared/lib/Header.svelte';
+  import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
   import { cardName } from '../../shared/lib/account.js';
-
 
   let borders = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Jota', 'Lambda', 'Omega' ]
   let deres = [ 'Bodere', 'Dandere', 'Deredere', 'Kamidere', 'Kuudere', 'Mayadere', 'Tsundere', 'Yandere', 'Raito', 'Yami', 'Yato' ]
@@ -39,8 +39,6 @@
   let bgProgress = 0;
   let bgProgressLabel = '';
   let bgAutoLayer = false;
-
-  const year = new Date().getFullYear();
 
   // the crops in % of the pictures: unlike the pixels they are not rounded
   let percentCrop = null;
@@ -700,7 +698,7 @@
   </div>
 </main>
 
-<footer class="site-foot"><span>&copy; 2017&ndash;{year} Sniku</span><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
+<Footer />
 
 <style>
   /* removing the background: the button, then its progress or result */
@@ -715,19 +713,19 @@
   .bg-progress {
     width: 100%;
     height: 6px;
-    background: rgba(155, 89, 182, 0.15);
+    background: rgba(var(--accent-rgb), 0.15);
     overflow: hidden;
   }
 
   .bg-progress-bar {
     height: 100%;
     background: var(--accent);
-    box-shadow: 0 0 8px rgba(155, 89, 182, 0.7);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
     transition: width 0.3s ease;
   }
 
   .bg-status {
-    font: 12px "Share Tech Mono", monospace;
+    font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
     color: var(--ok);
   }
@@ -876,7 +874,7 @@
     left: 0;
     width: 475px;
     height: 667px;
-    outline: 1px solid rgba(182, 112, 211, 0.6);
+    outline: 1px solid rgba(var(--accent-light-rgb), 0.6);
     outline-offset: -1px;
     pointer-events: none;
     z-index: 999;
