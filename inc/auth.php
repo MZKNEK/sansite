@@ -9,12 +9,14 @@
     //   GALLERY_ADMINS   may view and manage the gallery
     //   GALLERY_VIEWERS  may view the gallery (true lets in anyone with Discord)
     //   GALLERY_UPLOADERS have the folder of their own in the gallery blocked,
-    //                    which every other account has (true blocks it for all)
+    //                    which every other account with a role on the bot's
+    //                    server has (true blocks it for all)
     //   API_VIEWERS      may read the API documentation (the panel admins always can)
     //   BOT_APP_KEY      the site's key to the bot API (x-app-key with Info rights)
     // With the key the bot also says the account's roles on its Discord server:
-    // dev, admin, semi-admin and tester may read the API documentation, the
-    // other roles are only shown. The gallery never follows these roles.
+    // dev, admin, semi-admin and tester may read the API documentation, any
+    // role (user and up) gives a folder of its own in the gallery and picks the
+    // colour of the HUD. Seeing and managing the gallery never follows them.
     // The panel adds more gallery admins and viewers, blocked folders and API readers. An account
     // without access can ask for it; the requests wait in inc/data/requests.json. Those are kept in
     // inc/data/access.json, next to a list of recent logins; inc/ is not
@@ -270,17 +272,19 @@
         return isGalleryAdminId($id) || inAccessList('galleryViewers', $id, true);
     }
 
-    // a folder of its own in the gallery (inc/gallery.php): every account
-    // logged in with Discord has one, the gallery admins too (it stays theirs
-    // should they lose the rights), except the ones on the GALLERY_UPLOADERS
-    // list, which blocks it (true for everyone)
+    // a folder of its own in the gallery (inc/gallery.php): every account with
+    // a role on the bot's server (user and up) has one, the gallery admins too
+    // (it stays theirs should they lose the rights), except the ones on the
+    // GALLERY_UPLOADERS list, which blocks it (true for everyone). An account
+    // that loses its role, or is blocked, keeps the folder and its files on
+    // the disk, only without getting in.
     function isGalleryUploaderId($id)
     {
         $test = testRights($id);
         if (isset($test['gallery']))
             return in_array($test['gallery'], ['uploader', 'viewer-uploader'], true);
 
-        return !inAccessList('galleryUploaders', $id, true);
+        return !inAccessList('galleryUploaders', $id, true) && hasServerRole($id);
     }
 
     // the private folder of the gallery, i/private (inc/gallery.php): the panel
@@ -503,6 +507,19 @@
         $user = siteUser();
 
         return $user === null ? null : botRoles($user['id'], true);
+    }
+
+    // any role on the bot's server, user and up: the logged-in account's asked
+    // again when the answer is old (siteRoles()), another's as the bot said last
+    function hasServerRole($id)
+    {
+        $user = siteUser();
+        $roles = $user !== null && (string)$user['id'] === (string)$id ? siteRoles() : botRoles($id);
+        foreach (array_keys(BOT_ROLES) as $role)
+            if (!empty($roles[$role]))
+                return true;
+
+        return false;
     }
 
     function hasBotRole($id, $roles)

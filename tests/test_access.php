@@ -36,12 +36,13 @@
     });
 
     test('what each list gives', function () {
+        writeData('roles', array_fill_keys(['111', '222', '333', '555'], ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]));
         assertTrue(isGalleryAdminId('111'));
         assertFalse(isGalleryAdminId('222'));
         assertTrue(canViewGalleryId('111'));
         assertTrue(canViewGalleryId('222'));
         assertFalse(canViewGalleryId('333'), 'an account with only its own folder does not see the whole gallery');
-        assertTrue(isGalleryUploaderId('555'), 'every account has a folder of its own');
+        assertTrue(isGalleryUploaderId('555'), 'every account with a role has a folder of its own');
         assertTrue(isGalleryUploaderId('222'), 'a viewer too');
         assertFalse(isGalleryUploaderId('333'), 'GALLERY_UPLOADERS blocks it');
         assertTrue(isGalleryUploaderId('111'), 'a gallery admin too, so it stays should the rights go');
@@ -62,7 +63,20 @@
         assertFalse(canSeePrivateCommandsId('666'), 'a tester does not');
     });
 
+    test('a folder of its own needs a role on the bot server', function () {
+        writeData('roles', [
+            '560' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()],
+            '561' => ['roles' => ['onGuild' => true], 'checked' => time()],
+            '562' => ['roles' => ['onGuild' => false], 'checked' => time()],
+        ]);
+        assertTrue(isGalleryUploaderId('560'), 'user is enough');
+        assertFalse(isGalleryUploaderId('561'), 'on the server without a role');
+        assertFalse(isGalleryUploaderId('562'), 'off the server');
+        assertFalse(isGalleryUploaderId('563'), 'never asked the bot');
+    });
+
     test('the panel blocks a folder of its own, and unblocking gives it back', function () {
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'moderator' => true], 'checked' => time()]]);
         writeData('access', ['galleryUploaders' => ['556' => ['note' => '', 'added' => 1, 'by' => '999']]]);
         assertFalse(isGalleryUploaderId('556'));
         writeData('access', []);

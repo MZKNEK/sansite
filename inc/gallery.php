@@ -4,9 +4,9 @@
     // files. The Discord login is in inc/auth.php, shared with the admin panel.
     //
     // Besides the viewers and the admins, an account can get a folder of its
-    // own, i/users/<id>-<nick> (every account logged in with Discord but the
-    // ones GALLERY_UPLOADERS blocks), made the first time it opens the gallery,
-    // and without other access see only that one: it adds pictures there,
+    // own, i/users/<id>-<nick> (every account with a role on the bot's server,
+    // user and up, but the ones GALLERY_UPLOADERS blocks), made the first time
+    // it opens the gallery, and without other access see only that one: it adds pictures there,
     // saved as WebP when that is smaller, and renames, turns and deletes them, up to a number
     // of files set per account in the panel (USER_FILES_DEFAULT without one),
     // USER_FILE_MAX_BYTES each and USER_TOTAL_MAX_BYTES in all. Nobody but the

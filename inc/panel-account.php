@@ -48,8 +48,10 @@
                     $access[] = [$label, false, 'zablokowany w panelu' . (!empty($entry['added']) ? ', ' . date('d.m.Y', $entry['added']) : '')
                         . (!empty($entry['by']) ? ', zablokował(a) ' . ($logins[$entry['by']]['name'] ?? $entry['by']) : '')
                         . (($entry['note'] ?? '') !== '' ? ': „' . $entry['note'] . '”' : ''), $list];
+                else if (!hasServerRole($id))
+                    $access[] = [$label, false, 'bez roli na serwerze bota', null];
                 else
-                    $access[] = [$label, true, 'każde konto', $list];
+                    $access[] = [$label, true, 'rola na serwerze bota', $list];
                 continue;
             }
             if ($config === true)

@@ -33,8 +33,9 @@
         // '234567890123456789',
     ];
 
-    // Every account logged in with Discord (the gallery admins too, so it stays
-    // theirs should they lose the rights) has a folder of its own in the gallery, i/users/<id>-<nick>, made the first time it
+    // Every account with a role on the bot's server, user and up (the gallery
+    // admins too, so it stays theirs should they lose the rights; BOT_APP_KEY
+    // below tells the roles) has a folder of its own in the gallery, i/users/<id>-<nick>, made the first time it
     // opens the gallery: without access to the rest it sees only that one and
     // adds pictures there, 50 by default (the panel sets it per account). The
     // accounts here have it blocked (the panel can block more); their folder

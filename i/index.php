@@ -302,6 +302,9 @@
 <?php elseif ($user): ?>
       <h2>Brak dostępu</h2>
       <p>Konto <?=e($user['name'])?> nie ma dostępu do galerii. Wyloguj się, jeśli chcesz użyć innego konta.</p>
+<?php if (!hasServerRole($user['id']) && !inAccessList('galleryUploaders', $user['id'], true)): ?>
+      <p>Własny folder w galerii mają konta z rolą na serwerze Sanakana (od user w górę).</p>
+<?php endif; ?>
 <?php if ($request): ?>
       <p class="request-sent">Prośba o dostęp wysłana <?=e(date('j.m H:i', $request['time']))?>. Administrator zobaczy ją w panelu.</p>
 <?php else: ?>

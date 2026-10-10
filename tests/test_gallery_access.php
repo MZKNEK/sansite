@@ -19,6 +19,7 @@
         assertFalse(galleryCanSee($base, 'private/a.png'));
         sessionEnd();
 
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]]);
         sessionFor('sanakan-see-uploader', ['id' => '556', 'name' => 'U', 'avatar' => 'a']);
         $baseU = tempDir();
         $own = ownFolder($baseU);
@@ -35,6 +36,7 @@
 
     test('ownFolder creates the folder and follows a new nickname', function () {
         $base = tempDir();
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]]);
         sessionFor('sanakan-own-1', ['id' => '556', 'name' => 'Jan Kowalski', 'avatar' => 'a']);
         assertSame('users/556-Jan Kowalski', ownFolder($base));
         assertTrue(is_dir($base . '/users/556-Jan Kowalski'));
@@ -42,6 +44,7 @@
 
         $base2 = tempDir();
         mkdir($base2 . '/users/556-Stary', 0700, true);
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]]);
         sessionFor('sanakan-own-2', ['id' => '556', 'name' => 'Nowy', 'avatar' => 'a']);
         assertSame('users/556-Nowy', ownFolder($base2), 'the folder follows the nick');
         assertTrue(is_dir($base2 . '/users/556-Nowy'));
@@ -51,6 +54,7 @@
 
     test('ownFolder keeps a bad nickname out of the path', function () {
         $base = tempDir();
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]]);
         sessionFor('sanakan-own-3', ['id' => '556', 'name' => 'a/b:c', 'avatar' => 'a']);
         assertSame('users/556-abc', ownFolder($base));
         assertTrue(is_dir($base . '/users/556-abc'));

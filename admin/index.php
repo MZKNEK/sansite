@@ -29,9 +29,9 @@
     const LIST_CARDS = [
         'galleryAdmins' => ['Administratorzy galerii', 'Oglądają galerię i dodają, przenoszą oraz usuwają pliki.'],
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
-        'galleryUploaders' => ['Zablokowane własne foldery', 'Każde konto zalogowane przez Discord, także administratorzy galerii, ma własny folder i/' . USERS_DIR . '/ID-nick: dodaje zdjęcia tylko tam i bez innego dostępu tylko go widzi. Do '
+        'galleryUploaders' => ['Zablokowane własne foldery', 'Każde konto z rolą na serwerze bota (od user w górę), także administratorzy galerii, ma własny folder i/' . USERS_DIR . '/ID-nick: dodaje zdjęcia tylko tam i bez innego dostępu tylko go widzi. Do '
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
-            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy. Konta z tej listy mają go zablokowanego; folder i pliki zostają.'],
+            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy. Konta z tej listy mają go zablokowanego, a konto bez roli go nie ma; folder i pliki zostają.'],
         'galleryPrivate' => ['Prywatny folder galerii', 'Widzą i/' . PRIVATE_DIR . '. Administratorzy panelu zawsze, reszta z tej listy. Pliki nie otwierają się bezpośrednim linkiem.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
@@ -894,7 +894,8 @@
             $cells['folder'] = [$files . '/' . $limit, 'on', 'Własny folder: ' . $use];
             $details[] = ['Własny folder', ($folder !== null ? displayPath($folder) . ', ' : 'jeszcze nie założony, ') . $use];
         } else {
-            $blocked = $join('zablokowany', accessFrom('galleryUploaders', $id, $logins));
+            $from = accessFrom('galleryUploaders', $id, $logins);
+            $blocked = $from !== '' ? $join('zablokowany', $from) : 'bez roli na serwerze bota';
             $cells['folder'] = [$folder !== null ? 'zostaje' : 'blok', '', 'Własny folder ' . $blocked . ($folder !== null ? ', folder został: ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików') : '')];
             $details[] = ['Własny folder', $blocked . ($folder !== null ? ', ' . displayPath($folder) . ' został, ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików') : '')];
         }
