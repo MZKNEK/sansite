@@ -110,6 +110,8 @@
         ['/og.php?p=cmd', [200, 302]],
         ['/og.php?p=wersje', [200, 302]],
         ['/og.php?p=wersje&v=1.0', [200, 302]],
+        ['/og.php?p=skalpel', [200, 302]],
+        ['/og.php?p=uskalpel', [200, 302]],
         ['/i/', [200, 503]],
         ['/account/', [200, 503]],
         ['/admin/', [200, 503]],

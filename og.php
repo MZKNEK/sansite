@@ -11,6 +11,7 @@
     require __DIR__ . '/inc/status-card.php';
     require __DIR__ . '/inc/verdiff.php';
     require __DIR__ . '/inc/og.php';
+    require __DIR__ . '/inc/pw.php';
 
     // the drawing function and how long its picture is kept
     const OG_PAGES = [
@@ -24,7 +25,11 @@
         'privacy' => ['drawPrivacy', 86400],
         // the sites are checked every 5 minutes
         'admin' => ['drawAdmin', SERVICE_INTERVAL],
-        'account' => ['drawAccount', 86400]
+        'account' => ['drawAccount', 86400],
+        // their card is drawn from the mirrored pictures of the bot's cards,
+        // which cron looks at as often
+        'skalpel' => ['drawSkalpel', PW_SYNC_EVERY],
+        'uskalpel' => ['drawUskalpel', PW_SYNC_EVERY]
     ];
     // as long as cmd/ marks a command new or changed
     const OG_NEW_DAYS = 14;
@@ -687,4 +692,128 @@
         }
 
         return ogSave($img, $file);
+    }
+
+    // Skalpelator and USkalpelator: the name and what they do, and on the right
+    // a card put together as they put it, from the pictures of the bot's cards
+    // the site mirrors (inc/pw.php), with Sanakan's picture in it; before cron
+    // has the pictures, the page without the card
+    function drawSkalpel($file)
+    {
+        return drawCropper($file, 'Skalpelator', ['Kadrowanie obrazków', 'na karty Sanakana'], 'sanakan.pl/skalpel', cropperCard(false));
+    }
+
+    function drawUskalpel($file)
+    {
+        return drawCropper($file, 'USkalpelator', ['Kadrowanie obrazków', 'na karty ultimate'], 'sanakan.pl/uskalpel', cropperCard(true));
+    }
+
+    function drawCropper($file, $title, $lines, $address, $card)
+    {
+        // the card at 480 px high on the right, the title as big as fits before it
+        $h = 480;
+        $w = (int)round(475 * $h / 667);
+        $x = OG_WIDTH - 80 - $w;
+        $y = (OG_HEIGHT - $h) / 2;
+        $img = ogCanvas();
+        text($img, OG_MONO, 20, 80, 112, color($img, '#b670d3'), 'SAFEGUARD · LV.9', 6);
+        $upper = ogUpper($title);
+        for ($size = 64; $size > 32 && textWidth(OG_BOLD, $size, $upper, (int)round($size * 18 / 64)) > $x - 60 - 80; $size -= 2);
+        text($img, OG_BOLD, $size, 80, 196, color($img, '#efe2f7'), $upper, (int)round($size * 18 / 64));
+        foreach ($lines as $i => $line)
+            text($img, OG_BOLD, 34, 80, 296 + $i * 48, color($img, '#efe2f7'), $line);
+        ogFoot($img, $address, '');
+
+        if ($card !== null) {
+            imagealphablending($img, true);
+            imagecopyresampled($img, $card, $x * OG_SCALE, (int)($y * OG_SCALE), 0, 0, $w * OG_SCALE, $h * OG_SCALE, 475, 667);
+            corners($img, $x - 14, $y - 14, $x + $w + 14, $y + $h + 14, 22, color($img, '#9b59b6'));
+        }
+
+        return ogSave($img, $file);
+    }
+
+    // a picture of the mirror, or null while it is not there
+    function pwPicture($name)
+    {
+        $file = pwDir() . '/' . $name;
+        if (!is_file($file))
+            return null;
+        $img = strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'webp' ? @imagecreatefromwebp($file) : @imagecreatefrompng($file);
+
+        return $img === false ? null : $img;
+    }
+
+    // Sanakan's picture cut to $w x $h from its middle
+    function cardPicture($w, $h)
+    {
+        $source = @imagecreatefromjpeg(__DIR__ . '/sanakan.jpg');
+        if ($source === false)
+            return null;
+        $sw = imagesx($source);
+        $sh = imagesy($source);
+        $cw = min($sw, (int)round($sh * $w / $h));
+        $ch = (int)round($cw * $h / $w);
+        $out = imagecreatetruecolor($w, $h);
+        imagecopyresampled($out, $source, 0, 0, (int)(($sw - $cw) / 2), (int)(($sh - $ch) / 2), $w, $h, $cw, $ch);
+
+        return $out;
+    }
+
+    // The card, 475 x 667 with its transparency, or null without the pictures:
+    // Skalpelator's the cardboard, the picture, the SSS frame, the dere and
+    // three stars (as apps/skalpel/src/App.svelte lays them); USkalpelator's
+    // the back of the Delta frame, the picture cut by its mask, the frame and
+    // the dere (as apps/uskalpel/src/App.svelte)
+    function cropperCard($ultimate)
+    {
+        $card = imagecreatetruecolor(475, 667);
+        imagealphablending($card, false);
+        imagefill($card, 0, 0, color($card, '#000000', 127));
+        imagesavealpha($card, true);
+        imagealphablending($card, true);
+
+        if (!$ultimate) {
+            $layers = ['SSS.png', 'Kamidere.png'];
+            $board = glob(__DIR__ . '/skalpel/assets/empty-*.webp')[0] ?? null;
+            $picture = cardPicture(448, 650);
+            $frames = array_map('pwPicture', $layers);
+            if ($picture === null || in_array(null, $frames, true))
+                return null;
+            if ($board !== null && ($cardboard = @imagecreatefromwebp($board)) !== false)
+                imagecopy($card, $cardboard, 13, 13, 0, 0, imagesx($cardboard), imagesy($cardboard));
+            imagecopy($card, $picture, 13, 13, 0, 0, 448, 650);
+            foreach ($frames as $frame)
+                imagecopy($card, $frame, 0, 0, 0, 0, 475, 667);
+            if (($star = pwPicture('stars/Full/4_4.png')) !== null)
+                for ($i = 0; $i < 3; $i++)
+                    imagecopy($card, $star, 239 - 19 * 3 + 38 * $i, 30, 0, 0, imagesx($star), imagesy($star));
+
+            return $card;
+        }
+
+        $back = pwPicture('CG/Delta/BorderBack2.png');
+        $frames = [pwPicture('CG/Delta/Border2.png'), pwPicture('CG/Delta/Dere/Mayadere.png')];
+        $mask = @imagecreatefromwebp(__DIR__ . '/uskalpel/masks/Delta.webp');
+        $picture = cardPicture(475, 667);
+        if ($back === null || in_array(null, $frames, true) || $mask === false || $picture === null)
+            return null;
+
+        // the picture takes the transparency of the mask, pixel by pixel
+        $cut = imagecreatetruecolor(475, 667);
+        imagealphablending($cut, false);
+        imagesavealpha($cut, true);
+        for ($y = 0; $y < 667; $y++)
+            for ($x = 0; $x < 475; $x++) {
+                $alpha = (imagecolorat($mask, $x, $y) >> 24) & 0x7F;
+                $rgb = imagecolorat($picture, $x, $y) & 0xFFFFFF;
+                imagesetpixel($cut, $x, $y, ($alpha << 24) | $rgb);
+            }
+
+        imagecopy($card, $back, 0, 0, 0, 0, 475, 667);
+        imagecopy($card, $cut, 0, 0, 0, 0, 475, 667);
+        foreach ($frames as $frame)
+            imagecopy($card, $frame, 0, 0, 0, 0, 475, 667);
+
+        return $card;
     }
