@@ -138,3 +138,16 @@
             return htmlspecialchars_decode(htmlspecialchars($text, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8'), ENT_NOQUOTES);
         }
     }
+
+    if (!function_exists('cutText')) {
+        // the first $length characters, also without the mbstring extension; it is
+        // text from outside, so what is not UTF-8 in it is replaced (validText())
+        function cutText($text, $length)
+        {
+            $text = validText($text);
+            if (function_exists('mb_substr'))
+                return mb_substr($text, 0, $length, 'UTF-8');
+
+            return preg_match('/^.{0,' . (int)$length . '}/us', $text, $match) ? $match[0] : substr($text, 0, $length);
+        }
+    }
