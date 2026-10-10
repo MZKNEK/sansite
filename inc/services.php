@@ -14,8 +14,10 @@
         'wiki' => ['Wiki', 'https://wiki.sanakan.pl/'],
         'waifu' => ['Waifu', 'https://waifu.sanakan.pl/'],
         'alter' => ['Alter', 'https://alter.sanakan.pl/'],
-        'skalpel' => ['Skalpelator', 'https://skalpel.sanakan.pl/'],
-        'uskalpel' => ['USkalpelator', 'https://uskalpel.sanakan.pl/']
+        // part of this site since they left GitHub Pages (apps/), still checked
+        // on their own, so a deploy that lost their build shows, and their days stay
+        'skalpel' => ['Skalpelator', 'https://sanakan.pl/skalpel/'],
+        'uskalpel' => ['USkalpelator', 'https://sanakan.pl/uskalpel/']
     ];
     const SERVICE_TIMEOUT = 8;
     const SERVICE_INTERVAL = 300;

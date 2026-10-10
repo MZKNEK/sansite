@@ -10,3 +10,6 @@
 
 # Source maps of bundled scripts and stylesheets, only for the browser's dev tools
 *.map
+
+# The packages of Skalpelator and USkalpelator (apps/), installed by npm for their build
+node_modules/

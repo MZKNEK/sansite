@@ -40,6 +40,18 @@ jobs:
 
       - name: Check the JavaScript
         run: |
-          git ls-files '*.js' | grep -v 'swagger-ui' | while read -r file; do
+          # the apps' sources are ES modules for Vite, their build is minified
+          git ls-files '*.js' | grep -v -E 'swagger-ui|^apps/|^u?skalpel/' | while read -r file; do
             node --check "$file" || exit 1
           done
+
+      - name: Build Skalpelator and USkalpelator
+        run: tools/build-apps.sh
+
+      - name: The committed build matches the sources
+        run: |
+          if [ -n "$(git status --porcelain -- skalpel uskalpel)" ]; then
+            git status --short -- skalpel uskalpel
+            echo "The build in skalpel/ or uskalpel/ is not the one of apps/: run tools/build-apps.sh and commit it."
+            exit 1
+          fi

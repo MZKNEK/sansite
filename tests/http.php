@@ -105,6 +105,8 @@
         ['/state/og.php', [200, 302]],
         ['/cmd/', [200]],
         ['/cmd/zmiany/', [200]],
+        ['/skalpel/', [200]],
+        ['/uskalpel/', [200]],
         ['/og.php?p=cmd', [200, 302]],
         ['/og.php?p=wersje', [200, 302]],
         ['/og.php?p=wersje&v=1.0', [200, 302]],
