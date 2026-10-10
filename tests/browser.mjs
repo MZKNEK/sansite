@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { mkdtempSync, cpSync, mkdirSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
@@ -18,7 +18,17 @@ cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
 for (const file of ['account.php', 'favicon.svg']) cpSync(path.join(root, file), path.join(site, file));
 const port = 41000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
-const server = spawn(process.env.PHP || 'php', ['-d', 'extension=gd', '-d', 'extension=zip', '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-S', `127.0.0.1:${port}`, path.join(root, 'tests/browser-router.php')],
+const php = process.env.PHP || 'php';
+// Load only the extensions PHP does not have yet: loading one twice warns
+// ("Module is already loaded"), which the check of the log below fails on.
+const loaded = spawnSync(php, ['-r', 'echo json_encode([extension_loaded("gd"), extension_loaded("zip")]);'], { encoding: 'utf8' });
+assert.equal(loaded.status, 0, loaded.stderr);
+const [hasGd, hasZip] = JSON.parse(loaded.stdout);
+const extensions = [...(hasGd ? [] : ['-d', 'extension=gd']), ...(hasZip ? [] : ['-d', 'extension=zip'])];
+// The transport limits of the README's server, as the test uploads a file over
+// PHP's default 2M.
+const limits = ['-d', 'upload_max_filesize=64M', '-d', 'post_max_size=64M'];
+const server = spawn(php, [...extensions, ...limits, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-S', `127.0.0.1:${port}`, path.join(root, 'tests/browser-router.php')],
   { cwd: site, env: { ...process.env, SANAKAN_BROWSER_ROOT: site.replaceAll('\\', '/') }, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
 let log = '';
 server.stderr.on('data', data => { log += data; });

@@ -11,6 +11,19 @@
 #   ./deploy.sh sanakan /var/www/other   another folder
 #   ./deploy.sh --dry-run sanakan        only show what would be sent, changed
 #                                        and reloaded, writing nothing
+#   ./deploy.sh --offline sanakan        the same with the site's writers stopped:
+#                                        the cron jobs taken out, their runs waited
+#                                        for, PHP-FPM stopped, a backup of inc/data
+#                                        and i/, then after the files the
+#                                        inventory, the data migration (asked
+#                                        first; --yes does not ask) and a
+#                                        maintenance run, and everything resumed
+#                                        and the checks of --check
+#   ./deploy.sh --resume sanakan         start PHP-FPM and put the cron jobs back
+#                                        after an --offline deploy that stopped
+#   ./deploy.sh --check sanakan          only report what the server should have
+#                                        for the gallery (rights, cron, journal,
+#                                        upload limits, tools, inc/ closed)
 # sanakan.pl goes through Cloudflare, which lets no SSH through, so the target
 # is the server's own address, best as a host alias in ~/.ssh/config (see the
 # README). With an SSH key there is no password prompt; without one ssh asks a
@@ -18,14 +31,170 @@
 set -euo pipefail
 
 dry_run=0
-if [ "${1:-}" = "--dry-run" ]; then
-    dry_run=1
+offline=0
+resume=0
+check=0
+yes=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dry-run) dry_run=1 ;;
+        --offline) offline=1 ;;
+        --resume)  resume=1 ;;
+        --check)   check=1 ;;
+        --yes)     yes=1 ;;
+        --*)       echo "Nieznana opcja: $1" >&2; exit 2 ;;
+        *)         break ;;
+    esac
     shift
-fi
+done
 
-target=${1:?"Użycie: ./deploy.sh [--dry-run] użytkownik@serwer [folder strony, domyślnie /var/www/html]"}
+target=${1:?"Użycie: ./deploy.sh [--dry-run] [--offline [--yes] | --resume | --check] użytkownik@serwer [folder strony, domyślnie /var/www/html]"}
 root=${2:-/var/www/html}
 cd "$(dirname "$0")"
+
+# The writers an --offline deploy stops: the cron jobs of the README (taken out
+# of /etc/cron.d into $paused, which cron does not read) and PHP-FPM. $paused
+# also keeps the name of the PHP-FPM service and the backup's path, so --resume
+# knows what to bring back.
+paused=/root/sanakan-paused
+cron_jobs="sanakan-status sanakan-site sanakan-maintenance"
+
+# starts PHP-FPM and puts the cron jobs back, whatever of them was stopped
+resume_remote() {
+    ssh "$target" "bash -s -- '$paused'" <<'REMOTE'
+set -euo pipefail
+paused=$1
+if [ ! -d "$paused" ]; then
+    echo "Nic nie było wstrzymane."
+    exit 0
+fi
+if [ -f "$paused/fpm" ]; then
+    systemctl start "$(cat "$paused/fpm")"
+    echo "Uruchomiono $(cat "$paused/fpm")."
+    rm -f "$paused/fpm"
+fi
+for job in "$paused"/sanakan-*; do
+    [ -e "$job" ] || continue
+    mv "$job" /etc/cron.d/
+    echo "Cron $(basename "$job") włączony."
+done
+if [ -f "$paused/backup" ]; then
+    echo "Kopia sprzed wdrożenia: $(cat "$paused/backup")"
+    rm -f "$paused/backup"
+fi
+rmdir "$paused"
+REMOTE
+}
+
+# What server/gallery-update.md asks to check on the server, only reported,
+# never changed: the data and the gallery on one filesystem, the folders the
+# site writes owned and writable by www-data, the cleanup's cron line,
+# systemd-cat and a persistent journal, the upload limits of nginx and
+# PHP-FPM, PHP-FPM's gd and zip, the conversion tools, the backup readable,
+# then from here over HTTPS that inc/ and the accounts' folders stay closed.
+# The checks in the browser (limits, uploads, moves, conversions, ZIP) and
+# the CDN's old thumbnail rule remain by hand.
+site_url=${SITE_URL:-https://sanakan.pl}
+checks() {
+    echo "Kontrole serwera:"
+    ssh "$target" "bash -s -- '$root' '$paused'" <<'REMOTE'
+set -uo pipefail
+root=$1
+paused=$2
+ok() { echo "  OK     $*"; }
+warn() { echo "  UWAGA  $*"; }
+
+if [ "$(stat -c %d "$root/inc/data")" = "$(stat -c %d "$root/i")" ]; then
+    ok "inc/data i i/ na jednym systemie plików"
+else
+    warn "inc/data i i/ są na różnych systemach plików (przenoszenie do kosza nie będzie atomowe)"
+fi
+
+for dir in inc/data inc/data/locks inc/data/operations inc/data/conversion-staging inc/data/webp-preview inc/data/trash i; do
+    path="$root/$dir"
+    if [ ! -e "$path" ]; then
+        ok "$dir jeszcze nie istnieje (www-data go utworzy)"
+    elif [ "$(stat -c %U "$path")" != www-data ] || ! runuser -u www-data -- test -w "$path"; then
+        warn "$dir: właściciel $(stat -c %U:%G "$path"), prawa $(stat -c %a "$path"); potrzebny zapis dla www-data"
+    else
+        ok "$dir należy do www-data"
+    fi
+done
+
+if grep -qs 'run-maintenance.php' /etc/cron.d/sanakan-maintenance "$paused/sanakan-maintenance"; then
+    ok "cron maintenance jest"
+else
+    warn "brak /etc/cron.d/sanakan-maintenance"
+fi
+if [ -x /usr/bin/systemd-cat ]; then ok "systemd-cat jest"; else warn "brak /usr/bin/systemd-cat"; fi
+if [ -d /var/log/journal ] || grep -Eqs '^Storage=persistent' /etc/systemd/journald.conf /etc/systemd/journald.conf.d/*.conf; then
+    ok "journal trwały (journalctl -t sanakan-maintenance)"
+else
+    warn "journal nie jest trwały, błędy maintenance znikną po restarcie (mkdir /var/log/journal)"
+fi
+
+body=$(nginx -T 2>/dev/null | grep -E '^\s*client_max_body_size' | awk '{print $2}' | tr -d ';' | sort -u | tr '\n' ' ')
+echo "  INFO   nginx client_max_body_size: ${body:-domyślne 1m}"
+
+fpm=$(systemctl list-units --type=service --plain --no-legend 'php*-fpm.service' | awk 'NR == 1 {print $1}')
+[ -n "$fpm" ] || fpm=$(cat "$paused/fpm" 2>/dev/null || true)
+version=$(echo "$fpm" | sed -nE 's/^php([0-9.]+)-fpm\.service$/\1/p')
+if [ -n "$version" ] && command -v "php-fpm$version" > /dev/null; then
+    ini=$("php-fpm$version" -i 2>/dev/null)
+    for key in upload_max_filesize post_max_size memory_limit max_execution_time; do
+        echo "  INFO   PHP-FPM $key: $(echo "$ini" | awk -F' => ' -v k="$key" '$1 == k {print $2; exit}')"
+    done
+    pool=$(grep -hE '^\s*(pm\.max_children|php_(admin_)?value\[(upload_max_filesize|post_max_size|memory_limit|max_execution_time)\])' /etc/php/"$version"/fpm/pool.d/*.conf 2>/dev/null | tr -s ' ' | tr '\n' ';')
+    echo "  INFO   pula PHP-FPM: ${pool:-bez nadpisań}"
+    modules=$("php-fpm$version" -m 2>/dev/null)
+    for module in gd zip; do
+        if echo "$modules" | grep -qx "$module"; then ok "PHP-FPM ma $module"; else warn "PHP-FPM bez $module"; fi
+    done
+else
+    warn "nie znaleziono PHP-FPM, limitów nie odczytano"
+fi
+
+for tool in cwebp gif2webp webpmux ffmpeg; do
+    if command -v "$tool" > /dev/null; then ok "$tool jest"; else warn "brak $tool"; fi
+done
+if command -v magick > /dev/null || command -v convert > /dev/null; then ok "ImageMagick jest"; else warn "brak ImageMagick (HEIC tylko przez ffmpeg)"; fi
+
+backup=$(ls -t /root/sansite-backup-*.tar 2>/dev/null | head -n 1)
+if [ -z "$backup" ]; then
+    echo "  INFO   brak kopii /root/sansite-backup-*.tar"
+elif tar -tf "$backup" > /dev/null 2>&1; then
+    ok "kopia $backup czyta się w całości ($(du -h "$backup" | cut -f1))"
+else
+    warn "kopia $backup jest uszkodzona"
+fi
+REMOTE
+
+    echo "Kontrole HTTP ($site_url):"
+    local path code
+    for path in /inc/config.php /inc/data/access.json /inc/data/trash.json /inc/data/operations/ \
+        /inc/data/conversion-staging/ /inc/migrate-gallery.php /inc/run-maintenance.php /i/users/; do
+        code=$(curl -s -o /dev/null -w '%{http_code}' "$site_url$path" || echo 000)
+        case "$code" in
+            200|30?) echo "  UWAGA  $path odpowiada $code, powinien być zamknięty" ;;
+            000)     echo "  UWAGA  $path bez odpowiedzi" ;;
+            *)       echo "  OK     $path zamknięty ($code)" ;;
+        esac
+    done
+    for path in / /i/; do
+        code=$(curl -s -o /dev/null -w '%{http_code}' "$site_url$path" || echo 000)
+        if [ "$code" = 200 ]; then echo "  OK     $path działa"; else echo "  UWAGA  $path odpowiada $code"; fi
+    done
+    echo "Ręcznie zostaje: odbiór w przeglądarce (punkty 7–10 server/gallery-update.md), stara reguła miniatur w Cloudflare, próba odtworzenia kopii i journalctl -t sanakan-maintenance po 10 minutach."
+}
+
+if [ "$resume" -eq 1 ]; then
+    resume_remote
+    exit 0
+fi
+if [ "$check" -eq 1 ]; then
+    checks
+    exit 0
+fi
 
 # where a file of server/ goes on the server (migrate.sh has the same list);
 # the wiki's theme and assets are pasted by hand and have no place here, so they
@@ -55,9 +224,109 @@ if [ "$dry_run" -eq 1 ]; then
 fi
 previous=$(ssh "$target" "cat '$marker' 2>/dev/null || true")
 
+# --offline: the writers stop before any file goes. A failure before the files
+# are sent resumes them at once, as the server still has the old code; a later
+# one leaves the site stopped, for a look at what happened (--resume, or the
+# backup back).
+sent=0
+stopped=0
+offline_exit() {
+    local status=$?
+    if [ "$stopped" -eq 1 ] && [ "$status" -ne 0 ]; then
+        if [ "$sent" -eq 0 ]; then
+            echo "Przerwano przed wysłaniem plików, wznawiam stronę i crony." >&2
+            resume_remote || true
+        else
+            echo "Wdrożenie przerwane, strona i crony są wstrzymane. Po sprawdzeniu: ./deploy.sh --resume $target" >&2
+            echo "Kopia danych sprzed wdrożenia: ssh $target cat $paused/backup" >&2
+        fi
+    fi
+    exit "$status"
+}
+
+if [ "$offline" -eq 1 ] && [ "$dry_run" -eq 1 ]; then
+    echo "[dry-run] --offline: wyjąłbym crony ($cron_jobs), poczekał na ich procesy, zatrzymał PHP-FPM i zrobił kopię inc/data oraz i/ w /root."
+elif [ "$offline" -eq 1 ]; then
+    trap offline_exit EXIT
+    stopped=1
+    echo "Wstrzymywanie zapisów na serwerze:"
+    ssh "$target" "bash -s -- '$root' '$paused' $cron_jobs" <<'REMOTE'
+set -euo pipefail
+root=$1
+paused=$2
+shift 2
+mkdir -p "$paused"
+chmod 700 "$paused"
+
+for job in "$@"; do
+    if [ -f "/etc/cron.d/$job" ]; then
+        mv "/etc/cron.d/$job" "$paused/$job"
+        echo "  cron $job wyłączony"
+    fi
+done
+# the cleanup's own cron job, as the README has it, when the server has none
+# yet: it goes in with the others when they are resumed
+if [ ! -f "$paused/sanakan-maintenance" ]; then
+    echo "*/10 * * * * www-data /usr/bin/systemd-cat -t sanakan-maintenance php $root/inc/run-maintenance.php" > "$paused/sanakan-maintenance"
+    chmod 644 "$paused/sanakan-maintenance"
+    echo "  cron sanakan-maintenance zostanie założony przy wznowieniu"
+fi
+
+# a run already started finishes on its own; a background conversion can take
+# up to 15 minutes, so the wait is 20
+pattern="$root/inc/(check-bot|check-site|run-maintenance|media-worker|pw-sync)\.php"
+deadline=$((SECONDS + 1200))
+while pgrep -f "$pattern" > /dev/null; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+        echo "Procesy cronów nie skończyły się w 20 minut:" >&2
+        pgrep -af "$pattern" >&2
+        exit 1
+    fi
+    echo "  czekam na: $(pgrep -af "$pattern" | sed -E 's/.*inc\/([a-z-]+\.php).*/\1/' | sort -u | tr '\n' ' ')"
+    sleep 10
+done
+echo "  procesy cronów zakończone"
+
+# QUIT lets PHP-FPM finish the requests it has (TERM would cut them), then stop
+# after a minute at the latest
+fpm=$(systemctl list-units --type=service --state=active --plain --no-legend 'php*-fpm.service' | awk 'NR == 1 {print $1}')
+if [ -n "$fpm" ]; then
+    echo "$fpm" > "$paused/fpm"
+    systemctl kill --kill-who=main --signal=QUIT "$fpm"
+    for _ in $(seq 60); do
+        systemctl is-active --quiet "$fpm" || break
+        sleep 1
+    done
+    systemctl stop "$fpm"
+    echo "  $fpm zatrzymany"
+elif [ -f "$paused/fpm" ]; then
+    echo "  $(cat "$paused/fpm") był już zatrzymany"
+else
+    echo "Nie znaleziono działającej usługi php*-fpm." >&2
+    exit 1
+fi
+
+# the backup leaves out what the panel's backup leaves out (thumbnails, diag,
+# the mirrored card pictures, lock files): they are made again
+need=$(du -sb --exclude=thumbs --exclude=diag --exclude=pw --exclude=locks "$root/inc/data" "$root/i" | awk '{s += $1} END {print s}')
+avail=$(df --output=avail -B1 /root | tail -n 1)
+if [ "$need" -gt $((avail - 1073741824)) ]; then
+    echo "Za mało miejsca na kopię: potrzeba $need B i 1 GiB zapasu, wolne $avail B." >&2
+    exit 1
+fi
+backup="/root/sansite-backup-$(date +%Y%m%d-%H%M%S).tar"
+tar -cf "$backup" -C "$root" --exclude=inc/data/thumbs --exclude=inc/data/diag \
+    --exclude=inc/data/pw --exclude=inc/data/locks inc/data i
+chmod 600 "$backup"
+echo "$backup" > "$paused/backup"
+echo "  kopia: $backup ($(du -h "$backup" | cut -f1))"
+REMOTE
+fi
+
 if [ "$dry_run" -eq 1 ]; then
     echo "[dry-run] Wysłałbym $(git log -1 --format='%h %s') do $target:$root"
 else
+    sent=1
     echo "Wysyłanie $(git log -1 --format='%h %s') do $target:$root"
     # autocrlf off: the server gets the LF line endings that are in the repository;
     # --no-overwrite-dir keeps the owners and rights of folders already there (i/ must
@@ -173,5 +442,45 @@ if [ "$dry_run" -eq 1 ]; then
 else
     git log -1 --format='%H%n%cI%n%s' \
         | ssh "$target" "mkdir -p '$root/inc/data' && echo '$commit' > '$marker' && cat > '$root/inc/data/deployed-info' && chown www-data:www-data '$root/inc/data' '$marker' '$root/inc/data/deployed-info'"
+fi
+
+# --offline, with the new code in place and nothing else writing: what the data
+# holds that the new checks would refuse, then the migration's dry run, which
+# fails on a broken document or a conflict; the migration itself only after a
+# yes, then one maintenance run whose exit code must be 0. The migration can
+# run again harmlessly; a release without inc/migrate-gallery.php skips it.
+if [ "$offline" -eq 1 ] && [ "$dry_run" -eq 1 ]; then
+    echo "[dry-run] --offline: potem inwentarz, migracja danych (dry-run, pytanie, migracja), przebieg maintenance i wznowienie PHP-FPM oraz cronów."
+elif [ "$offline" -eq 1 ]; then
+    echo "Inwentarz i próba migracji (nowy kod, jako www-data):"
+    ssh "$target" "bash -s -- '$root'" <<'REMOTE'
+set -euo pipefail
+cd "$1"
+runuser -u www-data -- php inc/run-maintenance.php --inventory
+if [ -f inc/migrate-gallery.php ]; then
+    runuser -u www-data -- php inc/migrate-gallery.php --dry-run
+fi
+REMOTE
+
+    if ssh "$target" "test -f '$root/inc/migrate-gallery.php'"; then
+        if [ "$yes" -eq 0 ]; then
+            read -r -p "Migrować dane? [t/N] " answer < /dev/tty
+            case "$answer" in
+                t|T|y|Y) ;;
+                *) echo "Bez migracji." >&2; exit 1 ;;
+            esac
+        fi
+        ssh "$target" "cd '$root' && runuser -u www-data -- php inc/migrate-gallery.php && test -f inc/data/initialized"
+    fi
+
+    echo "Przebieg maintenance:"
+    ssh "$target" "cd '$root' && runuser -u www-data -- php inc/run-maintenance.php"
+
+    resume_remote
+    stopped=0
+    checks
+fi
+
+if [ "$dry_run" -eq 0 ]; then
     echo "Gotowe: $(git log -1 --format='%h')"
 fi

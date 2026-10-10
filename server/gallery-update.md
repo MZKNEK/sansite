@@ -2,6 +2,8 @@
 
 This checklist is for the new release. Local tests do not constitute production acceptance. No production deployment is performed by the implementation task.
 
+`./deploy.sh --offline sanakan` performs steps 1–3 and the manual maintenance run of step 5 on the site's own folder: it stops the cron jobs and PHP-FPM, waits for running jobs, makes the backup, sends the code, runs the inventory and the migration's dry run, asks before migrating, runs maintenance, resumes and reports the server checks of steps 4–6 (filesystem, owners, closed `inc/` and `i/users/`, cron, journal, upload limits, tools; also alone with `./deploy.sh --check sanakan`). Restoring the backup on a disposable copy, the thumbnail headers and old CDN rule, and the browser checks of steps 7–10 remain by hand.
+
 1. Prepare the new code in a separate release directory with access to the same stopped data and gallery. Stop write requests, stop new cron runs and wait for active PHP writers/encoders to finish. Do not mix old and new writers.
 2. Back up a consistent set of gallery files and `inc/data`, including `trash`, `operations`, preview metadata and conversion artifacts. Test restoring it to a disposable environment.
 3. Run as the web-server user with the **new code**:
