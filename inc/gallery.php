@@ -3210,6 +3210,50 @@
         return ['url' => siteRoot() . 'i/' . fileUrl($rel), 'folder' => siteRoot() . 'i/' . ($dir === '' ? '' : folderUrl($dir))];
     }
 
+    // The pictures of the account's own folder, subfolders included, newest
+    // first, for the croppers' "Z mojej galerii" (i/?pick): [name, folder as
+    // the gallery shows it, link, thumbnail or null], at most PICK_MAX; null
+    // for an account without a folder of its own. Films are left out, a crop
+    // takes a picture.
+    const PICK_MAX = 300;
+
+    function pickList($base)
+    {
+        $own = ownFolder($base);
+        if ($own === null)
+            return null;
+
+        $found = [];
+        $walk = function ($rel) use (&$walk, &$found, $base) {
+            foreach (@scandir($base . '/' . $rel) ?: [] as $name) {
+                if ($name[0] === '.')
+                    continue;
+                $childRel = $rel . '/' . $name;
+                $full = $base . '/' . $childRel;
+                if (is_dir($full) && !is_link($full))
+                    $walk($childRel);
+                else if (is_file($full) && isImage($name))
+                    $found[] = [$childRel, (int)filemtime($full), $full];
+            }
+        };
+        $walk($own);
+        usort($found, function ($a, $b) { return $b[1] <=> $a[1]; });
+
+        $pictures = [];
+        foreach (array_slice($found, 0, PICK_MAX) as [$rel, $mtime, $full]) {
+            $thumb = thumbUrl($rel, $full);
+            $pictures[] = [
+                'name' => basename($rel),
+                'folder' => displayPath(dirname($rel)),
+                'url' => siteRoot() . 'i/' . fileUrl($rel),
+                'thumb' => $thumb === null ? null : siteRoot() . 'i/' . $thumb,
+                'time' => $mtime
+            ];
+        }
+
+        return $pictures;
+    }
+
     // one file per request, so every file gets its own progress and its own error
     function uploadFile($base)
     {

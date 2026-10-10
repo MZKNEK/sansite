@@ -65,6 +65,26 @@
         exit;
     }
 
+    // ?pick: the pictures of the account's own folder, for Skalpelator and
+    // USkalpelator to crop one of them (pickList())
+    if (isset($_GET['pick'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        if (!authConfigured() || siteUser() === null) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'message' => 'Trzeba się zalogować.']);
+            exit;
+        }
+        $pictures = pickList($base);
+        if ($pictures === null) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'To konto nie ma swojego folderu w galerii (trzeba mieć rolę na serwerze bota).'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        echo json_encode(['ok' => true, 'pictures' => $pictures], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // ?s=token: a shared link, its folder opens from now on in this session
     if (isset($_GET['s'])) {
         $shared = openShare($base, $_GET['s']);

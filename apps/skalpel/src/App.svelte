@@ -10,6 +10,7 @@
   import Header from '../../shared/lib/Header.svelte';
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
+  import GalleryPick from '../../shared/lib/GalleryPick.svelte';
 
   import Cropper from "svelte-easy-crop";
 	import { getCroppedImg, getCroppedCanvas, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
@@ -134,6 +135,16 @@
     readImageFile(e.detail);
   }
 
+  // a picture of the account's own folder in the gallery, by its link
+  function onPick(url) {
+    image = url;
+    fileName = '';
+    localImage = false;
+    editMode = false;
+    minzoom = 1;
+    curzoom = 1;
+  }
+
   function readImageFile(imageFile) {
     if (!imageFile.type.startsWith('image/')) {
       alert('Proszę przeciągnąć plik obrazu JPG lub PNG.');
@@ -208,6 +219,7 @@
       <section class="group">
         <h2 class="group-title"><i>02</i>Obraz</h2>
         <DropZone bind:fileName on:file={onFile} />
+        <GalleryPick onpick={onPick} />
         {#if !localImage}
           <div class="field"><span class="label">Link do obrazka</span><LinkField bind:value={image} label="Link do obrazka" placeholder="https://…" /></div>
         {/if}

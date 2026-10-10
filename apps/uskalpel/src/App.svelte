@@ -11,6 +11,7 @@
   import Header from '../../shared/lib/Header.svelte';
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
+  import GalleryPick from '../../shared/lib/GalleryPick.svelte';
 
   // the pictures of the bot's cards, which the site mirrors from its repository (inc/pw.php)
   const pw = '/pw';
@@ -278,6 +279,14 @@
   }
 
   // a file from the drop zone or dropped onto the card
+  // a picture of the account's own folder in the gallery, by its link
+  function onPick(url) {
+    image = url;
+    fileName = '';
+    isLocalFile = false;
+    curzoom = 1;
+  }
+
   function onFile(e) {
     fileName = e.detail.name;
     isLocalFile = true;
@@ -536,6 +545,7 @@
       <section class="group">
         <h2 class="group-title"><i>02</i>Obraz</h2>
         <DropZone bind:fileName on:file={onFile} accept=".jpg, .jpeg, .png, .webp" />
+        <GalleryPick onpick={onPick} />
         {#if !isLocalFile}
           <div class="field"><span class="label">Link do obrazka</span><LinkField bind:value={image} label="Link do obrazka" placeholder="https://…" /></div>
         {/if}
