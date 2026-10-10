@@ -3,6 +3,7 @@
   import Cropper from "svelte-easy-crop";
   import { getCroppedImg, getCroppedCanvas, cropOnScreen, forgetPicture, closeRenderer } from '../../shared/lib/CanvasUtils.js';
   import { ownedUrls } from '../../shared/lib/ownedUrls.js';
+  import { styleList, frameStyle, frameLayers } from './lib/frames.js';
   import Segmented from '../../shared/lib/Segmented.svelte';
   import Switch from '../../shared/lib/Switch.svelte';
   import DropZone from '../../shared/lib/DropZone.svelte';
@@ -192,7 +193,7 @@
   // with the pictures (inc/pw.php), as { Delta: 8, ... }. It comes while the
   // editor is already in use, so only the styles change: the picture, the
   // crop and what was picked stay, and a style the frame does not have goes
-  // back to 0 (getStyle()). A failure says so and can be tried again.
+  // back to 0 (frameStyle() in lib/frames.js). A failure says so and can be tried again.
   let variantsError = $state('');
   let variantsAbort = null;
 
@@ -207,21 +208,6 @@
     } catch (error) {
       if (!abort.signal.aborted)
         variantsError = 'Nie udało się pobrać stylów ramek.';
-    }
-  }
-
-  function getVariantsCount(border) {
-    return variantsMap[border] || 0;
-  }
-
-  function getStyleList() {
-    switch (selectedBorder) {
-      case 'Delta':
-      case 'Eta':
-      case 'Lambda':
-        return Array.from({length: getVariantsCount(selectedBorder) + 1}, (_, i) => i.toString());
-      default:
-        return null;
     }
   }
 
@@ -311,91 +297,21 @@
     processExtraFile(file);
   }
 
-  function getStyle() {
-    let variantsCount = getVariantsCount(selectedBorder);
-    if (variantsCount === 0) return "";
-
-    let selectedStyleInt = parseInt(selectedStyle);
-    if (selectedStyleInt > variantsCount || selectedStyleInt <= 0)
-	{
-      selectedStyle = '0';
-      return "";
-    }
-    return selectedStyle;
-  }
-
-  function getBorder() {
-    let styleUri = getStyle();
-    switch (selectedBorder) {
-      case 'Beta':
-      case 'Epsilon':
-      case 'Gamma':
-      case 'Theta':
-        return "";
-      case 'Omega':
-        return `${pw}/CG/${selectedBorder}/Border${styleUri}.webp`;
-      default:
-        return `${pw}/CG/${selectedBorder}/Border${styleUri}.png`;
-    }
-  }
-
-  function getBackBorder() {
-    let styleUri = getStyle();
-    switch (selectedBorder) {
-      case 'Jota':
-          return `${pw}/CG/${selectedBorder}/Border/${selectedDere}.png`;
-      case 'Delta':
-      case 'Eta':
-      case 'Lambda':
-        return `${pw}/CG/${selectedBorder}/BorderBack${styleUri}.png`;
-      case 'Omega':
-        return `${pw}/CG/${selectedBorder}/BorderBack${styleUri}.webp`;
-      default:
-        return "";
-    }
-  }
-
-  function getDere() {
-    switch (selectedBorder) {
-      case 'Beta':
-      case 'Epsilon':
-      case 'Gamma':
-      case 'Theta':
-        return `${pw}/CG/${selectedBorder}/Border/${selectedDere}.png`
-      default:
-        return `${pw}/CG/${selectedBorder}/Dere/${selectedDere}.png`;
-    }
-  }
-
-  function getStats() {
-    let styleUri = getStyle();
-    switch (selectedBorder) {
-      case 'Lambda':
-      case 'Zeta':
-        return "";
-      case 'Gamma':
-      case 'Jota':
-      case 'Theta':
-        return `${pw}/CG/${selectedBorder}/Stats/${selectedDere}.png`;
-      case 'Beta':
-      case 'Epsilon':
-        if (selectedDere === 'Yami' || selectedDere === 'Raito' || selectedDere === 'Yato')
-          return `${pw}/CG/${selectedBorder}/Stats/${selectedDere}.png`
-      default:
-        return `${pw}/CG/${selectedBorder}/Stats${styleUri}.png`;
-    }
-  }
-
   let borderUri = $state("");
   let backBorderUri = $state("");
   let statsUri = $state("");
   let dereUri = $state("");
 
+  // the pictures of the frame (lib/frames.js); a style the frame does not
+  // have goes back to 0
   function updateData() {
-    borderUri = getBorder();
-    backBorderUri = getBackBorder();
-    statsUri = getStats();
-    dereUri = getDere();
+    const style = frameStyle(selectedBorder, selectedStyle, variantsMap);
+    if (!style.fits) selectedStyle = '0';
+    const layers = frameLayers(pw, selectedBorder, selectedDere, style.uri);
+    borderUri = layers.border;
+    backBorderUri = layers.backBorder;
+    statsUri = layers.stats;
+    dereUri = layers.dere;
   }
 
   function handleKeyDown(e) {
@@ -547,7 +463,7 @@
   });
   let finalScale = $derived((1 / dpr) * zoomLevel);
   let shownScale = $derived(Math.min(finalScale, (winWidth - 32) / 475));
-  let styles = $derived(Object.keys(variantsMap).length ? getStyleList() : []);
+  let styles = $derived(Object.keys(variantsMap).length ? styleList(selectedBorder, variantsMap) : []);
   // the pictures of the card when the frame, the dere, the style or the
   // styles of the frames change: each read, as an effect follows only what it
   // reads; updateData() may put the style back to 0, so it runs untracked
