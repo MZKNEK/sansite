@@ -200,7 +200,7 @@
         <div class="field"><span class="label">Ramka</span><Segmented bind:value={selectedBorder} options={borders} label="Ramka" /></div>
         <div class="field"><span class="label">Dere</span><Select bind:value={selectedDere} options={deres} label="Dere" icon={dereIcon} /></div>
         <Stars bind:value={selectedStarComp} bind:count={starCntComp}/>
-        <div class="field"><span class="label">Link do ramki</span><LinkField bind:value={customBorder} label="Link do ramki" placeholder="adres własnej ramki (opcjonalnie)" /></div>
+        <div class="field"><span class="label">Link do ramki</span><LinkField bind:value={customBorder} label="Link do ramki" placeholder="https://… (opcjonalnie)" /></div>
         <Switch label="Pokaż statystyki" bind:checked={showStats} />
       </section>
 

@@ -546,7 +546,7 @@
         <h2 class="group-title"><i>02</i>Obraz</h2>
         <DropZone bind:fileName on:file={onFile} accept=".jpg, .jpeg, .png, .webp" />
         {#if !isLocalFile}
-          <div class="field"><span class="label">Link do obrazka</span><LinkField bind:value={image} label="Link do obrazka" placeholder="Wklej link do obrazka..." /></div>
+          <div class="field"><span class="label">Link do obrazka</span><LinkField bind:value={image} label="Link do obrazka" placeholder="https://…" /></div>
         {/if}
       </section>
 
