@@ -1401,8 +1401,10 @@
       <section class="card wide diag" data-sum="<?=count($diagEpisodes)?>">
         <h2><i><?=$diagCard?></i>Dostępność strony</h2>
         <p class="hint">Co 10 sekund serwer pyta stronę przez Cloudflare, tak jak odwiedzający, i bezpośrednio u siebie, z pominięciem Cloudflare, a dla porównania wiki. Obok zapisuje ruch z dziennika nginx. Gdy strona nie działa tylko przez Cloudflare (522), połączenia nie dochodzą do serwera. Gdy nie działa też na serwerze, zatyka się nginx albo PHP. Pomiary z <?=DIAG_KEEP_DAYS?> dni, pokazane 24 godziny.</p>
-<?php if (!$diagRounds): ?>
-        <p class="nobody">Jeszcze nie ma pomiarów. Ustawienie serwera opisuje lista niżej.</p>
+<?php if (!$diagRounds && $diagSince > $now - 86400 && $now - $diagSince < 300): ?>
+        <p class="nobody">Awarie wyczyszczone o <?=e(date('H:i:s', $diagSince))?>. Pierwsze nowe pomiary pojawią się w ciągu minuty, odśwież wtedy stronę.</p>
+<?php elseif (!$diagRounds): ?>
+        <p class="nobody">Jeszcze nie ma pomiarów<?=$diagSince > $now - 86400 ? ' od wyczyszczenia awarii o ' . e(date('H:i', $diagSince)) . ', a powinny być co 10 sekund: sprawdź crona inc/check-site.php' : ''?>. Ustawienie serwera opisuje lista niżej.</p>
 <?php else:
         $ngNow = $diagLast['ng'] ?? null;
         $fpmNow = $diagLast['fpm'] ?? null;
