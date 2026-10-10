@@ -637,6 +637,15 @@
 
     // ---- Reading back ---------------------------------------------------------
 
+    // When "Wyczyść awarie" of the panel was pressed (settings.json), 0 never:
+    // the availability card reads only the rounds after it, e.g. after a move to
+    // a new server, whose failures and charts before it say nothing about this
+    // one. The rounds stay on the disk until diagPrune() drops their day.
+    function diagClearedAt()
+    {
+        return (int)(readData('settings')['diagSince'] ?? 0);
+    }
+
     // the rounds since $since, oldest first
     function diagRounds($since)
     {

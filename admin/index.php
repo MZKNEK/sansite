@@ -665,6 +665,13 @@
                     reply(false, dataError(), 500);
                 done('cloudflare', $settings['autoBlock'] ? 'Włączono automatyczne blokowanie skanerów w Cloudflare.' : 'Wyłączono automatyczne blokowanie skanerów w Cloudflare.');
 
+            case 'diag-clear':
+                $settings = readData('settings');
+                $settings['diagSince'] = time();
+                if (!writeData('settings', $settings))
+                    reply(false, dataError(), 500);
+                done('diag', 'Wyczyszczono awarie: karta dostępności liczy od ' . date('d.m.Y H:i') . '.');
+
             case 'trash-empty':
                 $removed = 0;
                 foreach (array_keys(trashItems()) as $item)
@@ -804,7 +811,8 @@
 
         // availability of the site (inc/diag.php): the rounds of 24 h, failures, traffic of the last hour
         $now = time();
-        $diagRounds = diagRounds($now - 86400);
+        $diagSince = max($now - 86400, diagClearedAt());
+        $diagRounds = diagRounds($diagSince);
         $diagLast = $diagRounds ? end($diagRounds) : null;
         // the processor use comes from the background check, so opening the panel
         // does not read /proc/stat and wait 250 ms for a second reading
@@ -1426,7 +1434,7 @@
 <?php endif; ?>
         </div>
 
-        <h3 class="diag-title"><i><?=$diagLetter()?></i>Awarie w ostatnich 24 godzinach<?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
+        <h3 class="diag-title"><i><?=$diagLetter()?></i><?=$diagSince > $now - 86400 ? 'Awarie od ' . e(date(date('Y-m-d', $diagSince) === date('Y-m-d') ? 'H:i' : 'd.m H:i', $diagSince)) : 'Awarie w ostatnich 24 godzinach'?><?=$diagEpisodes ? ' <span class="muted">' . count($diagEpisodes) . '</span>' : ''?></h3>
 <?php if (!$diagEpisodes): ?>
         <p class="nobody">Strona cały czas odpowiadała.</p>
 <?php else: ?>
@@ -1459,6 +1467,7 @@
           </details>
 <?php endforeach; ?>
         </div>
+        <p class="trash-all"><button type="button" class="admin-btn small danger" data-action="diag-clear" data-confirm="Wyczyścić awarie? Karta dostępności będzie liczyć od teraz: awarie, pasek 24 godzin i wykresy sprzed tej chwili przestaną się na niej liczyć (np. po przeniesieniu na nowy serwer).">Wyczyść awarie</button></p>
 <?php endif; ?>
 
         <h3 class="diag-title"><i><?=$diagLetter()?></i>Ostatnia godzina <span class="muted"><?=formatCount($diagHour['n'])?> zapytań, <?=formatCount($diagHour['php'])?> do PHP, najwięcej <?=formatCount($diagHour['peak'])?> w 10 s</span></h3>
