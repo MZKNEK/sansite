@@ -1065,7 +1065,8 @@ a.hud-corners:hover {
         content: none;
     }
 
-    /* the second buttons stand in the row as buttons of their own */
+    /* the second buttons stand in the column as buttons of their own (a wide
+       touch screen hangs them below their first ones instead, further down) */
     .link-swap {
         display: contents;
     }
@@ -1194,15 +1195,17 @@ a.hud-corners:hover {
 }
 
 /* a touch screen wider than a phone (a tablet, Android's desktop mode without
-   a mouse) slides nothing in on hover, so its seven buttons wrap into rows of
-   even buttons */
+   a mouse): the row of a wide window, with Alter and USkalpelator slid out for
+   good below Waifu and Skalpelator, the other buttons keeping their height */
 @media (any-hover: none) and (min-width: 721px) {
     .links {
-        flex-wrap: wrap;
+        align-items: flex-start;
     }
 
-    .links a {
-        min-width: 170px;
+    .link-swap {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
     }
 }
 
