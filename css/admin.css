@@ -134,14 +134,12 @@
 }
 
 .quality-form input[type="number"]:hover,
-.quota-form input[type="number"]:hover,
-.quota-form select:hover {
+.quota-form input[type="number"]:hover {
     border-color: rgba(var(--accent-light-rgb), 0.7);
 }
 
 .quality-form input[type="number"]:focus,
-.quota-form input[type="number"]:focus,
-.quota-form select:focus {
+.quota-form input[type="number"]:focus {
     border-color: var(--accent-light);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
@@ -194,15 +192,24 @@
     color: rgba(220, 221, 222, 0.55);
 }
 
-.quota-form select {
+/* the choice is the profile's own (.hud-select), as tall as the fields */
+.quota-field .hud-select {
+    flex: none;
+    width: 168px;
+}
+
+.quota-field .hud-select select {
     height: 36px;
-    padding: 0 6px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: rgba(8, 9, 9, 0.55);
-    color: var(--text);
-    font: 13px Lato, sans-serif;
-    outline: 0;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 13px;
+}
+
+.quota-field .hud-select::after {
+    width: 36px;
+    height: 36px;
+}
+
+.quota-field .hud-select .hud-chevron {
+    right: 13px;
 }
 
 .quota-buttons {

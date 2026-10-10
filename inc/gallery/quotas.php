@@ -182,15 +182,16 @@
             $name = preg_replace('/ \(MiB\)$/', '', $field[0]);
             echo '<label><span>' . e($name) . '</span><span class="quota-field">';
             if ($id !== null)
-                echo '<select name="mode_' . $key . '" aria-label="' . e($name) . ': skąd wartość"><option value="inherit">domyślne ('
+                echo '<span class="hud-select"><select name="mode_' . $key . '" aria-label="' . e($name) . ': skąd wartość"><option value="inherit">domyślne ('
                     . ($policy['defaults'][$key] / $field[3]) . ')</option><option value="override"'
-                    . (isset($policy['overrides'][$key]) ? ' selected' : '') . '>własne</option></select>';
+                    . (isset($policy['overrides'][$key]) ? ' selected' : '') . '>własne</option></select>'
+                    . '<svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>';
             echo '<input type="number" required min="1" max="' . $field[2] . '" name="' . $key . '" value="'
                 . ($policy['values'][$key] / $field[3]) . '" />' . ($field[3] > 1 ? '<em>MiB</em>' : '') . '</span></label>';
         }
         echo '<span class="quota-buttons"><button class="admin-btn primary" type="submit">Zapisz limity</button>';
         if ($id !== null)
-            echo '<button type="button" class="admin-btn small" data-action="account-gallery-limits-reset" data-id="' . e($id)
+            echo '<button type="button" class="admin-btn" data-action="account-gallery-limits-reset" data-id="' . e($id)
                 . '" data-revision="' . $policy['revision'] . '">Wszystkie domyślne</button>';
         echo '</span></form>';
         if ($policy['values']['fileBytes'] > $policy['values']['totalBytes'])
