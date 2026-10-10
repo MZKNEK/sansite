@@ -11,9 +11,10 @@
     $card = statusCard();
     $services = servicesCard();
     $notice = botNotice();
+    $user = siteUser();
 ?>
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl"<?=hudHtmlAttributes($user)?>>
 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -25,10 +26,10 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=65c844eb95" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=08d6706c22" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=095b66f9b8" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=cfc5ebaa78"></script>
+  <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
 <body class="state-page">
@@ -36,6 +37,9 @@
     <header class="ex-header">
       <div class="ex-top">
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
+<?php if ($user): ?>
+        <?=accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '')?>
+<?php endif; ?>
       </div>
       <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
       <h1 class="hud-title">Status</h1>
@@ -55,6 +59,7 @@
     <p class="state-note">Strona odświeża się sama co 10 minut.</p>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <script src="../js/account.js?v=51972de250"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 

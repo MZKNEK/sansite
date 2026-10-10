@@ -1054,8 +1054,11 @@ a.hud-corners:hover {
     height: calc(100% + 14px);
 }
 
-/* touch screens and narrow windows: show both buttons, no animations, no Morse */
-@media (hover: none), only screen and (max-width: 720px) {
+/* touch screens and narrow windows: show both buttons, no animations, no Morse.
+   any-hover, not hover: a touch screen with a mouse plugged in (Android's
+   desktop mode) has the touch as its main pointer, yet the mouse can hover, so
+   it gets the sliding buttons; the query follows the mouse as it comes and goes */
+@media (any-hover: none), only screen and (max-width: 720px) {
     .motto {
         display: none;
     }
@@ -1187,9 +1190,10 @@ a.hud-corners:hover {
     }
 }
 
-/* a touch screen wider than a phone (a tablet, Android's desktop mode) slides
-   nothing in on hover, so its seven buttons wrap into rows of even buttons */
-@media (hover: none) and (min-width: 721px) {
+/* a touch screen wider than a phone (a tablet, Android's desktop mode without
+   a mouse) slides nothing in on hover, so its seven buttons wrap into rows of
+   even buttons */
+@media (any-hover: none) and (min-width: 721px) {
     .links {
         flex-wrap: wrap;
     }

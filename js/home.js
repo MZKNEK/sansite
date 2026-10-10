@@ -141,52 +141,35 @@
   var box = document.getElementById('home-account');
   var api = document.getElementById('api-link');
 
-  fetch('./account.php', { credentials: 'same-origin', cache: 'no-store' })
-    .then(function (res) { return res.ok ? res.json() : null; })
-    .then(function (me) {
-      if (!me) return;
-      // the HUD colour chosen in the profile (/account/), applied at once
-      if (me.hud === 'accent' || me.hud === 'full') {
-        document.documentElement.setAttribute('data-hud', me.hud);
-        if (me.role) document.documentElement.classList.add('role-' + me.role);
-      }
-      if (!me.menu) {
-        // the colour of an account that is gone (js/hud.js read it from the
-        // cookies account.php has just removed)
-        document.documentElement.removeAttribute('data-hud');
-        document.documentElement.className = document.documentElement.className.replace(/\brole-\S+/g, '').trim();
-        if (!me.login) return;
-        var login = document.createElement('a');
-        login.href = 'account.php?login';
-        login.className = 'home-login hud-corners';
-        login.textContent = 'Zaloguj przez Discord';
-        box.appendChild(login);
-        box.hidden = false;
-        return;
-      }
-
-      // the menu comes ready from the server, its texts escaped there
-      box.innerHTML = me.menu;
-      SanakanAccount.bind(box.firstElementChild);
+  SanakanAccount.load(box).then(function (me) {
+    if (!me) return;
+    if (!me.menu) {
+      if (!me.login) return;
+      var login = document.createElement('a');
+      login.href = 'account.php?login';
+      login.className = 'home-login hud-corners';
+      login.textContent = 'Zaloguj przez Discord';
+      box.appendChild(login);
       box.hidden = false;
+      return;
+    }
 
-      if (me.api) {
-        api.classList.remove('restricted');
-        api.title = 'Dokumentacja API';
-        var lock = api.querySelector('.lock');
-        lock.setAttribute('aria-label', 'masz dostęp');
-        lock.querySelector('path').setAttribute('d', 'M8 11V8a4 4 0 0 1 7.7-1.5');
-      }
+    if (me.api) {
+      api.classList.remove('restricted');
+      api.title = 'Dokumentacja API';
+      var lock = api.querySelector('.lock');
+      lock.setAttribute('aria-label', 'masz dostęp');
+      lock.querySelector('path').setAttribute('d', 'M8 11V8a4 4 0 0 1 7.7-1.5');
+    }
 
-      // "Zalogowano jako ..." after coming back from Discord
-      if (me.flash) {
-        var flash = document.createElement('p');
-        flash.className = 'home-flash';
-        flash.setAttribute('role', 'status');
-        flash.textContent = me.flash;
-        document.body.appendChild(flash);
-        setTimeout(function () { flash.remove(); }, 4500);
-      }
-    })
-    .catch(function () {});
+    // "Zalogowano jako ..." after coming back from Discord
+    if (me.flash) {
+      var flash = document.createElement('p');
+      flash.className = 'home-flash';
+      flash.setAttribute('role', 'status');
+      flash.textContent = me.flash;
+      document.body.appendChild(flash);
+      setTimeout(function () { flash.remove(); }, 4500);
+    }
+  });
 })();

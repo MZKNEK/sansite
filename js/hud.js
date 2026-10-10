@@ -1,7 +1,7 @@
 // The HUD colour chosen in the profile (/account/), kept in cookies so the
-// pages that render no account menu (the home page, the privacy notice, the
-// 404, the public status) can apply it too, before the first paint. A page
-// that knows the account sets data-hud itself (hudHtmlAttributes() in
+// static pages (the home page, the privacy notice, the 404), which get the
+// account from account.php only later, can apply it before the first paint.
+// A page that knows the account sets data-hud itself (hudHtmlAttributes() in
 // inc/auth.php) and is left alone, but still gets the browser's bar coloured
 // (below). Loaded in the head, without defer, so the colour is on the page
 // before anything is drawn.

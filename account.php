@@ -1,6 +1,7 @@
 <?php
-    // The Discord account for the home page (index.html is static, so it asks
-    // here): the account menu of the top right corner (accountMenuHtml() in
+    // The Discord account for the static pages (the home page, the privacy
+    // notice and the 404 cannot render it, so they ask here, js/account.js):
+    // the account menu of the top right corner (accountMenuHtml() in
     // inc/auth.php) and whether the account may read the API. ?login starts the
     // login and comes back to the home page. A POST with the CSRF token logs
     // out, or ends trying other rights (the bar of testRights()); every page's
@@ -32,10 +33,11 @@
     header('Cache-Control: no-store, private');
 
     $user = siteUser();
-    // the HUD colour chosen in the profile also goes into cookies, so the pages
-    // that render no account menu (the home page, the privacy notice, the 404,
-    // the public status) can apply it too (js/hud.js); a session that ended
-    // without logging out (expired, or ended in the panel) takes them along too
+    // the HUD colour chosen in the profile also goes into cookies, so the static
+    // pages (the home page, the privacy notice, the 404) can apply it before
+    // the first paint, not only once this answer is back (js/hud.js); a
+    // session that ended without logging out (expired, or ended in the panel)
+    // takes them along too
     if ($user !== null) {
         $badge = roleBadge(siteRoles());
         setcookie('hud', hudMode($user['id']), time() + 31536000, '/');

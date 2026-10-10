@@ -43,9 +43,9 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=65c844eb95" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=08d6706c22" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=ed18f56732" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=cfc5ebaa78"></script>
+  <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
 <body>
@@ -95,7 +95,7 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=6728775ca3"></script>
-  <script src="../js/account.js?v=c8dfe2b1f3"></script>
+  <script src="../js/account.js?v=51972de250"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
 
@@ -113,9 +113,9 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=65c844eb95" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=08d6706c22" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=7c513a4fe9" >
-  <script src="../js/hud.js?v=cfc5ebaa78"></script>
+  <script src="../js/hud.js?v=2894733f39"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -208,7 +208,7 @@
 <script src="./swagger-ui-standalone-preset.js?v=0ba407ddfc"> </script>
 <script src="../js/sanakan-util.js?v=f417e538a8"></script>
 <script src="./search.js?v=52c2c6eb3f"> </script>
-<script src="../js/account.js?v=c8dfe2b1f3"></script>
+<script src="../js/account.js?v=51972de250"></script>
 <script src="./init.js?v=9e46400eb6"></script>
 <script src="../js/netsphere.js?v=1c8be049a6"></script>
 </body>
