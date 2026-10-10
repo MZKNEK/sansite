@@ -93,3 +93,14 @@
     // const DIAG_LOCAL_ORIGIN = 'http://127.0.0.1';
     // const DIAG_ACCESS_LOG = '/var/log/nginx/sanakan-access.log';
     // const DIAG_SLOW_LOG = '/var/log/php8.5-fpm.slow.log'; (the version the site runs on)
+
+    // Optional: how big a picture may be (inc/gallery.php); the values below are
+    // the defaults. A picture over them is refused at the upload and never
+    // decoded for a thumbnail, a turn or a conversion: its sides and its pixels,
+    // all frames of an animation together, and the address space each tool
+    // (cwebp, gif2webp, ImageMagick, ffmpeg) may take, in MB, 0 for no limit.
+    // Raise them only after measuring the memory of the server.
+    // const IMAGE_MAX_PIXELS = 16000000;
+    // const IMAGE_MAX_SIDE = 8192;
+    // const IMAGE_MAX_ANIMATION_PIXELS = 400000000;
+    // const TOOL_MEMORY_MB = 2048;

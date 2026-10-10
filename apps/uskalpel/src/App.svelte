@@ -1,7 +1,8 @@
 <script>
   import { onMount, tick, untrack } from 'svelte';
   import Cropper from "svelte-easy-crop";
-  import { getCroppedImg, cropOnScreen } from '../../shared/lib/CanvasUtils.js';
+  import { getCroppedImg, getCroppedCanvas, cropOnScreen, forgetPicture, closeRenderer } from '../../shared/lib/CanvasUtils.js';
+  import { ownedUrls } from '../../shared/lib/ownedUrls.js';
   import Segmented from '../../shared/lib/Segmented.svelte';
   import Switch from '../../shared/lib/Switch.svelte';
   import DropZone from '../../shared/lib/DropZone.svelte';
@@ -76,36 +77,40 @@
   let extraPreview = $state('');
   let previewStale = $state(true);
   let previewTimer;
+  // grows with every change the preview has to follow, so a render begun
+  // before it, which ends later, is dropped instead of shown as the new one
   let previewToken = 0;
+
+  // the blob: addresses this app made (the previews, the picture without its
+  // background), let go when they are replaced and when the app goes
+  const urls = ownedUrls(forgetPicture);
+  let destroyed = false;
 
   function schedulePreview() {
     previewStale = true;
+    previewToken++;
     clearTimeout(previewTimer);
     if (!editMode || !realPreview || !percentCrop) return;
     previewTimer = setTimeout(updatePreview, 200);
   }
 
   async function updatePreview() {
-    const token = ++previewToken;
-    try {
-      const withExtra = hasExtraLayer && extraImage && extraPercentCrop;
-      const [base, extra] = await Promise.all([
-        getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen }),
-        withExtra ? getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen }) : '',
-      ]);
-      if (token !== previewToken) {
-        URL.revokeObjectURL(base);
-        if (extra) URL.revokeObjectURL(extra);
-        return;
-      }
-      if (basePreview) URL.revokeObjectURL(basePreview);
-      if (extraPreview) URL.revokeObjectURL(extraPreview);
-      basePreview = base;
-      extraPreview = extra;
-      previewStale = false;
-    } catch (error) {
-      // the croppers still show the pictures; saving reports the error
+    const token = previewToken;
+    const withExtra = hasExtraLayer && extraImage && extraPercentCrop;
+    const results = await Promise.allSettled([
+      getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen }),
+      withExtra ? getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen }) : Promise.resolve(''),
+    ]);
+    const [base, extra] = results.map((r) => r.status === 'fulfilled' && r.value ? urls.own(r.value) : '');
+    // a failure leaves the croppers showing the pictures; saving reports it
+    if (destroyed || token !== previewToken || results.some((r) => r.status === 'rejected')) {
+      urls.release(base);
+      urls.release(extra);
+      return;
     }
+    basePreview = urls.replace(basePreview, base);
+    extraPreview = urls.replace(extraPreview, extra);
+    previewStale = false;
   }
 
 
@@ -162,12 +167,20 @@
 
   onMount(() => {
     calculateScaling();
+    fetchVariants();
 
     window.addEventListener('resize', calculateScaling);
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('resize', calculateScaling);
       window.removeEventListener('keydown', handleKeyDown);
+      // what is still under way finds the app gone and leaves its result
+      destroyed = true;
+      clearTimeout(previewTimer);
+      previewToken++;
+      variantsAbort?.abort();
+      urls.releaseAll();
+      closeRenderer();
     };
   });
 
@@ -175,20 +188,27 @@
     dpr = window.devicePixelRatio || 1;
   }
 
-  // how many styles each frame has: the site reads it from the bot's code
-  // with the pictures (inc/pw.php), as { Delta: 8, ... }
+  // How many styles each frame has: the site reads it from the bot's code
+  // with the pictures (inc/pw.php), as { Delta: 8, ... }. It comes while the
+  // editor is already in use, so only the styles change: the picture, the
+  // crop and what was picked stay, and a style the frame does not have goes
+  // back to 0 (getStyle()). A failure says so and can be tried again.
+  let variantsError = $state('');
+  let variantsAbort = null;
+
   async function fetchVariants() {
+    variantsAbort?.abort();
+    const abort = variantsAbort = new AbortController();
+    variantsError = '';
     try {
-      const response = await fetch(`${pw}/variants.json`);
+      const response = await fetch(`${pw}/variants.json`, { signal: abort.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       variantsMap = await response.json();
-      initDefaults();
     } catch (error) {
-      console.error('Error fetching variants:', error);
+      if (!abort.signal.aborted)
+        variantsError = 'Nie udało się pobrać stylów ramek.';
     }
   }
-
-  onMount(fetchVariants);
 
   function getVariantsCount(border) {
     return variantsMap[border] || 0;
@@ -236,13 +256,20 @@
     isExtraUpscaling = extraPixelCrop.width < 475 || extraPixelCrop.height < 667;
   }
 
+  // every file asked for counts, so one read more slowly than the next does
+  // not put itself in its place when it ends
+  let imageReads = 0;
+  let extraReads = 0;
+
   function processFile(imageFile) {
     if (!imageFile.type.startsWith('image/')) {
       alert('Proszę przeciągnąć plik obrazu JPG lub PNG.');
       return;
     }
+    const read = ++imageReads;
     let reader = new FileReader();
     reader.onload = e => {
+      if (destroyed || read !== imageReads) return;
       image = e.target.result;
       curzoom = 1;
     };
@@ -251,9 +278,11 @@
 
   function processExtraFile(file) {
     if (!file) return;
+    const read = ++extraReads;
     let reader = new FileReader();
     reader.onload = e => {
-      extraImage = e.target.result;
+      if (destroyed || read !== extraReads) return;
+      extraImage = urls.replace(extraImage, e.target.result);
       activeLayer = 'extra';
       bgAutoLayer = false;
       extraZoom = 1;
@@ -261,17 +290,10 @@
     reader.readAsDataURL(file);
   }
 
-  function initDefaults() {
-    selectedBorder = 'Delta';
-    selectedDere = 'Mayadere';
-    selectedStyle = '2';
-    showStats = false;
-    image = "https://sanakan.pl/i/ss/sUwh3io.webp";
-  }
-
   // a file from the drop zone or dropped onto the card
   // a picture of the account's own folder in the gallery, by its link
   function onPick(url) {
+    imageReads++;
     image = url;
     fileName = '';
     isLocalFile = false;
@@ -408,13 +430,16 @@
 
   async function removeBg() {
     if (!image || bgRemoving) return;
+    // the picture it starts from: when another is chosen meanwhile, the
+    // result is for one no longer there and is dropped
+    const source = image;
     bgRemoving = true;
     bgProgress = 0;
     bgProgressLabel = 'Inicjalizacja...';
     try {
       const imglyModule = await import('@imgly/background-removal');
       const removeBackground = imglyModule.default ?? imglyModule.removeBackground ?? imglyModule;
-      const blob = await removeBackground(image, {
+      const blob = await removeBackground(source, {
         model: bgModel,
         progress: (key, current, total) => {
           if (total > 0) {
@@ -423,8 +448,13 @@
           }
         }
       });
-      const url = URL.createObjectURL(blob);
-      extraImage = url;
+      if (destroyed) return;
+      if (image !== source) {
+        bgProgressLabel = 'Pominięto: w międzyczasie zmienił się obraz';
+        return;
+      }
+      extraImage = urls.replace(extraImage, urls.own(URL.createObjectURL(blob)));
+      extraReads++;
       activeLayer = 'both';
       bgAutoLayer = true;
       bgProgressLabel = 'Gotowe!';
@@ -449,18 +479,14 @@
     const ctx = canvas.getContext('2d');
 
     // Kolejność warstw: gdy bgAutoLayer (removeBg), scalp jest nad top
-    // Normalnie: top jest nad scalp
-    let mainImagePart;
-    if (editMode) {
-      mainImagePart = await getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen });
-    } else {
-      mainImagePart = image;
-    }
-    const imgMain = await loadImg(mainImagePart);
+    // Normalnie: top jest nad scalp. The layers are drawn straight from their
+    // canvases, with no blob: address in between to let go of.
+    const imgMain = editMode
+      ? await getCroppedCanvas(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen })
+      : await loadImg(image);
 
     if (hasExtraLayer && extraImage) {
-      const croppedExtra = await getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen });
-      const imgExtra = await loadImg(croppedExtra);
+      const imgExtra = await getCroppedCanvas(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen });
       if (bgAutoLayer) {
         // removeBg: najpierw top (wycięta postać), potem scalp (oryginał z maską) na wierzchu
         ctx.drawImage(imgExtra, 0, 0);
@@ -495,6 +521,7 @@
       document.body.removeChild(a);
     } catch (error) {
       console.error('Błąd pobierania:', error);
+      alert('Nie udało się przygotować obrazka, spróbuj z innym lub użyj lokalnego pliku.');
     }
   }
   function loadImg(src) {
@@ -547,6 +574,14 @@
         <div class="field"><span class="label">Dere</span><Select bind:value={selectedDere} options={deres} label="Dere" icon={dereIcon} /></div>
         {#if styles}
           <div class="field top"><span class="label">Styl</span><Segmented bind:value={selectedStyle} options={styles} label="Styl ramki" /></div>
+        {/if}
+        {#if variantsError}
+          <div class="field"><span class="label"></span>
+            <div class="variants-error">
+              <span class="bg-status bad">✗ {variantsError}</span>
+              <button type="button" class="btn-muted" onclick={fetchVariants}>Spróbuj ponownie</button>
+            </div>
+          </div>
         {/if}
         <Switch label="Pokaż statystyki" bind:checked={showStats} />
       </section>
@@ -741,6 +776,19 @@
 
   .bg-status.bad {
     color: var(--bad);
+  }
+
+  /* the styles of the frames that did not come, and a way to ask again */
+  .variants-error {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .variants-error button {
+    padding: 4px 14px;
+    font-size: 12px;
   }
 
   /* moving the crop pixel by pixel: arrows laid out as on a keyboard, the

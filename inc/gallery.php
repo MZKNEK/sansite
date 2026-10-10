@@ -160,6 +160,103 @@
         return in_array(substr($head, 8, 4), ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1', 'avif', 'avis'], true);
     }
 
+    // ---- How big a picture may be -------------------------------------------------
+    // A small file can hold a huge picture (a PNG of 30000×30000 pixels takes a
+    // few kilobytes, and GD would want 3.6 GB for it), so the size of the file
+    // says too little. The width and height are read from the header first,
+    // without decoding anything, and a picture over the limits below is refused:
+    // at the upload, before any file is kept, and before every thumbnail, turn
+    // and conversion, also of the files from before. An animation counts all its
+    // frames. inc/config.php may set other values under the same names
+    // (IMAGE_MAX_PIXELS, IMAGE_MAX_SIDE, IMAGE_MAX_ANIMATION_PIXELS,
+    // TOOL_MEMORY_MB).
+    const IMAGE_MAX_PIXELS_DEFAULT = 16000000;
+    const IMAGE_MAX_SIDE_DEFAULT = 8192;
+    const IMAGE_MAX_ANIMATION_PIXELS_DEFAULT = 400000000;
+    // what a tool (cwebp, gif2webp, ImageMagick, ffmpeg) may take, in MB of
+    // address space; 0 for no limit. Not on Windows.
+    const TOOL_MEMORY_MB_DEFAULT = 2048;
+
+    function imageLimit($name)
+    {
+        authConfigured();
+
+        return defined($name) ? (int)constant($name) : constant($name . '_DEFAULT');
+    }
+
+    // [width, height, frames] of a picture from its header, or null when they
+    // cannot be read; a HEIC, HEIF or AVIF by its "ispe" boxes when getimagesize
+    // does not know it. The frames are counted only with $frames (that reads
+    // the whole file), otherwise 1.
+    function imageSize($path, $frames = true)
+    {
+        $info = @getimagesize($path);
+        if ($info && $info[0] > 0 && $info[1] > 0) {
+            $count = 1;
+            if ($frames && $info[2] === IMAGETYPE_GIF)
+                $count = gifFrames($path);
+            else if ($frames && $info[2] === IMAGETYPE_WEBP && isAnimatedWebp($path))
+                $count = max(1, substr_count((string)@file_get_contents($path), 'ANMF'));
+
+            return [(int)$info[0], (int)$info[1], $count];
+        }
+        if (!isHeifImage($path))
+            return null;
+
+        // the biggest of the image's extents (a photo of a phone is a grid of
+        // tiles, each with its own, and the whole with the biggest)
+        $head = (string)@file_get_contents($path, false, null, 0, 524288);
+        $best = null;
+        for ($pos = strpos($head, 'ispe'); $pos !== false; $pos = strpos($head, 'ispe', $pos + 4)) {
+            if (strlen($head) < $pos + 16)
+                break;
+            $size = unpack('Nw/Nh', substr($head, $pos + 8, 8));
+            if ($size['w'] > 0 && $size['h'] > 0 && ($best === null || $size['w'] * $size['h'] > $best[0] * $best[1]))
+                $best = [$size['w'], $size['h']];
+        }
+
+        return $best === null ? null : [$best[0], $best[1], 1];
+    }
+
+    // frames of a GIF, by their graphic control blocks; never fewer than one
+    function gifFrames($path)
+    {
+        return max(1, substr_count((string)@file_get_contents($path), "\x21\xF9\x04"));
+    }
+
+    // why a picture is too big to be decoded here, or null when it is not;
+    // without $frames only its first frame counts (GD decodes no more of it)
+    function imageLimitError($path, $frames = true)
+    {
+        $size = imageSize($path, $frames);
+        if ($size === null)
+            return 'nie da się odczytać wymiarów obrazu';
+
+        [$width, $height, $frames] = $size;
+        $side = imageLimit('IMAGE_MAX_SIDE');
+        $pixels = imageLimit('IMAGE_MAX_PIXELS');
+        if (max($width, $height) > $side)
+            return 'obraz ma ' . $width . '×' . $height . ' px, a dłuższy bok może mieć najwyżej ' . $side . ' px';
+        if ($width * $height > $pixels)
+            return 'obraz ma ' . round($width * $height / 1e6, 1) . ' Mpx (' . $width . '×' . $height . '), a limit to ' . round($pixels / 1e6, 1) . ' Mpx';
+        if ($frames > 1 && $width * $height * $frames > imageLimit('IMAGE_MAX_ANIMATION_PIXELS'))
+            return 'animacja ma ' . $frames . ' klatek po ' . $width . '×' . $height . ' px, za dużo naraz';
+
+        return null;
+    }
+
+    // Whether GD has room for $copies pictures of this size in what PHP may
+    // still take (4 bytes a pixel and a little more); with no limit in PHP the
+    // limits of imageLimitError() still hold. An estimate, not a promise.
+    function gdFits($width, $height, $copies = 1)
+    {
+        $limit = iniBytes(ini_get('memory_limit'));
+        if ($limit <= 0)
+            return true;
+
+        return memory_get_usage() + $width * $height * 4.4 * $copies + 8388608 < $limit;
+    }
+
     // whether an upload's content matches what its name promises
     function isImageContent($name, $path)
     {
@@ -218,6 +315,11 @@
         $command = escapeshellarg($tool);
         foreach ($args as $arg)
             $command .= ' ' . escapeshellarg($arg);
+        // a picture made to eat memory must not take the server with it: the
+        // tool gets TOOL_MEMORY_MB of address space and fails beyond it
+        $memory = imageLimit('TOOL_MEMORY_MB');
+        if ($memory > 0 && DIRECTORY_SEPARATOR === '/')
+            $command = 'ulimit -v ' . ($memory * 1024) . ' 2>/dev/null; exec ' . $command;
 
         $process = @proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         if (!is_resource($process))
@@ -248,6 +350,8 @@
     // an animated GIF as an animated WebP
     function gifToWebp($source, $target, $quality = null)
     {
+        if (imageLimitError($source) !== null)
+            return false;
         $quality = $quality === null ? webpQuality('gif') : $quality;
         $tmp = $target . '.' . getmypid();
         // lossy and a light effort: a 22 MB GIF takes seconds instead of most of a minute, and ends up smaller
@@ -288,14 +392,21 @@
     // orientation), or ffmpeg; false when neither can
     function heifToWebp($source, $target, $quality = null)
     {
+        if (imageLimitError($source) !== null)
+            return false;
         $quality = $quality === null ? webpQuality('avif') : $quality;
         $tmp = dirname($target) . '/.heif-' . getmypid() . '.webp';
+        // ImageMagick's own limits too: what it may hold in memory and on the
+        // disk, the picture's sides, its time and threads
+        $side = (string)imageLimit('IMAGE_MAX_SIDE');
+        $limits = ['-limit', 'memory', '256MiB', '-limit', 'map', '512MiB', '-limit', 'disk', '1GiB',
+            '-limit', 'width', $side, '-limit', 'height', $side, '-limit', 'time', (string)TOOL_TIMEOUT, '-limit', 'thread', '2'];
         foreach (['magick', 'convert'] as $name) {
             $tool = findTool($name);
             if (!$tool)
                 continue;
             @unlink($tmp);
-            if (runTool($tool, [$source, '-auto-orient', '-quality', (string)$quality, $tmp], TOOL_TIMEOUT) && @filesize($tmp) > 0) {
+            if (runTool($tool, array_merge($limits, [$source, '-auto-orient', '-quality', (string)$quality, $tmp]), TOOL_TIMEOUT) && @filesize($tmp) > 0) {
                 $ok = @rename($tmp, $target);
                 @unlink($tmp);
                 return $ok;
@@ -357,6 +468,10 @@
     {
         if (isVideo($rel))
             return canThumbVideo() ? thumbQuery($rel, $full) : null;
+        // a picture over the limits is never decoded, nor sent to the browser
+        // in its place: it gets the placeholder
+        if (imageLimitError($full, false) !== null)
+            return null;
         if (hasGd())
             return thumbQuery($rel, $full);
 
@@ -431,11 +546,13 @@
             && substr($head, 12, 4) === 'VP8X' && (ord($head[20]) & 0x02);
     }
 
-    // a picture as a true colour GD image (the first frame of an animated GIF or WebP), or false
-    function loadImage($source)
+    // a picture as a true colour GD image (the first frame of an animated GIF or
+    // WebP), or false; also when it is over the limits (imageLimitError()) or GD
+    // would not have room for $copies of it
+    function loadImage($source, $copies = 1)
     {
         $info = @getimagesize($source);
-        if (!$info)
+        if (!$info || imageLimitError($source, false) !== null || !gdFits($info[0], $info[1], $copies))
             return false;
 
         switch ($info[2]) {
@@ -532,6 +649,8 @@
     // saves a picture as WebP, keeping transparency and the colour profile
     function convertToWebp($source, $target, $quality = null)
     {
+        if (imageLimitError($source) !== null)
+            return false;
         $info = @getimagesize($source);
         if ($quality === null)
             $quality = webpQualityOf($source);
@@ -778,8 +897,9 @@
         }
 
         if (!is_file($cache)) {
-            // no thumbnail possible: the picture itself has to do, a video gets none
-            if ($video)
+            // no thumbnail possible: the picture itself has to do, a video and a
+            // picture over the limits get none
+            if ($video || imageLimitError($file[0], false) !== null)
                 http_response_code(404);
             else
                 header('Location: ' . fileUrl($file[1]));
@@ -1900,7 +2020,8 @@
         if ($ext === 'webp' && (!function_exists('imagewebp') || isAnimatedWebp($path)))
             return false;
 
-        $img = loadImage($path);
+        // the picture and the turned one are in memory at once
+        $img = loadImage($path, 2);
         if (!$img)
             return false;
         $rotated = imagerotate($img, $angle, imagecolorallocatealpha($img, 0, 0, 0, 127));
@@ -2288,6 +2409,8 @@
             return 'tego pliku nie można zamienić na WebP';
         if ($ext === 'webp' && isAnimatedWebp($full))
             return 'animowanego WebP nie da się przeliczyć';
+        if (($why = imageLimitError($full)) !== null)
+            return $why;
 
         $dir = webpPreviewDir();
         if (!is_dir($dir) && !@mkdir($dir, 0750, true))
@@ -2676,6 +2799,11 @@
         }
         if (!canConvertImageToWebp($ext)) {
             finishMediaJob($job, 'failed', $isGif ? 'serwer nie umie zamienić GIF-a (brak gif2webp)' : 'serwer nie umie zapisać WebP');
+            return;
+        }
+        // one from before the limits stays as it is
+        if (($why = imageLimitError($full)) !== null) {
+            finishMediaJob($job, 'failed', $why . '; oryginał zostaje');
             return;
         }
 
@@ -3343,7 +3471,7 @@
                     if (is_file($item[0]) && rotateImage($item[0], $left ? 90 : -90))
                         $rotated[] = galleryPath($item[1]);
                     else
-                        $skipped[] = basename($item[1]);
+                        $skipped[] = basename($item[1]) . (is_file($item[0]) && isImage($item[0]) && ($why = imageLimitError($item[0])) !== null ? ' (' . $why . ')' : '');
                 }
 
                 if ($rotated)
@@ -3609,6 +3737,10 @@
         // the extension alone is not enough, the content has to match it
         if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name']))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
+        // nor the size of the file: a small one can hold a huge picture, which
+        // is refused before anything is kept or decoded
+        if (!isVideo($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
+            reply(false, $name . ': ' . $why . '.', 413);
 
         // an account with a folder of its own: only pictures, within its limits,
         // counted over its whole folder with the subfolders; the folder is held

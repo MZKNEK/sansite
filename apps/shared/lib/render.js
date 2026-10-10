@@ -10,25 +10,71 @@ const makeCanvas = (w, h) => {
   return c;
 };
 
-// the last few pictures stay decoded, so moving the crop does not load them again
+// The last pictures stay decoded, so moving the crop does not load them again:
+// at most CACHE_PICTURES of them and CACHE_BYTES of pixels in all, the one used
+// longest ago going first (a photo of 24 MP alone takes 96 MB).
+const CACHE_PICTURES = 4;
+const CACHE_BYTES = 256 * 1024 * 1024;
 const cache = new Map();
+let cachedBytes = 0;
+
+function forget(url) {
+  const entry = cache.get(url);
+  if (!entry) return;
+  cachedBytes -= entry.bytes;
+  cache.delete(url);
+}
+
+// drops the oldest until the cache fits; the one asked for now stays
+function trim(keep) {
+  for (const url of [...cache.keys()]) {
+    if (cache.size <= CACHE_PICTURES && cachedBytes <= CACHE_BYTES) return;
+    if (url !== keep) forget(url);
+  }
+}
 
 function pixelsOf(url) {
-  if (!cache.has(url)) {
-    const job = (async () => {
-      const res = await fetch(url, { mode: 'cors' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const bitmap = await createImageBitmap(await res.blob());
-      const g = makeCanvas(bitmap.width, bitmap.height).getContext('2d', { willReadFrequently: true });
-      g.drawImage(bitmap, 0, 0);
-      bitmap.close();
-      return g.getImageData(0, 0, g.canvas.width, g.canvas.height);
-    })();
-    cache.set(url, job);
-    job.catch(() => cache.delete(url));
-    while (cache.size > 4) cache.delete(cache.keys().next().value);
+  let entry = cache.get(url);
+  if (entry) {
+    // used now: the newest again
+    cache.delete(url);
+    cache.set(url, entry);
+    return entry.job;
   }
-  return cache.get(url);
+  entry = { bytes: 0 };
+  entry.job = (async () => {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const bitmap = await createImageBitmap(await res.blob());
+    const g = makeCanvas(bitmap.width, bitmap.height).getContext('2d', { willReadFrequently: true });
+    g.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return g.getImageData(0, 0, g.canvas.width, g.canvas.height);
+  })();
+  cache.set(url, entry);
+  entry.job.then((data) => {
+    if (cache.get(url) !== entry) return;
+    entry.bytes = data.data.length;
+    cachedBytes += entry.bytes;
+    trim(url);
+  }, () => forget(url));
+  trim(url);
+  return entry.job;
+}
+
+// how many pictures the cache holds and their bytes (for the tests)
+export function cachedPictures() {
+  return { count: cache.size, bytes: cachedBytes };
+}
+
+// the pixels of a picture no longer shown (its blob: address was let go), or all
+export function forgetPixels(url = null) {
+  if (url === null) {
+    cache.clear();
+    cachedBytes = 0;
+  } else {
+    forget(url);
+  }
 }
 
 /**
@@ -53,7 +99,9 @@ export async function renderCrop({ src, percent, width, height, mask = null, sha
     let m = await pixelsOf(mask);
     if (m.width !== width || m.height !== height) {
       const g = makeCanvas(width, height).getContext('2d', { willReadFrequently: true });
-      g.drawImage(await createImageBitmap(m), 0, 0, width, height);
+      const bitmap = await createImageBitmap(m);
+      g.drawImage(bitmap, 0, 0, width, height);
+      bitmap.close();
       m = g.getImageData(0, 0, width, height);
     }
     const d = out.data, md = m.data;

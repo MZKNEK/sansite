@@ -45,6 +45,9 @@ jobs:
             node --check "$file" || exit 1
           done
 
+      - name: Test the shared code of the croppers
+        run: node --test apps/shared/test/*.test.mjs
+
       - name: Build Skalpelator and USkalpelator
         run: tools/build-apps.sh
 

@@ -1,5 +1,5 @@
 <script>
-  import { untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import Stars from './lib/StarSettings.svelte';
   import Segmented from '../../shared/lib/Segmented.svelte';
   import Switch from '../../shared/lib/Switch.svelte';
@@ -13,7 +13,8 @@
   import GalleryPick from '../../shared/lib/GalleryPick.svelte';
 
   import Cropper from "svelte-easy-crop";
-	import { getCroppedImg, getCroppedCanvas, getMirroredImg, cropOnScreen } from "../../shared/lib/CanvasUtils.js"
+	import { getCroppedImg, getCroppedCanvas, getMirroredImg, cropOnScreen, forgetPicture, closeRenderer } from "../../shared/lib/CanvasUtils.js"
+  import { ownedUrls } from '../../shared/lib/ownedUrls.js';
 
   import cardboard  from './assets/empty.webp'
   import def        from './assets/shield.webp'
@@ -70,22 +71,38 @@
   let previewUrl = $state('');
   let previewStale = $state(true);
   let previewTimer;
+  // grows with every change the preview has to follow, so a render begun
+  // before it, which ends later, is dropped instead of shown as the new one
   let previewToken = 0;
+
+  // the blob: addresses this app made (the preview, the mirrored picture, the
+  // file being downloaded), let go when they are replaced and when the app goes
+  const urls = ownedUrls(forgetPicture);
+  let destroyed = false;
+
+  onMount(() => () => {
+    // what is still under way finds the app gone and leaves its result
+    destroyed = true;
+    clearTimeout(previewTimer);
+    previewToken++;
+    urls.releaseAll();
+    closeRenderer();
+  });
 
   function schedulePreview() {
     previewStale = true;
+    previewToken++;
     clearTimeout(previewTimer);
     if (!editMode || !realPreview || !cropPercent) return;
     previewTimer = setTimeout(updatePreview, 200);
   }
 
   async function updatePreview() {
-    const token = ++previewToken;
+    const token = previewToken;
     try {
-      const url = await getCroppedImg(image, currentCrop(), { ...card, sharpen });
-      if (token !== previewToken) { URL.revokeObjectURL(url); return; }
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      previewUrl = url;
+      const url = urls.own(await getCroppedImg(image, currentCrop(), { ...card, sharpen }));
+      if (destroyed || token !== previewToken) { urls.release(url); return; }
+      previewUrl = urls.replace(previewUrl, url);
       previewStale = false;
     } catch (error) {
       // the cropper still shows the picture; saving reports the error
@@ -113,20 +130,31 @@
 
   async function downloadImage() {
     try {
-      const croppedImage = await renderCard();
+      const croppedImage = urls.own(await renderCard());
       const downloadLink = document.createElement("a");
       downloadLink.href = croppedImage;
       downloadLink.download = "skalpelek.png";
       downloadLink.click();
+      // let go once the download has begun: before the click there would be
+      // nothing to save, and some browsers read it a moment after
+      setTimeout(() => urls.release(croppedImage), 10000);
     } catch (error) {
       alert("Nie udało się pobrać obrazka, spróbuj z innym lub użyj lokalnego pliku.");
     }
 	}
 
   async function toMirrorImage() {
+    // the picture it starts from: when another is chosen meanwhile, the
+    // mirrored one is for a picture no longer there and is dropped
+    const source = image;
     try {
-      const croppedImage = await getMirroredImg(image);
-      image = croppedImage;
+      const mirrored = urls.own(await getMirroredImg(source));
+      if (destroyed || image !== source) {
+        urls.release(mirrored);
+        return;
+      }
+      // the mirrored picture before it, if this was one, is no longer shown
+      image = urls.replace(image, mirrored);
       localImage = true;
     } catch (error) {
       alert("Nie udało się pobrać obrazka, spróbuj z innym lub użyj lokalnego pliku.");
@@ -141,7 +169,8 @@
 
   // a picture of the account's own folder in the gallery, by its link
   function onPick(url) {
-    image = url;
+    imageReads++;
+    image = urls.replace(image, url);
     fileName = '';
     localImage = false;
     editMode = false;
@@ -149,18 +178,23 @@
     curzoom = 1;
   }
 
+  // every file asked for counts, so one read more slowly than the next does
+  // not put itself in its place when it ends
+  let imageReads = 0;
+
   function readImageFile(imageFile) {
     if (!imageFile.type.startsWith('image/')) {
       alert('Proszę przeciągnąć plik obrazu JPG lub PNG.');
       return;
     }
 
+    const read = ++imageReads;
     const reader = new FileReader();
     reader.onload = (event) => {
       const result = event.target?.result;
-      if (typeof result !== 'string') return;
+      if (typeof result !== 'string' || destroyed || read !== imageReads) return;
 
-      image = result;
+      image = urls.replace(image, result);
       localImage = true;
       editMode = false;
       minzoom = 1;

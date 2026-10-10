@@ -1,4 +1,4 @@
-import { renderCrop } from './render.js'
+import { renderCrop, forgetPixels } from './render.js'
 
 const createImage = (url) =>
   new Promise((resolve, reject) => {
@@ -45,6 +45,25 @@ function getWorker() {
     workerFailed = true
   }
   return worker
+}
+
+// The pixels decoded from a picture no longer shown, on the page and in the
+// worker: revoking its blob: address does not free them.
+export function forgetPicture(url) {
+  if (!url) return
+  const href = new URL(url, location.href).href
+  forgetPixels(href)
+  worker?.postMessage({ forget: href })
+}
+
+// Done with the renderer (the app goes away): the worker stops, the crops still
+// waiting for it fail instead of waiting for good, and the decoded pictures go.
+export function closeRenderer() {
+  worker?.terminate()
+  worker = null
+  for (const job of pending.values()) job.reject(new Error('Renderer closed'))
+  pending.clear()
+  forgetPixels()
 }
 
 function render(job) {
