@@ -75,6 +75,7 @@
     require_once __DIR__ . '/../inc/autoblock.php';
     require_once __DIR__ . '/../inc/services.php';
     require_once __DIR__ . '/../inc/meta.php';
+    require_once __DIR__ . '/../inc/maintenance.php';
 
     // a real session for the tests that need a logged-in account; start it with
     // sessionFor() and close it with sessionEnd() when done

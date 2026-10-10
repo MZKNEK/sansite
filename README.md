@@ -36,6 +36,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 | `alive/` | The bot's report sent by the bot itself, kept for `inc/bot.php` |
 | `inc/bot.php` | Bot API access: the bot's `api/health` (Discord connection and ping, database, Shinden, commands; the command list where a bot has no `api/health` yet), one-minute cache, 24 h check history with the ping, per day counts, outages, notice and maintenance breaks, last known command list and its changes, the versions it reported and when they changed, the moderator and debug commands fetched with the site's key |
 | `inc/check-bot.php` | One bot check, run by cron every minute; every 5 minutes also the other sites, once a day it removes the thumbnails nobody looked at for 30 days, and it changes the pictures and films uploaded since the last run to WebP or WebM in the background |
+| `inc/maintenance.php`, `inc/run-maintenance.php` | The cleanup of the gallery's data, run by its own cron job every 10 minutes: operations on the trash cut short are finished or undone from their notes in `inc/data/operations/`, and the trash past its days is deleted within a time budget (`--dry-run` by hand) |
 | `inc/media-worker.php` | Changes the pictures and films waiting as WebP or WebM by hand, e.g. after cron was off; normally `inc/check-bot.php` does it |
 | `inc/system.php` | The server's resources for the panel, read from Linux's `/proc` when the panel opens (the processor use comes from the background check, `inc/diag.php`, so opening the panel does not wait) |
 | `inc/diag.php`, `inc/check-site.php` | Availability of the site, checked by cron every 10 seconds through Cloudflare and straight on the server, with the kernel's TCP counters, the state of nginx and PHP-FPM, the use of the processor and memory and the requests from the site's nginx log; the scanners and the PHP time per page from the same log; kept 3 days in `inc/data/diag/` (left out of the backup) |
@@ -67,7 +68,7 @@ The top right corner of the home page logs in with Discord (`account.php`); the 
 
 Kept out of git:
 - `inc/config.php`, which holds the Discord application secret,
-- `inc/data/`, the data the site writes: access lists and requests, the roles the bot reported, status history and outages, change history, version changes and the changelog read from the bot's repository, trash, the old links of pictures changed to WebP and of films changed to WebM, the pictures and films waiting as WebP or WebM (`media-jobs.json`), the WebP results of a manual change waiting to be accepted (`webp-previews.json`, their files in `webp-preview/`), the WebP conversion qualities and the automatic scanner blocking (`settings.json`), file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup), the empty lock files of the data (`locks/`, also left out; never to be removed while the site runs), and the gallery and `inc/data` numbers the panel shows (`panel-stats.json`, counted by cron),
+- `inc/data/`, the data the site writes: access lists and requests, the roles the bot reported, status history and outages, change history, version changes and the changelog read from the bot's repository, trash, the old links of pictures changed to WebP and of films changed to WebM, the pictures and films waiting as WebP or WebM (`media-jobs.json`), the WebP results of a manual change waiting to be accepted (`webp-previews.json`, their files in `webp-preview/`), the WebP conversion qualities and the automatic scanner blocking (`settings.json`), file hashes, the time sessions are valid from, the thumbnail cache (`thumbs/`, left out of the backup), the empty lock files of the data (`locks/`, also left out; never to be removed while the site runs), the notes of operations on the trash in progress (`operations/`) and how the last cleanup went (`maintenance.json`), and the gallery and `inc/data` numbers the panel shows (`panel-stats.json`, counted by cron),
 - the pictures in `i/` (only `i/index.php` is tracked).
 
 The panel downloads `inc/data/`, optionally with the pictures, as one ZIP (server card, "Kopia danych"). To restore it, unpack `data/` into `inc/data/` and `i/` into `i/`, then give them back to the web server: `chown -R www-data:www-data inc/data i`.
@@ -238,6 +239,14 @@ echo '* * * * * www-data php /var/www/html/inc/check-site.php > /dev/null 2>&1' 
 ```
 
 The "Dostępność strony" card of the panel lists what is still missing on the server (curl, the log, the state pages, the slow log).
+
+The cleanup of the gallery's data, its own job every 10 minutes, so it neither waits on the bot checks nor holds them up:
+
+```bash
+echo '*/10 * * * * www-data php /var/www/html/inc/run-maintenance.php > /dev/null 2>&1' > /etc/cron.d/sanakan-maintenance
+```
+
+It finishes or undoes a move to the trash or a restore cut short (each is noted in `inc/data/operations/` before it starts; one that is unclear, the file in both places or in neither, is only reported), then deletes the trash entries past 30 days, the oldest first, for at most 20 seconds a run; a big folder goes in parts, and is no longer restorable once begun. Folders in the trash without an entry are reported, never deleted. `inc/data/maintenance.json` keeps the last run; the panel shows it at the trash and warns when no run went well for 2 hours. By hand: `sudo -u www-data php /var/www/html/inc/run-maintenance.php --dry-run` says what it would do.
 
 ## Deployment
 

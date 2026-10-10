@@ -238,11 +238,11 @@ old_stop() {
         echo "  cron ${f##*/} wyłączony (leży w $WORK/cron.d-off/)"
     done
     for i in $(seq 1 24); do
-        pgrep -f "$SITE/inc/(check-bot|check-site|media-worker)\.php" >/dev/null || break
+        pgrep -f "$SITE/inc/(check-bot|check-site|media-worker|run-maintenance)\.php" >/dev/null || break
         [ "$i" -gt 1 ] || echo "  czekam, aż skończą się trwające sprawdzenia z crona..."
         sleep 5
     done
-    if pgrep -f "$SITE/inc/(check-bot|check-site|media-worker)\.php" >/dev/null; then
+    if pgrep -f "$SITE/inc/(check-bot|check-site|media-worker|run-maintenance)\.php" >/dev/null; then
         warn "Sprawdzenia z crona wciąż trwają po 2 minutach, kopiuję mimo to."
     fi
     if [ -n "$unit" ]; then

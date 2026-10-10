@@ -1378,13 +1378,14 @@
         }
     }
 
-    function removeTree($path)
+    function removeTree($path, $deadline = null)
     {
         if (is_link($path) || is_file($path))
             return @unlink($path);
 
+        // past $deadline (microtime) it stops, what is removed stays removed
         foreach (@scandir($path) ?: [] as $name)
-            if ($name !== '.' && $name !== '..' && !removeTree($path . '/' . $name))
+            if ($name !== '.' && $name !== '..' && (($deadline !== null && microtime(true) >= $deadline) || !removeTree($path . '/' . $name, $deadline)))
                 return false;
 
         return @rmdir($path);
@@ -2907,6 +2908,37 @@
         return fileLock(dataLockFile('trash-ops'), true);
     }
 
+    // ---- The log of operations ---------------------------------------------------
+    // A move to the trash and a restore change the disk and then the trash's
+    // index; a process killed between the two would leave a file without its
+    // entry or an entry without its file. So each is noted in
+    // inc/data/operations/<id>.json before it starts ('kind' trash or restore,
+    // the trash entry, where the file was and where it goes) and the note is
+    // removed once both are done or undone. Notes left behind are finished or
+    // undone by the maintenance (recoverOperations() in inc/maintenance.php).
+
+    function operationsDir()
+    {
+        return dataDir() . '/operations';
+    }
+
+    // the id of the note, or null when it could not be written (the operation
+    // then does not start)
+    function beginOperation($operation)
+    {
+        $id = date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $dir = operationsDir();
+        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir))
+            return null;
+
+        return writeJsonFile($dir . '/' . $id . '.json', ['format' => 1, 'started' => time()] + $operation) ? $id : null;
+    }
+
+    function endOperation($id)
+    {
+        @unlink(operationsDir() . '/' . $id . '.json');
+    }
+
     // Moves a file or folder to the trash; false when it stays where it is, with
     // the reason in $error when it is one the visitor can do something about.
     // What is deleted from the folder of an account counts against its trash
@@ -2940,30 +2972,31 @@
             if (!@mkdir($dir, 0750, true))
                 return false;
 
-            $folder = is_dir($full);
-            if (!@rename($full, $dir . '/' . basename($rel))) {
-                @rmdir($dir);
-                return false;
-            }
-
             $user = siteUser();
             $item = [
                 'name' => basename($rel),
                 'from' => $rel,
-                'folder' => $folder,
+                'folder' => is_dir($full),
                 'size' => $size,
                 'deleted' => time(),
                 'by' => $user['name'] ?? ''
             ] + ($owner !== null ? ['owner' => $owner] : []);
-            if (updateData('trash', function (&$items) use ($id, $item) { $items[$id] = $item; }))
-                return true;
+            $operation = beginOperation(['kind' => 'trash', 'trash' => $id, 'src' => $full, 'dst' => $dir . '/' . basename($rel), 'item' => $item]);
+            if ($operation === null || !@rename($full, $dir . '/' . basename($rel))) {
+                @rmdir($dir);
+                if ($operation !== null)
+                    endOperation($operation);
+                return false;
+            }
 
+            $ok = updateData('trash', function (&$items) use ($id, $item) { $items[$id] = $item; });
             // without its entry the file could not be found or brought back: it
             // goes back where it was
-            if (@rename($dir . '/' . basename($rel), $full))
+            if (!$ok && @rename($dir . '/' . basename($rel), $full))
                 @rmdir($dir);
+            endOperation($operation);
 
-            return false;
+            return $ok;
         } finally {
             if ($release !== null)
                 $release();
@@ -3002,6 +3035,10 @@
                 $error = 'Tego już nie ma w koszu, odśwież stronę.';
                 return null;
             }
+            if (!empty($item['purging'])) {
+                $error = $item['name'] . ' jest właśnie usuwane na zawsze (minęło ' . TRASH_DAYS . ' dni).';
+                return null;
+            }
 
             $from = $item['from'];
             if ($owner !== null && ($current = userFolder($base, $owner)) !== null)
@@ -3018,7 +3055,10 @@
             $folderRel = dirname($from) === '.' ? '' : dirname($from);
             $folder = $base . ($folderRel === '' ? '' : '/' . $folderRel);
             $name = (is_dir($folder) || @mkdir($folder, 0755, true)) ? freeName($folder, $item['name']) : null;
-            if ($name === null || !@rename($source, $folder . '/' . $name)) {
+            $operation = $name === null ? null : beginOperation(['kind' => 'restore', 'trash' => $id, 'src' => $source, 'dst' => $folder . '/' . $name]);
+            if ($operation === null || !@rename($source, $folder . '/' . $name)) {
+                if ($operation !== null)
+                    endOperation($operation);
                 $error = 'Nie udało się przywrócić ' . $item['name'] . '.';
                 return null;
             }
@@ -3026,10 +3066,12 @@
             if (!updateData('trash', function (&$items) use ($id) { unset($items[$id]); })) {
                 // the entry would stay without its file: the file goes back to the trash
                 @rename($folder . '/' . $name, $source);
+                endOperation($operation);
                 $error = 'Nie udało się przywrócić ' . $item['name'] . '.';
                 return null;
             }
             @rmdir(trashDir() . '/' . $id);
+            endOperation($operation);
 
             return ltrim($folderRel . '/' . $name, '/');
         } finally {
@@ -3039,22 +3081,42 @@
         }
     }
 
-    // the entry goes only once its files are gone; what could not be removed
-    // stays in the trash to be tried again
     function deleteFromTrash($id)
+    {
+        return purgeTrashEntry($id) === 'done';
+    }
+
+    // Deletes a trash entry for good, its files first, the entry only once they
+    // are gone. 'done'; 'partial' when $deadline (microtime) came in a big
+    // folder: the entry, marked 'purging', cannot be restored any more and is
+    // finished later; 'skipped' when it is gone, or with $expiredBefore no
+    // longer older than that once looked at under the lock; 'failed' when a file
+    // would not go (the entry stays to be tried again). The lock is held only
+    // for one call, so a restore waits at most that long.
+    function purgeTrashEntry($id, $expiredBefore = null, $deadline = null)
     {
         $lock = trashLock();
         if ($lock === null)
-            return false;
+            return 'failed';
 
         try {
             forgetData('trash');
-            if (!isset(readData('trash')[$id]))
-                return false;
-            if (!removeTree(trashDir() . '/' . $id) && file_exists(trashDir() . '/' . $id))
-                return false;
+            $item = readData('trash')[$id] ?? null;
+            if ($item === null)
+                return 'skipped';
+            if ($expiredBefore !== null && empty($item['purging']) && ($item['deleted'] ?? 0) >= $expiredBefore)
+                return 'skipped';
+            if (empty($item['purging']) && !updateData('trash', function (&$items) use ($id) {
+                    if (isset($items[$id]))
+                        $items[$id]['purging'] = time();
+                }))
+                return 'failed';
 
-            return updateData('trash', function (&$items) use ($id) { unset($items[$id]); });
+            $path = trashDir() . '/' . $id;
+            if (file_exists($path) && !removeTree($path, $deadline) && file_exists($path))
+                return $deadline !== null && microtime(true) >= $deadline ? 'partial' : 'failed';
+
+            return updateData('trash', function (&$items) use ($id) { unset($items[$id]); }) ? 'done' : 'failed';
         } finally {
             fclose($lock);
         }
@@ -3115,12 +3177,15 @@
     }
 
     // what has been in the trash longer than TRASH_DAYS goes for good; with
-    // $owner only what was deleted from the folder of that account
+    // $owner only what was deleted from the folder of that account (a full
+    // trash of an account makes room so). The rest is done by the maintenance
+    // (inc/maintenance.php) from its own cron job.
     function purgeTrash($owner = null)
     {
+        $expiredBefore = time() - TRASH_DAYS * 86400;
         foreach (readData('trash') as $id => $item)
-            if (($item['deleted'] ?? 0) < time() - TRASH_DAYS * 86400 && ($owner === null || trashOwner($item) === (string)$owner))
-                deleteFromTrash($id);
+            if (($item['deleted'] ?? 0) < $expiredBefore && ($owner === null || trashOwner($item) === (string)$owner))
+                purgeTrashEntry((string)$id, $expiredBefore);
     }
 
     function iniBytes($value)
@@ -3248,7 +3313,6 @@
                 done('mkdir', 'Utworzono folder ' . galleryPath(ltrim($dir[1] . '/' . $name, '/')) . '.');
 
             case 'delete':
-                purgeTrash();
                 $items = postedItems($base);
                 $trashed = [];
                 $failed = [];

@@ -6,6 +6,7 @@
     require __DIR__ . '/../inc/bot.php';
     require __DIR__ . '/../inc/services.php';
     require __DIR__ . '/../inc/gallery.php';
+    require __DIR__ . '/../inc/maintenance.php';
     require __DIR__ . '/../inc/status-card.php';
     require_once __DIR__ . '/../inc/system.php';
     require __DIR__ . '/../inc/diag.php';
@@ -826,6 +827,11 @@
         $cronLate = $cronLast === null || time() - $cronLast > CRON_LATE;
         $cronCommand = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-bot.php'))
             . " > /dev/null 2>&1' > /etc/cron.d/sanakan-status";
+        // the cleanup of the trash, its own cron job (inc/run-maintenance.php)
+        $maintenance = maintenanceState();
+        $maintenanceLate = maintenanceLate();
+        $maintenanceCommand = "echo '*/10 * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/run-maintenance.php'))
+            . " > /dev/null 2>&1' > /etc/cron.d/sanakan-maintenance";
         $thumbFiles = $thumbs['files'];
         $thumbBytes = $thumbs['bytes'];
         $specFile = botFile('swagger.json');
@@ -856,7 +862,6 @@
         $diagCron = "echo '* * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../inc/check-site.php'))
             . " > /dev/null 2>&1' > /etc/cron.d/sanakan-site";
 
-        purgeTrash();
         $trash = trashItems();
         $shares = activeShares();
         uasort($shares, function ($a, $b) { return $b['created'] <=> $a['created']; });
@@ -1029,7 +1034,7 @@
       <nav class="admin-nav" id="admin-nav" aria-label="Sekcje panelu"></nav>
       <div class="panel-grid">
 
-<?php $alertCount = count($requests ?: []) + ($cronLate ? 1 : 0) + ($dataHeavy ? 1 : 0); ?>
+<?php $alertCount = count($requests ?: []) + ($cronLate ? 1 : 0) + ($maintenanceLate ? 1 : 0) + ($dataHeavy ? 1 : 0); ?>
 <?php if ($alertCount): ?>
       <h2 class="panel-section" data-section="wymaga" data-label="Wymaga uwagi" data-count="<?=$alertCount?>">Wymaga uwagi</h2>
 <?php endif; ?>
@@ -1042,6 +1047,20 @@
             : 'Ostatnie automatyczne sprawdzenie było ' . e(ago($cronLast)) . ' (' . e(date('j.m H:i', $cronLast)) . ').'?>
           Bez niego historia dostępności ma dziury, a awarie, gdy nikt nie odwiedza strony, nie są zapisywane.</p>
         <p class="hint">Zadanie cron (na serwerze, jako root): <code><?=e($cronCommand)?></code><br />Czy cron działa: <code>systemctl status cron</code></p>
+      </section>
+<?php endif; ?>
+
+<?php if ($maintenanceLate): $tried = (int)($maintenance['tried'] ?? 0); $succeeded = (int)($maintenance['succeeded'] ?? 0); ?>
+      <section class="card wide alarm" role="alert" data-state="warn" data-sum="<?=e($succeeded ? ago($succeeded) : 'brak')?>">
+        <h2><i>!</i>Kosz się nie sprząta</h2>
+        <p><?=$tried === 0
+            ? 'Porządki (usuwanie z kosza po ' . TRASH_DAYS . ' dniach, dokańczanie przerwanych operacji) jeszcze ani razu nie ruszyły.'
+            : 'Ostatnie udane porządki: ' . ($succeeded ? e(ago($succeeded)) : 'jeszcze żadne') . '; ostatnia próba ' . e(ago($tried)) . '.'?>
+<?php foreach ($maintenance['last']['problems'] ?? [] as $problem): ?>
+          <br /><b class="warn"><?=e($problem)?></b>
+<?php endforeach; ?>
+        </p>
+        <p class="hint">Zadanie cron (na serwerze, jako root): <code><?=e($maintenanceCommand)?></code><br />Ręcznie: <code>sudo -u www-data php <?=e(str_replace('\\', '/', realpath(__DIR__ . '/../inc/run-maintenance.php')))?> --dry-run</code></p>
       </section>
 <?php endif; ?>
 
@@ -1295,7 +1314,9 @@
 
       <section class="card wide" data-sum="<?=count($trash)?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Kosz</h2>
-        <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.</p>
+        <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.
+          Porządki: <?=isset($maintenance['succeeded']) ? 'ostatnio ' . e(ago((int)$maintenance['succeeded'])) : 'jeszcze nie ruszyły'?><?php
+          $backlog = (int)($maintenance['last']['backlog'] ?? 0); if ($backlog): ?>, zaległe <?=$backlog?> <?=plural($backlog, 'element', 'elementy', 'elementów')?><?php endif; ?>.</p>
 <?php if (!$trash): ?>
         <p class="nobody">Kosz jest pusty.</p>
 <?php else: ?>
