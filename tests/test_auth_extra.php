@@ -83,14 +83,28 @@
         sessionEnd();
 
         $saved = $_SERVER['SCRIPT_NAME'] ?? null;
+        $savedFile = $_SERVER['SCRIPT_FILENAME'] ?? null;
         $_SERVER['SCRIPT_NAME'] = '/i/index.php';
         assertSame('/', siteRoot());
         $_SERVER['SCRIPT_NAME'] = '/sub/i/index.php';
         assertSame('/sub/', siteRoot());
-        if ($saved === null)
-            unset($_SERVER['SCRIPT_NAME']);
-        else
-            $_SERVER['SCRIPT_NAME'] = $saved;
+
+        // with the page's file: any depth, also a page in the root
+        $site = str_replace('\\', '/', dirname(__DIR__));
+        foreach (['/state/wersje/index.php', '/cmd/zmiany/index.php', '/admin/index.php', '/account.php'] as $page) {
+            $_SERVER['SCRIPT_FILENAME'] = $site . $page;
+            $_SERVER['SCRIPT_NAME'] = $page;
+            assertSame('/', siteRoot(), $page);
+            $_SERVER['SCRIPT_NAME'] = '/sub' . $page;
+            assertSame('/sub/', siteRoot(), '/sub' . $page);
+        }
+
+        foreach (['SCRIPT_NAME' => $saved, 'SCRIPT_FILENAME' => $savedFile] as $key => $value) {
+            if ($value === null)
+                unset($_SERVER[$key]);
+            else
+                $_SERVER[$key] = $value;
+        }
     });
 
     test('noteAccountAddress notes the address and the device', function () {

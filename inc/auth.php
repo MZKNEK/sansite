@@ -80,10 +80,25 @@
             && defined('DISCORD_CLIENT_SECRET') && defined('DISCORD_REDIRECT_URI');
     }
 
-    // URL path of the site root, e.g. "/", worked out from the page in i/ or admin/
+    // URL path of the site root, e.g. "/": the page's address (SCRIPT_NAME)
+    // less the page's place in the site's folder, so a page at any depth
+    // (admin/, state/wersje/) gets the same root. Without the page's file in
+    // the site's folder, the page is taken to be one folder deep (i/, admin/).
     function siteRoot()
     {
-        $root = str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/x/index.php')));
+        $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/x/index.php'));
+        $site = realpath(dirname(__DIR__));
+        $file = isset($_SERVER['SCRIPT_FILENAME']) ? realpath((string)$_SERVER['SCRIPT_FILENAME']) : false;
+        if ($site !== false && $file !== false) {
+            $site = str_replace('\\', '/', $site);
+            $file = str_replace('\\', '/', $file);
+            // "/state/wersje/index.php" of the page, when SCRIPT_NAME ends with it
+            $inSite = strpos($file, $site . '/') === 0 ? substr($file, strlen($site)) : '';
+            if ($inSite !== '' && substr($script, -strlen($inSite)) === $inSite)
+                return substr($script, 0, -strlen($inSite)) . '/';
+        }
+
+        $root = str_replace('\\', '/', dirname(dirname($script)));
 
         return rtrim($root, '/') . '/';
     }
