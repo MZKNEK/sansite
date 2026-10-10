@@ -548,27 +548,29 @@
     }
 
     // ---- The look of the HUD ---------------------------------------------------
-    // Each account may let its role on the bot's server colour the HUD, chosen
-    // in its profile (/account/). The default is the site's own purple, so
-    // nothing changes until it is picked; the setting is kept in inc/data/hud.json.
+    // Each account picks in its profile (/account/) how much of the HUD takes a
+    // colour, and an account with a role on the bot's server (user and up) also
+    // which colour. The default is the site's own purple, so nothing changes
+    // until it is picked; the setting is kept in inc/data/hud.json.
 
     const HUD_MODES = [
-        'default' => 'Domyślnie (fiolet strony)',
-        'accent'  => 'Tylko akcenty w kolorze roli',
-        'full'    => 'Cały HUD w kolorze roli'
+        'default' => 'Domyślny (fiolet strony)',
+        'accent'  => 'Kolor tylko w akcentach',
+        'full'    => 'Kolor na całym HUD'
     ];
 
-    // the colours a panel admin may put on the HUD: its own role, or any of the
-    // roles (and the grey of an account off the server)
+    // the colours of the HUD: the one of the account's own role, or any of the
+    // others. The keys are the roles they come from (the role-* classes of the
+    // CSS and what hud.json keeps), the names say the colour itself.
     const HUD_COLORS = [
-        'own'       => 'Moja rola',
-        'dev'       => 'DEV',
-        'admin'     => 'ADMIN',
-        'semiAdmin' => 'SEMI-ADMIN',
-        'tester'    => 'TESTER',
-        'moderator' => 'MOD',
-        'user'      => 'USER',
-        'out'       => 'Poza serwerem'
+        'own'       => 'Kolor mojej roli',
+        'dev'       => 'Turkus',
+        'admin'     => 'Czerwień',
+        'semiAdmin' => 'Pomarańcz',
+        'tester'    => 'Złoto',
+        'moderator' => 'Zieleń',
+        'user'      => 'Fiolet',
+        'out'       => 'Szarość'
     ];
 
     // every role colour as a hex, for the swatches in the profile
@@ -614,6 +616,14 @@
         return $color === 'own' ? (string)($badge['key'] ?? '') : $color;
     }
 
+    // who picks the colour: an account with a role on the bot's server (user
+    // and up, $badge of roleBadge()) and the panel admins; the others keep the
+    // colour of their own role, which for them is the site's purple
+    function canPickHudColor($id, $badge)
+    {
+        return isPanelAdminId($id) || isset(BOT_ROLES[$badge['key'] ?? '']);
+    }
+
     function setHud($id, $mode, $color)
     {
         if (!isset(HUD_MODES[$mode]) || !isset(HUD_COLORS[$color]))
@@ -630,7 +640,7 @@
 
     // the attributes for <html> that put the chosen HUD and its colour on the
     // page; nothing when the visitor is not logged in. data-hud-own keeps the
-    // account's own role, so the profile can put it back for "Moja rola".
+    // account's own role, so the profile can put it back for "Kolor mojej roli".
     function hudHtmlAttributes($user)
     {
         if ($user === null)

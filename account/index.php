@@ -46,12 +46,12 @@
             }
         } else if (($_POST['action'] ?? '') === 'hud') {
             $mode = (string)($_POST['hud'] ?? '');
-            // the colour is a panel admin's choice; others keep their own role
-            $color = isPanelAdminId($user['id']) ? (string)($_POST['hudcolor'] ?? 'own') : 'own';
+            // the colour is picked from the role user up; the others keep their own
+            $color = canPickHudColor($user['id'], roleBadge(siteRoles())) ? (string)($_POST['hudcolor'] ?? 'own') : 'own';
             if (!setHud($user['id'], $mode, $color)) {
                 setFlash('Nie udało się zapisać wyglądu, spróbuj później.');
             } else {
-                addHistory('hud', 'Zmieniono wygląd na: ' . HUD_MODES[$mode] . '.');
+                addHistory('hud', 'Zmieniono wygląd na: ' . HUD_MODES[$mode] . ($mode !== 'default' ? ', ' . lower(HUD_COLORS[$color]) : '') . '.');
                 setFlash('Zapisano wygląd.');
             }
         }
@@ -292,7 +292,7 @@
 
       <section class="card wide">
         <h2><i><?=$showGallery ? '06' : '05'?></i>Wygląd</h2>
-        <p class="hint">Kolor strony. Domyślnie jest fioletowy, jak dotąd. Można go oddać roli na serwerze bota: w wariancie <b>tylko akcenty</b> kolor wchodzi w narożniki, linki, wyszukiwarkę i menu konta, a w <b>całym HUD</b> także w tło, poświatę tytułu i linie pod SAFEGUARD. Zmiana widoczna od razu, zapisuje się przyciskiem.</p>
+        <p class="hint">Kolor strony. Domyślnie jest fioletowy, jak dotąd. W wariancie <b>kolor tylko w akcentach</b> wybrany kolor wchodzi w narożniki, linki, wyszukiwarkę i menu konta, a <b>na całym HUD</b> także w tło, poświatę tytułu i linie pod SAFEGUARD. Kolor wybiera konto z rolą na serwerze bota (od user w górę); bez wyboru jest to kolor jego roli. Zmiana widoczna od razu, zapisuje się przyciskiem.</p>
         <form method="post" action="./" class="hud-form">
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="hud" />
@@ -309,7 +309,7 @@
                 <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
               </span>
             </label>
-<?php if (isPanelAdminId($id)): ?>
+<?php if (canPickHudColor($id, $badge)): ?>
             <label class="hud-field">
               <span class="hud-field-label">Kolor<i class="hud-dot" data-hud-dot></i></span>
               <span class="hud-select">
