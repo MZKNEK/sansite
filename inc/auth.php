@@ -22,6 +22,7 @@
     // inc/data/access.json, next to a list of recent logins; inc/ is not
     // reachable from the web.
     require_once __DIR__ . '/text.php';
+    require_once __DIR__ . '/storage.php';
 
     const SITE_SESSION = 'sanakan_gallery';  // the gallery's old cookie name, so logins stay valid
 
@@ -103,74 +104,15 @@
         return rtrim($root, '/') . '/';
     }
 
-    // the first $length characters, also without the mbstring extension
+    // the first $length characters, also without the mbstring extension; it is
+    // text from outside, so what is not UTF-8 in it is replaced (validText())
     function cutText($text, $length)
     {
+        $text = validText($text);
         if (function_exists('mb_substr'))
             return mb_substr($text, 0, $length, 'UTF-8');
 
         return preg_match('/^.{0,' . (int)$length . '}/us', $text, $match) ? $match[0] : substr($text, 0, $length);
-    }
-
-    // ---- Stored data ----------------------------------------------------------
-
-    // Where the site keeps its data. A test (or an unusual install) can point it
-    // elsewhere with SITE_DATA_DIR before the files are loaded; an empty value is
-    // ignored, so a misconfiguration cannot move the data to a bare path.
-    function dataDir()
-    {
-        if (defined('SITE_DATA_DIR') && SITE_DATA_DIR !== '')
-            return rtrim((string)SITE_DATA_DIR, '/\\');
-
-        return __DIR__ . '/data';
-    }
-
-    function dataWritable()
-    {
-        return is_dir(dataDir()) ? is_writable(dataDir()) : is_writable(__DIR__);
-    }
-
-    // The data read this request, so a page that asks for the same file many
-    // times reads it once (the panel walks the access lists and the roles in
-    // loops); every write drops the entry, so a read after one is fresh.
-    function &dataCache()
-    {
-        static $cache = [];
-
-        return $cache;
-    }
-
-    function forgetData($name)
-    {
-        $cache = &dataCache();
-        unset($cache[preg_replace('/\.json$/', '', (string)$name)]);
-    }
-
-    function readData($name)
-    {
-        $cache = &dataCache();
-        if (array_key_exists($name, $cache))
-            return $cache[$name];
-
-        $file = dataDir() . '/' . $name . '.json';
-        $data = is_file($file) ? json_decode((string)@file_get_contents($file), true) : null;
-
-        return $cache[$name] = is_array($data) ? $data : [];
-    }
-
-    // writes a temp file and renames it, so a parallel request never reads half a file
-    function writeData($name, $data)
-    {
-        forgetData($name);
-        if (!is_dir(dataDir()) && !@mkdir(dataDir(), 0750, true))
-            return false;
-
-        $file = dataDir() . '/' . $name . '.json';
-        $tmp = $file . '.' . getmypid();
-        if (@file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) === false)
-            return false;
-
-        return @rename($tmp, $file);
     }
 
     // ---- History of changes ----------------------------------------------------
@@ -189,13 +131,14 @@
             @mkdir(dataDir(), 0750, true);
 
         $user = $who === null ? siteUser() : ['id' => '', 'name' => $who];
+        // a log read by people: what is not UTF-8 is replaced, the entry stays
         $line = json_encode([
             'time' => time(),
             'id' => $user['id'] ?? '',
             'name' => $user['name'] ?? '',
             'action' => $action,
             'text' => $text
-        ], JSON_UNESCAPED_UNICODE) . "\n";
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n";
 
         $file = historyFile();
         @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
@@ -907,28 +850,6 @@
     // Which addresses a logged-in account comes from, so the panel can tell whose
     // an address in the traffic is and never blocks its own admins. Kept in
     // inc/data/addresses.json as [id => [ip => [first, last, times, country, user agent]]].
-
-    // Opens a file of inc/data locked, gives its data to $change and writes back
-    // what that returns, so two requests at once do not lose a change.
-    function updateDataFile($name, $change)
-    {
-        forgetData($name);
-        if (!is_dir(dataDir()) && !@mkdir(dataDir(), 0750, true))
-            return;
-        $handle = @fopen(dataDir() . '/' . $name, 'c+');
-        if ($handle === false || !flock($handle, LOCK_EX)) {
-            if ($handle !== false)
-                fclose($handle);
-            return;
-        }
-        $data = json_decode((string)stream_get_contents($handle), true);
-        $data = $change(is_array($data) ? $data : []);
-        ftruncate($handle, 0);
-        rewind($handle);
-        fwrite($handle, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        flock($handle, LOCK_UN);
-        fclose($handle);
-    }
 
     // Notes the address of the logged-in account, and the session as one of its
     // devices, at most every ADDRESS_NOTE_EVERY seconds per session and address.

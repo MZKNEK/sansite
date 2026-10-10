@@ -123,3 +123,18 @@
             ];
         }
     }
+
+    if (!function_exists('validText')) {
+        // Text from outside that is only read by people (a user agent, a note)
+        // with every byte that is not UTF-8 changed to U+FFFD, so it can always be
+        // written as JSON; also without mbstring. Not for names and keys, which
+        // would then point at something else: those are refused (nameError()).
+        function validText($text)
+        {
+            $text = (string)$text;
+            if (preg_match('//u', $text))
+                return $text;
+
+            return htmlspecialchars_decode(htmlspecialchars($text, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8'), ENT_NOQUOTES);
+        }
+    }

@@ -91,9 +91,7 @@
             $data[$key] = $entry;
         }
 
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, json_encode($data));
+        rewriteLocked($fp, encodeData($data));
         flock($fp, LOCK_UN);
         fclose($fp);
     }

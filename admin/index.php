@@ -637,7 +637,7 @@
                 $protected = protectedAddress($ip, accountsAtAddress($ip, readData('addresses')), $logins);
                 if ($protected !== null)
                     reply(false, 'Nie blokuję: ' . $protected . '.', 409);
-                $note = trim((string)($_POST['note'] ?? ''));
+                $note = trim(validText($_POST['note'] ?? ''));
                 $error = cloudflareBlock($ip, 'Panel, ' . $user['name'] . ($note !== '' ? ': ' . $note : ''));
                 if ($error !== null)
                     reply(false, $error, 502);

@@ -91,12 +91,11 @@
         return sys_get_temp_dir() . '/sanakan-' . $name;
     }
 
-    // writes a temp file and renames it, so a parallel request never reads half a file
+    // the whole file or nothing, so a parallel request never reads half a file
+    // and a failure keeps the old one (replaceFile()); false when it failed
     function botWriteFile($file, $content)
     {
-        $tmp = $file . '.' . getmypid();
-        if (@file_put_contents($tmp, $content) !== false)
-            @rename($tmp, $file);
+        return replaceFile($file, $content);
     }
 
     // one history line, "time state [ping [shinden]]" with "-" for a missing
@@ -244,9 +243,7 @@
         ksort($days);
         $days = array_slice($days, -BOT_DAYS_KEEP, null, true);
 
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, json_encode($days));
+        rewriteLocked($fp, encodeData($days));
         flock($fp, LOCK_UN);
         fclose($fp);
     }
@@ -298,9 +295,7 @@
         // most checks change nothing, then the file is not rewritten
         if ($incidents !== $before) {
             $incidents = array_slice($incidents, -BOT_INCIDENTS_KEEP);
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, json_encode($incidents));
+            rewriteLocked($fp, encodeData($incidents));
         }
         flock($fp, LOCK_UN);
         fclose($fp);
@@ -508,9 +503,7 @@
                 botWriteFile(botFile('commands-changes.json'), json_encode(array_slice($log, -BOT_CHANGES_KEEP), JSON_UNESCAPED_UNICODE));
             }
 
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, json_encode(['since' => $stored['since'] ?? $now, 'format' => COMMAND_INDEX_FORMAT, 'commands' => $index], JSON_UNESCAPED_UNICODE));
+            rewriteLocked($fp, encodeData(['since' => $stored['since'] ?? $now, 'format' => COMMAND_INDEX_FORMAT, 'commands' => $index], JSON_UNESCAPED_UNICODE));
         }
         flock($fp, LOCK_UN);
         fclose($fp);
@@ -975,9 +968,7 @@
                 $started = $now;
             $versions[] = ['version' => $version, 'since' => $started, 'seen' => $now];
             $versions = array_slice($versions, -BOT_VERSIONS_KEEP);
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, json_encode($versions, JSON_UNESCAPED_UNICODE));
+            rewriteLocked($fp, encodeData($versions, JSON_UNESCAPED_UNICODE));
         }
         flock($fp, LOCK_UN);
         fclose($fp);

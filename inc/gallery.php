@@ -1279,6 +1279,9 @@
     {
         if ($name === '' || $name === '.' || $name === '..')
             return 'Nazwa nie może być pusta.';
+        // not changed into something valid: the name would then point at another file
+        if (!preg_match('//u', $name))
+            return 'Nazwa ma znaki, których nie da się odczytać (to nie UTF-8).';
         if ($name[0] === '.')
             return 'Nazwa nie może zaczynać się od kropki.';
         if (preg_match('/[\/\\\\:*?"<>|\x00-\x1F]/', $name))

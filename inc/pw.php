@@ -88,12 +88,8 @@
         $dir = dirname($file);
         if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir))
             return false;
-        $tmp = $file . '.' . getmypid() . '.tmp';
-        if (@file_put_contents($tmp, $content) === false)
-            return false;
-        @chmod($tmp, 0644);
 
-        return @rename($tmp, $file);
+        return replaceFile($file, $content, 0644);
     }
 
     // Asks GitHub for the folder's files and what changed since; returns the

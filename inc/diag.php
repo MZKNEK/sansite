@@ -368,7 +368,10 @@
         $paths = [];
         $pages = [];
         foreach ($chunk === '' ? [] : explode("\n", $chunk) as $line) {
-            $r = json_decode($line, true);
+            // bytes that are not UTF-8 (a scanner's garbage in the path or the
+            // user agent) are replaced, so the request still counts and nothing
+            // stored later fails to be written as JSON
+            $r = json_decode($line, true, 512, JSON_INVALID_UTF8_SUBSTITUTE);
             if (!is_array($r) || ($r['ua'] ?? '') === DIAG_USER_AGENT)
                 continue;
             $status = (int)($r['s'] ?? 0);
@@ -431,10 +434,7 @@
             return;
         }
         $data = json_decode((string)stream_get_contents($handle), true);
-        $data = $change(is_array($data) ? $data : []);
-        ftruncate($handle, 0);
-        rewind($handle);
-        fwrite($handle, json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        rewriteLocked($handle, encodeData($change(is_array($data) ? $data : []), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         flock($handle, LOCK_UN);
         fclose($handle);
     }
@@ -612,7 +612,7 @@
                 if (--$rounds[$index]['pending'] === 0) {
                     $round = $rounds[$index];
                     unset($round['pending'], $rounds[$index]);
-                    @file_put_contents(diagDayFile($round['t']), json_encode($round, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
+                    @file_put_contents(diagDayFile($round['t']), json_encode($round, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n", FILE_APPEND | LOCK_EX);
                     // the site's line on state/: up when both its probes through Cloudflare answered
                     $up = diagProbeState($round['p']['pub'] ?? null) !== 'fail' && diagProbeState($round['p']['pubphp'] ?? null) !== 'fail';
                     servicesRecord(['site' => [$up, $round['p']['pub'][1] ?? null]], $round['t']);
