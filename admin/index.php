@@ -13,6 +13,7 @@
     require __DIR__ . '/../inc/cloudflare.php';
     require __DIR__ . '/../inc/autoblock.php';
     require __DIR__ . '/../inc/meta.php';
+    require __DIR__ . '/../inc/pw.php';
 
     $galleryDir = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     $thumbsDir = thumbsDir();
@@ -520,8 +521,9 @@
                 $withGallery = ($_POST['gallery'] ?? '') === '1';
                 // without the logins of the moment (sessions), which would only log people
                 // in again, the thumbnails, which are made again by themselves, and the
-                // availability checks of the last days
-                $roots = [[dataDir(), 'data', ['sessions', 'thumbs', 'diag']]];
+                // availability checks of the last days, and the pictures of the cards,
+                // which cron mirrors from the bot's repository again (inc/pw.php)
+                $roots = [[dataDir(), 'data', ['sessions', 'thumbs', 'diag', 'pw']]];
                 if ($withGallery)
                     $roots[] = [$galleryDir, 'i', ['index.php']];
                 addHistory('backup', 'Pobrano kopię danych' . ($withGallery ? ' z galerią' : '') . '.');
@@ -1741,6 +1743,16 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
             <?=is_file($specFile) ? 'pobrana ' . e(ago(filemtime($specFile))) : 'jeszcze nie pobrana'?>
             <button type="button" class="admin-btn small" data-action="refresh-spec">Odśwież</button>
           </dd>
+
+          <dt>Ramki kart</dt>
+          <dd><?php $pw = pwStatus(); ?>
+<?=$pw['files'] === 0 && $pw['checked'] === null
+    ? '<b class="warn">jeszcze nie pobrane</b>: cron ściąga je z repozytorium bota (' . e(PW_REPO) . ') do <code>inc/data/pw/</code>, Skalpelatory biorą je z <code>/pw/</code>'
+    : $pw['files'] . ' ' . plural($pw['files'], 'plik', 'pliki', 'plików')
+        . ($pw['synced'] ? ', zgodne z repozytorium bota od ' . e(ago($pw['synced'])) : '')
+        . ($pw['pending'] ? ', <b>' . $pw['pending'] . ' czeka na pobranie</b>' : '')
+        . ($pw['checked'] ? ' <span class="muted">(sprawdzone ' . e(ago($pw['checked'])) . ')</span>' : '')
+        . ($pw['error'] ? '; <b class="warn">' . e($pw['error']) . '</b>' : '')?></dd>
 
           <dt>Klucz API bota</dt>
           <dd><?=botAppKey() === ''

@@ -17,7 +17,7 @@ export const svelteOptions = {
 
 export function cropperConfig(name, rest = {}) {
   const site = process.env.SANAKAN_SITE || 'http://127.0.0.1:8765'
-  const fromSite = ['/css/', '/fonts/', '/js/', '/favicon', '/apple-touch-icon', '/account.php', '/i/', '/__login', '/__preview.css']
+  const fromSite = ['/css/', '/fonts/', '/js/', '/favicon', '/apple-touch-icon', '/account.php', '/i/', '/pw/', '/__login', '/__preview.css']
   return {
     base: `/${name}/`,
     // packages the shared code imports, found in the app's own node_modules

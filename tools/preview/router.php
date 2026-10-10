@@ -79,6 +79,21 @@
         return true;
     }
 
+    // the pictures of the bot's cards, mirrored by the bot check into the data
+    // folder (inc/pw.php), as nginx serves them at /pw/
+    if (strpos($path, '/pw/') === 0) {
+        $pwRoot = realpath(SITE_DATA_DIR . '/pw');
+        $pwFile = $pwRoot === false ? false : realpath($pwRoot . '/' . substr($path, 4));
+        if ($pwFile === false || strpos(str_replace('\\', '/', $pwFile), str_replace('\\', '/', $pwRoot) . '/') !== 0 || !is_file($pwFile))
+            return previewNotFound($root);
+        $file = $pwFile;
+        $types = ['png' => 'image/png', 'webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'json' => 'application/json'];
+        header('Content-Type: ' . ($types[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? 'application/octet-stream'));
+        header('Content-Length: ' . filesize($file));
+        readfile($file);
+        return true;
+    }
+
     // short links to commands: /cmd/daily goes to /cmd/#daily
     if (preg_match('~^/cmd/(?!zmiany(?:/|$))([^/.]+)/?$~', $path, $match)) {
         header('Location: /cmd/#' . $match[1], true, 302);

@@ -17,6 +17,7 @@
     require __DIR__ . '/services.php';
     require __DIR__ . '/gallery.php';
     require __DIR__ . '/panel-stats.php';
+    require __DIR__ . '/pw.php';
 
     $state = botState(true);
     // the bot's changelog from its repository, asked for again every
@@ -24,6 +25,10 @@
     // state/wersje/ opens without waiting on the network; the sections the file
     // no longer has are read from its history
     verdiffBackfill();
+    // the pictures of the cards for the croppers, mirrored from the bot's
+    // repository (inc/pw.php): its list every 6 hours, the changed files at
+    // most 40 seconds a run
+    pwSync(time());
     if (servicesDue())
         servicesCheckAll();
     $pruned = botFile('thumbs-pruned.txt');

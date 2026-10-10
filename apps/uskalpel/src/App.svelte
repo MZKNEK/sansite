@@ -12,11 +12,14 @@
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
 
+  // the pictures of the bot's cards, which the site mirrors from its repository (inc/pw.php)
+  const pw = '/pw';
+
   let borders = [ 'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Jota', 'Lambda', 'Omega' ]
   let deres = [ 'Bodere', 'Dandere', 'Deredere', 'Kamidere', 'Kuudere', 'Mayadere', 'Tsundere', 'Yandere', 'Raito', 'Yami', 'Yato' ]
 
   // the dere's badge, cut out of the bot's picture of it (32x34 px at 221,628), in a 22 px box
-  const dereIcon = (dere) => `background-image: url(https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/${dere}.png); background-size: 307.4px 431.6px; background-position: -142.4px -406.4px;`;
+  const dereIcon = (dere) => `background-image: url(${pw}/${dere}.png); background-size: 307.4px 431.6px; background-position: -142.4px -406.4px;`;
   let variantsMap = {};
   
   let editMode = false;
@@ -179,25 +182,13 @@
     dpr = window.devicePixelRatio || 1;
   }
 
+  // how many styles each frame has: the site reads it from the bot's code
+  // with the pictures (inc/pw.php), as { Delta: 8, ... }
   async function fetchVariants() {
     try {
-      const response = await fetch('https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Extensions/CardExtension.cs');
-      const text = await response.text();
-      const startIndex = text.indexOf('public static int GetCardVariantsCount(this Card card)');
-      if (startIndex !== -1) {
-        const functionText = text.substring(startIndex);
-        const endIndex = functionText.indexOf('}');
-        if (endIndex !== -1) {
-          const functionBody = functionText.substring(0, endIndex + 1);
-          const lines = functionBody.split(/\r?\n/);
-          for (const line of lines) {
-            const match = line.match(/Quality\.(\w+)\s*=>\s*(\d+)/);
-            if (match) {
-              variantsMap = { ...variantsMap, [match[1]]: parseInt(match[2]) };
-            }
-          }
-        }
-      }
+      const response = await fetch(`${pw}/variants.json`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      variantsMap = await response.json();
       initDefaults();
     } catch (error) {
       console.error('Error fetching variants:', error);
@@ -320,9 +311,9 @@
       case 'Theta':
         return "";
       case 'Omega':
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Border${styleUri}.webp`;
+        return `${pw}/CG/${selectedBorder}/Border${styleUri}.webp`;
       default:
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Border${styleUri}.png`;
+        return `${pw}/CG/${selectedBorder}/Border${styleUri}.png`;
     }
   }
 
@@ -330,13 +321,13 @@
     let styleUri = getStyle();
     switch (selectedBorder) {
       case 'Jota':
-          return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Border/${selectedDere}.png`;
+          return `${pw}/CG/${selectedBorder}/Border/${selectedDere}.png`;
       case 'Delta':
       case 'Eta':
       case 'Lambda':
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/BorderBack${styleUri}.png`;
+        return `${pw}/CG/${selectedBorder}/BorderBack${styleUri}.png`;
       case 'Omega':
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/BorderBack${styleUri}.webp`;
+        return `${pw}/CG/${selectedBorder}/BorderBack${styleUri}.webp`;
       default:
         return "";
     }
@@ -348,9 +339,9 @@
       case 'Epsilon':
       case 'Gamma':
       case 'Theta':
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Border/${selectedDere}.png`
+        return `${pw}/CG/${selectedBorder}/Border/${selectedDere}.png`
       default:
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Dere/${selectedDere}.png`;
+        return `${pw}/CG/${selectedBorder}/Dere/${selectedDere}.png`;
     }
   }
 
@@ -363,13 +354,13 @@
       case 'Gamma':
       case 'Jota':
       case 'Theta':
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Stats/${selectedDere}.png`;
+        return `${pw}/CG/${selectedBorder}/Stats/${selectedDere}.png`;
       case 'Beta':
       case 'Epsilon':
         if (selectedDere === 'Yami' || selectedDere === 'Raito' || selectedDere === 'Yato')
-          return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Stats/${selectedDere}.png`
+          return `${pw}/CG/${selectedBorder}/Stats/${selectedDere}.png`
       default:
-        return `https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/CG/${selectedBorder}/Stats${styleUri}.png`;
+        return `${pw}/CG/${selectedBorder}/Stats${styleUri}.png`;
     }
   }
 

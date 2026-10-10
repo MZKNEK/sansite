@@ -21,7 +21,8 @@
 
   let borders = [ 'SSS', 'SS', 'S', 'A', 'B', 'C', 'D', 'E' ]
 
-  const pwAssetsBaseUrl = 'https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW';
+  // the pictures of the bot's cards, which the site mirrors from its repository (inc/pw.php)
+  const pwAssetsBaseUrl = '/pw';
 
   let deres = [ 'Bodere', 'Dandere', 'Deredere', 'Kamidere', 'Kuudere', 'Mayadere',
     'Tsundere', 'Yandere', 'Raito', 'Yami', 'Yato' ]

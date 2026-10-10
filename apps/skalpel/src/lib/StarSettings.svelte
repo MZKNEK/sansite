@@ -10,7 +10,8 @@
 
   let starTypes = [ 'Full', 'Empty' ]
 
-  const pwStarsBaseUrl = 'https://raw.githubusercontent.com/MZKNEK/sanakan/master/src/Pictures/PW/stars';
+  // the bot's stars, which the site mirrors from its repository (inc/pw.php)
+  const pwStarsBaseUrl = '/pw/stars';
 
   let starCnt = 0;
   let starShape = 'Star';
