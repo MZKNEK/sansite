@@ -1,26 +1,6 @@
 /* Admin panel; the header, buttons, login screen and messages come from explorer.css,
    the cards and the bot status from status.css */
 
-.quota-form {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-block: 16px;
-}
-
-.quota-form label {
-    display: grid;
-    gap: 6px;
-    min-width: 0;
-}
-
-.quota-form input,
-.quota-form select {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-}
-
 .panel-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -136,7 +116,8 @@
     color: var(--accent-light);
 }
 
-.quality-form input[type="number"] {
+.quality-form input[type="number"],
+.quota-form input[type="number"] {
     width: 4.4em;
     height: 36px;
     padding: 0 10px;
@@ -152,20 +133,127 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.quality-form input[type="number"]:hover {
+.quality-form input[type="number"]:hover,
+.quota-form input[type="number"]:hover,
+.quota-form select:hover {
     border-color: rgba(var(--accent-light-rgb), 0.7);
 }
 
-.quality-form input[type="number"]:focus {
+.quality-form input[type="number"]:focus,
+.quota-form input[type="number"]:focus,
+.quota-form select:focus {
     border-color: var(--accent-light);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 /* no system spinners; they do not fit the site's fields */
 .quality-form input[type="number"]::-webkit-outer-spin-button,
-.quality-form input[type="number"]::-webkit-inner-spin-button {
+.quality-form input[type="number"]::-webkit-inner-spin-button,
+.quota-form input[type="number"]::-webkit-outer-spin-button,
+.quota-form input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+/* the limits of the accounts' folders: the fields as the quality's, each
+   name above its field and the unit after it; in an account's profile a
+   choice before the field, the panel's default or its own value */
+.quota-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px 24px;
+    margin: 14px 0 6px;
+}
+
+.quota-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.quota-form label > span:first-child {
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.quota-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.quota-form input[type="number"] {
+    width: 5.2em;
+}
+
+.quota-field em {
+    font: normal 12px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.quota-form select {
+    height: 36px;
+    padding: 0 6px;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    background: rgba(8, 9, 9, 0.55);
+    color: var(--text);
+    font: 13px Lato, sans-serif;
+    outline: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.quota-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+/* the use against the limits: the bar of the stat list, amber over a limit */
+.quota-usage {
+    margin: 12px 0 8px;
+}
+
+.quota-usage li > :first-child i {
+    margin-left: 6px;
+    font: normal 11px Lato, sans-serif;
+    color: rgba(var(--accent-light-rgb), 0.75);
+}
+
+.quota-usage li.over {
+    background: linear-gradient(90deg, rgba(240, 178, 50, 0.25) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+}
+
+.quota-usage li.over > :last-child,
+.quota-usage li.over b {
+    color: #f0b232;
+}
+
+.quota-usage li > :last-child b {
+    font-weight: 400;
+    color: #efe2f7;
+}
+
+#quota-impact {
+    margin-top: 10px;
+}
+
+.quota-transport {
+    margin-top: 18px;
+}
+
+.quota-transport + .hint {
+    margin-top: 6px;
+}
+
+.quota-pages {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0 0;
 }
 
 /* Date and time in the Polish way (js/admin.js): a text field and a calendar */
@@ -594,12 +682,18 @@ a.who-name:hover {
     margin-top: 20px;
 }
 
-.stats-grid h3 {
+.stats-grid h3,
+.card > h3 {
     margin: 0 0 8px;
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--accent-light);
+}
+
+/* a part of a card under its own title, as the account's trash */
+.card > h3 {
+    margin-top: 22px;
 }
 
 .stat-list {

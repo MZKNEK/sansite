@@ -4,23 +4,11 @@
 ?>
       <h2 class="panel-section" data-section="galeria" data-label="Galeria">Galeria</h2>
 
-      <section class="card wide">
-        <h2>Limity folderów kont</h2>
-        <?php galleryLimitsForm(); ?>
-        <p class="hint" id="quota-impact">Brak raportu zużycia — wpływ obniżenia jest nieznany.</p>
-        <p class="hint">Zmiana dotyczy dziedziczonych pól. Indywidualne nadpisania pozostają. Obniżenie nie usuwa danych.
-          Administrator panelu pomija limity konta przy uploadzie; pozostałe operacje i ochrona dekoderów zachowują limity.</p>
-        <p class="hint">Transport tego PHP: upload <?=e(ini_get('upload_max_filesize'))?>, całe żądanie <?=e(ini_get('post_max_size'))?>;
-          budżet narzutu formularza 1 MiB. Proxy: <?=defined('GALLERY_PROXY_BODY_BYTES') ? e(formatSize(GALLERY_PROXY_BODY_BYTES)) : 'nie skonfigurowano pomiaru w aplikacji'?>.
-          Efektywny limit wysłania: <?=e(formatSize(effectiveUploadLimit()))?>. Ustawienie 128 MiB wymaga odpowiednio większych limitów transportu.</p>
-        <p class="hint">Orientacyjny budżet galerii: 25 GB; przydziały kont nie rezerwują dysku. Stan dysku jest pokazany poniżej.</p>
-      </section>
-      <section class="card wide">
-        <h2>Zużycie i przekroczenia kont</h2>
-        <?php
+<?php
           $usageSnapshot = readData('gallery-usage');
           $usageRows = $usageSnapshot['accounts'] ?? [];
-          $quotaDefaults = galleryLimitDefaults()['values'];
+          $quotaPolicy = galleryLimitDefaults();
+          $quotaDefaults = $quotaPolicy['values'];
           $quotaAccess = readData('access');
           $quotaOverrides = $quotaAccess['galleryLimitOverrides'] ?? [];
           $quotaImpact = [];
@@ -36,18 +24,47 @@
           }
           unset($row);
           uasort($usageRows, function ($a, $b) { return $b['ratio'] <=> $a['ratio']; });
-          $usagePage = max(1, min(max(1, (int)ceil(count($usageRows) / 25)), (int)($_GET['usagePage'] ?? 1)));
-        ?>
+          $usagePages = max(1, (int)ceil(count($usageRows) / 25));
+          $usagePage = max(1, min($usagePages, (int)($_GET['usagePage'] ?? 1)));
+?>
+      <section class="card wide" data-sum="<?=$quotaDefaults['files']?> plików · <?=e(formatSize($quotaDefaults['totalBytes']))?>">
+        <h2><i><?=sprintf('%02d', $number++)?></i>Limity folderów kont</h2>
+        <p class="hint">Domyślne limity własnych folderów kont<?=$quotaPolicy['revision'] === 0 ? ' (na razie wartości bazowe aplikacji)' : ''?>. Dotyczą pól, których konto nie ma ustawionych po swojemu w profilu; obniżenie nie usuwa danych. Administrator panelu pomija je przy uploadzie, ochrona dekoderów działa zawsze.</p>
+        <?php galleryLimitsForm(); ?>
+        <p class="hint" id="quota-impact">Brak raportu zużycia — wpływ obniżenia jest nieznany.</p>
+        <div class="stats-summary quota-transport">
+          <span><b><?=e(ini_get('upload_max_filesize'))?></b> plik w PHP</span>
+          <span><b><?=e(ini_get('post_max_size'))?></b> całe żądanie</span>
+          <span><b><?=e(formatSize(effectiveUploadLimit()))?></b> da się wysłać</span>
+          <span><b><?=defined('GALLERY_PROXY_BODY_BYTES') ? e(formatSize(GALLERY_PROXY_BODY_BYTES)) : '?'?></b> proxy</span>
+        </div>
+        <p class="hint">„Da się wysłać” to limit PHP po odjęciu 1 MiB na resztę formularza; wyższy limit pliku w panelu wymaga podniesienia limitów nginx i PHP. Przydziały kont nie rezerwują dysku (orientacyjny budżet galerii 25 GB, stan dysku w „Galerii w liczbach”).</p>
+      </section>
+
+      <section class="card wide" data-sum="<?=count($usageRows)?> <?=plural(count($usageRows), 'konto', 'konta', 'kont')?><?=$overCount ? ' · ' . $overCount . ' ponad' : ''?>">
+        <h2><i><?=sprintf('%02d', $number++)?></i>Zużycie kont</h2>
         <script type="application/json" id="quota-impact-data"><?=json_encode($quotaImpact, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)?></script>
-        <p class="hint">Dane odświeża maintenance porcjami. <?=count($usageRows)?> kont, <?=$overCount?> z potencjalnymi przekroczeniami według bieżących limitów.
-          <?=isset($usageSnapshot['time']) ? 'Ostatnia aktualizacja: ' . e(ago($usageSnapshot['time'])) : 'Brak raportu; wpływ obniżenia limitów jest nieznany.'?></p>
-        <?php foreach (array_slice($usageRows, ($usagePage - 1) * 25, 25, true) as $accountId => $row): ?>
-          <p><a href="?konto=<?=e($accountId)?>"><?=e($logins[$accountId]['name'] ?? $accountId)?></a> · <?=round(100 * $row['ratio'])?>% najwyższego limitu
-            · <?=$row['usage']['values']['files']?> plików · <?=e(formatSize($row['usage']['values']['totalBytes']))?> aktywne
-            · <?=e(formatSize($row['usage']['values']['trashBytes']))?> kosz · pomiar <?=e(ago($row['time']))?></p>
-        <?php endforeach; ?>
-        <?php if ($usagePage > 1): ?><a href="?usagePage=<?=$usagePage - 1?>">Poprzednie</a><?php endif; ?>
-        <?php if ($usagePage * 25 < count($usageRows)): ?><a href="?usagePage=<?=$usagePage + 1?>">Następne</a><?php endif; ?>
+        <p class="hint">Najbliżej limitu na górze; pasek to zajęta część najciaśniejszego z limitów konta. Liczy maintenance w tle, porcjami<?=isset($usageSnapshot['time']) ? ', ostatnio ' . e(ago($usageSnapshot['time'])) : ''?>.<?=$overCount ? ' <b class="warn">Ponad limit: ' . $overCount . '.</b>' : ''?></p>
+<?php if (!$usageRows): ?>
+        <p class="nobody"><?=isset($usageSnapshot['time']) ? 'Żadne konto nie ma jeszcze folderu.' : 'Brak raportu; maintenance policzy zużycie przy najbliższym przebiegu.'?></p>
+<?php else: ?>
+        <ul class="stat-list quota-usage">
+<?php foreach (array_slice($usageRows, ($usagePage - 1) * 25, 25, true) as $accountId => $row): $values = $row['usage']['values']; ?>
+          <li<?=$row['ratio'] > 1 ? ' class="over"' : ''?> style="--share: <?=min(100, round(100 * $row['ratio'], 1))?>%"><a href="?konto=<?=e($accountId)?>"><?=e($logins[$accountId]['name'] ?? $accountId)?></a><span><?=formatCount($values['files'])?> <?=plural($values['files'], 'plik', 'pliki', 'plików')?> &middot; <?=e(formatSize($values['totalBytes']))?> &middot; kosz <?=e(formatSize($values['trashBytes']))?> &middot; <b><?=round(100 * $row['ratio'])?>%</b></span></li>
+<?php endforeach; ?>
+        </ul>
+<?php if ($usagePages > 1): ?>
+        <p class="quota-pages">
+<?php if ($usagePage > 1): ?>
+          <a class="admin-btn small" href="?usagePage=<?=$usagePage - 1?>#sec-galeria">Poprzednie</a>
+<?php endif; ?>
+          <span class="muted">strona <?=$usagePage?> z <?=$usagePages?></span>
+<?php if ($usagePage < $usagePages): ?>
+          <a class="admin-btn small" href="?usagePage=<?=$usagePage + 1?>#sec-galeria">Następne</a>
+<?php endif; ?>
+        </p>
+<?php endif; ?>
+<?php endif; ?>
       </section>
 
       <section class="card wide" data-sum="<?=count($trash)?>">

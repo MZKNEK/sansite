@@ -174,43 +174,53 @@
     function galleryLimitsForm($id = null)
     {
         $policy = $id === null ? galleryLimitDefaults() : accountLimits($id);
-        echo '<form class="grant quota-form" data-action="' . ($id === null ? 'gallery-limit-defaults' : 'account-gallery-limits') . '">';
+        echo '<form class="quota-form" data-action="' . ($id === null ? 'gallery-limit-defaults' : 'account-gallery-limits') . '">';
         if ($id !== null) echo '<input type="hidden" name="id" value="' . e($id) . '" />';
         echo '<input type="hidden" name="revision" value="' . $policy['revision'] . '" />';
         foreach (galleryQuotaFields() as $key => $field) {
-            echo '<label>' . e($field[0]) . ' ';
-            if ($id !== null) {
-                echo '<select name="mode_' . $key . '"><option value="inherit">Dziedziczone (' . ($policy['defaults'][$key] / $field[3]) . ')</option>'
-                    . '<option value="override"' . (isset($policy['overrides'][$key]) ? ' selected' : '') . '>Indywidualne</option></select> ';
-            }
+            // the name above the field, the unit after it
+            $name = preg_replace('/ \(MiB\)$/', '', $field[0]);
+            echo '<label><span>' . e($name) . '</span><span class="quota-field">';
+            if ($id !== null)
+                echo '<select name="mode_' . $key . '" aria-label="' . e($name) . ': skąd wartość"><option value="inherit">domyślne ('
+                    . ($policy['defaults'][$key] / $field[3]) . ')</option><option value="override"'
+                    . (isset($policy['overrides'][$key]) ? ' selected' : '') . '>własne</option></select>';
             echo '<input type="number" required min="1" max="' . $field[2] . '" name="' . $key . '" value="'
-                . ($policy['values'][$key] / $field[3]) . '" /></label> ';
+                . ($policy['values'][$key] / $field[3]) . '" />' . ($field[3] > 1 ? '<em>MiB</em>' : '') . '</span></label>';
         }
-        echo '<button class="admin-btn" type="submit">Zapisz limity</button></form>';
-        if ($id === null)
-            echo '<p class="hint">Źródło domyślnych: ' . ($policy['revision'] === 0 ? 'wartości bazowe aplikacji' : 'ustawienia panelu') . '.</p>';
+        echo '<span class="quota-buttons"><button class="admin-btn primary" type="submit">Zapisz limity</button>';
+        if ($id !== null)
+            echo '<button type="button" class="admin-btn small" data-action="account-gallery-limits-reset" data-id="' . e($id)
+                . '" data-revision="' . $policy['revision'] . '">Wszystkie domyślne</button>';
+        echo '</span></form>';
         if ($policy['values']['fileBytes'] > $policy['values']['totalBytes'])
             echo '<p class="warn">Limit pojedynczego pliku przekracza całkowite miejsce konta. O zapisie decyduje również dostępne miejsce.</p>';
-        if ($id !== null)
-            echo '<button class="admin-btn small" data-action="account-gallery-limits-reset" data-id="' . e($id)
-                . '" data-revision="' . $policy['revision'] . '">Przywróć wszystkie domyślne</button>';
     }
 
+    // the account's use against each limit, a bar per limit as in the
+    // gallery's numbers; over a limit the bar and the numbers turn amber
     function galleryUsageHtml($base, $id)
     {
         $usage = accountUsage($base, $id);
         $policy = accountLimits($id);
-        echo '<dl class="facts">';
-        foreach (galleryQuotaFields() as $key => $field) {
+        $names = ['files' => 'Pliki', 'fileBytes' => 'Największy plik', 'totalBytes' => 'Aktywne miejsce', 'trashBytes' => 'Kosz'];
+        echo '<ul class="stat-list quota-usage">';
+        foreach ($names as $key => $name) {
             $used = $usage['values'][$key];
             $limit = $policy['values'][$key];
-            echo '<dt>' . e($field[0]) . '</dt><dd>' . ($used / $field[3]) . ' / ' . ($limit / $field[3])
-                . ' (' . round(100 * $used / $limit) . '%), ' . (isset($policy['overrides'][$key]) ? 'indywidualne' : 'dziedziczone') . '</dd>';
+            $show = $key === 'files' ? 'formatCount' : 'formatSize';
+            $over = in_array($key, $usage['exceeded'], true);
+            echo '<li' . ($over ? ' class="over"' : '') . ' style="--share: ' . min(100, round(100 * $used / $limit, 1)) . '%"><span>' . e($name)
+                . (isset($policy['overrides'][$key]) ? ' <i>własny limit</i>' : '') . '</span><span>' . e($show($used)) . ' z ' . e($show($limit))
+                . ' &middot; ' . round(100 * $used / $limit) . '%</span></li>';
         }
-        echo '<dt>Ukryte wpisy kosza</dt><dd>' . e(formatSize($usage['hiddenBytes'])) . '</dd></dl>';
+        echo '</ul>';
+        if ($usage['hiddenBytes'])
+            echo '<p class="hint">W koszu ' . e(formatSize($usage['hiddenBytes'])) . ' to wpisy ukryte przez użytkownika; nadal zajmują miejsce, aż wygasną.</p>';
         if ($usage['exceeded'])
-            echo '<p class="warn">Przekroczone limity: ' . e(implode(', ', array_map(function ($key) { return galleryQuotaFields()[$key][0]; }, $usage['exceeded'])))
-                . '. Zapis zwiększający zużycie jest zablokowany. Ukrycie wpisu kosza nie zwalnia miejsca.</p>';
+            echo '<p class="warn">Przekroczone: ' . e(implode(', ', array_intersect_key(['files' => 'liczba plików', 'fileBytes' => 'największy plik',
+                'totalBytes' => 'aktywne miejsce', 'trashBytes' => 'kosz'], array_flip($usage['exceeded']))))
+                . '. Zapis zwiększający zużycie jest zablokowany; usunięcie plików zwalnia miejsce, ukrycie wpisu kosza nie.</p>';
     }
 
     function refreshAccountUsageSnapshot($base, $deadline)

@@ -201,23 +201,37 @@
         </dl>
       </section>
 
+<?php $accountTrash = array_filter(trashItems(), function ($item) use ($id) { return trashOwner($item) === $id; }); ?>
       <section class="card wide">
-        <h2>Limity i miejsce</h2>
+        <h2><i>03</i>Limity i miejsce</h2>
+        <p class="hint">Zużycie folderu konta względem jego limitów. Pole „domyślne” bierze wartość z ustawień galerii w panelu, „własne” ją zastępuje tylko dla tego konta. Obniżenie limitów nie usuwa danych.</p>
         <?php galleryUsageHtml($galleryRoot, $id); galleryLimitsForm($id); ?>
-        <p class="hint">Wybierz „Dziedziczone”, aby przywrócić wartość domyślną danego pola. Obniżenie limitów nie usuwa danych.</p>
+        <h3>Kosz konta</h3>
+<?php if (!$accountTrash): ?>
+        <p class="nobody">Kosz konta jest pusty.</p>
+<?php else: ?>
+        <div class="trash">
+<?php foreach ($accountTrash as $trashId => $item): $daysLeft = max(0, (int)ceil(($item['deleted'] + TRASH_DAYS * 86400 - time()) / 86400)); ?>
+          <div class="trash-row">
+            <span class="trash-name">
+              <b><?=e($item['name'])?><?=!empty($item['folder']) ? '/' : ''?></b>
+              <code><?=e(galleryPath($item['from']))?></code>
+            </span>
+            <span class="trash-info"><?=e(formatSize($item['size']))?> &middot; usunięte <?=e(ago($item['deleted']))?> &middot; zostało <?=$daysLeft?> <?=plural($daysLeft, 'dzień', 'dni', 'dni')?><?=empty($item['hidden']) ? '' : ' &middot; <b>ukryte przez użytkownika</b>'?><?=empty($item['purging']) ? '' : ' &middot; <b class="warn">trwa usuwanie</b>'?></span>
+            <span class="login-actions">
+<?php if (empty($item['purging'])): ?>
+              <button type="button" class="admin-btn small" data-action="restore" data-item="<?=e($trashId)?>">Przywróć</button>
+<?php endif; ?>
+              <button type="button" class="admin-btn small danger" data-action="trash-delete" data-item="<?=e($trashId)?>" data-confirm="Usunąć na zawsze <?=e(galleryPath($item['from']))?>? Tego nie da się cofnąć.">Usuń na zawsze</button>
+            </span>
+          </div>
+<?php endforeach; ?>
+        </div>
+<?php endif; ?>
       </section>
+
       <section class="card wide">
-        <h2>Kosz konta</h2>
-        <?php foreach (trashItems() as $trashId => $item): if (trashOwner($item) !== $id) continue; ?>
-          <p><?=e($item['name'])?> · <?=e(formatSize($item['size']))?> · wygasa <?=e(date('j.m.Y H:i', $item['deleted'] + TRASH_DAYS * 86400))?>
-            <?=empty($item['hidden']) ? '' : ' · ukryte'?><?=empty($item['purging']) ? '' : ' · trwa usuwanie'?>
-            <?php if (empty($item['purging'])): ?><button class="admin-btn small" data-action="restore" data-item="<?=e($trashId)?>">Przywróć</button><?php endif; ?>
-            <button class="admin-btn small danger" data-action="trash-delete" data-item="<?=e($trashId)?>" data-confirm="Usunąć na zawsze?">Usuń na zawsze</button>
-          </p>
-        <?php endforeach; ?>
-      </section>
-      <section class="card wide">
-        <h2><i>03</i>Ruch</h2>
+        <h2><i>04</i>Ruch</h2>
         <p class="hint">Zapytania z adresów tego konta w ostatnich 24 godzinach, z dziennika nginx. Z tego samego adresu może pytać też ktoś inny (dom, praca).</p>
         <div class="stats-summary">
           <span><b><?=formatCount($traffic['n'])?></b> <?=plural($traffic['n'], 'zapytanie', 'zapytania', 'zapytań')?></span>
@@ -247,7 +261,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>04</i>Zalogowane urządzenia</h2>
+        <h2><i>05</i>Zalogowane urządzenia</h2>
         <p class="hint">Sesje tego konta, które wciąż są na serwerze. Każdą można zakończyć osobno; konto zaloguje się tam jeszcze raz przez Discorda.</p>
 <?php if (!$p['devices']): ?>
         <p class="nobody">Żadnych: konto nie jest nigdzie zalogowane albo jeszcze nie wchodziło od tej wersji strony.</p>
@@ -267,7 +281,7 @@
       </section>
 
       <section class="card wide diag">
-        <h2><i>05</i>Adresy IP</h2>
+        <h2><i>06</i>Adresy IP</h2>
         <p class="hint">Adresy, z których konto korzystało w ostatnich <?=ADDRESS_KEEP_DAYS?> dniach, notowane przy wejściach zalogowanego konta co najwyżej co <?=ADDRESS_NOTE_EVERY / 60?> minut. Adresu konta panelu ani swojego obecnego nie da się zablokować.<?=$p['cfError'] !== null ? ' <b class="warn">' . e($p['cfError']) . '</b>' : ''?></p>
 <?php if (!$p['addresses']): ?>
         <p class="nobody">Jeszcze żadnych: adresy są notowane od tej wersji strony, przy następnym wejściu konta.</p>
@@ -296,7 +310,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>06</i>Galeria</h2>
+        <h2><i>07</i>Galeria</h2>
         <p class="hint">Co to konto zrobiło w galerii, z historii zmian (ostatnie <?=HISTORY_KEEP?> wpisów całej strony).</p>
 <?php if (!array_sum($p['gallery'])): ?>
         <p class="nobody">Nic jeszcze nie zmieniło.</p>
@@ -322,7 +336,7 @@
       </section>
 
       <section class="card wide">
-        <h2><i>07</i>Historia</h2>
+        <h2><i>08</i>Historia</h2>
         <p class="hint">Co to konto zmieniło w galerii i w panelu, i co inni zmienili dla niego.</p>
 <?php if (!$p['history']): ?>
         <p class="nobody">Nic.</p>

@@ -125,7 +125,7 @@
 
         [$history, $gallery, $uploads] = accountActivity($id, false, OWN_HISTORY_SHOWN, OWN_UPLOADS_SHOWN);
         $galleryRoot = dirname(__DIR__) . '/i/';
-        $showGallery = canViewGalleryId($id) || array_sum($gallery) > 0;
+        $showGallery = canViewGalleryId($id) || isGalleryUploaderId($id) || array_sum($gallery) > 0;
     }
 ?>
 <!DOCTYPE html>
@@ -145,7 +145,7 @@
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=a85ada4e51" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=8a71051836" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -175,10 +175,6 @@
     </section>
 <?php else: ?>
     <div class="panel-grid">
-      <section class="card wide">
-        <h2>Limity i miejsce w galerii</h2>
-        <?php galleryUsageHtml($galleryRoot, $id); ?>
-      </section>
       <section class="card wide profile">
         <h2><i>01</i>Konto</h2>
         <div class="profile-head">
@@ -255,6 +251,12 @@
 <?php if ($showGallery): ?>
       <section class="card wide">
         <h2><i>04</i>Galeria</h2>
+<?php if (isGalleryUploaderId($id)): ?>
+        <h3>Limity i miejsce w galerii</h3>
+        <p class="hint">Ile zajmuje twój folder względem jego limitów. Limity ustawia administrator; usunięte pliki leżą w koszu <?=TRASH_DAYS?> dni i do tego czasu zajmują jego miejsce.</p>
+        <?php galleryUsageHtml($galleryRoot, $id); ?>
+        <h3>Historia w galerii</h3>
+<?php endif; ?>
         <p class="hint">Co konto zrobiło w galerii, z historii zmian strony (ostatnie <?=HISTORY_KEEP?> wpisów).</p>
 <?php if (!array_sum($gallery)): ?>
         <p class="nobody">Nic jeszcze nie zmieniło.</p>

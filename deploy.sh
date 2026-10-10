@@ -86,7 +86,7 @@ rmdir "$paused"
 REMOTE
 }
 
-# What server/gallery-update.md asks to check on the server, only reported,
+# What the gallery needs from the server, only reported,
 # never changed: the data and the gallery on one filesystem, the folders the
 # site writes owned and writable by www-data, the cleanup's cron line,
 # systemd-cat and a persistent journal, the upload limits of nginx and
@@ -184,7 +184,7 @@ REMOTE
         code=$(curl -s -o /dev/null -w '%{http_code}' "$site_url$path" || echo 000)
         if [ "$code" = 200 ]; then echo "  OK     $path działa"; else echo "  UWAGA  $path odpowiada $code"; fi
     done
-    echo "Ręcznie zostaje: odbiór w przeglądarce (punkty 7–10 server/gallery-update.md), stara reguła miniatur w Cloudflare, próba odtworzenia kopii i journalctl -t sanakan-maintenance po 10 minutach."
+    echo "Ręcznie zostaje: sprawdzenie w przeglądarce (limity, upload, przenoszenie, konwersje, ZIP), próba odtworzenia kopii i journalctl -t sanakan-maintenance po 10 minutach."
 }
 
 if [ "$resume" -eq 1 ]; then
