@@ -103,14 +103,16 @@
     color: rgba(220, 221, 222, 0.5);
   }
 
-  /* under the buttons (the break ends their row), as wide as the card */
+  /* under the buttons (the break ends their row), as wide as the card at
+     most (.card-actions of the apps keeps it from widening the card's column) */
   .break {
     flex-basis: 100%;
     height: 0;
   }
 
   .saved {
-    flex: 0 1 481px;
+    flex: 1 1 100%;
+    max-width: 481px;
     display: flex;
     flex-direction: column;
     gap: 8px;

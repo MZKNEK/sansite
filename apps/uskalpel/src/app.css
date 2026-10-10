@@ -243,11 +243,15 @@ button.btn-go:hover:not(:disabled) {
   gap: 14px;
 }
 
+/* the buttons under the card, and the result of saving into the gallery: as
+   wide as the card's column, never widening it (it takes the card's width) */
 .card-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
+  width: 100%;
+  contain: inline-size;
 }
 
 @media (min-width: 900px) {
