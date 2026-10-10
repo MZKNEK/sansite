@@ -68,7 +68,7 @@ function render(job) {
  */
 export function cropOnScreen(container) {
   const img = container?.querySelector('img')
-  const area = container?.querySelector('.cropperArea')
+  const area = container?.querySelector('.svelte-easy-crop-area')
   if (!img || !area) return null
   const i = img.getBoundingClientRect(), a = area.getBoundingClientRect()
   if (!i.width || !i.height) return null

@@ -1,4 +1,5 @@
 <script>
+  import { untrack } from 'svelte';
   import Stars from './lib/StarSettings.svelte';
   import Segmented from './lib/Segmented.svelte';
   import Switch from './lib/Switch.svelte';
@@ -38,7 +39,9 @@
   let selectedBorder =  'C';
   let selectedDere = 'Kamidere';
 
-  let pixelCrop, profilePicture, style, borderColor, minzoom, curzoom;
+  let pixelCrop, profilePicture, style, borderColor;
+  // bound to the cropper, which takes no undefined for them
+  let minzoom = 1, curzoom = 1;
 
   // the crop in % of the picture: unlike pixelCrop it is not rounded
   let cropPercent = null;
@@ -146,11 +149,15 @@
     return `${pwAssetsBaseUrl}/${dere}.png`;
   }
 
+  // the cropper calls it with the crop itself (svelte-easy-crop 5 has no events),
+  // from inside its own effect: untracked, or what it reads and sets here would
+  // become what that effect depends on and run it again without end
+  const onCrop = (e) => untrack(() => previewCrop(e));
   function previewCrop(e) {
-		pixelCrop = e.detail.pixels;
-		cropPercent = e.detail.percent;
+		pixelCrop = e.pixels;
+		cropPercent = e.percent;
 		schedulePreview();
-		const { x, y, width } = e.detail.pixels;
+		const { x, y, width } = e.pixels;
 		const scale = 448 / width;
 
     const hd = -y*scale;
@@ -221,7 +228,7 @@
               <img bind:this={profilePicture} src={image} class="wrapper_img" alt="Scalpel" style={style}/>
             </div>
             <div class="canva" class:under-real={realPreview && previewUrl && !previewStale} bind:this={canvaEl}>
-              <Cropper {image} showGrid={false} crop={{x:0, y:0}} bind:zoom={curzoom} bind:minZoom={minzoom} maxZoom={5} zoomSpeed={0.05} cropSize={{width:448, height:650}} restrictPosition={true} on:cropcomplete={previewCrop} />
+              <Cropper {image} showGrid={false} crop={{x:0, y:0}} bind:zoom={curzoom} bind:minZoom={minzoom} maxZoom={5} zoomSpeed={0.05} cropSize={{width:448, height:650}} restrictPosition={true} oncropcomplete={onCrop} />
             </div>
             {#if realPreview && previewUrl}
               <img src={previewUrl} class="real" class:stale={previewStale} alt="" />

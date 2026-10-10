@@ -272,7 +272,7 @@ After `final`, by hand in Cloudflare and one right after the other: the DNS reco
 
 ## Skalpelator and USkalpelator
 
-The two croppers are Svelte apps with their sources in `apps/skalpel/` and `apps/uskalpel/`. Vite builds them with the base `/skalpel/` and `/uskalpel/` straight into the site's `skalpel/` and `uskalpel/`, which are committed, so `deploy.sh` sends them like any other file and deletes what a new build left out. After a change to an app (Node.js 22 or newer):
+The two croppers are Svelte apps with their sources in `apps/skalpel/` and `apps/uskalpel/`. Vite builds them with the base `/skalpel/` and `/uskalpel/` straight into the site's `skalpel/` and `uskalpel/`, which are committed, so `deploy.sh` sends them like any other file and deletes what a new build left out. After a change to an app (Node.js 22.12 or newer, which Vite 8 needs):
 
 ```bash
 tools/build-apps.sh            # both, or: tools/build-apps.sh skalpel

@@ -1,5 +1,5 @@
 <script>
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import Cropper from "svelte-easy-crop";
   import { getCroppedImg, cropOnScreen } from './lib/CanvasUtils.js';
   import Segmented from './lib/Segmented.svelte';
@@ -129,7 +129,7 @@
     if (activeLayer === 'base' || activeLayer === 'both') {
       crop.x = Math.round(crop.x) + dx;
       crop.y = Math.round(crop.y) + dy;
-      // Wymuś emisję cropcomplete przez mikrozmianę zoom
+      // Wymuś wywołanie oncropcomplete przez mikrozmianę zoom
       await tick();
       curzoom = curzoom + 0.000001;
       await tick();
@@ -232,16 +232,21 @@
   
   let wrapperRef;
 
+  // the croppers call these with the crop itself (svelte-easy-crop 5 has no
+  // events), from inside their own effect: untracked, or what they read and set
+  // here would become what that effect depends on and run it again without end
+  const onCrop = (e) => untrack(() => previewCrop(e));
+  const onExtraCrop = (e) => untrack(() => previewExtraCrop(e));
   function previewCrop(e) {
-    pixelCrop = e.detail.pixels;
-    percentCrop = e.detail.percent;
+    pixelCrop = e.pixels;
+    percentCrop = e.percent;
     schedulePreview();
     isUpscaling = pixelCrop.width < 475 || pixelCrop.height < 667;
   }
 
   function previewExtraCrop(e) {
-    extraPixelCrop = e.detail.pixels;
-    extraPercentCrop = e.detail.percent;
+    extraPixelCrop = e.pixels;
+    extraPercentCrop = e.percent;
     schedulePreview();
     isExtraUpscaling = extraPixelCrop.width < 475 || extraPixelCrop.height < 667;
   }
@@ -609,13 +614,12 @@
               image={extraImage} 
               bind:zoom={extraZoom} 
               bind:crop={extraCrop}
-              disabled={activeLayer === 'base'}
               aspect={475/667}
               minZoom={0.1}
               maxZoom={10}
               zoomSpeed={0.02}
               cropSize={maskCropSize}
-              on:cropcomplete={previewExtraCrop}
+              oncropcomplete={onExtraCrop}
               restrictPosition={false}
             />
           </div>
@@ -645,7 +649,7 @@
                 zoomSpeed={0.02}
                 aspect={475/667}
                 cropSize={maskCropSize} 
-                on:cropcomplete={previewCrop} 
+                oncropcomplete={onCrop} 
                 restrictPosition={false} 
               />
             </div>
@@ -838,7 +842,7 @@
   }
 
   /* Ukryj wbudowaną linię obszaru Croppera - zastępujemy własnym divem poza maską */
-  :global(.reactEasyCrop_CropArea) {
+  :global(.svelte-easy-crop-area) {
     border: none !important;
     box-shadow: none !important;
     color: transparent !important;
