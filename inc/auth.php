@@ -702,7 +702,7 @@
     }
 
     // The logged-in account for the top right corner: its avatar ringed in the
-    // colour of its role, the name and the level. A click (js/account.js) opens
+    // accent of the HUD, the name and the level in the colour of its role. A click (js/account.js) opens
     // a menu with its profile, the places it may open, none it may not, and logging out,
     // which comes back to $back. Below them a dim line with the role and the ID.
     function accountMenuHtml($user, $roles, $back)

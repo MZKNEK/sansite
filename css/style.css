@@ -346,8 +346,8 @@ html[data-hud="full"].role-admin {
 }
 
 /* The account menu of every page (accountMenuHtml() in inc/auth.php,
-   js/account.js): the account as a button, its avatar ringed in the colour of
-   its role, and below it a menu in HUD corners with the places it may open,
+   js/account.js): the account as a button, its avatar ringed in the accent of
+   the HUD and its level in the colour of its role, and below it a menu in HUD corners with the places it may open,
    logging out and a dim line with the role and the ID */
 /* trying other rights (inc/auth.php): a bar at the bottom of every page */
 .test-bar {
@@ -421,9 +421,9 @@ html[data-hud="full"].role-admin {
 .account-toggle img {
     flex: none;
     border-radius: 50%;
-    /* the role colour of the account menu (a role-* class on it); an account
-       whose role is unknown keeps the site's accent */
-    box-shadow: 0 0 0 2px var(--role, var(--accent-light));
+    /* the accent of the HUD, the same on every page (the site's purple, or the
+       colour picked in the profile); the level next to it shows the role */
+    box-shadow: 0 0 0 2px var(--accent-light);
 }
 
 .account-toggle .lv {
