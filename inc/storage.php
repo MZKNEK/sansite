@@ -18,6 +18,127 @@
     // every PHP-FPM worker
     const DATA_LOCK_WAIT = 5;
 
+    class DataStoreException extends RuntimeException
+    {
+        public function __construct($reason, $document)
+        {
+            error_log('sanakan: data ' . $reason . ' (' . $document . ')');
+            parent::__construct('Dane są chwilowo niedostępne. Spróbuj ponownie później.');
+        }
+    }
+
+    function readDataStrict($name, $allowMissing = null)
+    {
+        $name = dataName($name);
+        clearstatcache(true, dataDir() . '/initialized');
+        // Before the offline migration, a missing document is an empty initial
+        // store. Once initialized, disappearance is an outage, never a reset.
+        if ($allowMissing === null)
+            $allowMissing = !is_file(dataDir() . '/initialized');
+        $lock = fileLock(dataLockFile($name), false);
+        if ($lock === null)
+            throw new DataStoreException('lock', $name);
+        try {
+            clearstatcache(true, dataFile($name));
+            if (!file_exists(dataFile($name))) {
+                if ($allowMissing)
+                    return [];
+                throw new DataStoreException('missing', $name);
+            }
+            $data = loadJsonFile(dataFile($name));
+            if ($data === null || !validDataSchema($name, $data))
+                throw new DataStoreException('invalid', $name);
+            return $data;
+        } finally { fclose($lock); }
+    }
+
+    function validDataSchema($name, $data)
+    {
+        if ($data !== [] && array_is_list($data))
+            return false;
+        if ($name === 'access') {
+            foreach (['galleryAdmins', 'galleryViewers', 'galleryUploaders', 'galleryPrivate', 'apiViewers', 'uploadLimits', 'galleryLimitOverrides'] as $key)
+                if (array_key_exists($key, $data) && !is_array($data[$key]))
+                    return false;
+            foreach (['galleryAdmins', 'galleryViewers', 'galleryUploaders', 'galleryPrivate', 'apiViewers'] as $key)
+                foreach ($data[$key] ?? [] as $entry)
+                    if (!is_array($entry)) return false;
+            foreach ($data['uploadLimits'] ?? [] as $value)
+                if (!is_int($value) || $value < 1 || $value > 10000)
+                    return false;
+            foreach ($data['galleryLimitOverrides'] ?? [] as $group)
+                if (!validStoredLimitGroup($group, false)) return false;
+        }
+        if ($name === 'settings' && array_key_exists('galleryLimitDefaults', $data)
+            && !validStoredLimitGroup($data['galleryLimitDefaults'], true)) return false;
+        if ($name === 'trash')
+            foreach ($data as $item)
+                if (!is_array($item) || !isset($item['name'], $item['from'], $item['size'], $item['deleted'])
+                    || !is_string($item['name']) || basename($item['name']) !== $item['name']
+                    || str_contains($item['name'], '\\') || !is_string($item['from'])
+                    || preg_match('~(?:^|[/\\\\])\.\.(?:[/\\\\]|$)|^[/\\\\]|\x00~', $item['from'])
+                    || !is_int($item['size']) || $item['size'] < 0 || !is_int($item['deleted']))
+                    return false;
+        if (in_array($name, ['shares', 'roles'], true))
+            foreach ($data as $item)
+                if (!is_array($item))
+                    return false;
+        if ($name === 'shares')
+            foreach ($data as $item)
+                if (!isset($item['rel']) || !is_string($item['rel']) || !array_key_exists('expires', $item)
+                    || ($item['expires'] !== null && !is_int($item['expires']))) return false;
+        if ($name === 'roles')
+            foreach ($data as $item) {
+                if (array_key_exists('roles', $item) && $item['roles'] !== null && !is_array($item['roles'])) return false;
+                foreach ($item['roles'] ?? [] as $value)
+                    if (!is_bool($value)) return false;
+            }
+        if ($name === 'sessions') {
+            if (isset($data['since']) && !is_int($data['since']))
+                return false;
+            if (isset($data['accounts']) && !is_array($data['accounts']))
+                return false;
+            foreach ($data['accounts'] ?? [] as $time)
+                if (!is_int($time))
+                    return false;
+        }
+        if ($name === 'maintenance') {
+            foreach (['tried', 'succeeded'] as $key)
+                if (isset($data[$key]) && !is_int($data[$key])) return false;
+            if (isset($data['last']) && !is_array($data['last'])) return false;
+            if (isset($data['last']['problems']) && !is_array($data['last']['problems'])) return false;
+            foreach ($data['last']['problems'] ?? [] as $problem)
+                if (!is_string($problem)) return false;
+        }
+        return true;
+    }
+
+    function validStoredLimitGroup($group, $defaults)
+    {
+        if (!is_array($group) || !isset($group['revision'], $group['values']) || !is_int($group['revision'])
+            || $group['revision'] < 1 || !is_array($group['values']) || ($defaults && ($group['version'] ?? null) !== 1)) return false;
+        $bounds = ['files' => [1, 10000], 'fileBytes' => [1048576, 128], 'totalBytes' => [1048576, 1000], 'trashBytes' => [1048576, 1000]];
+        foreach ($group['values'] as $key => $value) {
+            if (!isset($bounds[$key]) || !is_int($value)) return false;
+            [$unit, $maximum] = $bounds[$key];
+            if ($value < $unit || $value > $unit * $maximum || $value % $unit !== 0) return false;
+        }
+        return !$defaults || count($group['values']) === 4;
+    }
+
+    // Installed by HTTP entry points, never by merely loading a module.
+    function installDataErrorHandler()
+    {
+        set_exception_handler(function ($error) {
+            error_log((string)$error);
+            http_response_code($error instanceof DataStoreException ? 503 : 500);
+            header('Cache-Control: no-store');
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'message' => $error instanceof DataStoreException
+                ? $error->getMessage() : 'Nie udało się wykonać operacji.'], JSON_UNESCAPED_UNICODE);
+        });
+    }
+
     // Where the site keeps its data. A test (or an unusual install) can point it
     // elsewhere with SITE_DATA_DIR before the files are loaded; an empty value is
     // ignored, so a misconfiguration cannot move the data to a bare path.
@@ -73,11 +194,15 @@
     function readData($name)
     {
         $name = dataName($name);
+        if (in_array($name, ['access', 'settings', 'trash', 'shares', 'roles', 'sessions'], true))
+            return readDataStrict($name);
         $cache = &dataCache();
         if (array_key_exists($name, $cache))
             return $cache[$name];
 
         $lock = fileLock(dataLockFile($name), false);
+        if ($lock === null)
+            throw new DataStoreException('lock', $name);
         $data = loadJsonFile(dataFile($name));
         if ($lock !== null)
             fclose($lock);
@@ -100,7 +225,13 @@
         if (!is_dir(dataDir()) && !@mkdir(dataDir(), 0750, true) && !is_dir(dataDir()))
             return false;
 
-        $ok = updateJsonFile(dataFile($name), dataLockFile($name), $change, $result, $flags);
+        $checkedChange = function (&$data) use ($name, $change) {
+            if (in_array($name, ['access', 'settings', 'trash', 'shares', 'roles', 'sessions'], true)
+                && (!validDataSchema($name, $data) || (is_file(dataDir() . '/initialized') && !is_file(dataFile($name)))))
+                throw new DataStoreException('invalid-before-write', $name);
+            return $change($data);
+        };
+        $ok = updateJsonFile(dataFile($name), dataLockFile($name), $checkedChange, $result, $flags);
         forgetData($name);
 
         return $ok;
@@ -115,9 +246,11 @@
     {
         $name = dataName($name);
 
-        return updateData($name, function (&$current) use ($data) {
+        $ok = updateData($name, function (&$current) use ($data) {
             $current = $data;
-        }, $result) || replaceBrokenData($name, $data);
+        }, $result);
+        if ($ok || in_array($name, ['access', 'settings', 'trash', 'shares', 'roles', 'sessions'], true)) return $ok;
+        return replaceBrokenData($name, $data);
     }
 
     // writeData() over a broken file: the file goes aside as name.json.broken-<time>
@@ -163,8 +296,9 @@
             return null;
 
         $mode = ($exclusive ? LOCK_EX : LOCK_SH) | LOCK_NB;
-        for ($waited = 0; !flock($handle, $mode); $waited++) {
-            if ($waited >= DATA_LOCK_WAIT * 50) {
+        $deadline = min(microtime(true) + DATA_LOCK_WAIT, dataLockDeadline() ?? PHP_FLOAT_MAX);
+        while (!flock($handle, $mode)) {
+            if (microtime(true) >= $deadline) {
                 fclose($handle);
                 error_log('sanakan: ' . $lockFile . ' held for longer than ' . DATA_LOCK_WAIT . ' s');
                 return null;
@@ -173,6 +307,14 @@
         }
 
         return $handle;
+    }
+
+    function dataLockDeadline($new = null)
+    {
+        static $deadline = null;
+        $previous = $deadline;
+        if (func_num_args()) $deadline = $new;
+        return $previous;
     }
 
     // what a JSON file has: [] when it is not there, null when it is broken
@@ -215,7 +357,7 @@
             $before = $data;
             $result = $change($data);
 
-            return !is_array($data) ? false : ($data === $before || writeJsonFile($file, $data, $flags));
+            return !is_array($data) ? false : (($data === $before && is_file($file)) || writeJsonFile($file, $data, $flags));
         } finally {
             fclose($lock);
         }

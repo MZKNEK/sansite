@@ -187,17 +187,8 @@
           <dt>Własny folder</dt>
           <dd>
             <?=$p['folder'] !== null ? '<a href="' . e(siteRoot() . 'i/' . folderUrl($p['folder'])) . '">' . e(galleryPath($p['folder'])) . '</a>' : '<span class="muted">powstanie przy pierwszym wejściu do galerii</span>'?>
-            &middot; <?=$p['folderUse'][0]?> z <?=$p['filesLimit']?> <?=plural($p['filesLimit'], 'zdjęcia', 'zdjęć', 'zdjęć')?> &middot; <?=e(formatSize($p['folderUse'][1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?>
-            &middot; kosz <?=e(formatSize($p['trashBytes']))?> z <?=e(formatSize(USER_TRASH_MAX_BYTES))?>
-          </dd>
-          <dt>Limit zdjęć</dt>
-          <dd>
-            <form class="grant upload-limit" data-action="upload-limit">
-              <input type="hidden" name="id" value="<?=e($id)?>" />
-              <input type="text" name="limit" inputmode="numeric" pattern="\d{1,4}" value="<?=$p['filesLimit']?>" aria-label="Limit zdjęć" required />
-              <button type="submit" class="admin-btn small">Zapisz</button>
-              <span class="muted">domyślnie <?=USER_FILES_DEFAULT?>, każde do <?=e(formatSize(USER_FILE_MAX_BYTES))?></span>
-            </form>
+            &middot; <?=$p['folderUse'][0]?> z <?=$p['filesLimit']?> <?=plural($p['filesLimit'], 'zdjęcia', 'zdjęć', 'zdjęć')?> &middot; <?=e(formatSize($p['folderUse'][1]))?> z <?=e(formatSize(accountLimits($id)['values']['totalBytes']))?>
+            &middot; kosz <?=e(formatSize($p['trashBytes']))?> z <?=e(formatSize(accountLimits($id)['values']['trashBytes']))?>
           </dd>
 <?php endif; ?>
 <?php foreach ($p['requests'] as $request): ?>
@@ -210,6 +201,21 @@
         </dl>
       </section>
 
+      <section class="card wide">
+        <h2>Limity i miejsce</h2>
+        <?php galleryUsageHtml($galleryRoot, $id); galleryLimitsForm($id); ?>
+        <p class="hint">Wybierz „Dziedziczone”, aby przywrócić wartość domyślną danego pola. Obniżenie limitów nie usuwa danych.</p>
+      </section>
+      <section class="card wide">
+        <h2>Kosz konta</h2>
+        <?php foreach (trashItems() as $trashId => $item): if (trashOwner($item) !== $id) continue; ?>
+          <p><?=e($item['name'])?> · <?=e(formatSize($item['size']))?> · wygasa <?=e(date('j.m.Y H:i', $item['deleted'] + TRASH_DAYS * 86400))?>
+            <?=empty($item['hidden']) ? '' : ' · ukryte'?><?=empty($item['purging']) ? '' : ' · trwa usuwanie'?>
+            <?php if (empty($item['purging'])): ?><button class="admin-btn small" data-action="restore" data-item="<?=e($trashId)?>">Przywróć</button><?php endif; ?>
+            <button class="admin-btn small danger" data-action="trash-delete" data-item="<?=e($trashId)?>" data-confirm="Usunąć na zawsze?">Usuń na zawsze</button>
+          </p>
+        <?php endforeach; ?>
+      </section>
       <section class="card wide">
         <h2><i>03</i>Ruch</h2>
         <p class="hint">Zapytania z adresów tego konta w ostatnich 24 godzinach, z dziennika nginx. Z tego samego adresu może pytać też ktoś inny (dom, praca).</p>

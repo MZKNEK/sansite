@@ -99,7 +99,8 @@
         $base = tempDir();
         file_put_contents($base . '/a.png', 'x');
         mkdir(trashDir() . '/' . $id, 0750, true);
-        operationNote(['kind' => 'trash', 'trash' => $id, 'src' => $base . '/a.png', 'dst' => trashDir() . '/' . $id . '/a.png', 'item' => []]);
+        operationNote(['kind' => 'trash', 'trash' => $id, 'src' => $base . '/a.png', 'dst' => trashDir() . '/' . $id . '/a.png',
+            'item' => ['name' => 'a.png', 'from' => 'a.png', 'size' => 1, 'deleted' => time()]]);
         assertSame(1, maintenanceRun(time())['recovered']);
         assertFalse(is_dir(trashDir() . '/' . $id), 'the empty folder it was to go into goes');
         assertTrue(is_file($base . '/a.png'), 'the file stays');

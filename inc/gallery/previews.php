@@ -49,7 +49,7 @@
             foreach ($data as $token => $preview) {
                 if (is_array($preview) && ($preview['created'] ?? 0) >= $before)
                     continue;
-                if (is_array($preview) && !empty($preview['candidate']))
+                if (is_array($preview) && !empty($preview['candidate']) && !conversionArtifactInUse(webpPreviewDir() . '/' . $preview['candidate']))
                     @unlink(webpPreviewDir() . '/' . $preview['candidate']);
                 unset($data[$token]);
             }
@@ -60,6 +60,15 @@
     // Makes the WebP aside and returns what the page shows, or a string why not.
     // It is kept only when it is smaller; a bigger one is dropped here already.
     function startWebpPreview($full, $rel, $quality, $user)
+    {
+        try {
+            $encoder = galleryLock('encoder');
+            try { return startWebpPreviewLocked($full, $rel, $quality, $user); }
+            finally { $encoder(); }
+        } catch (DataStoreException $error) { return 'Konwersja jest teraz zajęta. Spróbuj za chwilę.'; }
+    }
+
+    function startWebpPreviewLocked($full, $rel, $quality, $user)
     {
         $ext = extensionOf($rel);
         if (!is_file($full) || !canChangeToWebp($ext))
@@ -77,7 +86,10 @@
         $token = bin2hex(random_bytes(12));
         $candidate = $token . '.webp';
         $candidateFull = $dir . '/' . $candidate;
-        $sizeFrom = (int)filesize($full);
+        try { $snapshot = conversionSnapshot($full); }
+        catch (Throwable $error) { return $error->getMessage(); }
+        $full = $snapshot['input'];
+        $sizeFrom = $snapshot['fingerprint']['size'];
 
         if ($ext === 'gif')
             $ok = gifToWebp($full, $candidateFull, $quality);
@@ -86,6 +98,7 @@
         else
             $ok = convertToWebp($full, $candidateFull, $quality);
 
+        @unlink($snapshot['input']);
         clearstatcache();
         if (!$ok || !is_file($candidateFull) || @filesize($candidateFull) <= 0) {
             @unlink($candidateFull);
@@ -97,9 +110,10 @@
             return 'WebP wyszedł większy (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ')';
         }
 
-        updateDataFile('webp-previews.json', function ($data) use ($token, $rel, $candidate, $quality, $sizeFrom, $sizeTo, $user) {
+        $saved = updateDataFile('webp-previews.json', function ($data) use ($token, $rel, $candidate, $quality, $sizeFrom, $sizeTo, $user, $snapshot) {
             $data[$token] = [
                 'rel' => $rel,
+                'fingerprint' => $snapshot['fingerprint'],
                 'candidate' => $candidate,
                 'by' => (string)$user['id'],
                 'quality' => (int)$quality,
@@ -110,6 +124,10 @@
             return $data;
         });
 
+        if (!$saved) {
+            @unlink($candidateFull);
+            return 'nie udało się zapisać podglądu';
+        }
         return [
             'token' => $token,
             'name' => basename($rel),
@@ -144,12 +162,12 @@
             $source = fileHash($full, $rel, $hashes);
 
         $ok = swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel,
-            (int)filesize($full), (int)filesize($candidateFull), 'WebP', $source, (string)($user['name'] ?? ''), false, $why);
+            (int)filesize($full), (int)filesize($candidateFull), 'WebP', $source, (string)($user['name'] ?? ''), false, $why, $preview['fingerprint'] ?? null, $user['id']);
         if (!$ok)
             return 'nie udało się zapisać WebP' . ($why !== null ? ': ' . $why : '');
         dropWebpPreview((string)$token);
 
-        return ['target' => $target];
+        return ['target' => basename($targetRel)];
     }
 
     function rejectWebpPreview($token, $user)

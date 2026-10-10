@@ -83,9 +83,9 @@
     // whose files nginx never gives straight from the disk
     const PRIVATE_DIR = 'private';
 
-    const USER_FILES_DEFAULT = 50;
+    const USER_FILES_DEFAULT = 200;
 
-    const USER_FILES_MAX = 1000;
+    const USER_FILES_MAX = 10000;
 
     const USER_FILE_MAX_BYTES = 10485760;
 

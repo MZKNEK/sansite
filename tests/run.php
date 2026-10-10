@@ -13,6 +13,8 @@
     $failures = [];
     $progress = '';
     foreach ($GLOBALS['__tests'] as [$suite, $name, $fn]) {
+        if (getenv('SANAKAN_TEST_FILTER') && strpos($suite . ' ' . $name, getenv('SANAKAN_TEST_FILTER')) === false)
+            continue;
         clearData();
         try {
             $fn();

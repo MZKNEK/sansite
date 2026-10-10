@@ -2,7 +2,7 @@
     // The regular cleanup of the gallery's data (inc/maintenance.php): operations
     // cut short and the trash past its days. Run by its own cron job every 10
     // minutes, as the web server's user:
-    //   */10 * * * * www-data php /var/www/html/inc/run-maintenance.php > /dev/null 2>&1
+    //   */10 * * * * www-data /usr/bin/systemd-cat -t sanakan-maintenance php /var/www/html/inc/run-maintenance.php
     // By hand: --dry-run says what it would do and changes nothing; --inventory
     // lists what the data holds that the limits and checks would refuse or
     // report (broken JSON, names, accounts over their limits, big pictures, the
@@ -38,5 +38,5 @@
         ', usunięte z kosza ', $report['removed'], ' (', formatSize($report['bytes']), ')',
         ', zaległe ', $report['backlog'], "\n";
     foreach ($report['problems'] as $problem)
-        echo '  ', $problem, "\n";
+        fwrite(STDERR, '  ' . $problem . "\n");
     exit($report['problems'] ? 1 : 0);

@@ -104,7 +104,7 @@
 
             // another request may have asked meanwhile: an answer newer than
             // this question is not overwritten by this one
-            updateData('roles', function (&$known) use ($id, $asked, &$entry) {
+            $saved = updateData('roles', function (&$known) use ($id, $asked, &$entry) {
                 $stored = $known[$id] ?? null;
                 if ($stored !== null && max($stored['checked'] ?? 0, $stored['tried'] ?? 0) > $asked) {
                     $entry = $stored;
@@ -116,6 +116,7 @@
                 });
                 $known = array_slice($known, 0, BOT_ROLES_KEEP, true);
             });
+            if (!$saved) throw new DataStoreException('write', 'roles');
         }
 
         return $entry['roles'] ?? null;

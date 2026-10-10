@@ -88,11 +88,11 @@
         assertTrue(strpos($error, 'pełny') !== false, $error);
         sessionEnd();
 
-        // a gallery admin is not held to it
+        // Gallery administration does not bypass the owner's trash budget.
         sessionFor('sanakan-trash-admin', ['id' => '111', 'name' => 'A', 'avatar' => 'a']);
-        assertTrue(moveToTrash($base . '/users/556-U/a.png', 'users/556-U/a.png'));
+        assertFalse(moveToTrash($base . '/users/556-U/a.png', 'users/556-U/a.png'));
         sessionEnd();
-        assertSame(USER_TRASH_MAX_BYTES + 1048576, userTrashBytes('556'), 'but what it deletes counts');
+        assertSame(USER_TRASH_MAX_BYTES - 1048576, userTrashBytes('556'), 'the original stays outside the full trash');
     });
 
     test('a full trash first drops what is past its days', function () {

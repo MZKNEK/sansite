@@ -7,6 +7,7 @@
     // without a login. Only this file is in git; the pictures live on the
     // server (see .gitignore). The logic is in inc/gallery.php.
     require __DIR__ . '/../inc/gallery.php';
+    installDataErrorHandler();
     require __DIR__ . '/../inc/meta.php';
 
     $base = str_replace('\\', '/', __DIR__);
@@ -153,6 +154,7 @@
     $request = $user && $locked ? pendingRequest('gallery', $user['id']) : null;
     $admin = !$locked && galleryIsAdmin();
     $own = $admin ? null : ownFolder($base);
+    $ownLimits = $own === null ? null : accountLimits((string)$user['id'])['values'];
     // the account's own trash (?kosz=1): what it deleted from its folder, to
     // bring back or drop for good without asking a gallery admin
     $ownTrash = $own === null ? [] : ownTrashItems((string)$user['id']);
@@ -260,7 +262,7 @@
     // until TRASH_DAYS pass
     if ($showTrash)
         $summary = ['Kosz: ' . count($ownTrash) . ' ' . plural(count($ownTrash), 'element', 'elementy', 'elementów'),
-            formatSize(userTrashBytes((string)$user['id'])) . ' z ' . formatSize(USER_TRASH_MAX_BYTES)];
+            formatSize(userTrashBytes((string)$user['id'])) . ' z ' . formatSize($ownLimits['trashBytes'])];
 
 ?>
 <!DOCTYPE html>
@@ -462,7 +464,7 @@
           <span class="admin-count" id="admin-count"></span>
           <button type="button" class="admin-btn" id="act-select-all">Wszystkie</button>
           <button type="button" class="admin-btn" id="act-rename">Zmień nazwę</button>
-          <button type="button" class="admin-btn" id="act-move"<?=$admin ? '' : ' hidden'?>>Przenieś</button>
+          <button type="button" class="admin-btn" id="act-move"<?=($admin || $own !== null) ? '' : ' hidden'?>>Przenieś</button>
           <button type="button" class="admin-btn" id="act-rotate-left" title="Obróć w lewo (PNG, JPG, WebP)">&#8634; Obróć</button>
           <button type="button" class="admin-btn" id="act-rotate-right" title="Obróć w prawo (PNG, JPG, WebP)">Obróć &#8635;</button>
 <?php if ($admin && canConvertToWebp()): ?>
@@ -476,7 +478,7 @@
 <?php if (!$searching && $admin): ?>
         <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą mniejsze; status zobaczysz wyżej. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
-        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize(USER_TOTAL_MAX_BYTES))?></b>, kosz <b><?=e(formatSize(userTrashBytes((string)$user['id'])))?> z <?=e(formatSize(USER_TRASH_MAX_BYTES))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES)))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize($ownLimits['totalBytes']))?></b>, kosz <b><?=e(formatSize(userTrashBytes((string)$user['id'])))?> z <?=e(formatSize($ownLimits['trashBytes']))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(effectiveUploadLimit((string)$user['id'])))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -728,9 +730,9 @@
   </dialog>
 
 <?php
-    $fileLimit = $admin ? uploadLimit() : min(USER_FILE_MAX_BYTES, uploadLimit() ?: USER_FILE_MAX_BYTES);
-    // an account in its own folder moves nothing anywhere
-    $moveTo = $admin ? allFolders($base) : [];
+    $fileLimit = effectiveUploadLimit($own === null ? null : (string)$user['id']);
+    // Own-gallery users use the existing move dialog with only their own tree.
+    $moveTo = $admin ? allFolders($base) : ($own === null ? [] : allFolders($base, $own));
     // the paths go as links show them; the folders of the accounts get the name the gallery shows for the labels
     $labels = [];
     foreach (array_merge($moveTo, [$dirRel]) as $rel)

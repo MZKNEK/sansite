@@ -49,6 +49,12 @@ jobs:
       - name: Test the code of the croppers
         run: node --test apps/*/test/*.test.mjs
 
+      - name: Test authenticated gallery and quota forms in Chromium
+        run: |
+          npm install --prefix .preview/browser --no-save --package-lock=false playwright@1.64.0
+          node .preview/browser/node_modules/playwright/cli.js install --with-deps chromium
+          node tests/browser.mjs
+
       - name: Build Skalpelator and USkalpelator
         run: tools/build-apps.sh
 

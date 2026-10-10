@@ -31,7 +31,9 @@
         // trim is just replacing
         $file = historyFile();
         $lock = fileLock(dataLockFile('history'), true);
-        @file_put_contents($file, $line, FILE_APPEND);
+        if ($lock === null)
+            return false;
+        $ok = @file_put_contents($file, $line, FILE_APPEND) === strlen($line);
 
         // trimmed now and then instead of on every write, the whole file at once
         clearstatcache();
@@ -41,6 +43,7 @@
         }
         if ($lock !== null)
             fclose($lock);
+        return $ok;
     }
 
     // the newest entries first

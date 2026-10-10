@@ -42,9 +42,10 @@
     });
 
     test('an animation counts all its frames, a thumbnail only the first', function () {
-        $gif = 'GIF89a' . pack('vv', 400, 400) . "\x00\x00\x00" . str_repeat("\x21\xF9\x04\x00\x00\x00\x00\x00", 3000);
+        $gif = 'GIF89a' . pack('vv', 1000, 1000) . "\x80\x00\x00\x00\x00\x00\xff\xff\xff"
+            . str_repeat("\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00", 401) . "\x3b";
         $path = headerFile('anim.gif', $gif);
-        assertSame(3000, imageSize($path)[2]);
+        assertSame(401, imageSize($path)[2]);
         assertTrue(strpos(imageLimitError($path), 'klatek') !== false);
         assertNull(imageLimitError($path, false));
         assertFalse(gifToWebp($path, tempDir() . '/anim.webp'), 'no conversion is started');
@@ -69,4 +70,25 @@
         assertTrue(gdFits(100, 100));
         if (iniBytes(ini_get('memory_limit')) > 0)
             assertFalse(gdFits(100000, 100000), 'forty gigabytes do not fit');
+    });
+
+    test('GIF descriptor parser ignores signatures inside subblocks and refuses truncation', function () {
+        $head = 'GIF89a' . pack('vv', 10, 10) . "\x80\0\0\0\0\0\xff\xff\xff";
+        $frame = "\x2c\0\0\0\0\x01\0\x01\0\0\x02\x02\x44\x01\0";
+        $comment = "\x21\xfe\x04\x21\xf9\x04\x2c\0";
+        assertSame(2, gifFrames(headerFile('mixed.gif', $head . $comment . $frame . "\x21\xf9\x04\0\0\0\0\0" . $frame . "\x3b")));
+        assertSame(0, gifFrames(headerFile('cut.gif', $head . substr($frame, 0, -1))));
+        $outside = "\x2c" . pack('vvvvC', 9, 9, 2, 2, 0) . "\x02\x02\x44\x01\0\x3b";
+        assertSame(0, gifFrames(headerFile('outside.gif', $head . $outside)));
+    });
+
+    test('WebP frame count uses RIFF chunks rather than ANMF text inside metadata', function () {
+        $chunk = function ($type, $data) { return $type . pack('V', strlen($data)) . $data . (strlen($data) & 1 ? "\0" : ''); };
+        $riff = function ($data) { return 'RIFF' . pack('V', strlen($data) + 4) . 'WEBP' . $data; };
+        $still = $chunk('VP8L', 'ANMF') . $chunk('EXIF', 'ANMFANMF');
+        assertSame(1, webpFrames(headerFile('meta.webp', $riff($still)), 10, 10));
+        $extended = $chunk('VP8X', "\x02" . str_repeat("\0", 9));
+        $frame = $chunk('ANMF', str_repeat("\0", 16) . $chunk('VP8L', 'x'));
+        assertSame(2, webpFrames(headerFile('frames.webp', $riff($extended . $frame . $frame)), 10, 10));
+        assertSame(0, webpFrames(headerFile('cut.webp', substr($riff($extended . $frame), 0, -1)), 10, 10));
     });

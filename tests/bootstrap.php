@@ -62,6 +62,7 @@
     }
 
     // ---- The code under test ----------------------------------------------------
+    define('SITE_TEST_IO', true);
     // Required once here, whatever tests are loaded; the order follows what each
     // file needs (gallery pulls in auth, diag pulls in bot, system and services).
     require_once __DIR__ . '/../inc/gallery.php';

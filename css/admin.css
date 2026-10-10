@@ -1,6 +1,26 @@
 /* Admin panel; the header, buttons, login screen and messages come from explorer.css,
    the cards and the bot status from status.css */
 
+.quota-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-block: 16px;
+}
+
+.quota-form label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.quota-form input,
+.quota-form select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
 .panel-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

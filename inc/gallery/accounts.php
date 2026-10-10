@@ -14,9 +14,7 @@
     // how many files an account may keep in its folder, as set in the panel
     function userFilesLimit($id)
     {
-        $limit = readData('access')['uploadLimits'][(string)$id] ?? null;
-
-        return is_int($limit) && $limit > 0 ? $limit : USER_FILES_DEFAULT;
+        return accountLimits($id)['values']['files'];
     }
 
     // the random name a folder of an account goes by in links, i/u/<token>
@@ -87,6 +85,11 @@
     // the folder of the logged-in account when it may have one, made the first time
     function ownFolder($base)
     {
+        return galleryWrite(function () use ($base) { return ownFolderLocked($base); });
+    }
+
+    function ownFolderLocked($base)
+    {
         static $known = [];
         if (array_key_exists($base, $known))
             return $known[$base];
@@ -148,6 +151,7 @@
                 if ($name[0] === '.')
                     continue;
                 $full = $path . '/' . $name;
+                if (is_link($full)) continue;
                 if (is_dir($full) && !is_link($full)) {
                     $walk($full);
                 } else if (is_file($full)) {
@@ -201,29 +205,5 @@
     // it only takes no more.
     function accountRoomError($base, $id, $count, $bytes, $biggest)
     {
-        $folder = userFolder($base, $id);
-        [$has, $used] = $folder === null ? [0, 0] : treeUse($base . '/' . $folder);
-        $limit = userFilesLimit($id);
-        if ($biggest > USER_FILE_MAX_BYTES)
-            return 'plik ma ' . formatSize($biggest) . ', a limit jednego to ' . formatSize(USER_FILE_MAX_BYTES);
-        if ($has + $count > $limit)
-            return 'w folderze konta jest ' . $has . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', a to ' . $count . ' ' . plural($count, 'plik', 'pliki', 'plików');
-        if ($used + $bytes > USER_TOTAL_MAX_BYTES)
-            return 'w folderze konta zostało ' . formatSize(max(0, USER_TOTAL_MAX_BYTES - $used)) . ' wolnego z ' . formatSize(USER_TOTAL_MAX_BYTES) . ', a to zajmuje ' . formatSize($bytes);
-
-        return null;
-    }
-
-    // a file just saved in the folder of an account goes away again when the
-    // folder, subfolders included, would hold more than USER_TOTAL_MAX_BYTES with it
-    function checkUserTotal($dirPath, $path, $name)
-    {
-        clearstatcache();
-        [, $bytes] = treeUse($dirPath);
-        if ($bytes <= USER_TOTAL_MAX_BYTES)
-            return;
-
-        $free = max(0, USER_TOTAL_MAX_BYTES - ($bytes - filesize($path)));
-        @unlink($path);
-        reply(false, $name . ': nie mieści się, w folderze zostało ' . formatSize($free) . ' wolnego z ' . formatSize(USER_TOTAL_MAX_BYTES) . '. Usuń coś, żeby zrobić miejsce.', 413);
+        return accountQuotaError($base, $id, $count, $bytes, $biggest);
     }

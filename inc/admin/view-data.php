@@ -5,6 +5,7 @@
 
     function panelOverviewData($galleryDir)
     {
+        $limitDefaults = galleryLimitDefaults();
         $autoChecks = checksLastHour(botHistory());
 
         $logins = readData('logins');
@@ -87,8 +88,8 @@
         // the cleanup of the trash, its own cron job (inc/run-maintenance.php)
         $maintenance = maintenanceState();
         $maintenanceLate = maintenanceLate();
-        $maintenanceCommand = "echo '*/10 * * * * www-data php " . str_replace('\\', '/', realpath(__DIR__ . '/../run-maintenance.php'))
-            . " > /dev/null 2>&1' > /etc/cron.d/sanakan-maintenance";
+        $maintenanceCommand = "echo '*/10 * * * * www-data /usr/bin/systemd-cat -t sanakan-maintenance php " . str_replace('\\', '/', realpath(__DIR__ . '/../run-maintenance.php'))
+            . "' > /etc/cron.d/sanakan-maintenance";
         $thumbFiles = $thumbs['files'];
         $thumbBytes = $thumbs['bytes'];
         $specFile = botFile('swagger.json');

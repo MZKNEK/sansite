@@ -79,21 +79,13 @@
     // sessions started before this time are not valid any more
     function sessionsValidSince()
     {
-        static $since = null;
-        if ($since === null)
-            $since = (int)(readData('sessions')['since'] ?? 0);
-
-        return $since;
+        return (int)(readData('sessions')['since'] ?? 0);
     }
 
     // sessions of this account started before this time are not valid any more
     function accountSessionsSince($id)
     {
-        static $accounts = null;
-        if ($accounts === null)
-            $accounts = readData('sessions')['accounts'] ?? [];
-
-        return (int)($accounts[(string)$id] ?? 0);
+        return (int)(readData('sessions')['accounts'][(string)$id] ?? 0);
     }
 
     // token sent with every change, so another site cannot make the browser do one

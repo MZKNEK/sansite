@@ -52,6 +52,16 @@
             reply(false, 'Trzeba się zalogować.', 401);
         if (!checkCsrf())
             reply(false, 'Sesja wygasła, odśwież stronę.', 403);
+        if ($action === 'upload' && is_string($_FILES['file']['name'] ?? null)
+            && in_array(extensionOf($_FILES['file']['name']), CONVERT_IMAGE_TYPES, true))
+            $uploadEncoder = galleryLock('encoder');
+
+        // Serializes writers, never ZIP. Preview preparation releases its own
+        // short lock before running the encoder.
+        if (!in_array($action, ['zip', 'webp-preview', 'duplicates', 'request-access'], true))
+            $mutationRelease = galleryLock();
+        if (!in_array($action, ['zip', 'webp-preview', 'duplicates', 'request-access'], true))
+            $policyRelease = galleryLock('policy', false);
 
         if ($action === 'request-access')
             handleAccessRequest('gallery', galleryCanView(), $_POST['back'] ?? '');
@@ -70,7 +80,7 @@
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
-            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'duplicates', 'restore', 'trash-delete', 'media-clear', 'zip'], true))
+            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'move', 'duplicates', 'restore', 'trash-delete', 'media-clear', 'zip'], true))
                 reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
             // new folders and uploads go only inside its own folder, subfolders included
             if (in_array($action, ['upload', 'mkdir'], true)) {
@@ -145,7 +155,7 @@
                 $rotated = [];
                 $skipped = [];
                 foreach (postedItems($base) as $item) {
-                    if (is_file($item[0]) && rotateImage($item[0], $left ? 90 : -90))
+                    if (is_file($item[0]) && rotateImage($item[0], $left ? 90 : -90, $base, $item[1]))
                         $rotated[] = galleryPath($item[1]);
                     else
                         $skipped[] = basename($item[1]) . (is_file($item[0]) && isImage($item[0]) && ($why = imageLimitError($item[0])) !== null ? ' (' . $why . ')' : '');
@@ -276,6 +286,8 @@
                 $target = resolvePath($base, $_POST['target'] ?? '', true);
                 if (!$target)
                     reply(false, 'Nie ma takiego folderu docelowego.', 404);
+                if (!galleryIsAdmin() && !inFolder($target[1], $own))
+                    reply(false, 'Możesz przenosić tylko pomiędzy folderami swojej galerii.', 403);
 
                 // into the folder of an account only within its limits, as for
                 // its own uploads; held until the request ends

@@ -1,5 +1,35 @@
 // Admin panel: buttons and forms with data-action send that action to the
+// Quota impact uses only the dated snapshot, never a scan of user galleries.
 // panel and reload the page with the result (messages come from explorer.js)
+(function () {
+  var form = document.querySelector('form[data-action="gallery-limit-defaults"]');
+  var source = document.getElementById('quota-impact-data');
+  var output = document.getElementById('quota-impact');
+  if (!form || !source || !output) return;
+  var rows = JSON.parse(source.textContent);
+  function updateImpact() {
+    if (!rows.length) {
+      output.textContent = 'Brak raportu zużycia — wpływ obniżenia jest nieznany.';
+      return;
+    }
+    if (!form.checkValidity()) {
+      output.textContent = 'Uzupełnij poprawne wartości, aby oszacować wpływ zmiany.';
+      return;
+    }
+    var count = rows.filter(function (row) {
+      return ['files', 'fileBytes', 'totalBytes', 'trashBytes'].some(function (key) {
+        var limit = Object.prototype.hasOwnProperty.call(row.overrides, key)
+          ? row.overrides[key] : Number(form.elements[key].value) * (key === 'files' ? 1 : 1048576);
+        return row.usage[key] > limit;
+      });
+    }).length;
+    output.textContent = 'Proponowane wartości: potencjalne przekroczenia na ' + count + ' z ' + rows.length
+      + ' kont objętych raportem. Daty pomiarów są podane przy kontach poniżej; istniejące dane nie zostaną usunięte.';
+  }
+  form.addEventListener('input', updateImpact);
+  updateImpact();
+})();
+
 (function () {
   var csrf = document.body.dataset.csrf;
   var gallery = window.SanakanGallery;

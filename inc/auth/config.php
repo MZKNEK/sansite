@@ -60,6 +60,7 @@
         static $loaded = false;
         if (!$loaded) {
             $loaded = true;
+            if (PHP_SAPI !== 'cli') installDataErrorHandler();
             // inc/config.php, next to inc/auth.php (this file is inc/auth/config.php)
             $file = __DIR__ . '/../config.php';
             if (is_file($file))

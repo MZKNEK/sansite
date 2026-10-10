@@ -37,7 +37,7 @@
     // admins too, so it stays theirs should they lose the rights; BOT_APP_KEY
     // below tells the roles) has a folder of its own in the gallery, i/users/<id>-<nick>, made the first time it
     // opens the gallery: without access to the rest it sees only that one and
-    // adds pictures there, 50 by default (the panel sets it per account). The
+    // adds pictures there, 200 by default (the panel sets it per account). The
     // accounts here have it blocked (the panel can block more); their folder
     // and files stay. true blocks it for everyone. Optional.
     const GALLERY_UPLOADERS = [
@@ -104,3 +104,10 @@
     // const IMAGE_MAX_SIDE = 8192;
     // const IMAGE_MAX_ANIMATION_PIXELS = 400000000;
     // const TOOL_MEMORY_MB = 2048;
+    // Optional verified nginx/proxy request-body limit, in bytes. This informs
+    // the UI; changing it does not reconfigure nginx or Cloudflare.
+    // const GALLERY_PROXY_BODY_BYTES = 67108864;
+    // Temporary conversion copies/results only, not a total gallery quota.
+    // Defaults to 1 GiB, one encoder at a time; old inactive copies are cleaned
+    // by maintenance. Keep inc/data on the same filesystem as i/.
+    // const GALLERY_STAGING_MAX_BYTES = 1073741824;

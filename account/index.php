@@ -5,6 +5,7 @@
     // gallery and its own history. The addresses the site keeps are left out;
     // the panel shows them and more in admin/?konto=ID.
     require __DIR__ . '/../inc/gallery.php';
+    installDataErrorHandler();
     require __DIR__ . '/../inc/status-card.php';
     require __DIR__ . '/../inc/meta.php';
 
@@ -144,7 +145,7 @@
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=3f034c50f4" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=a85ada4e51" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -174,6 +175,10 @@
     </section>
 <?php else: ?>
     <div class="panel-grid">
+      <section class="card wide">
+        <h2>Limity i miejsce w galerii</h2>
+        <?php galleryUsageHtml($galleryRoot, $id); ?>
+      </section>
       <section class="card wide profile">
         <h2><i>01</i>Konto</h2>
         <div class="profile-head">

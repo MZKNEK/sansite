@@ -96,7 +96,7 @@
 
     function updateMediaJob($id, $changes)
     {
-        updateDataFile('media-jobs.json', function ($data) use ($id, $changes) {
+        return updateDataFile('media-jobs.json', function ($data) use ($id, $changes) {
             if (isset($data[$id]))
                 $data[$id] = array_merge($data[$id], $changes, ['updated' => time()]);
             return $data;
@@ -134,7 +134,7 @@
     function pruneMediaJobs()
     {
         $now = time();
-        updateDataFile('media-jobs.json', function ($data) use ($now) {
+        return updateDataFile('media-jobs.json', function ($data) use ($now) {
             foreach ($data as $id => $job) {
                 if (!is_array($job)) {
                     unset($data[$id]);
@@ -156,16 +156,31 @@
     // picture is changed by hand
     function convertMediaJob($base, $job, $timeout = 0)
     {
+        $encoder = galleryLock('encoder');
+        try { convertMediaJobLocked($base, $job, $timeout); }
+        finally { $encoder(); }
+    }
+
+    function convertMediaJobLocked($base, $job, $timeout = 0)
+    {
         $file = resolvePath($base, $job['rel'] ?? '', false);
         if (!$file) {
             finishMediaJob($job, 'failed', 'plik zniknął przed konwersją');
             return;
         }
         list($full, $rel) = $file;
-        if (($job['kind'] ?? 'webm') === 'webm')
-            convertJobToWebm($full, $rel, $job, $timeout > 0 ? $timeout : MEDIA_JOB_TIMEOUT);
-        else
-            convertJobToWebp($full, $rel, $job);
+        try {
+            $snapshot = conversionSnapshot($full);
+            $job = $snapshot + $job;
+            try {
+                if (($job['kind'] ?? 'webm') === 'webm')
+                    convertJobToWebm($snapshot['input'], $rel, $job, $timeout > 0 ? $timeout : MEDIA_JOB_TIMEOUT);
+                else
+                    convertJobToWebp($snapshot['input'], $rel, $job);
+            } finally { @unlink($snapshot['input']); }
+        } catch (Throwable $error) {
+            finishMediaJob($job, 'failed', $error->getMessage());
+        }
     }
 
     // the changed file takes the original's place: it keeps the date, the
@@ -173,47 +188,13 @@
     // it could not be put in place. $candidateFull is where the new file is now
     // (the same place as the target for a background job, a preview file for a
     // manual change); a re-encoded WebP keeps its own name and link.
-    function swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, $byName, $background = false, &$error = null)
+    function swapInConverted($full, $rel, $candidateFull, $targetFull, &$targetRel, $sizeFrom, $sizeTo, $format, $source, $byName, $background = false, &$error = null, $fingerprint = null, $actor = null)
     {
-        // the folder of an account is held while its original goes to its trash
-        $owner = folderOwner($rel);
-        $release = $owner === null ? null : accountLock($owner);
-        if ($owner !== null && $release === null) {
-            $error = 'folder konta był zajęty';
-            return false;
-        }
-        try {
-            $mtime = (int)@filemtime($full);
-            if ($targetFull === $full) {
-                // the new file takes the old name: the original has to go first
-                if (!moveToTrash($full, $rel, $error))
-                    return false;
-                if (!@rename($candidateFull, $targetFull))
-                    return false;
-            } else {
-                if ($candidateFull !== $targetFull && !@rename($candidateFull, $targetFull)) {
-                    @unlink($candidateFull);
-                    return false;
-                }
-                // no room for the original in the trash: the original stays and
-                // the converted file goes
-                if (!moveToTrash($full, $rel, $error)) {
-                    @unlink($targetFull);
-                    return false;
-                }
-            }
-        } finally {
-            if ($release !== null)
-                $release();
-        }
-        @chmod($targetFull, 0644);
-        @touch($targetFull, $mtime);
-
+        $actual = commitConversion($full, $rel, $candidateFull, $targetFull, $fingerprint, $error, $source, $actor);
+        if ($actual === false) return false;
+        $targetFull = dirname($full) . '/' . basename($actual);
+        $targetRel = $actual;
         $action = $format === 'WebM' ? 'webm' : 'webp';
-        dropHashes($rel);
-        recordHash($targetFull, $targetRel, $source);
-        if ($targetRel !== $rel)
-            addMovedLink($rel, $targetRel);
         addHistory($action, 'Zamieniono na ' . $format . ($background ? ' w tle' : '') . ', oryginał do kosza: '
             . galleryPath($rel) . ' na ' . basename($targetRel) . ' (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ').',
             $byName !== '' ? $byName : 'konwersja');
@@ -224,14 +205,17 @@
     // the background job's version: it finishes the job with the outcome
     function replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job)
     {
+        $candidate = $targetFull;
+        $full = $job['originalFull'] ?? $full;
+        $wanted = dirname($full) . '/' . pathinfo(basename($rel), PATHINFO_FILENAME) . '.' . (($job['kind'] ?? '') === 'webm' ? 'webm' : 'webp');
         $source = (string)($job['source'] ?? '');
         if ($source === '') {
             $hashes = readData('hashes');
             $source = fileHash($full, $rel, $hashes);
         }
         $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
-        if (!swapInConverted($full, $rel, $targetFull, $targetFull, $targetRel, $sizeFrom, $sizeTo, $format, $source, (string)($job['byName'] ?? ''), true, $why))
-            finishMediaJob($job, 'failed', $why !== null ? 'oryginał został, bo ' . $why : 'nie udało się przenieść oryginału do kosza', ['sizeFrom' => $sizeFrom]);
+        if (!swapInConverted($full, $rel, $candidate, $wanted, $targetRel, $sizeFrom, $sizeTo, $format, $source, (string)($job['byName'] ?? ''), true, $why, $job['fingerprint'] ?? null, $job['by'] ?? null))
+            finishMediaJob($job, 'failed', $why ?? 'nie udało się zatwierdzić konwersji', ['sizeFrom' => $sizeFrom]);
         else
             finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
     }
@@ -245,7 +229,7 @@
         }
 
         $dir = dirname($full);
-        $target = freeName($dir, pathinfo(basename($rel), PATHINFO_FILENAME) . '.webm');
+        $target = pathinfo(basename($full), PATHINFO_FILENAME) . '.result.webm';
         $targetFull = $dir . '/' . $target;
         $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
         $sizeFrom = (int)filesize($full);
@@ -263,6 +247,7 @@
             return;
         }
         replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job);
+        if (!conversionArtifactInUse($targetFull)) @unlink($targetFull);
     }
 
     // a PNG, JPG, GIF or AVIF as WebP, kept when it is smaller
@@ -291,7 +276,7 @@
         $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
         $sizeFrom = (int)filesize($full);
 
-        $tmp = $dir . '/.webp-' . getmypid() . '.webp';
+        $tmp = $dir . '/' . pathinfo(basename($full), PATHINFO_FILENAME) . '.result.webp';
         $converted = $ext === 'avif'
             ? (function_exists('imagecreatefromavif') ? convertToWebp($full, $tmp) : heifToWebp($full, $tmp))
             : ($isGif ? gifToWebp($full, $tmp) : convertToWebp($full, $tmp));
@@ -307,17 +292,14 @@
             finishMediaJob($job, 'skipped', 'WebP nie wyszedł mniejszy (' . formatSize($sizeFrom) . ' → ' . formatSize($sizeTo) . ')', ['sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);
             return;
         }
-        if (!@rename($tmp, $targetFull)) {
-            @unlink($tmp);
-            finishMediaJob($job, 'failed', 'nie udało się zapisać WebP', ['sizeFrom' => $sizeFrom]);
-            return;
-        }
-        replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job);
+        replaceWithConverted($full, $rel, $tmp, $targetRel, $sizeFrom, $sizeTo, $job);
+        if (!conversionArtifactInUse($tmp)) @unlink($tmp);
     }
 
     function finishMediaJob($job, $status, $message, $extra = [])
     {
-        updateMediaJob((string)($job['id'] ?? ''), $extra + ['status' => $status, 'message' => $message]);
+        if (!updateMediaJob((string)($job['id'] ?? ''), $extra + ['status' => $status, 'message' => $message]))
+            throw new DataStoreException('write', 'media-jobs');
     }
 
     // Runs the waiting conversions, at most $budget seconds of them (0: until
@@ -334,7 +316,8 @@
             return 0;
         }
 
-        pruneMediaJobs();
+        try {
+        if (!pruneMediaJobs()) throw new DataStoreException('write', 'media-jobs');
         $done = 0;
         $deadline = $budget > 0 ? microtime(true) + $budget : 0.0;
         while (!$deadline || microtime(true) < $deadline) {
@@ -351,10 +334,8 @@
             convertMediaJob($base, $job, $timeout);
             $done++;
         }
-        flock($lock, LOCK_UN);
-        fclose($lock);
-
         return $done;
+        } finally { flock($lock, LOCK_UN); fclose($lock); }
     }
 
     // short label of a job's status, for the badge on its tile

@@ -65,7 +65,7 @@
         $cache = readData('hashes');
         fileHash($full, $rel, $cache);
         $entry = ['source' => $source] + $cache[$rel];
-        updateData('hashes', function (&$fresh) use ($rel, $entry) {
+        return updateData('hashes', function (&$fresh) use ($rel, $entry) {
             $fresh[$rel] = $entry;
         });
     }
@@ -106,7 +106,7 @@
     {
         $from = publicRel($fromRel);
         $to = publicRel($toRel);
-        updateData('moved', function (&$links) use ($from, $to) {
+        return updateData('moved', function (&$links) use ($from, $to) {
             foreach ($links as $old => $new)
                 if ($new === $from)
                     $links[$old] = $to;

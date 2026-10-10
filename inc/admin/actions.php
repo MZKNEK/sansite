@@ -7,6 +7,36 @@
     function panelAction($action, $user, $logins, $list, $id, $galleryDir, $thumbsDir)
     {
         switch ($action) {
+            case 'gallery-limit-defaults':
+            case 'account-gallery-limits':
+            case 'account-gallery-limits-reset':
+            case 'upload-limit':
+                $values = [];
+                $reset = [];
+                foreach (galleryQuotaFields() as $key => $field) {
+                    if ($action === 'account-gallery-limits-reset') {
+                        $reset[] = $key;
+                    } elseif ($action === 'upload-limit') {
+                        if ($key === 'files') $values[$key] = $_POST['limit'] ?? null;
+                    } elseif ($action === 'gallery-limit-defaults') {
+                        $values[$key] = $_POST[$key] ?? null;
+                    } else {
+                        $mode = $_POST['mode_' . $key] ?? null;
+                        if ($mode === 'inherit') $reset[] = $key;
+                        elseif ($mode === 'override') $values[$key] = $_POST[$key] ?? null;
+                        else reply(false, 'Wybierz dziedziczenie lub nadpisanie każdego pola.', 400);
+                    }
+                }
+                $allowed = ['action', 'csrf', 'id', 'revision', 'limit'];
+                foreach (array_keys(galleryQuotaFields()) as $key) { $allowed[] = $key; $allowed[] = 'mode_' . $key; }
+                if (array_diff(array_keys($_POST), $allowed)) reply(false, 'Nieznane pole formularza.', 400);
+                try {
+                    $history = saveGalleryLimits($action === 'gallery-limit-defaults' ? null : $id, $values,
+                        $_POST['revision'] ?? null, (string)$user['id'], $reset);
+                    reply(true, $history ? 'Zapisano limity.' : 'Zapisano limity, ale nie udało się zapisać historii.');
+                } catch (InvalidArgumentException $error) { reply(false, $error->getMessage(), 400); }
+                catch (UnexpectedValueException $error) { reply(false, $error->getMessage(), 409); }
+                break;
             case 'grant':
                 if (!isset(ACCESS_LISTS[$list]))
                     reply(false, 'Nieznana lista.', 400);
@@ -55,22 +85,6 @@
                 if (!$found)
                     reply(false, 'Nie ma takiego wpisu (wpisy z konfiguracji zmienia się w inc/config.php).', 404);
                 done('access', 'Usunięto ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
-
-            case 'upload-limit':
-                if (!preg_match('/^\d{17,20}$/', $id))
-                    reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
-                $limit = (int)($_POST['limit'] ?? 0);
-                if ($limit < 1 || $limit > USER_FILES_MAX)
-                    reply(false, 'Limit to od 1 do ' . USER_FILES_MAX . ' zdjęć.', 400);
-                $saved = updateData('access', function (&$access) use ($id, $limit) {
-                    if ($limit === USER_FILES_DEFAULT)
-                        unset($access['uploadLimits'][$id]);
-                    else
-                        $access['uploadLimits'][$id] = $limit;
-                });
-                if (!$saved)
-                    reply(false, dataError(), 500);
-                done('access', 'Limit zdjęć we własnym folderze ' . accountLabel($id, $logins) . ': ' . $limit . '.');
 
             case 'share-revoke':
                 $token = (string)($_POST['token'] ?? '');

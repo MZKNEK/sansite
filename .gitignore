@@ -16,3 +16,6 @@ node_modules/
 
 # The local preview of tools/preview.sh: its made-up data and logs
 /.preview/
+
+# Local working notes, not part of the site
+/tofix.md

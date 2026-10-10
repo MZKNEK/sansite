@@ -27,7 +27,8 @@
     // the last run]
     function maintenanceState()
     {
-        return readData('maintenance');
+        try { return readDataStrict('maintenance', true); }
+        catch (DataStoreException $error) { return ['last' => ['problems' => [$error->getMessage()]]]; }
     }
 
     // whether the panel should warn: no run went well for MAINTENANCE_LATE
@@ -54,14 +55,18 @@
         }
 
         $deadline = microtime(true) + $seconds;
+        $previousDeadline = dataLockDeadline($deadline);
         $report = ['time' => $now, 'dryRun' => $dryRun, 'recovered' => 0, 'removed' => 0, 'bytes' => 0, 'backlog' => 0, 'problems' => []];
 
-        [$report['recovered'], $problems] = recoverOperations($now, $dryRun);
+        try {
+        readData('trash');
+        [$report['recovered'], $problems] = recoverOperations($now, $dryRun, $deadline);
         $report['problems'] = $problems;
 
         $expiredBefore = $now - TRASH_DAYS * 86400;
         $due = dueTrash($expiredBefore);
         foreach ($due as $id => $item) {
+            if ($problems) break; // An unreadable journal may own any trash file.
             if (microtime(true) >= $deadline)
                 break;
             if ($dryRun) {
@@ -85,22 +90,35 @@
         // they are only reported, for someone to look at
         $known = readData('trash');
         $unknown = 0;
-        foreach (@scandir(trashDir()) ?: [] as $name)
+        foreach (@scandir(trashDir()) ?: [] as $name) {
+            if (microtime(true) >= $deadline) break;
             if ($name[0] !== '.' && !isset($known[$name]) && !operationFor($name))
                 $unknown++;
+        }
         if ($unknown)
             $report['problems'][] = $unknown . ' ' . plural($unknown, 'folder', 'foldery', 'folderów') . ' w koszu bez wpisu (inc/data/trash)';
+        if (!$dryRun && microtime(true) < $deadline) {
+            if (!$report['problems']) pruneConversionStaging($deadline);
+            refreshAccountUsageSnapshot(str_replace('\\', '/', dirname(__DIR__)) . '/i', $deadline);
+        }
+        } catch (Throwable $error) {
+            $report['problems'][] = $error->getMessage();
+        }
 
         // the success is noted only after the work, and only without problems
         if (!$dryRun)
-            updateData('maintenance', function (&$state) use ($report) {
+            if (!updateData('maintenance', function (&$state) use ($report) {
                 $state['tried'] = $report['time'];
                 if (!$report['problems'])
                     $state['succeeded'] = time();
                 $state['last'] = $report;
-            });
+            })) {
+                $report['problems'][] = 'Nie udało się zapisać raportu maintenance.';
+                error_log('sanakan: maintenance report could not be saved');
+            }
 
         fclose($lock);
+        dataLockDeadline($previousDeadline);
 
         return $report;
     }
@@ -119,25 +137,16 @@
         return $due;
     }
 
-    // whether a note of an operation still names this trash entry
-    function operationFor($trashId)
-    {
-        foreach (glob(operationsDir() . '/*.json') ?: [] as $file)
-            if ((string)(loadJsonFile($file)['trash'] ?? '') === (string)$trashId)
-                return true;
-
-        return false;
-    }
-
     // Finishes or undoes the operations cut short, by what is on the disk:
     // the file only where it was, it never moved; only where it went, it moved
     // and the trash's index is made to say so; in both places or in neither, it
     // is unclear and only reported. [finished, problems].
-    function recoverOperations($now, $dryRun = false)
+    function recoverOperations($now, $dryRun = false, $deadline = null)
     {
         $finished = 0;
         $problems = [];
         foreach (glob(operationsDir() . '/*.json') ?: [] as $file) {
+            if ($deadline !== null && microtime(true) >= $deadline) break;
             $operation = loadJsonFile($file);
             if (!is_array($operation) || !isset($operation['kind'], $operation['trash'], $operation['src'], $operation['dst'])) {
                 $problems[] = 'nieczytelny zapis operacji ' . basename($file);
@@ -145,6 +154,26 @@
             }
             if ($now - (int)($operation['started'] ?? 0) < OPERATION_STALE)
                 continue;  // may still be going
+
+            if (!validRecoveryOperation($operation)) {
+                $problems[] = 'nieprawidłowy zapis operacji ' . basename($file);
+                continue;
+            }
+            $active = @fopen(dataLockFile('operation-' . basename($file, '.json')), 'c');
+            if (!$active || !flock($active, LOCK_EX | LOCK_NB)) {
+                if ($active) fclose($active);
+                continue;
+            }
+            $mutation = null;
+            try {
+            $mutation = galleryLock();
+            if ($operation['kind'] === 'conversion') {
+                if (recoverConversion($operation, $dryRun)) {
+                    if (!$dryRun) @unlink($file);
+                    $finished++;
+                } else $problems[] = 'konwersja wymaga sprawdzenia: ' . basename($file);
+                continue;
+            }
 
             $atSource = file_exists($operation['src']);
             $atTarget = file_exists($operation['dst']);
@@ -165,6 +194,15 @@
                 $problems[] = 'kosz był zajęty, ' . $what . ' dokończy następny przebieg';
                 continue;
             }
+            try {
+            // Recheck after acquiring locks; pre-lock observations are stale.
+            clearstatcache();
+            $atSource = file_exists($operation['src']);
+            $atTarget = file_exists($operation['dst']);
+            if ($atSource === $atTarget) {
+                $problems[] = 'niejednoznaczny stan operacji ' . basename($file);
+                continue;
+            }
             if ($operation['kind'] === 'trash') {
                 // moved: the entry it did not get is written; not moved: the
                 // empty folder it was to go into goes
@@ -180,7 +218,7 @@
                 if ($ok && $atTarget)
                     @rmdir(dirname($operation['src']));
             }
-            fclose($lock);
+            } finally { fclose($lock); }
 
             if ($ok && @unlink($file)) {
                 $finished++;
@@ -188,9 +226,76 @@
             } else {
                 $problems[] = 'nie udało się dokończyć: ' . $what . ' ' . basename((string)$operation['src']);
             }
+            } finally {
+                if ($mutation !== null) $mutation();
+                fclose($active);
+            }
         }
 
         return [$finished, $problems];
+    }
+
+    function recoveryPathInside($path, $root)
+    {
+        if (!is_string($path) || str_contains($path, "\0") || preg_match('~(?:^|[/\\\\])\.\.(?:[/\\\\]|$)~', $path)) return false;
+        $path = str_replace('\\', '/', $path);
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+        if (!str_starts_with($path, $root . '/')) return false;
+        // Refuse a symlink in any existing component, including parent folders.
+        for ($part = $path; strlen($part) > strlen($root); $part = dirname($part))
+            if (is_link($part)) return false;
+        return true;
+    }
+
+    function validRecoveryOperation($op)
+    {
+        if (($op['format'] ?? null) !== 1 || !in_array($op['kind'], ['trash', 'restore', 'conversion'], true)
+            || !is_string($op['trash']) || !preg_match('/^\d{14}-[a-f0-9]{8}$/D', $op['trash'])) return false;
+        $gallery = defined('SITE_TEST_IO') && SITE_TEST_IO ? dataDir() : str_replace('\\', '/', dirname(__DIR__)) . '/i';
+        $trash = trashDir() . '/' . $op['trash'];
+        $srcTrash = $op['kind'] === 'restore';
+        if (!recoveryPathInside($op['src'], $srcTrash ? $trash : $gallery)
+            || !recoveryPathInside($op['dst'], $srcTrash ? $gallery : $trash)) return false;
+        if ($op['kind'] !== 'restore') {
+            $item = $op['item'] ?? null;
+            if (!is_array($item) || !validDataSchema('trash', ['entry' => $item]) || basename($op['dst']) !== $item['name']) return false;
+        }
+        if ($op['kind'] === 'conversion')
+            return isset($op['target'], $op['candidate'], $op['sourceHash'], $op['candidateHash'])
+                && recoveryPathInside($op['target'], $gallery) && recoveryPathInside($op['candidate'], dataDir())
+                && preg_match('/^[a-f0-9]{64}$/D', $op['sourceHash']) && preg_match('/^[a-f0-9]{64}$/D', $op['candidateHash']);
+        return true;
+    }
+
+    function recoverConversion($op, $dryRun)
+    {
+        $hash = function ($path) { return is_file($path) && !is_link($path) ? @hash_file('sha256', $path) : null; };
+        $source = $hash($op['src']);
+        $trash = $hash($op['dst']);
+        $target = $hash($op['target']);
+        if ($trash === $op['sourceHash'] && $target === $op['candidateHash']
+            && ($op['src'] === $op['target'] || $source === null)) {
+            if ($dryRun) return true;
+            if (!updateData('trash', function (&$items) use ($op) { $items[$op['trash']] = $op['item']; })) return false;
+            $rel = $op['item']['from'];
+            $new = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . basename($op['target']), '/');
+            if ($rel !== $new && !addMovedLink($rel, $new)) return false;
+            if (!recordHash($op['target'], $new, $op['uploadHash'] ?? $op['sourceHash'])) return false;
+            return true;
+        }
+        if ($source === $op['sourceHash'] && $trash === null && ($op['target'] === $op['src'] || $target === null)) {
+            if (!$dryRun && $hash($op['candidate']) === $op['candidateHash']) @unlink($op['candidate']);
+            if (!$dryRun) @rmdir(dirname($op['dst']));
+            return true;
+        }
+        if ($source === null && $target === null && $trash === $op['sourceHash']) {
+            if ($dryRun) return true;
+            if (!@rename($op['dst'], $op['src'])) return false;
+            if ($hash($op['candidate']) === $op['candidateHash']) @unlink($op['candidate']);
+            @rmdir(dirname($op['dst']));
+            return true;
+        }
+        return false;
     }
 
     // ---- Before an update ---------------------------------------------------------
@@ -241,18 +346,19 @@
             if (!preg_match('/^(\d+)/', $name, $match) || !is_dir($galleryDir . '/' . USERS_DIR . '/' . $name))
                 continue;
             $id = $match[1];
+            $limits = accountLimits($id)['values'];
             [$count, $bytes, $biggest] = treeUse($galleryDir . '/' . USERS_DIR . '/' . $name);
             $limit = userFilesLimit($id);
             $trash = userTrashBytes($id);
             $over = [];
             if ($count > $limit)
                 $over[] = $count . ' z ' . $limit . ' plików';
-            if ($bytes > USER_TOTAL_MAX_BYTES)
-                $over[] = formatSize($bytes) . ' z ' . formatSize(USER_TOTAL_MAX_BYTES);
-            if ($biggest > USER_FILE_MAX_BYTES)
-                $over[] = 'plik ' . formatSize($biggest) . ' (limit ' . formatSize(USER_FILE_MAX_BYTES) . ')';
-            if ($trash > USER_TRASH_MAX_BYTES)
-                $over[] = 'kosz ' . formatSize($trash) . ' z ' . formatSize(USER_TRASH_MAX_BYTES);
+            if ($bytes > $limits['totalBytes'])
+                $over[] = formatSize($bytes) . ' z ' . formatSize($limits['totalBytes']);
+            if ($biggest > $limits['fileBytes'])
+                $over[] = 'plik ' . formatSize($biggest) . ' (limit ' . formatSize($limits['fileBytes']) . ')';
+            if ($trash > $limits['trashBytes'])
+                $over[] = 'kosz ' . formatSize($trash) . ' z ' . formatSize($limits['trashBytes']);
             if ($over)
                 $report['accounts'][] = USERS_DIR . '/' . $name . ': ' . implode(', ', $over) . ' (nic nie znika; nie przyjmie więcej)';
         }

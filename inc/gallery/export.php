@@ -97,7 +97,7 @@
         if ($tmp === false || !writeZip($files, $tmp)) {
             if ($tmp !== false)
                 @unlink($tmp);
-            $fail('Nie udało się utworzyć pliku ZIP.');
+            $fail('Nie udało się utworzyć pliku ZIP. Zawartość mogła się zmienić podczas pobierania; spróbuj ponownie.');
         }
 
         $ascii = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $zipName);
@@ -120,12 +120,19 @@
             return false;
         foreach ($files as $file) {
             if ($file[0] === null) {
-                $zip->addEmptyDir($file[1]);
+                $ok = $zip->addEmptyDir($file[1]);
             } else {
-                $zip->addFile($file[0], $file[1]);
-                $zip->setCompressionName($file[1], ZipArchive::CM_STORE);
+                $ok = is_file($file[0]) && !is_link($file[0]) && @$zip->addFile($file[0], $file[1]);
+                if ($ok) $ok = $zip->setCompressionName($file[1], ZipArchive::CM_STORE);
+            }
+            if (!$ok) {
+                @$zip->close();
+                @unlink($path);
+                return false;
             }
         }
 
-        return $zip->close();
+        $ok = @$zip->close();
+        if (!$ok) @unlink($path);
+        return $ok;
     }

@@ -4,8 +4,56 @@
 ?>
       <h2 class="panel-section" data-section="galeria" data-label="Galeria">Galeria</h2>
 
+      <section class="card wide">
+        <h2>Limity folderów kont</h2>
+        <?php galleryLimitsForm(); ?>
+        <p class="hint" id="quota-impact">Brak raportu zużycia — wpływ obniżenia jest nieznany.</p>
+        <p class="hint">Zmiana dotyczy dziedziczonych pól. Indywidualne nadpisania pozostają. Obniżenie nie usuwa danych.
+          Administrator panelu pomija limity konta przy uploadzie; pozostałe operacje i ochrona dekoderów zachowują limity.</p>
+        <p class="hint">Transport tego PHP: upload <?=e(ini_get('upload_max_filesize'))?>, całe żądanie <?=e(ini_get('post_max_size'))?>;
+          budżet narzutu formularza 1 MiB. Proxy: <?=defined('GALLERY_PROXY_BODY_BYTES') ? e(formatSize(GALLERY_PROXY_BODY_BYTES)) : 'nie skonfigurowano pomiaru w aplikacji'?>.
+          Efektywny limit wysłania: <?=e(formatSize(effectiveUploadLimit()))?>. Ustawienie 128 MiB wymaga odpowiednio większych limitów transportu.</p>
+        <p class="hint">Orientacyjny budżet galerii: 25 GB; przydziały kont nie rezerwują dysku. Stan dysku jest pokazany poniżej.</p>
+      </section>
+      <section class="card wide">
+        <h2>Zużycie i przekroczenia kont</h2>
+        <?php
+          $usageSnapshot = readData('gallery-usage');
+          $usageRows = $usageSnapshot['accounts'] ?? [];
+          $quotaDefaults = galleryLimitDefaults()['values'];
+          $quotaAccess = readData('access');
+          $quotaOverrides = $quotaAccess['galleryLimitOverrides'] ?? [];
+          $quotaImpact = [];
+          $overCount = 0;
+          foreach ($usageRows as $accountId => &$row) {
+              $overrides = $quotaOverrides[$accountId]['values'] ?? [];
+              if (isset($quotaAccess['uploadLimits'][$accountId])) $overrides['files'] = $quotaAccess['uploadLimits'][$accountId];
+              $limits = $overrides + $quotaDefaults;
+              $quotaImpact[] = ['usage' => $row['usage']['values'], 'overrides' => $overrides];
+              $row['ratio'] = 0;
+              foreach ($row['usage']['values'] as $key => $used) $row['ratio'] = max($row['ratio'], $used / $limits[$key]);
+              if ($row['ratio'] > 1) $overCount++;
+          }
+          unset($row);
+          uasort($usageRows, function ($a, $b) { return $b['ratio'] <=> $a['ratio']; });
+          $usagePage = max(1, min(max(1, (int)ceil(count($usageRows) / 25)), (int)($_GET['usagePage'] ?? 1)));
+        ?>
+        <script type="application/json" id="quota-impact-data"><?=json_encode($quotaImpact, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)?></script>
+        <p class="hint">Dane odświeża maintenance porcjami. <?=count($usageRows)?> kont, <?=$overCount?> z potencjalnymi przekroczeniami według bieżących limitów.
+          <?=isset($usageSnapshot['time']) ? 'Ostatnia aktualizacja: ' . e(ago($usageSnapshot['time'])) : 'Brak raportu; wpływ obniżenia limitów jest nieznany.'?></p>
+        <?php foreach (array_slice($usageRows, ($usagePage - 1) * 25, 25, true) as $accountId => $row): ?>
+          <p><a href="?konto=<?=e($accountId)?>"><?=e($logins[$accountId]['name'] ?? $accountId)?></a> · <?=round(100 * $row['ratio'])?>% najwyższego limitu
+            · <?=$row['usage']['values']['files']?> plików · <?=e(formatSize($row['usage']['values']['totalBytes']))?> aktywne
+            · <?=e(formatSize($row['usage']['values']['trashBytes']))?> kosz · pomiar <?=e(ago($row['time']))?></p>
+        <?php endforeach; ?>
+        <?php if ($usagePage > 1): ?><a href="?usagePage=<?=$usagePage - 1?>">Poprzednie</a><?php endif; ?>
+        <?php if ($usagePage * 25 < count($usageRows)): ?><a href="?usagePage=<?=$usagePage + 1?>">Następne</a><?php endif; ?>
+      </section>
+
       <section class="card wide" data-sum="<?=count($trash)?>">
         <h2><i><?=sprintf('%02d', $number++)?></i>Kosz</h2>
+        <?php foreach ($maintenance['last']['problems'] ?? [] as $problem): ?><p class="warn"><?=e($problem)?></p><?php endforeach; ?>
+        <?php if (isset($maintenance['tried'])): ?><p class="hint">Ostatnia próba: <?=e(ago($maintenance['tried']))?></p><?php endif; ?>
         <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.
           Porządki: <?=isset($maintenance['succeeded']) ? 'ostatnio ' . e(ago((int)$maintenance['succeeded'])) : 'jeszcze nie ruszyły'?><?php
           $backlog = (int)($maintenance['last']['backlog'] ?? 0); if ($backlog): ?>, zaległe <?=$backlog?> <?=plural($backlog, 'element', 'elementy', 'elementów')?><?php endif; ?>.</p>

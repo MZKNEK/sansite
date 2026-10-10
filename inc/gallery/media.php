@@ -325,7 +325,7 @@
     // Turns a picture by 90 degrees ($angle 90 to the left, -90 to the right, as
     // GD counts) and saves it in its own format. Not for GIFs and animated WebP,
     // which GD would flatten to one frame.
-    function rotateImage($path, $angle)
+    function rotateImage($path, $angle, $base = null, $rel = null)
     {
         $ext = extensionOf($path);
         if (!hasGd() || !in_array($ext, ROTATE_TYPES, true))
@@ -355,6 +355,11 @@
         unset($rotated);
 
         $mtime = filemtime($path);
+        $owner = $rel === null ? null : folderOwner($rel);
+        if ($ok && $owner !== null && accountQuotaError($base, $owner, 0, filesize($tmp) - filesize($path), filesize($tmp)) !== null) {
+            @unlink($tmp);
+            return false;
+        }
         if (!$ok || !@rename($tmp, $path)) {
             @unlink($tmp);
             return false;

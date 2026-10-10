@@ -60,19 +60,16 @@
         // an account with a folder of its own: only pictures, within its limits,
         // counted over its whole folder with the subfolders; the folder is held
         // until the request ends, so two uploads at once do not both fit
-        $own = !galleryIsAdmin();
-        $ownDir = $own ? $base . '/' . ownFolder($base) : null;
+        $owner = folderOwner($dir[1]);
+        $own = $owner !== null;
         if ($own) {
-            if (accountLock(siteUser()['id']) === null)
+            if (accountLock($owner) === null)
                 reply(false, $name . ': folder jest teraz zajęty, spróbuj za chwilę.', 503);
-            if (isVideo($name))
+            if (isVideo($name) && !galleryIsAdmin())
                 reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
-            if ($file['size'] > USER_FILE_MAX_BYTES)
-                reply(false, $name . ': zdjęcie jest za duże (' . formatSize($file['size']) . ', limit ' . formatSize(USER_FILE_MAX_BYTES) . ').', 413);
-            [$count] = treeUse($ownDir);
-            $limit = userFilesLimit(siteUser()['id']);
-            if ($count >= $limit)
-                reply(false, $name . ': w folderze jest już ' . $count . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . '. Usuń któreś, żeby dodać nowe.', 409);
+            $inputBytes = in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true) ? 0 : (int)$file['size'];
+            if (($why = accountQuotaError($base, $owner, 1, $inputBytes, (int)$file['size'], true)) !== null)
+                reply(false, $name . ': ' . $why, 413);
         }
 
         // "change to WebP" ticked in the page, always in the folder of an account;
@@ -92,14 +89,22 @@
             if (!canConvertHeif())
                 reply(false, $name . ': serwer nie umie zamienić HEIC/HEIF na WebP (brak imagemagick lub ffmpeg). Dodaj plik jako JPG, PNG albo WebP.', 503);
             $target = freeName($dir[0], pathinfo($name, PATHINFO_FILENAME) . '.webp');
-            $path = $dir[0] . '/' . $target;
+            $path = $dir[0] . '/.upload-' . bin2hex(random_bytes(12)) . '.webp';
             if (!heifToWebp($file['tmp_name'], $path)) {
                 @unlink($path);
                 reply(false, $name . ': nie udało się zamienić na WebP. Dodaj plik jako JPG, PNG albo WebP.', 500);
             }
             @chmod($path, 0644);
-            if ($own)
-                checkUserTotal($ownDir, $path, $name);
+            if ($own && ($why = accountQuotaError($base, $owner, 1, filesize($path), filesize($path), true)) !== null) {
+                @unlink($path);
+                reply(false, $name . ': ' . $why, 413);
+            }
+            $final = $dir[0] . '/' . $target;
+            if (!@rename($path, $final)) {
+                @unlink($path);
+                reply(false, 'Nie udało się zapisać wyniku.', 500);
+            }
+            $path = $final;
             recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
             $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
             done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
@@ -111,9 +116,12 @@
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
-        if ($own)
-            checkUserTotal($ownDir, $dir[0] . '/' . $target, $name);
         $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
+        clearstatcache();
+        if ($own && ($why = accountQuotaError($base, $owner, 0, 0, filesize($dir[0] . '/' . $target), true)) !== null) {
+            @unlink($dir[0] . '/' . $target);
+            reply(false, $name . ': ' . $why, 413);
+        }
         $rel = ltrim($dir[1] . '/' . $target, '/');
         recordHash($dir[0] . '/' . $target, $rel, $stripped ? $sentHash : null);
 
@@ -129,8 +137,9 @@
                 $note = ' Serwer nie umie teraz zamienić na ' . $format . ', zostawiono oryginał.';
             } else {
                 $user = siteUser();
-                addMediaJob($rel, $user['id'] ?? '', $user['name'] ?? '', filesize($dir[0] . '/' . $target), $kind, $sentHash);
-                $note = ($kind === 'webm' ? ' Film' : ' Grafika') . ' zostanie zamieniona na ' . $format . ' w tle; status zobaczysz w galerii.';
+                $queued = addMediaJob($rel, $user['id'] ?? '', $user['name'] ?? '', filesize($dir[0] . '/' . $target), $kind, $sentHash);
+                $note = $queued === null ? ' Plik zapisano, ale nie udało się dodać konwersji do kolejki.'
+                    : ($kind === 'webm' ? ' Film' : ' Grafika') . ' zostanie zamieniona na ' . $format . ' w tle; status zobaczysz w galerii.';
             }
         }
 

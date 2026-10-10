@@ -10,6 +10,7 @@
     // logs out, or ends trying other rights (the bar of testRights()); every
     // page's account menu sends it here, with the page to go back to.
     require __DIR__ . '/inc/auth.php';
+    installDataErrorHandler();
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string)($_POST['action'] ?? '');

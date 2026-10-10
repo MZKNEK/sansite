@@ -61,11 +61,38 @@
     function userTrashBytes($id)
     {
         $bytes = 0;
-        foreach (readData('trash') as $item)
+        $items = readData('trash');
+        foreach ($items as $item)
             if (trashOwner($item) === (string)$id)
                 $bytes += (int)($item['size'] ?? 0);
+        foreach (glob(operationsDir() . '/*.json') ?: [] as $file) {
+            $operation = loadJsonFile($file);
+            if (!validOperationDocument($operation)) throw new DataStoreException('invalid-journal', basename($file));
+            if (in_array($operation['kind'] ?? '', ['trash', 'conversion'], true) && !isset($items[$operation['trash'] ?? ''])
+                && isset($operation['item'], $operation['dst']) && file_exists($operation['dst'])
+                && trashOwner($operation['item']) === (string)$id)
+                $bytes += (int)$operation['item']['size'];
+        }
 
         return $bytes;
+    }
+
+    function operationFor($trashId)
+    {
+        foreach (glob(operationsDir() . '/*.json') ?: [] as $file) {
+            $operation = loadJsonFile($file);
+            if (!validOperationDocument($operation)) throw new DataStoreException('invalid-journal', basename($file));
+            if ((string)($operation['trash'] ?? '') === (string)$trashId) return true;
+        }
+        return false;
+    }
+
+    function validOperationDocument($op)
+    {
+        return is_array($op) && ($op['format'] ?? null) === 1 && isset($op['kind'], $op['trash'], $op['src'], $op['dst'])
+            && in_array($op['kind'], ['trash', 'restore', 'conversion'], true) && is_string($op['src']) && is_string($op['dst'])
+            && isset($op['item']) && is_array($op['item']) && validDataSchema('trash', [$op['item']])
+            && is_string($op['trash']) && preg_match('/^\d{14}-[a-f0-9]{8}$/D', $op['trash']);
     }
 
     // One lock for taking things out of the trash (restoring, deleting for good),
@@ -99,12 +126,32 @@
         if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir))
             return null;
 
-        return writeJsonFile($dir . '/' . $id . '.json', ['format' => 1, 'started' => time()] + $operation) ? $id : null;
+        $lock = fileLock(dataLockFile('operation-' . $id), true);
+        if ($lock === null) return null;
+        $locks = &operationLocks();
+        $locks[$id] = $lock;
+        if (writeJsonFile($dir . '/' . $id . '.json', ['format' => 1, 'started' => time()] + $operation)) return $id;
+        releaseOperation($id);
+        return null;
+    }
+
+    function &operationLocks()
+    {
+        static $locks = [];
+        return $locks;
+    }
+
+    function releaseOperation($id)
+    {
+        $locks = &operationLocks();
+        if (isset($locks[$id])) { fclose($locks[$id]); unset($locks[$id]); }
     }
 
     function endOperation($id)
     {
-        @unlink(operationsDir() . '/' . $id . '.json');
+        $ok = @unlink(operationsDir() . '/' . $id . '.json');
+        releaseOperation($id);
+        return $ok;
     }
 
     // Moves a file or folder to the trash; false when it stays where it is, with
@@ -115,6 +162,14 @@
     // gallery admin deleting is not held to it (its entries still count).
     function moveToTrash($full, $rel, &$error = null)
     {
+        $mutation = galleryLock();
+        $policy = galleryLock('policy', false);
+        try { return moveToTrashLocked($full, $rel, $error); }
+        finally { $policy(); $mutation(); }
+    }
+
+    function moveToTrashLocked($full, $rel, &$error = null)
+    {
         $error = null;
         $owner = folderOwner($rel);
         $release = $owner === null ? null : accountLock($owner);
@@ -124,12 +179,16 @@
         }
 
         try {
+            readData('trash');
+            clearstatcache();
+            if (!file_exists($full) || is_link($full)) return false;
             $size = treeSize($full);
-            if ($owner !== null && !galleryIsAdmin() && userTrashBytes($owner) + $size > USER_TRASH_MAX_BYTES) {
+            $trashLimit = $owner === null ? 0 : accountLimits($owner)['values']['trashBytes'];
+            if ($owner !== null && userTrashBytes($owner) + $size > $trashLimit) {
                 purgeTrash($owner);
                 $used = userTrashBytes($owner);
-                if ($used + $size > USER_TRASH_MAX_BYTES) {
-                    $error = 'kosz folderu jest pełny (' . formatSize($used) . ' z ' . formatSize(USER_TRASH_MAX_BYTES) . ', a to ' . formatSize($size)
+                if ($used + $size > $trashLimit) {
+                    $error = 'kosz folderu jest pełny (' . formatSize($used) . ' z ' . formatSize($trashLimit) . ', a to ' . formatSize($size)
                         . '); rzeczy znikają z niego po ' . TRASH_DAYS . ' dniach';
                     return false;
                 }
@@ -150,7 +209,7 @@
                 'by' => $user['name'] ?? ''
             ] + ($owner !== null ? ['owner' => $owner] : []);
             $operation = beginOperation(['kind' => 'trash', 'trash' => $id, 'src' => $full, 'dst' => $dir . '/' . basename($rel), 'item' => $item]);
-            if ($operation === null || !@rename($full, $dir . '/' . basename($rel))) {
+            if ($operation === null || !galleryRename($full, $dir . '/' . basename($rel))) {
                 @rmdir($dir);
                 if ($operation !== null)
                     endOperation($operation);
@@ -160,9 +219,15 @@
             $ok = updateData('trash', function (&$items) use ($id, $item) { $items[$id] = $item; });
             // without its entry the file could not be found or brought back: it
             // goes back where it was
-            if (!$ok && @rename($dir . '/' . basename($rel), $full))
+            if ($ok) {
+                endOperation($operation);
+            } elseif (!file_exists($full) && galleryRename($dir . '/' . basename($rel), $full)) {
                 @rmdir($dir);
-            endOperation($operation);
+                endOperation($operation);
+            } else {
+                $error = 'zapis i wycofanie nie powiodły się; zachowano dziennik operacji do odzyskania';
+                releaseOperation($operation);
+            }
 
             return $ok;
         } finally {
@@ -178,7 +243,16 @@
     // where it ended up, or null with the reason in $error.
     function restoreFromTrash($base, $id, &$error = null)
     {
+        $mutation = galleryLock();
+        $policy = galleryLock('policy', false);
+        try { return restoreFromTrashLocked($base, $id, $error); }
+        finally { $policy(); $mutation(); }
+    }
+
+    function restoreFromTrashLocked($base, $id, &$error = null)
+    {
         $error = null;
+        if (!preg_match('/^\d{14}-[a-f0-9]{8}$/D', (string)$id)) { $error = 'Nieprawidłowy wpis kosza.'; return null; }
         $item = readData('trash')[$id] ?? null;
         if ($item === null) {
             $error = 'Tego już nie ma w koszu, odśwież stronę.';
@@ -224,7 +298,7 @@
             $folder = $base . ($folderRel === '' ? '' : '/' . $folderRel);
             $name = (is_dir($folder) || @mkdir($folder, 0755, true)) ? freeName($folder, $item['name']) : null;
             $operation = $name === null ? null : beginOperation(['kind' => 'restore', 'trash' => $id, 'src' => $source, 'dst' => $folder . '/' . $name]);
-            if ($operation === null || !@rename($source, $folder . '/' . $name)) {
+            if ($operation === null || !galleryRename($source, $folder . '/' . $name)) {
                 if ($operation !== null)
                     endOperation($operation);
                 $error = 'Nie udało się przywrócić ' . $item['name'] . '.';
@@ -233,9 +307,10 @@
 
             if (!updateData('trash', function (&$items) use ($id) { unset($items[$id]); })) {
                 // the entry would stay without its file: the file goes back to the trash
-                @rename($folder . '/' . $name, $source);
-                endOperation($operation);
-                $error = 'Nie udało się przywrócić ' . $item['name'] . '.';
+                $undone = !file_exists($source) && galleryRename($folder . '/' . $name, $source);
+                if ($undone) endOperation($operation);
+                else releaseOperation($operation);
+                $error = 'Nie udało się przywrócić ' . $item['name'] . ($undone ? '.' : '; wycofanie nie powiodło się, zachowano dziennik do odzyskania.');
                 return null;
             }
             @rmdir(trashDir() . '/' . $id);
@@ -263,6 +338,8 @@
     // for one call, so a restore waits at most that long.
     function purgeTrashEntry($id, $expiredBefore = null, $deadline = null)
     {
+        if (!preg_match('/^\d{14}-[a-f0-9]{8}$/D', (string)$id)) return 'failed';
+        if (operationFor($id)) return 'skipped';
         $lock = trashLock();
         if ($lock === null)
             return 'failed';

@@ -69,7 +69,8 @@
     test('a broken file is never written over by a change', function () {
         file_put_contents(dataFile('access'), '{"galleryViewers": {"1');
         forgetData('access');
-        assertSame([], readData('access'), 'read as empty, so the pages go on');
+        try { readData('access'); test_assert(false, 'broken permissions must fail closed'); }
+        catch (DataStoreException $error) { assertTrue(true); }
         assertFalse(updateData('access', function (&$data) { $data['x'] = 1; }));
         assertSame('{"galleryViewers": {"1', file_get_contents(dataFile('access')), 'the broken file is kept as it is');
 
