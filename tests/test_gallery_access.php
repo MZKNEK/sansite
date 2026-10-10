@@ -19,10 +19,10 @@
         assertFalse(galleryCanSee($base, 'private/a.png'));
         sessionEnd();
 
-        sessionFor('sanakan-see-uploader', ['id' => '333', 'name' => 'U', 'avatar' => 'a']);
+        sessionFor('sanakan-see-uploader', ['id' => '556', 'name' => 'U', 'avatar' => 'a']);
         $baseU = tempDir();
         $own = ownFolder($baseU);
-        assertSame('users/333-U', $own);
+        assertSame('users/556-U', $own);
         assertTrue(galleryCanSee($baseU, $own . '/a.png'), 'its own folder');
         assertFalse(galleryCanSee($baseU, 'a.png'), 'and nothing else');
         sessionEnd();
@@ -35,25 +35,25 @@
 
     test('ownFolder creates the folder and follows a new nickname', function () {
         $base = tempDir();
-        sessionFor('sanakan-own-1', ['id' => '333', 'name' => 'Jan Kowalski', 'avatar' => 'a']);
-        assertSame('users/333-Jan Kowalski', ownFolder($base));
-        assertTrue(is_dir($base . '/users/333-Jan Kowalski'));
+        sessionFor('sanakan-own-1', ['id' => '556', 'name' => 'Jan Kowalski', 'avatar' => 'a']);
+        assertSame('users/556-Jan Kowalski', ownFolder($base));
+        assertTrue(is_dir($base . '/users/556-Jan Kowalski'));
         sessionEnd();
 
         $base2 = tempDir();
-        mkdir($base2 . '/users/333-Stary', 0700, true);
-        sessionFor('sanakan-own-2', ['id' => '333', 'name' => 'Nowy', 'avatar' => 'a']);
-        assertSame('users/333-Nowy', ownFolder($base2), 'the folder follows the nick');
-        assertTrue(is_dir($base2 . '/users/333-Nowy'));
-        assertFalse(is_dir($base2 . '/users/333-Stary'));
+        mkdir($base2 . '/users/556-Stary', 0700, true);
+        sessionFor('sanakan-own-2', ['id' => '556', 'name' => 'Nowy', 'avatar' => 'a']);
+        assertSame('users/556-Nowy', ownFolder($base2), 'the folder follows the nick');
+        assertTrue(is_dir($base2 . '/users/556-Nowy'));
+        assertFalse(is_dir($base2 . '/users/556-Stary'));
         sessionEnd();
     });
 
     test('ownFolder keeps a bad nickname out of the path', function () {
         $base = tempDir();
-        sessionFor('sanakan-own-3', ['id' => '333', 'name' => 'a/b:c', 'avatar' => 'a']);
-        assertSame('users/333-abc', ownFolder($base));
-        assertTrue(is_dir($base . '/users/333-abc'));
+        sessionFor('sanakan-own-3', ['id' => '556', 'name' => 'a/b:c', 'avatar' => 'a']);
+        assertSame('users/556-abc', ownFolder($base));
+        assertTrue(is_dir($base . '/users/556-abc'));
         sessionEnd();
     });
 

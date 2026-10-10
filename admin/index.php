@@ -20,7 +20,7 @@
     const LIST_LABELS = [
         'galleryAdmins' => 'administratorzy galerii',
         'galleryViewers' => 'oglądający galerię',
-        'galleryUploaders' => 'własny folder w galerii',
+        'galleryUploaders' => 'zablokowany własny folder w galerii',
         'galleryPrivate' => 'prywatny folder w galerii',
         'apiViewers' => 'dostęp do API'
     ];
@@ -29,9 +29,9 @@
     const LIST_CARDS = [
         'galleryAdmins' => ['Administratorzy galerii', 'Oglądają galerię i dodają, przenoszą oraz usuwają pliki.'],
         'galleryViewers' => ['Oglądający galerię', 'Tylko oglądają galerię.'],
-        'galleryUploaders' => ['Własne foldery w galerii', 'Dodają zdjęcia tylko do swojego folderu i/' . USERS_DIR . '/ID-nick i tylko jego widzą (oprócz nich administratorzy galerii). Do '
+        'galleryUploaders' => ['Zablokowane własne foldery', 'Każde konto zalogowane przez Discord, także administratorzy galerii, ma własny folder i/' . USERS_DIR . '/ID-nick: dodaje zdjęcia tylko tam i bez innego dostępu tylko go widzi. Do '
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
-            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy. Folder zostaje po odebraniu dostępu.'],
+            . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy. Konta z tej listy mają go zablokowanego; folder i pliki zostają.'],
         'galleryPrivate' => ['Prywatny folder galerii', 'Widzą i/' . PRIVATE_DIR . '. Administratorzy panelu zawsze, reszta z tej listy. Pliki nie otwierają się bezpośrednim linkiem.'],
         'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
     ];
@@ -892,12 +892,11 @@
             $limit = userFilesLimit($id);
             $use = $files . ' z ' . $limit . ' ' . plural($limit, 'zdjęcia', 'zdjęć', 'zdjęć') . ', ' . formatSize($bytes) . ' z ' . formatSize(USER_TOTAL_MAX_BYTES);
             $cells['folder'] = [$files . '/' . $limit, 'on', 'Własny folder: ' . $use];
-            $details[] = ['Własny folder', $join(($folder !== null ? displayPath($folder) . ', ' : 'jeszcze nie założony, ') . $use, accessFrom('galleryUploaders', $id, $logins))];
-        } else if ($folder !== null) {
-            $cells['folder'] = ['zostaje', '', 'Dostęp odebrany, folder został: ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików')];
-            $details[] = ['Własny folder', displayPath($folder) . ' został po odebraniu dostępu, ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików')];
+            $details[] = ['Własny folder', ($folder !== null ? displayPath($folder) . ', ' : 'jeszcze nie założony, ') . $use];
         } else {
-            $cells['folder'] = ['—', '', 'Bez własnego folderu'];
+            $blocked = $join('zablokowany', accessFrom('galleryUploaders', $id, $logins));
+            $cells['folder'] = [$folder !== null ? 'zostaje' : 'blok', '', 'Własny folder ' . $blocked . ($folder !== null ? ', folder został: ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików') : '')];
+            $details[] = ['Własny folder', $blocked . ($folder !== null ? ', ' . displayPath($folder) . ' został, ' . $files . ' ' . plural($files, 'plik', 'pliki', 'plików') : '')];
         }
 
         if (isPanelAdminId($id)) {
@@ -1031,7 +1030,6 @@
               <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ Dostęp do API</button>
 <?php else: ?>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
-              <button type="button" class="admin-btn small" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>">+ Własny folder</button>
               <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>
 <?php endif; ?>
               <button type="button" class="admin-btn small danger" data-action="request-dismiss" data-for="<?=e($request['for'])?>" data-id="<?=e($id)?>" data-confirm="Odrzucić prośbę <?=e(accountLabel($id, $logins))?> o dostęp do <?=e(REQUEST_LABELS[$request['for']])?>?">Odrzuć</button>
@@ -1149,7 +1147,7 @@
         <h2><i><?=sprintf('%02d', $number++)?></i><?=e(LIST_CARDS[$list][0])?></h2>
         <p class="hint"><?=e(LIST_CARDS[$list][1])?></p>
 <?php if ($info['everyone']): ?>
-        <p class="everyone">Każde konto Discord (<code><?=e(ACCESS_LISTS[$list])?> = true</code> w konfiguracji).</p>
+        <p class="everyone"><?=$list === 'galleryUploaders' ? 'Zablokowane wszystkim' : 'Każde konto Discord'?> (<code><?=e(ACCESS_LISTS[$list])?> = true</code> w konfiguracji).</p>
 <?php endif; ?>
         <ul class="people">
 <?php foreach ($info['entries'] as $entry): ?>
@@ -1161,7 +1159,11 @@
 <?php if ($entry['config']): ?>
             <span class="badge-config" title="Ustawione w inc/config.php">config</span>
 <?php else: ?>
+<?php if ($list === 'galleryUploaders'): ?>
+            <button type="button" class="admin-btn small" data-action="revoke" data-list="<?=e($list)?>" data-id="<?=e($entry['id'])?>" data-confirm="Odblokować własny folder <?=e(accountLabel($entry['id'], $logins))?>?">Odblokuj</button>
+<?php else: ?>
             <button type="button" class="admin-btn danger small" data-action="revoke" data-list="<?=e($list)?>" data-id="<?=e($entry['id'])?>" data-confirm="Odebrać dostęp: <?=e(accountLabel($entry['id'], $logins))?>?">Usuń</button>
+<?php endif; ?>
 <?php endif; ?>
           </li>
 <?php endforeach; ?>
@@ -1179,7 +1181,7 @@
           <input type="hidden" name="list" value="<?=e($list)?>" />
           <input type="text" name="id" inputmode="numeric" pattern="\d{17,20}" placeholder="ID konta Discord" aria-label="ID konta Discord" required />
           <input type="text" name="note" maxlength="60" placeholder="Notatka (opcjonalnie)" aria-label="Notatka" />
-          <button type="submit" class="admin-btn primary">Dodaj</button>
+          <button type="submit" class="admin-btn primary"><?=$list === 'galleryUploaders' ? 'Zablokuj' : 'Dodaj'?></button>
         </form>
       </section>
 <?php endforeach; ?>
@@ -1231,8 +1233,8 @@
 <?php if (!canViewGalleryId($id)): ?>
                 <button type="button" class="admin-btn small" data-action="grant" data-list="galleryViewers" data-id="<?=e($id)?>">+ Oglądający</button>
 <?php endif; ?>
-<?php if (!isGalleryAdminId($id) && !isGalleryUploaderId($id)): ?>
-                <button type="button" class="admin-btn small" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>">+ Własny folder</button>
+<?php if (isGalleryUploaderId($id)): ?>
+                <button type="button" class="admin-btn small danger" data-action="grant" data-list="galleryUploaders" data-id="<?=e($id)?>" data-confirm="<?=e('Zablokować własny folder ' . accountLabel($id, $logins) . '? Folder i pliki zostają.')?>">Zablokuj folder</button>
 <?php endif; ?>
 <?php if (!isGalleryAdminId($id)): ?>
                 <button type="button" class="admin-btn small" data-action="grant" data-list="galleryAdmins" data-id="<?=e($id)?>">+ Admin galerii</button>

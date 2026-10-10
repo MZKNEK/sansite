@@ -33,9 +33,12 @@
         // '234567890123456789',
     ];
 
-    // Accounts with a folder of their own in the gallery, i/users/<id>-<nick>:
-    // they see only that one and add pictures there (the panel can add more,
-    // and sets how many pictures each may keep). Optional.
+    // Every account logged in with Discord (the gallery admins too, so it stays
+    // theirs should they lose the rights) has a folder of its own in the gallery, i/users/<id>-<nick>, made the first time it
+    // opens the gallery: without access to the rest it sees only that one and
+    // adds pictures there, 50 by default (the panel sets it per account). The
+    // accounts here have it blocked (the panel can block more); their folder
+    // and files stay. true blocks it for everyone. Optional.
     const GALLERY_UPLOADERS = [
         // '345678901234567890',
     ];

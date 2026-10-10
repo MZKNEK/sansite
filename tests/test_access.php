@@ -25,7 +25,7 @@
 
     test('a list set to true lets in everyone only where allowAll', function () {
         assertTrue(inAccessList('apiViewers', 'anyone', true));
-        assertFalse(inAccessList('apiViewers', 'anyone', false), 'never for the gallery folder');
+        assertFalse(inAccessList('apiViewers', 'anyone', false), 'not where allowAll is false');
     });
 
     test('panel admins come from the configuration alone', function () {
@@ -40,8 +40,11 @@
         assertFalse(isGalleryAdminId('222'));
         assertTrue(canViewGalleryId('111'));
         assertTrue(canViewGalleryId('222'));
-        assertFalse(canViewGalleryId('333'), 'an uploader does not see the whole gallery');
-        assertTrue(isGalleryUploaderId('333'));
+        assertFalse(canViewGalleryId('333'), 'an account with only its own folder does not see the whole gallery');
+        assertTrue(isGalleryUploaderId('555'), 'every account has a folder of its own');
+        assertTrue(isGalleryUploaderId('222'), 'a viewer too');
+        assertFalse(isGalleryUploaderId('333'), 'GALLERY_UPLOADERS blocks it');
+        assertTrue(isGalleryUploaderId('111'), 'a gallery admin too, so it stays should the rights go');
         assertTrue(canSeePrivateGalleryId('444'));
         assertTrue(canSeePrivateGalleryId('999'), 'a panel admin always');
         assertFalse(canSeePrivateGalleryId('111'), 'a gallery admin is not a private viewer');
@@ -57,6 +60,13 @@
         assertTrue(canViewApiId('666'), 'a tester may read the API');
         assertTrue(canSeePrivateCommandsId('700'), 'a dev sees the moderator commands');
         assertFalse(canSeePrivateCommandsId('666'), 'a tester does not');
+    });
+
+    test('the panel blocks a folder of its own, and unblocking gives it back', function () {
+        writeData('access', ['galleryUploaders' => ['556' => ['note' => '', 'added' => 1, 'by' => '999']]]);
+        assertFalse(isGalleryUploaderId('556'));
+        writeData('access', []);
+        assertTrue(isGalleryUploaderId('556'));
     });
 
     test('userFilesLimit falls back to the default', function () {

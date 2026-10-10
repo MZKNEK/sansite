@@ -2,8 +2,8 @@
     // Gallery of this folder: browses the subfolders and shows the pictures as
     // a grid of thumbnails with a viewer. It needs a Discord login: accounts in
     // GALLERY_ADMINS (inc/config.php) can also add, move and delete files, the
-    // ones in GALLERY_VIEWERS can look, the ones in GALLERY_UPLOADERS see and
-    // fill only a folder of their own. A shared link (?s=) opens one folder
+    // ones in GALLERY_VIEWERS can look, and every other account sees and fills
+    // only a folder of its own (blocked for the ones in GALLERY_UPLOADERS). A shared link (?s=) opens one folder
     // without a login. Only this file is in git; the pictures live on the
     // server (see .gitignore). The logic is in inc/gallery.php.
     require __DIR__ . '/../inc/gallery.php';

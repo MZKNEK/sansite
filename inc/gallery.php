@@ -4,7 +4,9 @@
     // files. The Discord login is in inc/auth.php, shared with the admin panel.
     //
     // Besides the viewers and the admins, an account can get a folder of its
-    // own, i/users/<id>-<nick>, and see only that one: it adds pictures there,
+    // own, i/users/<id>-<nick> (every account logged in with Discord but the
+    // ones GALLERY_UPLOADERS blocks), made the first time it opens the gallery,
+    // and without other access see only that one: it adds pictures there,
     // saved as WebP when that is smaller, and renames, turns and deletes them, up to a number
     // of files set per account in the panel (USER_FILES_DEFAULT without one),
     // USER_FILE_MAX_BYTES each and USER_TOTAL_MAX_BYTES in all. Nobody but the
@@ -65,7 +67,7 @@
     // the folder only the panel admins and the GALLERY_PRIVATE list see, and
     // whose files nginx never gives straight from the disk
     const PRIVATE_DIR = 'private';
-    const USER_FILES_DEFAULT = 10;
+    const USER_FILES_DEFAULT = 50;
     const USER_FILES_MAX = 1000;
     const USER_FILE_MAX_BYTES = 10485760;
     const USER_TOTAL_MAX_BYTES = 104857600;

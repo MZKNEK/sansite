@@ -38,6 +38,20 @@
         foreach (['galleryAdmins' => 'Admin galerii', 'galleryViewers' => 'Ogląda galerię', 'galleryUploaders' => 'Własny folder w galerii', 'galleryPrivate' => 'Prywatny folder w galerii', 'apiViewers' => 'Dokumentacja API'] as $list => $label) {
             $config = configList(ACCESS_LISTS[$list]);
             $entry = panelList($list)[$id] ?? null;
+            // the folder list blocks: "tak" unless the account is on it
+            if ($list === 'galleryUploaders') {
+                if ($config === true)
+                    $access[] = [$label, false, 'zablokowany wszystkim (inc/config.php)', null];
+                else if (in_array($id, $config, true))
+                    $access[] = [$label, false, 'zablokowany w inc/config.php', null];
+                else if ($entry !== null)
+                    $access[] = [$label, false, 'zablokowany w panelu' . (!empty($entry['added']) ? ', ' . date('d.m.Y', $entry['added']) : '')
+                        . (!empty($entry['by']) ? ', zablokował(a) ' . ($logins[$entry['by']]['name'] ?? $entry['by']) : '')
+                        . (($entry['note'] ?? '') !== '' ? ': „' . $entry['note'] . '”' : ''), $list];
+                else
+                    $access[] = [$label, true, 'każde konto', $list];
+                continue;
+            }
             if ($config === true)
                 $access[] = [$label, true, 'każdy zalogowany (inc/config.php)', null];
             else if (in_array($id, $config, true))
@@ -153,8 +167,14 @@
 <?php foreach ($p['access'] as [$label, $yes, $from, $list]): ?>
           <dt><?=e($label)?></dt>
           <dd>
-            <?=$yes ? '<b class="profile-yes">tak</b>' . ($from !== '' ? ' <span class="muted">(' . e($from) . ')</span>' : '') : '<span class="muted">nie</span>'?>
-<?php if ($list !== null && $yes && $from !== 'przez rolę na serwerze bota'): ?>
+            <?=$yes ? '<b class="profile-yes">tak</b>' . ($from !== '' ? ' <span class="muted">(' . e($from) . ')</span>' : '') : '<span class="muted">nie' . ($from !== '' ? ' (' . e($from) . ')' : '') . '</span>'?>
+<?php if ($list === 'galleryUploaders'): ?>
+<?php if ($yes): ?>
+            <button type="button" class="admin-btn small danger" data-action="grant" data-list="<?=e($list)?>" data-id="<?=e($id)?>" data-confirm="Zablokować własny folder? Folder i pliki zostają.">Zablokuj</button>
+<?php else: ?>
+            <button type="button" class="admin-btn small" data-action="revoke" data-list="<?=e($list)?>" data-id="<?=e($id)?>">Odblokuj</button>
+<?php endif; ?>
+<?php elseif ($list !== null && $yes && $from !== 'przez rolę na serwerze bota'): ?>
             <button type="button" class="admin-btn small danger" data-action="revoke" data-list="<?=e($list)?>" data-id="<?=e($id)?>" data-confirm="<?=e('Odebrać: ' . $label . '?')?>">Odbierz</button>
 <?php elseif ($list !== null && !$yes): ?>
             <button type="button" class="admin-btn small" data-action="grant" data-list="<?=e($list)?>" data-id="<?=e($id)?>">Nadaj</button>

@@ -8,13 +8,14 @@
     //   PANEL_ADMINS     may open the admin panel
     //   GALLERY_ADMINS   may view and manage the gallery
     //   GALLERY_VIEWERS  may view the gallery (true lets in anyone with Discord)
-    //   GALLERY_UPLOADERS get a folder of their own in the gallery and see only it
+    //   GALLERY_UPLOADERS have the folder of their own in the gallery blocked,
+    //                    which every other account has (true blocks it for all)
     //   API_VIEWERS      may read the API documentation (the panel admins always can)
     //   BOT_APP_KEY      the site's key to the bot API (x-app-key with Info rights)
     // With the key the bot also says the account's roles on its Discord server:
     // dev, admin, semi-admin and tester may read the API documentation, the
     // other roles are only shown. The gallery never follows these roles.
-    // The panel adds more gallery admins and viewers and API readers. An account
+    // The panel adds more gallery admins and viewers, blocked folders and API readers. An account
     // without access can ask for it; the requests wait in inc/data/requests.json. Those are kept in
     // inc/data/access.json, next to a list of recent logins; inc/ is not
     // reachable from the web.
@@ -269,12 +270,17 @@
         return isGalleryAdminId($id) || inAccessList('galleryViewers', $id, true);
     }
 
-    // a folder of its own in the gallery (inc/gallery.php); never everyone
+    // a folder of its own in the gallery (inc/gallery.php): every account
+    // logged in with Discord has one, the gallery admins too (it stays theirs
+    // should they lose the rights), except the ones on the GALLERY_UPLOADERS
+    // list, which blocks it (true for everyone)
     function isGalleryUploaderId($id)
     {
         $test = testRights($id);
+        if (isset($test['gallery']))
+            return in_array($test['gallery'], ['uploader', 'viewer-uploader'], true);
 
-        return isset($test['gallery']) ? in_array($test['gallery'], ['uploader', 'viewer-uploader'], true) : inAccessList('galleryUploaders', $id, false);
+        return !inAccessList('galleryUploaders', $id, true);
     }
 
     // the private folder of the gallery, i/private (inc/gallery.php): the panel
