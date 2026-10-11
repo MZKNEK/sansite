@@ -126,6 +126,7 @@
         [$history, $gallery, $uploads] = accountActivity($id, false, OWN_HISTORY_SHOWN, OWN_UPLOADS_SHOWN);
         $galleryRoot = dirname(__DIR__) . '/i/';
         $showGallery = canViewGalleryId($id) || isGalleryUploaderId($id) || array_sum($gallery) > 0;
+        $finds = safeguardFinds($id);
     }
 ?>
 <!DOCTYPE html>
@@ -142,11 +143,11 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=850b4de59c" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=2cafd60857" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=20f7e866c5" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=81377d6a11" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -337,6 +338,27 @@
         </form>
       </section>
 
+      <section class="card wide" id="rejestr" data-safeguard-register data-found="<?=e(implode(' ', array_keys($finds)))?>">
+        <h2><i><?=$showGallery ? '07' : '06'?></i>Rejestr Safeguarda<span class="card-sum"><?=count($finds)?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
+        <p class="hint">Sekrety strony, które to konto już odkryło. Te znalezione bez logowania zostają w przeglądarce i trafiają tutaj po zalogowaniu. Reszta czeka, a Safeguard daje tylko wskazówki.</p>
+        <ol class="register">
+<?php foreach (SAFEGUARD_FINDS as $key => [$name, $what, $hint]): $time = $finds[$key] ?? null; ?>
+<?php if ($time !== null): ?>
+          <li class="found">
+            <b><?=e($name)?></b>
+            <span><?=e($what)?></span>
+            <time datetime="<?=e(date('c', $time))?>"><?=e(date('j.m.Y H:i', $time))?></time>
+          </li>
+<?php else: ?>
+          <li>
+            <b>Wpis niezidentyfikowany</b>
+            <span><?=e($hint)?></span>
+          </li>
+<?php endif; ?>
+<?php endforeach; ?>
+        </ol>
+      </section>
+
       <p class="hint own-note">Tak wyglądają dane tego konta zapisane przez stronę. Więcej w <a href="../privacy/">informacji o prywatności</a>. O usunięcie danych można poprosić pod adresem <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>.</p>
     </div>
 <?php endif; ?>
@@ -351,8 +373,10 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
-  <script src="../js/account.js?v=292db1badf"></script>
-  <script src="../js/netsphere.js?v=1c8be049a6"></script>
+  <script src="../js/account.js?v=ff288d9afb"></script>
+  <script src="../js/netsphere.js?v=0a0f57d420"></script>
+  <script src="../js/safeguard.js?v=712f706950"></script>
+  <script src="../js/palette.js?v=545fc5ad3b"></script>
 </body>
 
 </html>

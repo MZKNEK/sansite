@@ -9,8 +9,37 @@
     // and comes back to ?back=, or to the home page. A POST with the CSRF token
     // logs out, or ends trying other rights (the bar of testRights()); every
     // page's account menu sends it here, with the page to go back to.
+    //
+    // The Safeguard's register (inc/auth/finds.php, js/safeguard.js): ?finds
+    // says whether there is an account, its finds and the CSRF token; a POST
+    // of action=finds with the token and the browser's finds as JSON (key =>
+    // time) notes them, and answers with all the account's finds.
     require __DIR__ . '/inc/auth.php';
     installDataErrorHandler();
+
+    if (isset($_GET['finds']) || ($_POST['action'] ?? '') === 'finds') {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, private');
+        $user = authConfigured() ? siteUser() : null;
+        if ($user === null) {
+            echo json_encode(['login' => false]);
+            exit;
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['login' => true, 'csrf' => siteCsrf(), 'finds' => (object)safeguardFinds($user['id'])]);
+            exit;
+        }
+        if (!checkCsrf()) {
+            http_response_code(403);
+            echo json_encode(['login' => true, 'error' => 'csrf']);
+            exit;
+        }
+        $finds = addSafeguardFinds($user['id'], json_decode((string)($_POST['found'] ?? ''), true), time());
+        if ($finds === null)
+            http_response_code(503);
+        echo json_encode(['login' => true, 'finds' => (object)($finds ?? safeguardFinds($user['id']))]);
+        exit;
+    }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string)($_POST['action'] ?? '');

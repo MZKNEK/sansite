@@ -5,7 +5,9 @@
 // the account menu, which does not help either. After the verdict the Safeguard
 // leaves its emergency terminal open: a prompt with a few commands that answer
 // with the site's real data (status, ping, whoami, going to a page) and some
-// lore of the Megastructure.
+// lore of the Megastructure. The scan, five entries of the lore and the
+// password from the X-Safeguard header (server/nginx/sanakan-headers.conf) are
+// finds of the Safeguard's register (js/safeguard.js).
 (function () {
   var WORD = 'netsphere';
   var TAPS = 5;
@@ -104,6 +106,7 @@
       function () {
         overlay.classList.add('alarm');
         log.appendChild(el('p', 'ns-verdict', 'NIELEGALNY MIESZKANIEC'));
+        note('netsphere');
       },
       function () {
         log.appendChild(el('p', 'ns-note', dev
@@ -153,6 +156,11 @@
     open = shut;
   }
 
+  // a find for the Safeguard's register (js/safeguard.js), when it is on the page
+  function note(key) {
+    if (window.SanakanSafeguard) SanakanSafeguard.found(key);
+  }
+
   // ---- The emergency terminal ----------------------------------------------
 
   // where "idź" goes: [path from the site's root, or a full address, name]
@@ -166,6 +174,7 @@
     profil: ['account/', 'twój profil'],
     panel: ['admin/', 'panel'],
     prywatnosc: ['privacy/', 'prywatność'],
+    rejestr: ['account/#rejestr', 'rejestr Safeguarda w profilu'],
     wiki: ['https://wiki.sanakan.pl', 'wiki']
   };
   var PLACE_ALIASES = {
@@ -173,14 +182,41 @@
     account: 'profil', admin: 'panel', privacy: 'prywatnosc', 'prywatność': 'prywatnosc'
   };
 
-  // commands not in the help, answered with a few lines of BLAME!
+  // commands not in the help, answered with a few lines of BLAME!; five of
+  // them read, in any visits, make a find of the register
   var LORE = {
     killy: ['Wykryto: Killy. Wyposażenie: Emiter Promienia Grawitacyjnego.', 'Zalecenie Safeguarda: nie stawać na linii strzału.'],
     cibo: ['Cibo, naukowczyni. Szuka genu terminala sieciowego razem z Killym.', 'Poza kontrolą Safeguarda.'],
     sanakan: ['Sanakan: Safeguard poziomu 9 w ludzkiej postaci.', 'Ten bot nosi jej imię. Jest mniej groźny.'],
     sudo: ['Safeguard nie zna słowa sudo.', 'Bez genu terminala sieciowego uprawnień nie da się podnieść.'],
-    rm: ['Megastruktury nie da się usunąć.', 'Budowniczowie wciąż budują.']
+    rm: ['Megastruktury nie da się usunąć.', 'Budowniczowie wciąż budują.'],
+    budowniczy: ['Budowniczowie: maszyny, które bez końca rozbudowują Megastrukturę.', 'Nikt już nie umie wydać im rozkazu, żeby przestali.'],
+    administracja: ['Administracja Netsfery straciła kontrolę nad Safeguardem i Budowniczymi,', 'gdy ludzie stracili gen terminala sieciowego.'],
+    silikon: ['Formy krzemowe: wróg ludzi i Safeguarda. Też szukają genu.', 'Podobno wpuszcza je do sieci stary kod z 1986 roku.'],
+    dhomochevsky: ['Dhomochevsky: forma krzemowa, która walczyła u boku Killy\'ego.', 'Wróg twojego wroga nie musi być przyjacielem.'],
+    emiter: ['Emiter Promienia Grawitacyjnego przebija wszystko na swojej drodze.', 'Na stronie głównej ktoś zostawił jeden przy kropce statusu. Trzeba go przytrzymać.']
   };
+  var LORE_ALIASES = { gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
+  var LORE_FIND = 5;
+  var LORE_STORE = 'safeguard-lore';
+
+  // the lore read so far, kept in the browser; five of it is a find
+  function readLore(key) {
+    var read = [];
+    try {
+      read = JSON.parse(localStorage.getItem(LORE_STORE)) || [];
+    } catch (err) {
+      // private mode: only this visit counts
+    }
+    if (!Array.isArray(read)) read = [];
+    if (read.indexOf(key) < 0) read.push(key);
+    try {
+      localStorage.setItem(LORE_STORE, JSON.stringify(read));
+    } catch (err) {
+      // the same
+    }
+    if (read.length >= LORE_FIND) note('lore');
+  }
 
   var STATES = {
     online: ['DZIAŁA', 'ok'],
@@ -251,6 +287,7 @@
           ['skan', 'jeszcze jeden skan genu'],
           ['idź <miejsce>', 'przejście na stronę (ls: lista)'],
           ['man <polecenie>', 'opis polecenia bota'],
+          ['rejestr', 'twoje znaleziska dla Safeguarda'],
           ['czas', 'czas sieci'],
           ['wyczyść', 'czyści ekran'],
           ['zamknij', 'zamyka terminal (Esc)']
@@ -337,6 +374,29 @@
         row('czas Megastruktury', 'NIEZNANY', 'dim');
       },
 
+      // the finds this browser knows; the dates and the hints in the profile
+      rejestr: function () {
+        if (!window.SanakanSafeguard) {
+          say('Rejestr Safeguarda nie odpowiada.', 'bad');
+          return;
+        }
+        var finds = SanakanSafeguard.finds();
+        var names = SanakanSafeguard.names;
+        Object.keys(names).forEach(function (key) {
+          if (finds[key]) row(names[key], 'ZNALEZIONE', 'ok');
+          else row('wpis niezidentyfikowany', '—', 'dim');
+        });
+        row('razem', Object.keys(finds).length + ' z ' + Object.keys(names).length);
+        say('Wskazówki do reszty: idź rejestr', 'dim');
+      },
+
+      // the password the server gives in its X-Safeguard header
+      toha: function () {
+        say('Hasło awaryjne Toha Heavy Industries: PRZYJĘTE.', 'ok');
+        say('Hasło się zgadza. Genu terminala sieciowego nadal brak.');
+        note('header');
+      },
+
       'wyczyść': function () { log.textContent = ''; },
 
       zamknij: function () { shut(); }
@@ -344,7 +404,7 @@
     var aliases = {
       help: 'pomoc', '?': 'pomoc', scan: 'skan', netsphere: 'skan', idz: 'idź', cd: 'idź', go: 'idź',
       polecenie: 'man', date: 'czas', time: 'czas', wyczysc: 'wyczyść', clear: 'wyczyść', cls: 'wyczyść',
-      exit: 'zamknij', quit: 'zamknij', q: 'zamknij'
+      exit: 'zamknij', quit: 'zamknij', q: 'zamknij', register: 'rejestr'
     };
 
     function run(line) {
@@ -357,8 +417,11 @@
       var arg = (words[1] || '').toLowerCase();
       if (name === 'ls')
         places();
-      else if (LORE[name])
-        LORE[name].forEach(function (text) { say(text); });
+      else if (LORE[LORE_ALIASES[name] || name]) {
+        var entry = LORE_ALIASES[name] || name;
+        LORE[entry].forEach(function (text) { say(text); });
+        readLore(entry);
+      }
       else if (commands[aliases[name] || name])
         commands[aliases[name] || name](arg);
       else

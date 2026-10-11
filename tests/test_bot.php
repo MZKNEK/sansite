@@ -29,6 +29,15 @@
         assertSame('zgłoś #3', commandKey('', 'zgłoś', $seen));
     });
 
+    test('commandAnchor gives the address of /cmd/, the same one twice numbered', function () {
+        $used = [];
+        assertSame('daily', commandAnchor('', 'daily', $used));
+        assertSame('pw-daily', commandAnchor('pw ', 'daily', $used), 'the prefix of cmd/, with its space');
+        assertSame('pw-daily-2', commandAnchor('pw', 'daily', $used));
+        assertSame('daily-2', commandAnchor('', 'daily', $used));
+        assertSame('cmd-module-x', commandAnchor('module', 'x', $used));
+    });
+
     test('botCommandIndex flattens the API answer', function () {
         $data = ['modules' => [[
             'name' => 'Mod',

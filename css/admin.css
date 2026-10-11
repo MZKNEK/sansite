@@ -1584,6 +1584,48 @@ a.who-name:hover {
     margin-top: 14px;
 }
 
+/* the Safeguard's register: the finds lit up, the rest dim with a hint */
+.register {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.register li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px dashed rgba(220, 221, 222, 0.15);
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+.register b {
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.register li.found {
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--text);
+}
+
+.register li.found b {
+    color: var(--accent-light);
+}
+
+.register time {
+    margin-top: auto;
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.5);
+}
+
 /* ---- Layout, sticky nav, folded cards, alerts ---- */
 
 .admin-layout {

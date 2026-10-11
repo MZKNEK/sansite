@@ -66,6 +66,8 @@ window.SanakanAccount = (function () {
         box.innerHTML = me.menu;
         bind(box.firstElementChild);
         box.hidden = false;
+        // for the scripts that wait for the account (js/safeguard.js)
+        document.dispatchEvent(new CustomEvent('sanakan:account', { detail: me }));
         return me;
       })
       .catch(function () { return null; });

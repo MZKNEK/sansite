@@ -13,10 +13,35 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="/css/style.css?v=850b4de59c" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=2cafd60857" type="text/css" rel="stylesheet" />
   <link href="/css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <style>
+    /* the whole page as the Safeguard's terminal of BLAME! */
+    .not-found h2 {
+      font: 16px "Sanakan Mono", monospace;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #e86262;
+      text-shadow: 0 0 10px rgba(232, 98, 98, 0.5);
+    }
+
+    .not-found .lock-icon {
+      stroke: #e86262;
+      filter: drop-shadow(0 0 6px rgba(232, 98, 98, 0.5));
+    }
+
+    .not-found > p {
+      font: 13px/1.7 "Sanakan Mono", monospace;
+      letter-spacing: 0.04em;
+      color: rgba(220, 221, 222, 0.75);
+    }
+
+    .not-found .lost::before {
+      content: "> adres: ";
+      color: rgba(220, 221, 222, 0.45);
+    }
+
     .not-found .lost {
       display: block;
       margin: -8px 0 22px;
@@ -25,12 +50,74 @@
       overflow-wrap: anywhere;
     }
 
-    .not-found .ways {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
+    /* where the address leads in the Megastructure (js/404.js) */
+    .not-found .mega {
+      margin: 0;
+      font: 12px "Sanakan Mono", monospace;
+      letter-spacing: 0.08em;
+      color: rgba(220, 221, 222, 0.6);
     }
+
+    .not-found .mega-where {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-light);
+    }
+
+    .not-found .mega-map {
+      display: inline-block;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      max-width: 100%;
+      overflow-x: auto;
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      background: rgba(8, 9, 9, 0.6);
+      font: clamp(9px, 3vw, 13px)/1.05 "JetBrains Mono", Consolas, monospace;
+      letter-spacing: 0;
+      text-align: left;
+      color: rgba(var(--accent-light-rgb), 0.55);
+    }
+
+    .not-found .mega-you {
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 6px rgba(var(--accent-light-rgb), 0.9);
+    }
+
+    .not-found .mega-wall {
+      font-weight: 700;
+      color: #e86262;
+      text-shadow: 0 0 6px rgba(232, 98, 98, 0.8);
+    }
+
+    .not-found .mega dl {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: center;
+      gap: 2px 12px;
+      margin: 0 0 8px;
+      text-align: left;
+    }
+
+    .not-found .mega dd {
+      margin: 0;
+      color: var(--text);
+    }
+
+    @media (max-width: 480px) {
+      .not-found .mega {
+        letter-spacing: 0.04em;
+      }
+    }
+
+    .not-found .mega-note {
+      margin: 0;
+      font-style: italic;
+      color: rgba(240, 196, 194, 0.8);
+    }
+
   </style>
   <script src="/js/hud.js?v=2894733f39"></script>
 </head>
@@ -48,21 +135,29 @@
 
     <section class="locked hud-corners not-found">
       <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 14 0M2 9.5a15 15 0 0 1 20 0" /><path d="M3 3l18 18" /></svg>
-      <h2>Nie ma takiej strony</h2>
-      <p>Ten adres prowadzi donikąd. Może link jest stary albo w adresie jest literówka.</p>
+      <h2>Poza zasięgiem Netsfery</h2>
+      <p>Ten adres prowadzi w głąb Megastruktury, dokąd nie sięga żadna sieć. Budowniczowie mogli przebudować to miejsce, odkąd ktoś zapisał link, albo w adresie zakradła się literówka.</p>
       <code class="lost" id="lost"></code>
-      <nav class="ways">
-        <a class="admin-btn primary" href="/">Strona główna</a>
-        <a class="admin-btn" href="/cmd/">Polecenia</a>
-        <a class="admin-btn" href="/state/">Status bota</a>
-      </nav>
+      <div class="mega" id="mega" hidden>
+        <p class="mega-where" id="mega-where"></p>
+        <pre class="mega-map" id="mega-map" aria-hidden="true"></pre>
+        <dl>
+          <dt>najbliższy terminal</dt>
+          <dd id="mega-terminal"></dd>
+          <dt>ślady mieszkańców</dt>
+          <dd id="mega-people"></dd>
+        </dl>
+        <p class="mega-note" id="mega-note"></p>
+      </div>
     </section>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="/state/">Status</a><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
   <script src="/js/year.js?v=27252b35ac"></script>
-  <script src="/js/account.js?v=292db1badf"></script>
-  <script src="/js/404.js?v=5e2d0d43e6"></script>
-  <script src="/js/netsphere.js?v=1c8be049a6"></script>
+  <script src="/js/account.js?v=ff288d9afb"></script>
+  <script src="/js/safeguard.js?v=712f706950"></script>
+  <script src="/js/404.js?v=c39e7b4556"></script>
+  <script src="/js/netsphere.js?v=0a0f57d420"></script>
+  <script src="/js/palette.js?v=545fc5ad3b"></script>
 </body>
 
 </html>

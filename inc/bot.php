@@ -420,6 +420,21 @@
         return $seen[$key] > 1 ? $key . ' #' . $seen[$key] : $key;
     }
 
+    // The address of a command on /cmd/, e.g. #daily or #pw-daily with the
+    // module prefix (commandSlug()); the same one twice gets -2, -3 and so on.
+    // $used counts the addresses so far, in the order of the page.
+    function commandAnchor($prefix, $name, &$used)
+    {
+        $id = commandSlug(trim(trim((string)$prefix) . ' ' . $name));
+
+        $unique = $id;
+        for ($i = 2; isset($used[$unique]); $i++)
+            $unique = $id . '-' . $i;
+        $used[$unique] = true;
+
+        return $unique;
+    }
+
     // every command of an API answer as key => [module, name, description, aliases, parameters, example]
     function botCommandIndex($data)
     {

@@ -45,21 +45,8 @@
     if ($user !== null)
         header('Cache-Control: private, no-store');
 
-    // Address of a command on the page, e.g. #daily or #pw-daily with the module
-    // prefix (commandSlug() in inc/bot.php); the same name twice gets -2, -3 and so on.
+    // the address of every command on the page (commandAnchor() in inc/bot.php)
     $usedIds = [];
-    function commandId($smprefix, $name)
-    {
-        global $usedIds;
-        $id = commandSlug(trim($smprefix . ' ' . $name));
-
-        $unique = $id;
-        for ($i = 2; isset($usedIds[$unique]); $i++)
-            $unique = $id . '-' . $i;
-        $usedIds[$unique] = true;
-
-        return $unique;
-    }
 
     $statusText = [
         'online' => 'Bot działa',
@@ -167,7 +154,7 @@ include 'sanakan.head.html';
             return $alias !== $command['name'];
         }));
         $usage = trim($command['name'] . ' ' . $command['example']);
-        $id = commandId($smprefix, $command['name']);
+        $id = commandAnchor($smprefix, $command['name'], $usedIds);
         $mark = $marks[commandKey($smprefix, $command['name'], $seenKeys)] ?? null;
 ?>
         <article class="cmd" id="<?=e($id)?>">

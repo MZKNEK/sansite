@@ -2,6 +2,9 @@
     // Rewrites the "?v=" version of every CSS and JS a page links to the first
     // ten characters of the file's SHA-256, so a change gets a new address and
     // the browser may keep the old one for a year (server/nginx/sanakan.conf).
+    // The service worker, sw.js, gets the same for the files of its offline
+    // page (the page itself, its fonts and icon): a change to them changes
+    // sw.js, which browsers then install anew, with the new files.
     // Run it after changing a stylesheet or script, or let
     // tools/install-hooks.sh make git run it before every commit:
     //   php tools/asset-versions.php
@@ -18,9 +21,10 @@
     }
 
     // an asset link in a page: a path to a .css or .js file with "?v=" on it
+    // (or, in sw.js and the offline page, a page, a font or an icon)
     $changed = [];
     foreach ($files as $file) {
-        if (!preg_match('/\.(?:php|html)$/', $file) || strpos($file, 'tools/') === 0)
+        if ((!preg_match('/\.(?:php|html)$/', $file) && $file !== 'sw.js') || strpos($file, 'tools/') === 0)
             continue;
 
         $path = $root . '/' . $file;
@@ -30,7 +34,7 @@
 
         $dir = dirname($file);
         $new = preg_replace_callback(
-            '#((?:\.\./|\./|/)?(?:[\w.-]+/)*[\w.-]+\.(?:css|js))\?v=[^"\'&<>\s]+#',
+            '#((?:\.\./|\./|/)?(?:[\w.-]+/)*[\w.-]+\.(?:css|js|html|woff2|svg))\?v=[^"\'&<>\s]+#',
             function ($match) use ($root, $dir) {
                 $target = $match[1];
                 // a leading "/" means the site's root, otherwise the page's folder
