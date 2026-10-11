@@ -771,7 +771,7 @@
     <div class="card-col">
       <CardDrop onfile={onFile}>
     <div class="scale-wrapper" bind:this={wrapperRef} style="width: {475 * shownScale}px; height: {667 * shownScale}px;">
-      <div class="looks" class:is-editing={editMode} class:fitted={!shownLevel} bind:this={looksEl}
+      <div class="looks" class:is-editing={editMode} class:doubled={shownLevel === 2} bind:this={looksEl}
         style="transform: translate({snap.x}px, {snap.y}px) scale({shownScale});"
         onpointerdown={onPointerDown} onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={onPointerUp}
         onlostpointercapture={onPointerUp}>
@@ -1003,12 +1003,15 @@
     height: 667px;
     pointer-events: none;
     display: block;
-    image-rendering: pixelated;
   }
 
-  /* scaled to fit a narrow screen, by no whole number: smoothly */
-  .looks.fitted img {
-    image-rendering: auto;
+  /* At 200% each pixel of the card is two of the screen's, kept sharp. At
+     100% smoothing gives the same pixels when the card lands exactly on the
+     screen's, and only softens them when it does not quite (Android's
+     fractional dpr, its raster tiles, the desktop mode's zoom), where the
+     nearest pixel tore the card into rows doubled and dropped. */
+  .looks.doubled img {
+    image-rendering: pixelated;
   }
 
   .back { z-index: 10; }
