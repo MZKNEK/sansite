@@ -147,7 +147,7 @@
     hidden.name = input.name;
     hidden.value = input.value;
 
-    var field = element('input', 'dt-field');
+    var field = element('input', 'dt-field field');
     field.type = 'text';
     field.autocomplete = 'off';
     field.placeholder = 'dd.mm.rrrr gg:mm';
@@ -585,7 +585,7 @@
     if (!sections.length) return;
     var filter = document.createElement('input');
     filter.type = 'search';
-    filter.className = 'nav-filter';
+    filter.className = 'nav-filter field';
     filter.placeholder = 'Filtruj karty…';
     filter.setAttribute('aria-label', 'Filtruj karty');
     nav.appendChild(filter);

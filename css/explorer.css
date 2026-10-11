@@ -935,26 +935,31 @@ body.selecting .tile.up {
     overflow-wrap: anywhere;
 }
 
-.ex-dialog input[type="text"],
-.ex-dialog select {
+/* 16px keeps phones from zooming in on focus */
+.ex-dialog .field {
     width: 100%;
     margin-bottom: 14px;
-    padding: 10px 12px;
-    border: 1px solid rgba(var(--accent-rgb), 0.4);
-    background: #0b0b0d;
+    font-size: 16px;
+}
+
+.ex-dialog .hud-select {
+    margin-bottom: 14px;
+}
+
+/* the folders to move to: a list open at once, in the frame of the lists */
+.ex-dialog select[size] {
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 6px;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    background: rgba(8, 9, 9, 0.55);
     color: var(--text);
-    font: 16px Lato, sans-serif;
+    font: 14px "JetBrains Mono", Consolas, monospace;
     outline: 0;
 }
 
-.ex-dialog input[type="text"]:focus,
-.ex-dialog select:focus {
+.ex-dialog select[size]:focus {
     border-color: var(--accent-light);
-}
-
-.ex-dialog select {
-    padding: 6px;
-    font: 14px "JetBrains Mono", Consolas, monospace;
 }
 
 .ex-dialog option {
@@ -1165,16 +1170,6 @@ body.selecting .tile.up {
 .request-form input[type="text"] {
     flex: 1 1 220px;
     max-width: 320px;
-    padding: 7px 10px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 14px Lato, sans-serif;
-    outline: 0;
-}
-
-.request-form input[type="text"]:focus {
-    border-color: var(--accent);
 }
 
 .request-sent {

@@ -523,7 +523,8 @@ body.gbe-shot main.hero {
 
 /* targeting corners like the Safeguard scanner; they grow on hover */
 .links a,
-.hud-corners {
+.hud-corners,
+.field {
     --corner: rgba(var(--accent-light-rgb), 0.9);
     --fill: rgba(var(--accent-rgb), 0.05);
     --arm: 10px;
@@ -606,6 +607,109 @@ a.hud-corners:hover {
 
 .search-info:empty {
     display: none;
+}
+
+/* Any other text field of the site (notes, IDs, names, dates, the notice):
+   the search box's targeting corners on the field itself, its font and its
+   placeholder, the corners growing when it has the focus */
+.field {
+    --arm: 8px;
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 0;
+    color: var(--text);
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    outline: 0;
+    color-scheme: dark;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.field::placeholder {
+    color: rgba(220, 221, 222, 0.4);
+}
+
+.field:hover {
+    --fill: rgba(var(--accent-rgb), 0.1);
+}
+
+.field:focus {
+    --arm: 14px;
+    --fill: rgba(var(--accent-rgb), 0.14);
+}
+
+.field.invalid {
+    --corner: #e86262;
+}
+
+textarea.field {
+    resize: vertical;
+}
+
+/* A list to pick from: a graphite cell with a thin frame and an arrow cell on
+   the right (the account's look, the limits of the gallery, the gallery's
+   dialogs); the native list cannot be styled once open, but the closed
+   control fits the site */
+.hud-select {
+    position: relative;
+    display: block;
+}
+
+.hud-select select {
+    width: 100%;
+    height: 38px;
+    padding: 0 44px 0 12px;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 0;
+    background: rgba(8, 9, 9, 0.55);
+    color: var(--text);
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    outline: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.hud-select select:hover {
+    border-color: rgba(var(--accent-light-rgb), 0.7);
+}
+
+.hud-select select:focus {
+    border-color: var(--accent-light);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+}
+
+.hud-select select option {
+    background: #17151c;
+    color: var(--text);
+}
+
+.hud-select::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 38px;
+    height: 38px;
+    border-left: 1px solid rgba(var(--accent-rgb), 0.25);
+    background: rgba(var(--accent-rgb), 0.08);
+    pointer-events: none;
+}
+
+.hud-select .hud-chevron {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    width: 10px;
+    height: 6px;
+    transform: translateY(-50%);
+    fill: none;
+    stroke: var(--accent-light);
+    stroke-width: 1.6;
+    pointer-events: none;
 }
 
 /* touch screens: no keyboard shortcut to show */

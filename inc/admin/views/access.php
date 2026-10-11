@@ -13,36 +13,42 @@
           <button type="button" class="admin-btn small" data-action="test-off">Wróć do swoich</button></p>
 <?php endif; ?>
         <form class="test-form" data-action="test-rights">
-          <label>Panel
-            <select name="panel"><option value="">bez zmian</option><option value="1">z panelem</option><option value="0" selected>bez panelu</option></select>
+          <label class="hud-field">
+            <span class="hud-field-label">Panel</span>
+            <span class="hud-select"><select name="panel"><option value="">bez zmian</option><option value="1">z panelem</option><option value="0" selected>bez panelu</option></select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
           </label>
-          <label>Galeria
-            <select name="gallery"><option value="">bez zmian</option>
+          <label class="hud-field">
+            <span class="hud-field-label">Galeria</span>
+            <span class="hud-select"><select name="gallery"><option value="">bez zmian</option>
 <?php foreach (TEST_GALLERY as $key => $label): ?>
               <option value="<?=e($key)?>"<?=$key === 'none' ? ' selected' : ''?>><?=e($label)?></option>
 <?php endforeach; ?>
-            </select>
+            </select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
           </label>
-          <label>Prywatna galeria
-            <select name="private"><option value="">bez zmian</option><option value="1">tak</option><option value="0" selected>nie</option></select>
+          <label class="hud-field">
+            <span class="hud-field-label">Prywatna galeria</span>
+            <span class="hud-select"><select name="private"><option value="">bez zmian</option><option value="1">tak</option><option value="0" selected>nie</option></select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
           </label>
-          <label>Lista API
-            <select name="api"><option value="">bez zmian</option><option value="1">na liście</option><option value="0" selected>poza listą</option></select>
+          <label class="hud-field">
+            <span class="hud-field-label">Lista API</span>
+            <span class="hud-select"><select name="api"><option value="">bez zmian</option><option value="1">na liście</option><option value="0" selected>poza listą</option></select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
           </label>
-          <label>Rola na serwerze bota
-            <select name="role"><option value="">bez zmian</option>
+          <label class="hud-field">
+            <span class="hud-field-label">Rola na serwerze bota</span>
+            <span class="hud-select"><select name="role"><option value="">bez zmian</option>
 <?php foreach (BOT_ROLES as $key => [$level, $badgeLabel, $name]): ?>
               <option value="<?=e($key)?>"<?=$key === 'user' ? ' selected' : ''?>><?=e($name)?> (LV.<?=$level?>)</option>
 <?php endforeach; ?>
               <option value="<?=TEST_ROLE_OUT?>">poza serwerem</option>
-            </select>
+            </select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
           </label>
-          <label>Na
-            <select name="minutes">
+          <label class="hud-field">
+            <span class="hud-field-label">Czas</span>
+            <span class="hud-select"><select name="minutes">
 <?php foreach (TEST_MINUTES as $minutes): ?>
               <option value="<?=$minutes?>"<?=$minutes === 15 ? ' selected' : ''?>><?=$minutes < 60 ? $minutes . ' min' : ($minutes / 60) . ' godz.'?></option>
 <?php endforeach; ?>
-            </select>
+            </select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
           </label>
           <button type="submit" class="admin-btn primary">Włącz podgląd</button>
         </form>
@@ -95,8 +101,8 @@
         </ul>
         <form class="grant" data-action="grant">
           <input type="hidden" name="list" value="<?=e($list)?>" />
-          <input type="text" name="id" inputmode="numeric" pattern="\d{17,20}" placeholder="ID konta Discord" aria-label="ID konta Discord" required />
-          <input type="text" name="note" maxlength="60" placeholder="Notatka (opcjonalnie)" aria-label="Notatka" />
+          <input type="text" class="field" name="id" inputmode="numeric" pattern="\d{17,20}" placeholder="ID konta Discord" aria-label="ID konta Discord" required />
+          <input type="text" class="field" name="note" maxlength="60" placeholder="Notatka (opcjonalnie)" aria-label="Notatka" />
           <button type="submit" class="admin-btn primary"><?=$list === 'galleryUploaders' ? 'Zablokuj' : 'Dodaj'?></button>
         </form>
       </section>

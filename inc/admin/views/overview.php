@@ -25,11 +25,11 @@
 <?php if ($notice): ?>
           <p class="notice-now">Teraz widać: <b><?=e(noticeText($notice))?></b><?=!empty($notice['to']) ? ' <span class="muted">(do ' . e(date('j.m H:i', $notice['to'])) . ')</span>' : ''?></p>
 <?php endif; ?>
-          <textarea name="text" rows="2" maxlength="<?=NOTICE_LENGTH?>" placeholder="Np. Dziś wieczorem aktualizacja bota, przez chwilę może nie odpowiadać." aria-label="Treść ogłoszenia"><?=e($notice['text'] ?? '')?></textarea>
+          <textarea class="field" name="text" rows="2" maxlength="<?=NOTICE_LENGTH?>" placeholder="Np. Dziś wieczorem aktualizacja bota, przez chwilę może nie odpowiadać." aria-label="Treść ogłoszenia"><?=e($notice['text'] ?? '')?></textarea>
           <div class="notice-fields">
             <label class="admin-check"><input type="checkbox" name="maintenance" value="1"<?=!empty($notice['maintenance']) ? ' checked' : ''?> /> Przerwa techniczna</label>
-            <span class="notice-time">Od <input type="datetime-local" name="from" aria-label="Od" value="<?=e(fieldTime($notice['maintenance']['from'] ?? null))?>" /></span>
-            <span class="notice-time">Do <input type="datetime-local" name="to" aria-label="Do" value="<?=e(fieldTime($notice['to'] ?? null))?>" /></span>
+            <span class="notice-time">Od <input type="datetime-local" class="field" name="from" aria-label="Od" value="<?=e(fieldTime($notice['maintenance']['from'] ?? null))?>" /></span>
+            <span class="notice-time">Do <input type="datetime-local" class="field" name="to" aria-label="Do" value="<?=e(fieldTime($notice['to'] ?? null))?>" /></span>
           </div>
           <p class="hint">„Od” liczy się tylko dla przerwy (puste: od teraz). „Do” to koniec przerwy, a bez przerwy czas, kiedy ogłoszenie zniknie (puste: zostaje, aż się je usunie).</p>
           <div class="notice-actions">

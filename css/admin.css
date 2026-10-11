@@ -59,26 +59,8 @@
     font-size: 14px;
 }
 
-.notice-form textarea,
-.notice-fields input[type="datetime-local"] {
-    padding: 7px 10px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 14px Lato, sans-serif;
-    outline: 0;
-    color-scheme: dark;
-}
-
 .notice-form textarea {
-    box-sizing: border-box;
     width: 100%;
-    resize: vertical;
-}
-
-.notice-form textarea:focus,
-.notice-fields input:focus {
-    border-color: var(--accent);
 }
 
 .notice-fields {
@@ -171,7 +153,7 @@
 }
 
 .quota-form label > span:first-child {
-    font: 12px "Sanakan Mono", monospace;
+    font: 600 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent-light);
@@ -270,22 +252,7 @@
 }
 
 .dt-field {
-    box-sizing: border-box;
     width: 172px;
-    padding: 7px 10px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 14px "JetBrains Mono", Consolas, monospace;
-    outline: 0;
-}
-
-.dt-field:focus {
-    border-color: var(--accent);
-}
-
-.dt-field.invalid {
-    border-color: #e86262;
 }
 
 .dt-pop {
@@ -384,20 +351,27 @@
     color: rgba(220, 221, 222, 0.6);
 }
 
+/* the hour and minute, small number cells as the WebP quality's */
 .dt-time input {
     width: 52px;
     padding: 5px 6px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
+    background: rgba(8, 9, 9, 0.55);
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
     text-align: center;
     outline: 0;
     color-scheme: dark;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dt-time input:hover {
+    border-color: rgba(var(--accent-light-rgb), 0.7);
 }
 
 .dt-time input:focus {
-    border-color: var(--accent);
+    border-color: var(--accent-light);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 .dt-actions {
@@ -424,27 +398,10 @@
 }
 
 /* the search under the title of the panel */
+/* the search of accounts and addresses: the commands page's search box */
 .panel-search {
-    display: flex;
-    gap: 8px;
     max-width: 520px;
     margin: 18px auto 0;
-}
-
-.panel-search input {
-    flex: 1;
-    min-width: 0;
-    padding: 7px 12px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 14px Lato, sans-serif;
-    outline: 0;
-    color-scheme: dark;
-}
-
-.panel-search input:focus {
-    border-color: var(--accent);
 }
 
 /* the devices an account is logged in on */
@@ -867,21 +824,6 @@ a.who-name:hover {
 
 .grant input[type="text"] {
     flex: 1 1 140px;
-    min-width: 0;
-    padding: 7px 10px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 14px Lato, sans-serif;
-    outline: 0;
-}
-
-.grant input[name="id"] {
-    font-family: "JetBrains Mono", Consolas, monospace;
-}
-
-.grant input[type="text"]:focus {
-    border-color: var(--accent-light);
 }
 
 /* Recent logins */
@@ -1053,29 +995,14 @@ a.who-name:hover {
 .test-form {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: 10px 12px;
+    gap: 14px 16px;
     align-items: end;
 }
 
-.test-form label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    color: rgba(220, 221, 222, 0.6);
-}
-
-.test-form select {
-    padding: 7px 8px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 13px Lato, sans-serif;
-}
-
-.test-form select:focus {
-    border-color: var(--accent-light);
-    outline: none;
+/* its fields are the profile's (.hud-field, .hud-select), the button as
+   tall as them */
+.test-form .admin-btn {
+    height: 38px;
 }
 
 .test-now {
@@ -1670,16 +1597,7 @@ a.who-name:hover {
 
 .admin-nav .nav-filter {
     margin: 0 0 8px;
-    padding: 8px 10px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: #0b0b0d;
-    color: var(--text);
-    font: 13px Lato, sans-serif;
-    outline: 0;
-}
-
-.admin-nav .nav-filter:focus {
-    border-color: var(--accent);
+    font-size: 13px;
 }
 
 .admin-nav a {
@@ -2023,68 +1941,6 @@ a.who-name:hover {
     font-weight: 400;
     letter-spacing: 0;
     text-transform: none;
-}
-
-/* a graphite cell with a thin frame, an arrow cell on the right; the native
-   list cannot be styled once open, but the closed control fits the site */
-.hud-select {
-    position: relative;
-    display: block;
-}
-
-.hud-select select {
-    width: 100%;
-    height: 38px;
-    padding: 0 44px 0 12px;
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    border-radius: 0;
-    background: rgba(8, 9, 9, 0.55);
-    color: var(--text);
-    font: 14px "JetBrains Mono", Consolas, monospace;
-    outline: 0;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.hud-select select:hover {
-    border-color: rgba(var(--accent-light-rgb), 0.7);
-}
-
-.hud-select select:focus {
-    border-color: var(--accent-light);
-    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
-}
-
-.hud-select select option {
-    background: #17151c;
-    color: var(--text);
-}
-
-.hud-select::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 38px;
-    height: 38px;
-    border-left: 1px solid rgba(var(--accent-rgb), 0.25);
-    background: rgba(var(--accent-rgb), 0.08);
-    pointer-events: none;
-}
-
-.hud-select .hud-chevron {
-    position: absolute;
-    top: 50%;
-    right: 14px;
-    width: 10px;
-    height: 6px;
-    transform: translateY(-50%);
-    fill: none;
-    stroke: var(--accent-light);
-    stroke-width: 1.6;
-    pointer-events: none;
 }
 
 /* a small dot next to the Kolor label, in the picked colour */

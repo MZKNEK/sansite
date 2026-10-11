@@ -43,9 +43,9 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=211839634d" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=0570c93373" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -76,7 +76,7 @@
       <form class="request-form" method="post" action="./">
         <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
         <input type="hidden" name="action" value="request-access" />
-        <input type="text" name="note" maxlength="<?=REQUEST_NOTE_LENGTH?>" placeholder="Do czego? (opcjonalnie)" aria-label="Notatka do prośby" />
+        <input type="text" class="field" name="note" maxlength="<?=REQUEST_NOTE_LENGTH?>" placeholder="Do czego? (opcjonalnie)" aria-label="Notatka do prośby" />
         <button type="submit" class="admin-btn primary">Poproś o dostęp</button>
       </form>
 <?php endif; ?>
@@ -115,7 +115,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=211839634d" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=0570c93373" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=1f284a3102" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
   <script src="../js/hud.js?v=2894733f39"></script>

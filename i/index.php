@@ -278,9 +278,9 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=211839634d" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=0570c93373" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -341,7 +341,7 @@
         <input type="hidden" name="csrf" value="<?=e(siteCsrf())?>" />
         <input type="hidden" name="action" value="request-access" />
         <input type="hidden" name="back" value="<?=e($requested === '' ? './' : folderUrl($requested))?>" />
-        <input type="text" name="note" maxlength="<?=REQUEST_NOTE_LENGTH?>" placeholder="Kim jesteś? (opcjonalnie)" aria-label="Notatka do prośby" />
+        <input type="text" class="field" name="note" maxlength="<?=REQUEST_NOTE_LENGTH?>" placeholder="Kim jesteś? (opcjonalnie)" aria-label="Notatka do prośby" />
         <button type="submit" class="admin-btn primary">Poproś o dostęp</button>
       </form>
 <?php endif; ?>
@@ -618,7 +618,7 @@
     <form id="form-mkdir">
       <h2>Nowy folder</h2>
       <p>W folderze <?=e(displayPath($dirRel))?></p>
-      <input type="text" name="name" maxlength="150" autocomplete="off" spellcheck="false" placeholder="Nazwa folderu" required />
+      <input type="text" class="field" name="name" maxlength="150" autocomplete="off" spellcheck="false" placeholder="Nazwa folderu" required />
       <p class="dialog-error" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="admin-btn" data-close>Anuluj</button>
@@ -631,7 +631,7 @@
     <form id="form-rename">
       <h2>Zmień nazwę</h2>
       <p id="rename-what"></p>
-      <input type="text" name="name" maxlength="150" autocomplete="off" spellcheck="false" required />
+      <input type="text" class="field" name="name" maxlength="150" autocomplete="off" spellcheck="false" required />
       <p class="dialog-error" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="admin-btn" data-close>Anuluj</button>
@@ -658,13 +658,16 @@
     <form id="form-share">
       <h2>Udostępnij folder</h2>
       <p>Każdy, kto ma link, zobaczy <?=e(displayPath($dirRel))?> z podfolderami i pobierze je, także bez logowania. Wyłączyć go można w panelu.</p>
-      <select name="days" aria-label="Jak długo link działa">
-        <option value="1">na 1 dzień</option>
-        <option value="7" selected>na 7 dni</option>
-        <option value="30">na 30 dni</option>
-        <option value="0">bez końca, do wyłączenia</option>
-      </select>
-      <input type="text" name="link" readonly hidden aria-label="Link" />
+      <span class="hud-select">
+        <select name="days" aria-label="Jak długo link działa">
+          <option value="1">na 1 dzień</option>
+          <option value="7" selected>na 7 dni</option>
+          <option value="30">na 30 dni</option>
+          <option value="0">bez końca, do wyłączenia</option>
+        </select>
+        <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+      </span>
+      <input type="text" class="field" name="link" readonly hidden aria-label="Link" />
       <p class="dialog-error" hidden></p>
       <div class="dialog-actions">
         <button type="button" class="admin-btn" data-close>Zamknij</button>

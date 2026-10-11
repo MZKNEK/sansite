@@ -109,11 +109,11 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=211839634d" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=0570c93373" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=8e0accc1a3" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=0516e586e7" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=28a7a59087" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -134,8 +134,11 @@
       <h1 class="hud-title"><?=$allowed && $profileId !== null ? 'Konto' : ($allowed && $searchQuery !== null ? 'Szukaj' : 'Panel')?></h1>
 <?php if ($allowed): ?>
       <form class="panel-search" method="get" action="./" role="search">
-        <input type="search" name="szukaj" value="<?=e($searchQuery ?? '')?>" placeholder="Konto, ID albo adres IP" aria-label="Szukaj konta albo adresu IP" />
-        <button type="submit" class="admin-btn">Szukaj</button>
+        <label class="search hud-corners">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>
+          <input type="search" name="szukaj" value="<?=e($searchQuery ?? '')?>" autocomplete="off" spellcheck="false" placeholder="Konto, ID albo adres IP" aria-label="Szukaj konta albo adresu IP" />
+          <kbd aria-hidden="true" title="Enter szuka">Enter</kbd>
+        </label>
       </form>
 <?php endif; ?>
     </header>
@@ -191,7 +194,7 @@
   <script src="../js/account.js?v=292db1badf"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=0f20406f9f"></script>
+  <script src="../js/admin.js?v=caa6d26371"></script>
 <?php endif; ?>
 </body>
 
