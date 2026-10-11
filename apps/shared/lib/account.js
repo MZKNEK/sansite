@@ -27,7 +27,7 @@ export function loginUrl() {
 
 /**
  * Saves a card into the account's folder in the gallery.
- * @param {Blob} blob - the card (a lossless WebP from the croppers)
+ * @param {Blob} blob - the card (a WebP from the croppers, webp.js)
  * @param {string} name - its file name
  * @returns {Promise<{message: string, url: string, folder: string}>} what the
  *   gallery said: url is the picture's link (it opens without a login too),

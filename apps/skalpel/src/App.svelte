@@ -15,6 +15,8 @@
   import Cropper from "svelte-easy-crop";
 	import { getCroppedImg, getCroppedCanvas, getMirroredImg, cropOnScreen, forgetPicture, closeRenderer } from "../../shared/lib/CanvasUtils.js"
   import { ownedUrls } from '../../shared/lib/ownedUrls.js';
+  import { coverMinZoom, keepCovering } from '../../shared/lib/cover.js';
+  import { AREA, frameOpening, unionBounds, withMargin } from './lib/opening.js';
 
   import cardboard  from './assets/empty.webp'
   import def        from './assets/shield.webp'
@@ -48,6 +50,10 @@
   let pixelCrop, profilePicture = $state(), style, borderColor = $state();
   // bound to the cropper, which takes no undefined for them
   let minzoom = $state(1), curzoom = $state(1);
+  // where the cropper has the picture: its centre from the centre of the card
+  let crop = $state({ x: 0, y: 0 });
+  // a new picture starts covering the whole of the card, as it always did
+  let fitPending = true;
 
   // the crop in % of the picture: unlike pixelCrop it is not rounded
   let cropPercent = null;
@@ -176,6 +182,7 @@
     editMode = false;
     minzoom = 1;
     curzoom = 1;
+    fitPending = true;
   }
 
   // every file asked for counts, so one read more slowly than the next does
@@ -199,9 +206,66 @@
       editMode = false;
       minzoom = 1;
       curzoom = 1;
+      fitPending = true;
     };
     reader.readAsDataURL(imageFile);
   }
+
+  // What of the picture the frames leave open (lib/opening.js): of all the
+  // bot's frames, as a card can change its frame, and of the frame from the
+  // link too. The picture can be moved and zoomed out as far as it still
+  // covers that; until it is known, or when the frame from the link cannot be
+  // read (another site), it covers the whole of the card, as it always did.
+  let opening = $state(null);
+  const openingOf = new Map();
+  async function readOpening(url) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = AREA.x + AREA.width;
+    canvas.height = AREA.y + AREA.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    return frameOpening(ctx.getImageData(AREA.x, AREA.y, AREA.width, AREA.height));
+  }
+  $effect(() => {
+    const frames = [...borders.map(getBorderImageUrl), ...(customBorder ? [customBorder] : [])];
+    let gone = false;
+    opening = null;
+    Promise.all(frames.map((url) => openingOf.get(url) ?? readOpening(url).then((bounds) => {
+      openingOf.set(url, bounds);
+      return bounds;
+    }))).then((all) => {
+      if (!gone) opening = withMargin(all.reduce(unionBounds));
+    }, () => {});
+    return () => { gone = true; };
+  });
+
+  // the picture back over the opening after the cropper moved or zoomed it
+  // (it lets it go anywhere, restrictPosition being off), and the least zoom
+  // that still covers the opening for its wheel and pinch
+  function keepCover() {
+    const img = canvaEl?.querySelector('img');
+    if (!img?.complete || !img.width) return;
+    const size = { width: img.width, height: img.height };
+    const limits = { size, bounds: opening ?? { x: 0, y: 0, ...card } };
+    const least = coverMinZoom(limits);
+    if (minzoom !== least) minzoom = least;
+    let layer = { x: crop.x, y: crop.y, zoom: curzoom };
+    if (fitPending) {
+      fitPending = false;
+      layer = { x: 0, y: 0, zoom: coverMinZoom({ size, bounds: { x: 0, y: 0, ...card } }) };
+    }
+    const kept = keepCovering(layer, limits, card);
+    if (kept.x !== crop.x || kept.y !== crop.y) crop = { x: kept.x, y: kept.y };
+    if (kept.zoom !== curzoom) curzoom = kept.zoom;
+  }
+  $effect(() => {
+    opening;
+    untrack(keepCover);
+  });
 
   function getBorderImageUrl(border) {
     return `${pwAssetsBaseUrl}/${border}.png`;
@@ -228,11 +292,8 @@
 
     borderColor = (pixelCrop.width < 448 || pixelCrop.height < 650) ? "#e86262" : "";
 
-    const dratio = 448 / 650;
-    const nratio = profilePicture.naturalWidth / profilePicture.naturalHeight;
-    const mratio = dratio / nratio;
-    minzoom = mratio > 1 ? mratio : 1;
-    curzoom = curzoom < minzoom ? minzoom : curzoom;
+    // after the cropper's own effect, which this is called from
+    queueMicrotask(keepCover);
 
 		profilePicture.style=`margin: ${hd}px 0 0 ${wd}px; width: ${wdn}px;`
 	}
@@ -266,7 +327,7 @@
 
       <section class="group">
         <h2 class="group-title"><i>03</i>Edycja</h2>
-        <Switch label="Tryb edycji" bind:checked={editMode} onchange={() => borderColor = ""} />
+        <Switch label="Tryb edycji" bind:checked={editMode} onchange={() => { borderColor = ""; crop = { x: 0, y: 0 }; }} />
         {#if editMode}
           <div class="field"><span class="label">Wyostrzenie</span><Segmented bind:value={sharpen} options={sharpenLevels} label="Wyostrzenie" words /></div>
           <Switch label="Podgląd wyniku" bind:checked={realPreview}
@@ -285,7 +346,7 @@
               <img bind:this={profilePicture} src={image} class="wrapper_img" alt="Scalpel" style={style}/>
             </div>
             <div class="canva" class:under-real={realPreview && previewUrl && !previewStale} bind:this={canvaEl}>
-              <Cropper {image} showGrid={false} crop={{x:0, y:0}} bind:zoom={curzoom} bind:minZoom={minzoom} maxZoom={5} zoomSpeed={0.05} cropSize={{width:448, height:650}} restrictPosition={true} oncropcomplete={onCrop} />
+              <Cropper {image} showGrid={false} bind:crop bind:zoom={curzoom} bind:minZoom={minzoom} maxZoom={5} zoomSpeed={0.05} cropSize={{width:448, height:650}} restrictPosition={false} oncropcomplete={onCrop} />
             </div>
             {#if realPreview && previewUrl}
               <img src={previewUrl} class="real" class:stale={previewStale} alt="" />
@@ -317,7 +378,7 @@
       </CardDrop>
       {#if editMode}
         <div class="card-actions">
-          <button type="button" class="btn-go" onclick={async () => {downloadImage()}}>Zapisz</button>
+          <button type="button" class="btn-go" onclick={async () => {downloadImage()}}>Pobierz obrazek</button>
           <GallerySave pixels={cardPixels} prefix="skalpel" />
         </div>
       {/if}

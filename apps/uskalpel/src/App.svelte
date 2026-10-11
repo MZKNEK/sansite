@@ -4,6 +4,7 @@
   import { getCroppedImg, getCroppedCanvas, cropOnScreen, forgetPicture, closeRenderer } from '../../shared/lib/CanvasUtils.js';
   import { ownedUrls } from '../../shared/lib/ownedUrls.js';
   import { styleList, frameStyle, frameLayers } from './lib/frames.js';
+  import { CARD, alphaBounds, moveLayers } from './lib/layers.js';
   import Segmented from '../../shared/lib/Segmented.svelte';
   import Switch from '../../shared/lib/Switch.svelte';
   import DropZone from '../../shared/lib/DropZone.svelte';
@@ -115,65 +116,149 @@
   }
 
 
-  async function syncLayers() {
-    if (activeLayer === 'extra' || activeLayer === 'both') {
-      // top jest dowodzący -> kopiuj top na scalp
-      crop = { x: extraCrop.x, y: extraCrop.y };
-      curzoom = extraZoom;
-      await tick();
-      curzoom = curzoom + 0.000001;
-      await tick();
-      curzoom = curzoom - 0.000001;
+  // The layers where the croppers show them (lib/layers.js). The croppers
+  // only show them: dragging, the wheel and pinching are the card's own
+  // (below), so in Obie both layers move alike, by as much as the pointer
+  // moved on the card at whatever scale it is shown.
+  const layersNow = () => ({
+    base: { x: crop.x, y: crop.y, zoom: curzoom },
+    extra: { x: extraCrop.x, y: extraCrop.y, zoom: extraZoom },
+  });
+  function setLayers({ base, extra }) {
+    if (base.x !== crop.x || base.y !== crop.y) crop = { x: base.x, y: base.y };
+    if (base.zoom !== curzoom) curzoom = base.zoom;
+    if (extra.x !== extraCrop.x || extra.y !== extraCrop.y) extraCrop = { x: extra.x, y: extra.y };
+    if (extra.zoom !== extraZoom) extraZoom = extra.zoom;
+  }
+  // the layers that move: Top has none to move without its picture
+  let moving = $derived(hasExtraLayer && extraImage ? activeLayer : 'base');
+
+  // the size of a cropper's picture on the card at zoom 1, as svelte-easy-crop
+  // lays it out (contained in the card, never enlarged)
+  function shownSize(el) {
+    const img = el?.querySelector('img');
+    return img?.complete && img.width ? { width: img.width, height: img.height } : null;
+  }
+  // what Scalp has to cover: null until its picture and its mask are there
+  function scalpLimits() {
+    const size = shownSize(baseCropEl);
+    return size && maskBounds ? { size, bounds: maskBounds } : null;
+  }
+
+  // one move of the layers being moved; with nothing to move it only brings
+  // Scalp back over its frame's opening (with Top in Obie)
+  function changeLayers(change = {}, which = moving) {
+    setLayers(moveLayers(layersNow(), which, change, scalpLimits()));
+  }
+  // Scalp back over the opening when something else moved it: a new picture
+  // (Scalp alone), another frame (with Top in Obie, so they stay together)
+  const keepScalp = (which = 'base') => changeLayers({}, which);
+  $effect(() => {
+    maskBounds;
+    untrack(() => keepScalp(moving === 'both' ? 'both' : 'base'));
+  });
+
+  // Sync puts one layer exactly over the other, the same part of the same
+  // picture at the same size even when Top's file is larger or smaller:
+  // Top onto Scalp while Scalp is moved, else Scalp onto Top
+  function syncLayers() {
+    const baseShown = shownSize(baseCropEl), extraShown = shownSize(extraCropEl);
+    if (!baseShown || !extraShown) return;
+    const ratio = baseShown.width / extraShown.width;
+    const { base, extra } = layersNow();
+    if (activeLayer === 'base') {
+      setLayers({ base, extra: { x: base.x, y: base.y, zoom: base.zoom * ratio } });
     } else {
-      // scalp jest dowodzący -> kopiuj scalp na top
-      extraCrop = { x: crop.x, y: crop.y };
-      extraZoom = curzoom;
-      await tick();
-      extraZoom = extraZoom + 0.000001;
-      await tick();
-      extraZoom = extraZoom - 0.000001;
+      // Scalp may have to stay over the opening, and Top follows it there
+      const synced = { x: extra.x, y: extra.y, zoom: extra.zoom / ratio };
+      setLayers({ base: synced, extra });
+      changeLayers({}, 'both');
     }
   }
 
-  async function moveCrop(dx, dy) {
-    if (activeLayer === 'base' || activeLayer === 'both') {
-      crop.x = Math.round(crop.x) + dx;
-      crop.y = Math.round(crop.y) + dy;
-      // Wymuś wywołanie oncropcomplete przez mikrozmianę zoom
-      await tick();
-      curzoom = curzoom + 0.000001;
-      await tick();
-      curzoom = curzoom - 0.000001;
-    }
-    if (activeLayer === 'extra' || activeLayer === 'both') {
-      extraCrop.x = Math.round(extraCrop.x) + dx;
-      extraCrop.y = Math.round(extraCrop.y) + dy;
-      await tick();
-      extraZoom = extraZoom + 0.000001;
-      await tick();
-      extraZoom = extraZoom - 0.000001;
-    }
+  function moveCrop(dx, dy) {
+    changeLayers({ dx, dy });
   }
 
   // the whole card, which the masks of the frames cut
-  const card = { width: 475, height: 667 };
+  const card = CARD;
   const maskCropSize = card;
 
+  // The opening of the frame's mask, which Scalp has to cover. Read from the
+  // mask itself, once for each frame.
+  let maskBounds = $state(null);
+  const maskBoundsOf = new Map();
+  async function readMaskBounds(url) {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = card.width;
+    canvas.height = card.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, card.width, card.height);
+    return alphaBounds(ctx.getImageData(0, 0, card.width, card.height));
+  }
+  $effect(() => {
+    const url = currentMaskUrl;
+    let gone = false;
+    maskBounds = maskBoundsOf.get(url) ?? null;
+    if (!maskBoundsOf.has(url)) {
+      readMaskBounds(url).then((bounds) => {
+        maskBoundsOf.set(url, bounds);
+        if (!gone) maskBounds = bounds;
+      }, (error) => console.error('mask:', url, error));
+    }
+    return () => { gone = true; };
+  });
 
+
+  // The card is shown at exactly 100% or 200%: one or two pixels of the
+  // screen for each pixel of the card, whatever the screen's own scaling
+  // (dpr), and starting on a whole pixel of the screen, so the browser does
+  // not resample the layers and the frame each on its own and they meet as
+  // in the saved file. 200% wider than the screen gives way to 100%; only a
+  // screen narrower than the card at 100% gets it scaled down to fit.
   let dpr = $state((typeof window !== 'undefined') ? window.devicePixelRatio : 1);
   let zoomLevel = $state((typeof window !== 'undefined' && window.innerWidth < 900) ? 2 : 1);
+  // the width the card can take: the page's, less its side margins
+  let room = $state(typeof window !== 'undefined' ? document.documentElement.clientWidth - 32 : 1248);
+  const fits = (level) => card.width * level / dpr <= room + 0.01;
+  // 1 or 2, 0 for scaled to fit
+  let shownLevel = $derived(fits(zoomLevel) ? zoomLevel : fits(1) ? 1 : 0);
+  let shownScale = $derived(shownLevel ? shownLevel / dpr : room / card.width);
+  // how far the card moves to start on a whole pixel of the screen
+  let snap = $state({ x: 0, y: 0 });
+  let snapFrame = 0;
 
-  // but never wider than the screen, less its side margins
-  let winWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1280);
+  function alignToPixels() {
+    cancelAnimationFrame(snapFrame);
+    snapFrame = requestAnimationFrame(() => {
+      if (!wrapperRef) return;
+      const r = wrapperRef.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      const x = Math.round(r.left * d) / d - r.left, y = Math.round(r.top * d) / d - r.top;
+      if (Math.abs(x - snap.x) > 1e-3 || Math.abs(y - snap.y) > 1e-3) snap = { x, y };
+    });
+  }
 
   onMount(() => {
     calculateScaling();
     fetchVariants();
 
+    // the layout moving the card, the page's width with or without its
+    // scroll bar, scrolling it (it stays at the top of the screen)
+    const layout = new ResizeObserver(() => { calculateScaling(); alignToPixels(); });
+    layout.observe(document.documentElement);
+    if (wrapperRef) layout.observe(wrapperRef);
     window.addEventListener('resize', calculateScaling);
+    window.addEventListener('scroll', alignToPixels, { passive: true });
     window.addEventListener('keydown', handleKeyDown);
     return () => {
+      layout.disconnect();
+      cancelAnimationFrame(snapFrame);
       window.removeEventListener('resize', calculateScaling);
+      window.removeEventListener('scroll', alignToPixels);
       window.removeEventListener('keydown', handleKeyDown);
       // what is still under way finds the app gone and leaves its result
       destroyed = true;
@@ -187,7 +272,65 @@
 
   function calculateScaling() {
     dpr = window.devicePixelRatio || 1;
+    room = document.documentElement.clientWidth - 32;
+    alignToPixels();
   }
+
+  // Dragging (mouse, pen, a finger), pinching and the wheel on the card move
+  // the layers picked, in pixels of the card from its centre
+  let looksEl = $state();
+  const pointers = new Map();
+  function cardPoint(e) {
+    const r = looksEl.getBoundingClientRect();
+    const scale = r.width / card.width;
+    return { x: (e.clientX - r.left) / scale - card.width / 2, y: (e.clientY - r.top) / scale - card.height / 2 };
+  }
+  // where the pointers are together and how far apart two of them are
+  function gesture() {
+    const [a, b] = [...pointers.values()];
+    return b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, apart: Math.hypot(a.x - b.x, a.y - b.y) } : { ...a, apart: 0 };
+  }
+  function onPointerDown(e) {
+    if (!editMode || (e.pointerType === 'mouse' && e.button !== 0) || pointers.size >= 2) return;
+    e.preventDefault();
+    looksEl.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, cardPoint(e));
+  }
+  function onPointerMove(e) {
+    if (!pointers.has(e.pointerId)) return;
+    const before = gesture();
+    pointers.set(e.pointerId, cardPoint(e));
+    const after = gesture();
+    changeLayers({
+      dx: after.x - before.x,
+      dy: after.y - before.y,
+      factor: before.apart && after.apart ? after.apart / before.apart : 1,
+      anchor: before,
+    });
+  }
+  function onPointerUp(e) {
+    pointers.delete(e.pointerId);
+  }
+  // the wheel zooms as svelte-easy-crop's did, around the pointer; in Obie
+  // Scalp's zoom leads
+  function onWheel(e) {
+    if (!editMode) return;
+    e.preventDefault();
+    const lead = layersNow()[moving === 'extra' ? 'extra' : 'base'];
+    const zoom = Math.max(lead.zoom - e.deltaY * 0.02 / 200, 0.01);
+    changeLayers({ factor: zoom / lead.zoom, anchor: cardPoint(e) });
+  }
+  $effect(() => {
+    const el = looksEl;
+    if (!el) return;
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  });
+  // where the card is changes with what the panel shows
+  $effect(() => {
+    editMode, shownScale;
+    tick().then(alignToPixels);
+  });
 
   // How many styles each frame has: the site reads it from the bot's code
   // with the pictures (inc/pw.php), as { Delta: 8, ... }. It comes while the
@@ -229,6 +372,8 @@
   const onCrop = (e) => untrack(() => previewCrop(e));
   const onExtraCrop = (e) => untrack(() => previewExtraCrop(e));
   function previewCrop(e) {
+    // after the cropper's own effect, which this is called from
+    queueMicrotask(keepScalp);
     pixelCrop = e.pixels;
     percentCrop = e.percent;
     schedulePreview();
@@ -325,23 +470,13 @@
     if (e.key === 'ArrowDown')  moveCrop(0, step);
   }
 
-  async function resetZoom() {
-    if (activeLayer === 'base' || activeLayer === 'both') {
-      curzoom = 1;
-      crop = { x: 0, y: 0 };
-      await tick();
-      curzoom = 1.000001;
-      await tick();
-      curzoom = 1;
-    }
-    if (activeLayer === 'extra' || activeLayer === 'both') {
-      extraZoom = 1;
-      extraCrop = { x: 0, y: 0 };
-      await tick();
-      extraZoom = 1.000001;
-      await tick();
-      extraZoom = 1;
-    }
+  // the layers moved back to the middle at zoom 1, Scalp as near to it as
+  // still covers the opening (and Top in Obie as Scalp)
+  function resetZoom() {
+    const start = { x: 0, y: 0, zoom: 1 };
+    const { base, extra } = layersNow();
+    setLayers({ base: moving === 'extra' ? base : start, extra: moving === 'base' ? extra : start });
+    changeLayers();
   }
 
   async function removeBg() {
@@ -461,8 +596,6 @@
       activeLayer = 'base';
     }
   });
-  let finalScale = $derived((1 / dpr) * zoomLevel);
-  let shownScale = $derived(Math.min(finalScale, (winWidth - 32) / 475));
   let styles = $derived(Object.keys(variantsMap).length ? styleList(selectedBorder, variantsMap) : []);
   // the pictures of the card when the frame, the dere, the style or the
   // styles of the frames change: each read, as an effect follows only what it
@@ -477,7 +610,6 @@
     untrack(schedulePreview);
   });
 </script>
-<svelte:window bind:innerWidth={winWidth} />
 
 <Header title="USkalpelator" />
 
@@ -559,8 +691,9 @@
                 <div class="hint">Strzałki na klawiaturze też działają, z Shift po 10 px.</div>
                 <div class="nudge-actions">
                   <button type="button" class="btn-muted" onclick={resetZoom}>Reset</button>
-                  {#if bgAutoLayer}
-                    <button type="button" class="btn-sync" onclick={syncLayers}>Sync</button>
+                  {#if hasExtraLayer && extraImage}
+                    <button type="button" class="btn-sync" onclick={syncLayers}
+                      title={activeLayer === 'base' ? 'Ustaw Top dokładnie na Scalpie' : 'Ustaw Scalp dokładnie pod Topem'}>Sync</button>
                   {/if}
                 </div>
               </div>
@@ -573,10 +706,13 @@
     <div class="card-col">
       <CardDrop onfile={onFile}>
     <div class="scale-wrapper" bind:this={wrapperRef} style="width: {475 * shownScale}px; height: {667 * shownScale}px;">
-      <div class="looks {editMode ? 'is-editing' : ''}" style="transform: scale({shownScale});">
+      <div class="looks" class:is-editing={editMode} class:fitted={!shownLevel} bind:this={looksEl}
+        style="transform: translate({snap.x}px, {snap.y}px) scale({shownScale});"
+        onpointerdown={onPointerDown} onpointermove={onPointerMove} onpointerup={onPointerUp} onpointercancel={onPointerUp}
+        onlostpointercapture={onPointerUp}>
         {#if editMode && hasExtraLayer && extraImage}
           <div class="cropper-container top" class:under-real={realPreview && extraPreview && !previewStale} bind:this={extraCropEl}
-              style="--mask-url: url({extraMaskUrl}); pointer-events: {activeLayer === 'base' ? 'none' : 'auto'};">
+              style="--mask-url: url({extraMaskUrl});">
             <Cropper 
               showGrid={false}
               image={extraImage} 
@@ -604,9 +740,8 @@
           {/if}
 
           {#if editMode}
-            <div class="green-bg" style="-webkit-mask-image: url({currentMaskUrl}); mask-image: url({currentMaskUrl}); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;"></div>
             <div class="cropper-container" class:under-real={realPreview && basePreview && !previewStale} bind:this={baseCropEl}
-                style="--mask-url: url({currentMaskUrl}); pointer-events: {activeLayer === 'extra' ? 'none' : 'auto'};">
+                style="--mask-url: url({currentMaskUrl});">
               <Cropper 
                 showGrid={false}
                 {image} 
@@ -648,7 +783,9 @@
     </div>
       </CardDrop>
       <div class="card-actions">
-        <button type="button" onclick={() => zoomLevel = zoomLevel === 1 ? 2 : 1}>Skala: {zoomLevel * 100}%</button>
+        <button type="button" onclick={() => zoomLevel = shownLevel === 1 ? 2 : 1} disabled={!fits(2)}
+          title={fits(2) ? 'Dokładnie 1 albo 2 piksele ekranu na piksel karty' : '200% nie mieści się na tym ekranie'}
+          >Skala: {shownLevel ? `${shownLevel * 100}%` : 'dopasowana'}</button>
         {#if editMode}
           <button type="button" class="btn-go" onclick={downloadImage}>Pobierz obrazek</button>
           <GallerySave pixels={cardPixels} prefix={'uskalpel-' + selectedBorder} />
@@ -785,6 +922,14 @@
     flex-shrink: 0;
   }
 
+  /* the card takes the pointer: the croppers under it only show the layers */
+  .looks.is-editing {
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   .looks img {
     position: absolute;
     top: 0;
@@ -794,6 +939,11 @@
     pointer-events: none;
     display: block;
     image-rendering: pixelated;
+  }
+
+  /* scaled to fit a narrow screen, by no whole number: smoothly */
+  .looks.fitted img {
+    image-rendering: auto;
   }
 
   .back { z-index: 10; }
@@ -823,22 +973,20 @@
     z-index: 999;
   }
 
+  /* svelte-easy-crop asks for a layer of its own for the picture, and the
+     layers over it (the frame, the dere) then get theirs, which the browser
+     puts down on a half pixel: blurred, with a seam where they meet the
+     layers under the picture. Painted with the rest of the card, everything
+     lands on whole pixels. */
+  :global(.svelte-easy-crop-image) {
+    will-change: auto !important;
+  }
+
   /* Ukryj wbudowaną linię obszaru Croppera - zastępujemy własnym divem poza maską */
   :global(.svelte-easy-crop-area) {
     border: none !important;
     box-shadow: none !important;
     color: transparent !important;
-  }
-
-  .green-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 475px;
-    height: 667px;
-    background: #00ff00;
-    z-index: 15;
-    pointer-events: none;
   }
 
   .crop-border {
@@ -859,6 +1007,7 @@
     left: 0;
     width: 475px;
     height: 667px;
+    pointer-events: none;
   }
 
   .looks.is-editing .cropper-container {

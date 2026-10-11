@@ -2,10 +2,10 @@
   // Saving the card into the account's folder in the gallery, next to saving
   // it as a file: a button for an account with a folder of its own, a login for
   // a visitor, and after saving the link of the picture to copy (for the bot)
-  // and its folder in the gallery. The card goes as a lossless WebP, so the
-  // gallery keeps it as it is and changes nothing in the background.
+  // and its folder in the gallery. The card goes as a WebP at quality 98
+  // (webp.js), which the gallery keeps as it is.
   import { account, cardName, loginUrl, saveToGallery } from './account.js';
-  import { losslessWebp } from './webp.js';
+  import { cardWebp } from './webp.js';
 
 
 
@@ -27,7 +27,7 @@
     try {
       let blob;
       try {
-        blob = await losslessWebp(await pixels());
+        blob = await cardWebp(await pixels());
       } catch {
         throw new Error('Nie udało się przygotować obrazka, spróbuj z innym lub użyj lokalnego pliku.');
       }

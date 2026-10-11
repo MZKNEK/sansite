@@ -1,13 +1,12 @@
-// The card as a lossless WebP for the gallery: libwebp in WebAssembly
-// (@jsquash/webp), loaded the first time a card is saved. The browser's own
-// canvas.toBlob('image/webp') is lossy (and in Safari not there at all), and
-// the gallery would otherwise change the PNG to a lossy WebP in the background.
-// exact keeps even the colour under the transparent pixels, so the file has
-// the very pixels of the card. In lossless WebP quality is not the look but
-// how hard it packs: 95 with method 5 comes within half a percent of the
-// strongest (method 6, quality 100) in a tenth of its time.
-export async function losslessWebp(imageData) {
+// The card as a WebP for the gallery: libwebp in WebAssembly (@jsquash/webp),
+// loaded the first time a card is saved. Lossy at quality 98, which keeps the
+// card looking as it is at a fraction of a lossless file's size; the browser's
+// own canvas.toBlob('image/webp') lets nobody pick how (and in Safari is not
+// there at all). Method 6 packs hardest, which for a card takes a moment
+// only; sharp_yuv keeps the colours of thin edges (the lines of a drawing)
+// from bleeding when the colour is halved. The alpha stays lossless.
+export async function cardWebp(imageData) {
   const { default: encode } = await import('@jsquash/webp/encode')
-  const buffer = await encode(imageData, { lossless: 1, exact: 1, quality: 95, method: 5, near_lossless: 100 })
+  const buffer = await encode(imageData, { quality: 98, method: 6, use_sharp_yuv: 1, alpha_quality: 100 })
   return new Blob([buffer], { type: 'image/webp' })
 }
