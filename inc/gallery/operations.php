@@ -247,6 +247,8 @@
                 $days = (int)($_POST['days'] ?? -1);
                 if (!$dir)
                     reply(false, 'Nie ma takiego folderu.', 404);
+                if (!galleryCanSee($base, $dir[1]))
+                    reply(false, 'Nie masz dostępu do tego folderu.', 403);
                 if ($dir[1] === '' || $dir[1] === USERS_DIR)
                     reply(false, 'Udostępnić można jeden folder, nie całą galerię ani wszystkie foldery kont.', 400);
                 if (!in_array($days, SHARE_DAYS, true))
@@ -273,7 +275,10 @@
                     reply(false, 'Rozszerzenie musi zostać .' . extensionOf($old) . ', zmiana nazwy nie zmienia formatu pliku.', 400);
                 if ($name === $old)
                     reply(true, 'Nazwa się nie zmieniła.');
-                if (file_exists(dirname($full) . '/' . $name) && strcasecmp($name, $old) !== 0)
+                // A case-only rename may refer to the same directory entry on
+                // Windows, but a separate existing file on Linux must stay intact.
+                if (file_exists(dirname($full) . '/' . $name)
+                    && realpath(dirname($full) . '/' . $name) !== realpath($full))
                     reply(false, 'Coś o nazwie ' . $name . ' już tu jest.', 409);
                 if (!@rename($full, dirname($full) . '/' . $name))
                     reply(false, 'Nie udało się zmienić nazwy.', 500);

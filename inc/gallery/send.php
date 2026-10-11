@@ -10,8 +10,17 @@
     function sendUserFile($base, $rel)
     {
         $file = resolvePath($base, $rel, false);
-        if (!$file || !inUsersDir($file[1])) {
+        if (!$file) {
             sendMovedLink($rel);
+            return;
+        }
+
+        // The token grants a link into one account's folder. Resolve that root
+        // separately so traversal and symlinks cannot reach a neighbouring one.
+        $home = preg_match('~^(' . USERS_URL . '/' . USER_TOKEN . ')/~', $rel, $match)
+            ? resolvePath($base, $match[1], true) : null;
+        if (!$home || !inUsersDir($home[1]) || !inFolder($file[1], $home[1])) {
+            http_response_code(404);
             return;
         }
 

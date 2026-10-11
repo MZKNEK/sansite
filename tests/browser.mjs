@@ -1,7 +1,7 @@
 // Real browser + real PHP, entirely disposable data and gallery. Run after
 // installing playwright in .preview/browser (see CI). No Discord or server.
 import { createRequire } from 'node:module';
-import { mkdtempSync, cpSync, mkdirSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, cpSync, mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -15,7 +15,7 @@ for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts']) {
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['account.php', 'favicon.svg']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['account.php', 'favicon.svg', '404.html']) cpSync(path.join(root, file), path.join(site, file));
 const port = 41000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
 const php = process.env.PHP || 'php';
@@ -107,9 +107,64 @@ try {
   login = await (await context.request.get(`${base}/__login?id=900000000000000001`)).json();
   const allowed = await context.request.post(`${base}/i/`, { multipart: { csrf: login.csrf, action: 'upload', dir: `${own}/A`, file } });
   assert.equal(allowed.status(), 200, await allowed.text());
+
+  mkdirSync(path.join(site, 'i/private/sub'), { recursive: true });
+  writeFileSync(path.join(site, 'i/private/sub/secret.png'), png);
+  const sharesBefore = existsSync(path.join(site, 'inc/data/shares.json'))
+    ? JSON.parse(readFileSync(path.join(site, 'inc/data/shares.json'))) : {};
+  login = await (await context.request.get(`${base}/__login?id=900000000000000003`)).json();
+  for (const dir of ['private', 'private/sub']) {
+    const share = await context.request.post(`${base}/i/`, { form: { csrf: login.csrf, action: 'share', dir, days: '1' } });
+    assert.equal(share.status(), 403, 'a gallery admin without private access cannot share ' + dir);
+    assert.equal((await share.json()).ok, false);
+  }
+  assert.deepEqual(existsSync(path.join(site, 'inc/data/shares.json'))
+    ? JSON.parse(readFileSync(path.join(site, 'inc/data/shares.json'))) : {}, sharesBefore, 'refused shares create no tokens');
+  const publicShare = await context.request.post(`${base}/i/`, { form: { csrf: login.csrf, action: 'share', dir: own + '/B', days: '1' } });
+  assert.equal(publicShare.status(), 200, 'gallery admins can still share a visible folder');
+  assert.equal((await publicShare.json()).ok, true);
+
+  login = await (await context.request.get(`${base}/__login?id=900000000000000001`)).json();
+  const privateShare = await context.request.post(`${base}/i/`, { form: { csrf: login.csrf, action: 'share', dir: 'private/sub', days: '1' } });
+  assert.equal(privateShare.status(), 200, 'an authorized admin can still share a private folder');
+  const { token } = await privateShare.json();
+  assert.ok(token);
+  const guest = await browser.newContext();
+  try {
+    assert.equal((await guest.request.get(`${base}/i/private/sub/secret.png`)).status(), 404);
+    assert.equal((await guest.request.get(`${base}/i/?s=${token}`)).status(), 200);
+    assert.deepEqual(await (await guest.request.get(`${base}/i/private/sub/secret.png`)).body(), png);
+    const ownImage = await guest.request.get(`${base}/i/${own}/B/test.png`);
+    assert.equal(ownImage.status(), 200, 'account image links still work without a login');
+    assert.deepEqual(await ownImage.body(), png);
+    const escaped = await guest.request.get(`${base}/i/${own}/..%5C900000000000000001-User%5CA%5Ctest.png`);
+    assert.equal(escaped.status(), 404, 'a public token cannot read another account through encoded backslashes');
+  } finally {
+    await guest.close();
+  }
+
+  const renameDir = path.join(site, 'i/users/900000000000000002-User/B');
+  writeFileSync(path.join(renameDir, 'rename.png'), 'SOURCE');
+  writeFileSync(path.join(renameDir, 'taken.png'), 'TARGET');
+  const rename = (from, to) => context.request.post(`${base}/i/`, { form: {
+    csrf: login.csrf, action: 'rename', 'items[]': `${own}/B/${from}`, name: to
+  } });
+  assert.equal((await rename('rename.png', 'taken.png')).status(), 409);
+  assert.equal(readFileSync(path.join(renameDir, 'rename.png'), 'utf8'), 'SOURCE');
+  assert.equal(readFileSync(path.join(renameDir, 'taken.png'), 'utf8'), 'TARGET');
+  // Linux permits both spellings; Windows normally refers to one directory entry.
+  if (!existsSync(path.join(renameDir, 'Rename.png'))) {
+    writeFileSync(path.join(renameDir, 'Rename.png'), 'CASE TARGET');
+    assert.equal((await rename('rename.png', 'Rename.png')).status(), 409, 'a case-only name collision cannot overwrite a separate file');
+    assert.equal(readFileSync(path.join(renameDir, 'rename.png'), 'utf8'), 'SOURCE');
+    assert.equal(readFileSync(path.join(renameDir, 'Rename.png'), 'utf8'), 'CASE TARGET');
+  }
+  writeFileSync(path.join(renameDir, 'case-only.png'), 'CASE ONLY');
+  assert.equal((await rename('case-only.png', 'Case-Only.png')).status(), 200, 'a case-only rename without a collision still works');
+  assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
-  console.log('Browser OK: global defaults, individual trash quota, reset, revision conflict, own move, foreign target, CSRF, authorization, own profile.');
+  console.log('Browser OK: quotas, own move, CSRF, authorization, profile, private sharing, public token confinement, rename collisions.');
 } catch (error) {
   console.error(log.split('\n').filter(line => /Warning|Fatal|Deprecated|Error|sanakan:/.test(line)).join('\n'));
   throw error;
