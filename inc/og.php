@@ -272,12 +272,12 @@
             imagefilledrectangle($img, (int)($cx - 0.6 * $r), (int)($cy - 0.2 * $r), (int)($cx + 0.6 * $r), (int)($cy + 0.2 * $r), $background);
     }
 
-    // The logo (sanakan.jpg) in a purple ring with a soft glow, centred at $cx,
+    // The logo (logo.webp) in a purple ring with a soft glow, centred at $cx,
     // $cy, and with $status the Discord status dot cut into its lower right edge,
     // as Discord shows it on an avatar
     function ogLogo($img, $cx, $cy, $r, $status = null)
     {
-        $logo = @imagecreatefromjpeg(__DIR__ . '/../sanakan.jpg');
+        $logo = @imagecreatefromwebp(__DIR__ . '/../logo.webp');
         if ($logo === false)
             return false;
 

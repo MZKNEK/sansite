@@ -85,6 +85,10 @@
     // const CLOUDFLARE_API_TOKEN = '';
     // const CLOUDFLARE_ACCOUNT_ID = '';
     // const CLOUDFLARE_LIST = 'sanakan_blokada';
+    // Optional: the zone of sanakan.pl (its overview, right column), for
+    // deploy.sh to purge the pictures and icons it changed (inc/purge-cache.php);
+    // the token above then needs Zone Cache Purge: Purge as well.
+    // const CLOUDFLARE_ZONE_ID = '';
 
     // Optional, for the availability checks of the panel (inc/diag.php); the
     // values below are the defaults. Where the server answers past Cloudflare

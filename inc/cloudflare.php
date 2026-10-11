@@ -301,6 +301,34 @@
         return [is_array($answer[1]) ? $answer[1] : [], null];
     }
 
+    // ---- Purging the cache --------------------------------------------------------
+    // deploy.sh has Cloudflare forget the files a deploy changed (inc/purge-cache.php),
+    // so a picture or icon replaced under the same name shows at once. Needs
+    // CLOUDFLARE_API_TOKEN with Zone Cache Purge: Purge too, and CLOUDFLARE_ZONE_ID.
+
+    // how many addresses one purge request may name
+    const CLOUDFLARE_PURGE_BATCH = 30;
+
+    function cloudflarePurgeConfigured()
+    {
+        authConfigured();
+
+        return defined('CLOUDFLARE_API_TOKEN') && CLOUDFLARE_API_TOKEN !== ''
+            && defined('CLOUDFLARE_ZONE_ID') && CLOUDFLARE_ZONE_ID !== '';
+    }
+
+    // Purges $urls from Cloudflare's cache: null when done, or an error message.
+    function cloudflarePurge($urls)
+    {
+        foreach (array_chunk(array_values(array_unique($urls)), CLOUDFLARE_PURGE_BATCH) as $batch) {
+            $answer = cloudflareApi('POST', '/zones/' . rawurlencode(CLOUDFLARE_ZONE_ID) . '/purge_cache', ['files' => $batch]);
+            if (!$answer[0])
+                return $answer[1];
+        }
+
+        return null;
+    }
+
     // ---- Changes sent from the panel ----------------------------------------------
     // The panel sends a change and answers at once; the change waits in
     // inc/data/cloudflare-pending.json under Cloudflare's operation id: 'text'

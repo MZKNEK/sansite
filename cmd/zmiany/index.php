@@ -74,8 +74,9 @@
   <link rel="icon" href="../../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
+  <link rel="manifest" href="../../site.webmanifest" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=0570c93373" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=850b4de59c" type="text/css" rel="stylesheet" />
   <link href="../../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../style.css?v=56725895df" type="text/css" rel="stylesheet" />
   <script src="../../js/hud.js?v=2894733f39"></script>

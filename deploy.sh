@@ -5,7 +5,10 @@
 # on the server too. The nginx rules (server/nginx/ and the wiki's nginx-og.conf
 # and nginx-site.conf in server/wiki/), which git archive leaves out, are sent on
 # their own when they changed since the last deploy, then nginx -t runs and nginx
-# reloads; a configuration that does not pass is rolled back and the deploy stops. Run it from Git Bash or any shell
+# reloads; a configuration that does not pass is rolled back and the deploy stops.
+# The wiki's icons (server/wiki/assets/) go the same way when they changed, with
+# Wiki.js restarted, and Cloudflare is told to forget the pictures and icons that
+# changed (inc/purge-cache.php). Run it from Git Bash or any shell
 # with ssh and tar:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
@@ -197,8 +200,8 @@ if [ "$check" -eq 1 ]; then
 fi
 
 # where a file of server/ goes on the server (migrate.sh has the same list);
-# the wiki's theme and assets are pasted by hand and have no place here, so they
-# are not among the rules sent
+# the wiki's theme is pasted by hand and its assets go on their own (below), so
+# they are not among the rules sent
 nginx_dest() {
     case "$1" in
         server/nginx/sanakan-log.conf|server/nginx/sanakan-realip.conf)
@@ -427,6 +430,72 @@ echo "Reguły nginx wgrane i przeładowane."
 REMOTE
     elif [ ${#config_files[@]} -gt 0 ]; then
         echo "[dry-run] Wysłałbym je, uruchomił nginx -t i przeładował nginx (przy błędzie wycofanie i stop)."
+    fi
+fi
+
+# The wiki's icons and manifest (server/wiki/assets/) when they changed since
+# the last deploy: over Wiki.js' own files, whose originals are kept once in
+# /root/wiki-assets-original/, then Wiki.js restarts, as it keeps /favicon.ico
+# in memory. A Wiki.js update brings its own icons back; WIKI_FORCE=1 sends
+# them again without a change.
+wiki_assets=${WIKI_ASSETS:-/var/www/wiki/assets}
+wiki_service=${WIKI_SERVICE:-wiki}
+wiki_url=${WIKI_URL:-https://wiki.sanakan.pl}
+if [ "${WIKI_FORCE:-0}" = 1 ] || [ -z "$previous" ] || ! git cat-file -e "$previous^{commit}" 2>/dev/null; then
+    changed_wiki=$(git -c core.quotepath=false ls-files -- server/wiki/assets/)
+else
+    changed_wiki=$(git -c core.quotepath=false diff --name-only --diff-filter=ACMR "$previous" HEAD -- server/wiki/assets/)
+fi
+if [ -n "$changed_wiki" ]; then
+    echo "Zmienione pliki wiki, wysyłam do $target:$wiki_assets i restartuję $wiki_service:"
+    echo "$changed_wiki" | sed 's#^server/wiki/assets/#  #'
+    if [ "$dry_run" -eq 0 ]; then
+        wiki_tar=/tmp/sanakan-wiki-assets.tar
+        git -C server/wiki/assets ls-files -z \
+            | tar -c -C server/wiki/assets --null -T - \
+            | ssh "$target" "cat > '$wiki_tar'"
+        ssh "$target" "bash -s -- '$wiki_assets' '$wiki_service' '$wiki_tar'" <<'REMOTE'
+set -euo pipefail
+trap 'rm -f "$3"' EXIT
+cd "$1"
+if [ ! -d /root/wiki-assets-original ]; then
+    mkdir /root/wiki-assets-original
+    cp -r favicons manifest.json favicon.ico /root/wiki-assets-original/
+fi
+tar -x -f "$3" --no-same-owner --no-overwrite-dir
+chown -R --reference=. .
+systemctl restart "$2"
+echo "Ikony wiki wgrane, $2 zrestartowane."
+REMOTE
+    else
+        echo "[dry-run] Wysłałbym je i zrestartował $wiki_service."
+    fi
+fi
+
+# Cloudflare forgets the pictures, icons and the like the deploy changed or
+# deleted (the CSS and JS have a new ?v= instead), the wiki's too, so they show
+# at once and not after a day; inc/purge-cache.php on the server does it with
+# the token of inc/config.php. A failure only warns, the files are in place.
+purge=""
+if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
+    purge=$(git -c core.quotepath=false diff --name-only --no-renames --diff-filter=ACMRD "$previous" HEAD \
+        | grep -E '\.(png|jpe?g|gif|webp|avif|svg|ico|woff2|webmanifest|txt)$' \
+        | grep -vE '^(server|tools|apps|tests|\.github)/' \
+        | sed "s#^#$site_url/#" || true)
+fi
+while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    purge+=$'\n'"$wiki_url/_assets/${file#server/wiki/assets/}"
+    [ "$file" = server/wiki/assets/favicon.ico ] && purge+=$'\n'"$wiki_url/favicon.ico"
+done <<< "$changed_wiki"
+purge=$(printf '%s\n' "$purge" | sed '/^$/d; s/ /%20/g')
+if [ -n "$purge" ]; then
+    echo "Czyszczenie cache Cloudflare:"
+    echo "$purge" | sed 's/^/  /'
+    if [ "$dry_run" -eq 0 ]; then
+        if ! printf '%s\n' "$purge" | ssh "$target" "cd '$root' && runuser -u www-data -- php inc/purge-cache.php"; then
+            echo "UWAGA: cache Cloudflare nie wyczyszczony, stare pliki mogą się pokazywać do doby (Caching → Custom Purge)." >&2
+        fi
     fi
 fi
 
