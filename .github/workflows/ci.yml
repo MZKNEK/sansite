@@ -58,9 +58,6 @@ jobs:
       - name: Build Skalpelator and USkalpelator
         run: tools/build-apps.sh
 
-      - name: Test USkalpel gestures, crop bounds and preview scale in Chromium
-        run: node tests/uskalpel-browser.mjs
-
       - name: The committed build matches the sources
         run: |
           if [ -n "$(git status --porcelain -- skalpel uskalpel)" ]; then

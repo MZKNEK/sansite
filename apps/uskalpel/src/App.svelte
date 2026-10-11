@@ -1,7 +1,7 @@
 <script>
-  import { onMount, untrack } from 'svelte';
-  import CardEditor from './lib/CardEditor.svelte';
-  import { forgetPicture, closeRenderer } from '../../shared/lib/CanvasUtils.js';
+  import { onMount, tick, untrack } from 'svelte';
+  import Cropper from "svelte-easy-crop";
+  import { getCroppedImg, getCroppedCanvas, cropOnScreen, forgetPicture, closeRenderer } from '../../shared/lib/CanvasUtils.js';
   import { ownedUrls } from '../../shared/lib/ownedUrls.js';
   import { styleList, frameStyle, frameLayers } from './lib/frames.js';
   import Segmented from '../../shared/lib/Segmented.svelte';
@@ -45,7 +45,13 @@
   let bgProgressLabel = $state('');
   let bgAutoLayer = $state(false);
 
-  let editor = $state();
+  // the crops in % of the pictures: unlike the pixels they are not rounded
+  let percentCrop = null;
+  let extraPercentCrop = null;
+  let baseCropEl = $state(), extraCropEl = $state();
+  // what the croppers show; their own numbers only if the screen has none
+  const baseCrop = () => cropOnScreen(baseCropEl) ?? percentCrop;
+  const topCrop = () => cropOnScreen(extraCropEl) ?? extraPercentCrop;
   // extra sharpening; without it the scaling keeps the picture as it is
   let sharpen = $state(0);
   const sharpenLevels = [
@@ -64,33 +70,124 @@
     { value: 'both', label: 'Obie' },
   ];
 
+  // Real preview: the croppers show the pictures as the browser scales them, so
+  // once a crop stops moving, the scaled and masked layers of the saved file
+  // are put over them
   let realPreview = $state(true);
+  let basePreview = $state('');
+  let extraPreview = $state('');
+  let previewStale = $state(true);
+  let previewTimer;
+  // grows with every change the preview has to follow, so a render begun
+  // before it, which ends later, is dropped instead of shown as the new one
+  let previewToken = 0;
+
+  // the blob: addresses this app made (the previews, the picture without its
+  // background), let go when they are replaced and when the app goes
   const urls = ownedUrls(forgetPicture);
   let destroyed = false;
-  let zoomLevel = $state(1);
-  const previewScales = [
-    { value: 1, label: '100%' }, { value: 2, label: '200%' }, { value: 'fit', label: 'Dopasuj' },
-  ];
-  const syncLayers = () => editor?.sync();
-  const moveCrop = (dx, dy) => editor?.move(dx, dy);
-  const resetZoom = () => editor?.reset();
-  function measureCrops(base, top) {
-    pixelCrop = base;
-    extraPixelCrop = top;
-    isUpscaling = base.width < 475 || base.height < 667;
-    isExtraUpscaling = top.width < 475 || top.height < 667;
+
+  function schedulePreview() {
+    previewStale = true;
+    previewToken++;
+    clearTimeout(previewTimer);
+    if (!editMode || !realPreview || !percentCrop) return;
+    previewTimer = setTimeout(updatePreview, 200);
   }
+
+  async function updatePreview() {
+    const token = previewToken;
+    const withExtra = hasExtraLayer && extraImage && extraPercentCrop;
+    const results = await Promise.allSettled([
+      getCroppedImg(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen }),
+      withExtra ? getCroppedImg(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen }) : Promise.resolve(''),
+    ]);
+    const [base, extra] = results.map((r) => r.status === 'fulfilled' && r.value ? urls.own(r.value) : '');
+    // a failure leaves the croppers showing the pictures; saving reports it
+    if (destroyed || token !== previewToken || results.some((r) => r.status === 'rejected')) {
+      urls.release(base);
+      urls.release(extra);
+      return;
+    }
+    basePreview = urls.replace(basePreview, base);
+    extraPreview = urls.replace(extraPreview, extra);
+    previewStale = false;
+  }
+
+
+  async function syncLayers() {
+    if (activeLayer === 'extra' || activeLayer === 'both') {
+      // top jest dowodzący -> kopiuj top na scalp
+      crop = { x: extraCrop.x, y: extraCrop.y };
+      curzoom = extraZoom;
+      await tick();
+      curzoom = curzoom + 0.000001;
+      await tick();
+      curzoom = curzoom - 0.000001;
+    } else {
+      // scalp jest dowodzący -> kopiuj scalp na top
+      extraCrop = { x: crop.x, y: crop.y };
+      extraZoom = curzoom;
+      await tick();
+      extraZoom = extraZoom + 0.000001;
+      await tick();
+      extraZoom = extraZoom - 0.000001;
+    }
+  }
+
+  async function moveCrop(dx, dy) {
+    if (activeLayer === 'base' || activeLayer === 'both') {
+      crop.x = Math.round(crop.x) + dx;
+      crop.y = Math.round(crop.y) + dy;
+      // Wymuś wywołanie oncropcomplete przez mikrozmianę zoom
+      await tick();
+      curzoom = curzoom + 0.000001;
+      await tick();
+      curzoom = curzoom - 0.000001;
+    }
+    if (activeLayer === 'extra' || activeLayer === 'both') {
+      extraCrop.x = Math.round(extraCrop.x) + dx;
+      extraCrop.y = Math.round(extraCrop.y) + dy;
+      await tick();
+      extraZoom = extraZoom + 0.000001;
+      await tick();
+      extraZoom = extraZoom - 0.000001;
+    }
+  }
+
+  // the whole card, which the masks of the frames cut
+  const card = { width: 475, height: 667 };
+  const maskCropSize = card;
+
+
+  let dpr = $state((typeof window !== 'undefined') ? window.devicePixelRatio : 1);
+  let zoomLevel = $state((typeof window !== 'undefined' && window.innerWidth < 900) ? 2 : 1);
+
+  // but never wider than the screen, less its side margins
+  let winWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1280);
+
   onMount(() => {
+    calculateScaling();
     fetchVariants();
+
+    window.addEventListener('resize', calculateScaling);
     window.addEventListener('keydown', handleKeyDown);
     return () => {
+      window.removeEventListener('resize', calculateScaling);
       window.removeEventListener('keydown', handleKeyDown);
+      // what is still under way finds the app gone and leaves its result
       destroyed = true;
+      clearTimeout(previewTimer);
+      previewToken++;
       variantsAbort?.abort();
       urls.releaseAll();
       closeRenderer();
     };
   });
+
+  function calculateScaling() {
+    dpr = window.devicePixelRatio || 1;
+  }
 
   // How many styles each frame has: the site reads it from the bot's code
   // with the pictures (inc/pw.php), as { Delta: 8, ... }. It comes while the
@@ -124,6 +221,27 @@
   let selectedDere = $state('Mayadere');
   let selectedStyle = $state('2')
 
+  let wrapperRef = $state();
+
+  // the croppers call these with the crop itself (svelte-easy-crop 5 has no
+  // events), from inside their own effect: untracked, or what they read and set
+  // here would become what that effect depends on and run it again without end
+  const onCrop = (e) => untrack(() => previewCrop(e));
+  const onExtraCrop = (e) => untrack(() => previewExtraCrop(e));
+  function previewCrop(e) {
+    pixelCrop = e.pixels;
+    percentCrop = e.percent;
+    schedulePreview();
+    isUpscaling = pixelCrop.width < 475 || pixelCrop.height < 667;
+  }
+
+  function previewExtraCrop(e) {
+    extraPixelCrop = e.pixels;
+    extraPercentCrop = e.percent;
+    schedulePreview();
+    isExtraUpscaling = extraPixelCrop.width < 475 || extraPixelCrop.height < 667;
+  }
+
   // every file asked for counts, so one read more slowly than the next does
   // not put itself in its place when it ends
   let imageReads = 0;
@@ -140,7 +258,6 @@
       if (destroyed || read !== imageReads) return;
       image = e.target.result;
       curzoom = 1;
-      crop = { x: 0, y: 0 };
     };
     reader.readAsDataURL(imageFile);
   }
@@ -155,7 +272,6 @@
       activeLayer = 'extra';
       bgAutoLayer = false;
       extraZoom = 1;
-      extraCrop = { x: 0, y: 0 };
     };
     reader.readAsDataURL(file);
   }
@@ -168,7 +284,6 @@
     fileName = '';
     isLocalFile = false;
     curzoom = 1;
-    crop = { x: 0, y: 0 };
   }
 
   function onFile(file) {
@@ -200,9 +315,7 @@
   }
 
   function handleKeyDown(e) {
-    if (!editMode || e.defaultPrevented || e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-    e.preventDefault();
+    if (!editMode) return;
 
     const step = e.shiftKey ? 10 : 1;
 
@@ -212,12 +325,30 @@
     if (e.key === 'ArrowDown')  moveCrop(0, step);
   }
 
+  async function resetZoom() {
+    if (activeLayer === 'base' || activeLayer === 'both') {
+      curzoom = 1;
+      crop = { x: 0, y: 0 };
+      await tick();
+      curzoom = 1.000001;
+      await tick();
+      curzoom = 1;
+    }
+    if (activeLayer === 'extra' || activeLayer === 'both') {
+      extraZoom = 1;
+      extraCrop = { x: 0, y: 0 };
+      await tick();
+      extraZoom = 1.000001;
+      await tick();
+      extraZoom = 1;
+    }
+  }
+
   async function removeBg() {
     if (!image || bgRemoving) return;
     // the picture it starts from: when another is chosen meanwhile, the
     // result is for one no longer there and is dropped
     const source = image;
-    const topRead = extraReads;
     bgRemoving = true;
     bgProgress = 0;
     bgProgressLabel = 'Inicjalizacja...';
@@ -234,16 +365,14 @@
         }
       });
       if (destroyed) return;
-      if (image !== source || extraReads !== topRead) {
-        bgProgressLabel = 'Pominięto: w międzyczasie zmienił się obraz lub warstwa Top';
+      if (image !== source) {
+        bgProgressLabel = 'Pominięto: w międzyczasie zmienił się obraz';
         return;
       }
       extraImage = urls.replace(extraImage, urls.own(URL.createObjectURL(blob)));
       extraReads++;
       activeLayer = 'both';
       bgAutoLayer = true;
-      extraCrop = { ...crop };
-      extraZoom = curzoom;
       bgProgressLabel = 'Gotowe!';
     } catch (e) {
       console.error('removeBg error:', e);
@@ -258,7 +387,36 @@
     }
   }
 
-  const composeCard = () => editor.exportCanvas();
+  // the card as it is saved: its layers, cropped and masked, on one canvas
+  async function composeCard() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 475;
+    canvas.height = 667;
+    const ctx = canvas.getContext('2d');
+
+    // Kolejność warstw: gdy bgAutoLayer (removeBg), scalp jest nad top
+    // Normalnie: top jest nad scalp. The layers are drawn straight from their
+    // canvases, with no blob: address in between to let go of.
+    const imgMain = editMode
+      ? await getCroppedCanvas(image, baseCrop(), { ...card, mask: currentMaskUrl, sharpen })
+      : await loadImg(image);
+
+    if (hasExtraLayer && extraImage) {
+      const imgExtra = await getCroppedCanvas(extraImage, topCrop(), { ...card, mask: extraMaskUrl, sharpen });
+      if (bgAutoLayer) {
+        // removeBg: najpierw top (wycięta postać), potem scalp (oryginał z maską) na wierzchu
+        ctx.drawImage(imgExtra, 0, 0);
+        ctx.drawImage(imgMain, 0, 0);
+      } else {
+        // normalnie: scalp, potem top
+        ctx.drawImage(imgMain, 0, 0);
+        ctx.drawImage(imgExtra, 0, 0);
+      }
+    } else {
+      ctx.drawImage(imgMain, 0, 0);
+    }
+    return canvas;
+  }
 
   // its pixels, for the gallery
   async function cardPixels() {
@@ -282,6 +440,19 @@
       alert('Nie udało się przygotować obrazka, spróbuj z innym lub użyj lokalnego pliku.');
     }
   }
+  function loadImg(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = (err) => {
+        console.error("Błąd ładowania obrazu: " + src, err);
+        reject(err);
+      };
+      img.src = src;
+    });
+  }
+
   let currentMaskUrl = $derived(`${import.meta.env.BASE_URL}masks/${selectedBorder}.webp`);
   let extraMaskUrl = $derived(`${import.meta.env.BASE_URL}masks/${selectedBorder}_top.webp`);
   let hasExtraLayer = $derived(['Delta', 'Eta', 'Omega'].includes(selectedBorder));
@@ -290,6 +461,8 @@
       activeLayer = 'base';
     }
   });
+  let finalScale = $derived((1 / dpr) * zoomLevel);
+  let shownScale = $derived(Math.min(finalScale, (winWidth - 32) / 475));
   let styles = $derived(Object.keys(variantsMap).length ? styleList(selectedBorder, variantsMap) : []);
   // the pictures of the card when the frame, the dere, the style or the
   // styles of the frames change: each read, as an effect follows only what it
@@ -298,7 +471,13 @@
     selectedBorder, selectedDere, selectedStyle, variantsMap;
     untrack(updateData);
   });
+  // a new preview when what it shows changes (the crops ask for one themselves)
+  $effect(() => {
+    sharpen, realPreview, editMode, image, extraImage, currentMaskUrl, extraMaskUrl, hasExtraLayer;
+    untrack(schedulePreview);
+  });
 </script>
+<svelte:window bind:innerWidth={winWidth} />
 
 <Header title="USkalpelator" />
 
@@ -377,14 +556,11 @@
                 {#if hasExtraLayer && extraImage}
                   <div class="info-label">TOP&nbsp;&nbsp; X {Math.round(extraCrop.x)} · Y {Math.round(extraCrop.y)} · {Math.round(extraPixelCrop.width)}×{Math.round(extraPixelCrop.height)}</div>
                 {/if}
-                {#if isUpscaling || (hasExtraLayer && extraImage && isExtraUpscaling)}
-                  <div class="hint">Obraz jest powiększany ponad rozdzielczość źródłową.</div>
-                {/if}
                 <div class="hint">Strzałki na klawiaturze też działają, z Shift po 10 px.</div>
                 <div class="nudge-actions">
                   <button type="button" class="btn-muted" onclick={resetZoom}>Reset</button>
-                  {#if hasExtraLayer && extraImage}
-                    <button type="button" class="btn-sync" onclick={syncLayers} title={activeLayer === 'base' ? 'Scalp → Top: kopiuj położenie i szerokość obrazu' : 'Top → Scalp: kopiuj położenie i szerokość obrazu (z ograniczeniem do maski)'}>Sync {activeLayer === 'base' ? 'Scalp → Top' : 'Top → Scalp'}</button>
+                  {#if bgAutoLayer}
+                    <button type="button" class="btn-sync" onclick={syncLayers}>Sync</button>
                   {/if}
                 </div>
               </div>
@@ -396,13 +572,83 @@
 
     <div class="card-col">
       <CardDrop onfile={onFile}>
-        <CardEditor bind:this={editor} {image} {extraImage} mask={currentMaskUrl} extraMask={extraMaskUrl}
-          {hasExtraLayer} {editMode} {activeLayer} {bgAutoLayer} {sharpen} {realPreview}
-          border={borderUri} back={backBorderUri} dere={dereUri} stats={showStats ? statsUri : ''}
-          {zoomLevel} bind:crop bind:extraCrop bind:curzoom bind:extraZoom onmeasure={measureCrops} />
+    <div class="scale-wrapper" bind:this={wrapperRef} style="width: {475 * shownScale}px; height: {667 * shownScale}px;">
+      <div class="looks {editMode ? 'is-editing' : ''}" style="transform: scale({shownScale});">
+        {#if editMode && hasExtraLayer && extraImage}
+          <div class="cropper-container top" class:under-real={realPreview && extraPreview && !previewStale} bind:this={extraCropEl}
+              style="--mask-url: url({extraMaskUrl}); pointer-events: {activeLayer === 'base' ? 'none' : 'auto'};">
+            <Cropper 
+              showGrid={false}
+              image={extraImage} 
+              bind:zoom={extraZoom} 
+              bind:crop={extraCrop}
+              aspect={475/667}
+              minZoom={0.1}
+              maxZoom={10}
+              zoomSpeed={0.02}
+              cropSize={maskCropSize}
+              oncropcomplete={onExtraCrop}
+              restrictPosition={false}
+            />
+          </div>
+          {#if isExtraUpscaling}
+            <div class="upscale-border"></div>
+          {/if}
+          {#if realPreview && extraPreview}
+            <img src={extraPreview} class="real real-top" class:stale={previewStale} alt="" />
+          {/if}
+        {/if}
+
+          {#if backBorderUri}
+            <img src={backBorderUri} class="back" alt="BorderBack" />
+          {/if}
+
+          {#if editMode}
+            <div class="green-bg" style="-webkit-mask-image: url({currentMaskUrl}); mask-image: url({currentMaskUrl}); -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;"></div>
+            <div class="cropper-container" class:under-real={realPreview && basePreview && !previewStale} bind:this={baseCropEl}
+                style="--mask-url: url({currentMaskUrl}); pointer-events: {activeLayer === 'extra' ? 'none' : 'auto'};">
+              <Cropper 
+                showGrid={false}
+                {image} 
+                bind:zoom={curzoom} 
+                bind:crop={crop} 
+                minZoom={0.1}
+                maxZoom={10}
+                zoomSpeed={0.02}
+                aspect={475/667}
+                cropSize={maskCropSize} 
+                oncropcomplete={onCrop} 
+                restrictPosition={false} 
+              />
+            </div>
+            {#if realPreview && basePreview}
+              <img src={basePreview} class="real real-base" class:stale={previewStale} alt="" />
+            {/if}
+            <div class="crop-border"></div>
+            {#if isUpscaling}
+              <div class="upscale-border"></div>
+            {/if}
+          {:else}
+            <img src={image} class="scalp" alt="Scalpel" />
+          {/if}
+
+          {#if borderUri}
+            <img src={borderUri} class="border" alt="Border" />
+          {/if}
+
+          {#if dereUri}
+            <img src={dereUri} class="dere" alt="Dere" />
+          {/if}
+
+          {#if showStats && statsUri}
+            <img src={statsUri} class="stats" alt="Stats" />
+          {/if}
+
+      </div>
+    </div>
       </CardDrop>
       <div class="card-actions">
-        <Segmented bind:value={zoomLevel} options={previewScales} label="Skala podglądu" />
+        <button type="button" onclick={() => zoomLevel = zoomLevel === 1 ? 2 : 1}>Skala: {zoomLevel * 100}%</button>
         {#if editMode}
           <button type="button" class="btn-go" onclick={downloadImage}>Pobierz obrazek</button>
           <GallerySave pixels={cardPixels} prefix={'uskalpel-' + selectedBorder} />
@@ -522,6 +768,105 @@
     font-size: 12px;
   }
 
-  .card-col { min-width: 0; width: 100%; max-width: 950px; flex: 1; }
-  .card-col :global(.card-drop) { width: 100%; min-width: 0; }
+  .scale-wrapper {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    overflow: visible;
+    transition: width 0.2s, height 0.2s;
+  }
+
+  .looks {
+    position: relative;
+    width: 475px; 
+    height: 667px; 
+    background-color: transparent;
+    transform-origin: top left;
+    flex-shrink: 0;
+  }
+
+  .looks img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 475px;
+    height: 667px;
+    pointer-events: none;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  .back { z-index: 10; }
+  .scalp, .cropper-container:not(.top) { z-index: 20; }
+  .top, .cropper-container.top { z-index: 30; }
+  .border { z-index: 40; }
+  /* the real preview of each layer, right over its cropper; it lets the mouse
+     through and hides while a crop moves */
+  .real-base { z-index: 25; }
+  .real-top { z-index: 35; }
+  .real.stale { visibility: hidden; }
+  /* under the real preview the cropper's own picture would show through
+     transparent parts; it stays there, unseen, for the mouse */
+  .cropper-container.under-real :global(img) { opacity: 0; }
+  .dere { z-index: 50; }
+  .stats { z-index: 60; }
+
+  .upscale-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    outline: 4px solid var(--bad);
+    outline-offset: -4px;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Ukryj wbudowaną linię obszaru Croppera - zastępujemy własnym divem poza maską */
+  :global(.svelte-easy-crop-area) {
+    border: none !important;
+    box-shadow: none !important;
+    color: transparent !important;
+  }
+
+  .green-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 475px;
+    height: 667px;
+    background: #00ff00;
+    z-index: 15;
+    pointer-events: none;
+  }
+
+  .crop-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 475px;
+    height: 667px;
+    outline: 1px solid rgba(var(--accent-light-rgb), 0.6);
+    outline-offset: -1px;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .cropper-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 475px;
+    height: 667px;
+  }
+
+  .looks.is-editing .cropper-container {
+    -webkit-mask-image: var(--mask-url);
+    mask-image: var(--mask-url);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
 </style>
