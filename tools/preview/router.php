@@ -105,7 +105,7 @@
     $file = $root . $path;
     $script = $path;
     if (preg_match('~^/i/(u/[0-9a-f]{16}/|private/)~', $path)
-        || (preg_match('~^/i/.+\.(?:png|jpe?g|gif|webm|mp4)$~i', $path) && !is_file($file))) {
+        || (preg_match('~^/i/.+\.(?:png|jpe?g|gif|avif|webm|mp4)$~i', $path) && !is_file($file))) {
         $file = $root . '/i/index.php';
         $script = '/i/index.php';
     }

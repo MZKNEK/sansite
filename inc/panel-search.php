@@ -3,18 +3,19 @@
     // @name or ID, and addresses, whole or by their start ("45.148."), among the
     // addresses of the accounts, the scanners, the blocked ones and the busiest
     // of the last 24 hours, each with the accounts that came from it. A search
-    // for an account's address finds the account too. admin/index.php includes
-    // it after the login check, like the profile.
+    // for an account's address finds the account too. The accounts that match
+    // whole come first, then the ones that start with it (accountSearchMatch());
+    // each list shows SEARCH_SHOWN at a time, and "Pokaż więcej" (?ile=) more.
+    // admin/index.php includes it after the login check, like the profile.
     if (!function_exists('accountCell')) {
         http_response_code(404);
         exit;
     }
 
     const SEARCH_SHOWN = 50;
+    const SEARCH_SHOWN_MAX = 1000;
 
-    $search = (function ($query) {
-        $lower = 'lower';
-        $needle = $lower($query);
+    $search = (function ($query, $shown) {
         $logins = readData('logins');
         $addresses = readData('addresses');
         $isAddress = filter_var($query, FILTER_VALIDATE_IP) !== false;
@@ -31,23 +32,27 @@
         }
 
         $accounts = [];
+        $ranks = [];
         foreach (array_unique(array_map('strval', $ids)) as $id) {
-            $why = null;
-            if (ctype_digit($query) && strpos($id, $query) !== false)
-                $why = 'ID';
-            else if (!$looksLikeAddress && strpos($lower($logins[$id]['name'] ?? ''), $needle) !== false)
-                $why = 'nazwa';
-            else if (!$looksLikeAddress && strpos($lower($logins[$id]['username'] ?? ''), $needle) !== false)
-                $why = '@' . $logins[$id]['username'];
-            else if ($looksLikeAddress)
+            $match = null;
+            if (!$looksLikeAddress)
+                $match = accountSearchMatch($query, $id, $logins[$id] ?? []);
+            if ($match === null && $looksLikeAddress)
                 foreach (array_keys($addresses[$id] ?? []) as $ip)
                     if ($matches($ip)) {
-                        $why = 'adres ' . $ip;
+                        $match = [$isAddress || (string)$ip === $query ? 0 : 1, 'adres ' . $ip];
                         break;
                     }
-            if ($why !== null)
-                $accounts[$id] = $why;
+            if ($match !== null) {
+                $ranks[$id] = $match[0];
+                $accounts[$id] = $match[1];
+            }
         }
+        // the whole match first, then the start, then the rest, each in the order found
+        $order = array_flip(array_keys($accounts));
+        uksort($accounts, function ($a, $b) use ($ranks, $order) {
+            return [$ranks[$a], $order[$a]] <=> [$ranks[$b], $order[$b]];
+        });
 
         // the addresses, with what is known of each: requests in the last 24 h
         // (when among the busiest), country, user agent, most asked path, where found
@@ -87,19 +92,40 @@
                         $add($item['ip'], 'zablokowany: ' . $item['comment']);
                 }
             }
-            uasort($found, function ($a, $b) { return $b['n'] <=> $a['n']; });
+            // the address asked for whole first, then the busiest
+            uksort($found, function ($a, $b) use ($found, $query) {
+                $whole = function ($ip) use ($query) { return preg_replace('~/\d+$~', '', (string)$ip) === $query ? 0 : 1; };
+                return [$whole($a), $found[$b]['n']] <=> [$whole($b), $found[$a]['n']];
+            });
         }
 
         return [
             'query' => $query,
-            'accounts' => array_slice($accounts, 0, SEARCH_SHOWN, true),
-            'addresses' => array_slice($found, 0, SEARCH_SHOWN, true),
+            'shown' => $shown,
+            'accounts' => array_slice($accounts, 0, $shown, true),
+            'accountsTotal' => count($accounts),
+            'addresses' => array_slice($found, 0, $shown, true),
+            'addressesTotal' => count($found),
             'looksLikeAddress' => $looksLikeAddress,
             'marks' => diagMarks($scanners, $cfItems),
             'cfError' => $cfError,
             'logins' => $logins
         ];
-    })($searchQuery);
+    })($searchQuery, min(SEARCH_SHOWN_MAX, max(SEARCH_SHOWN, (int)(is_string($_GET['ile'] ?? null) ? $_GET['ile'] : 0))));
+
+    // how many of a list are shown, and the link that shows more of both
+    function searchMore($s, $total, $anchor)
+    {
+        $shown = count($anchor === 'konta' ? $s['accounts'] : $s['addresses']);
+        if ($total <= $shown)
+            return '';
+        $next = min(SEARCH_SHOWN_MAX, $s['shown'] + SEARCH_SHOWN);
+        $more = $s['shown'] < SEARCH_SHOWN_MAX
+            ? '<a class="admin-btn small" href="?szukaj=' . e(rawurlencode($s['query'])) . '&amp;ile=' . $next . '#' . $anchor . '">Pokaż więcej</a>'
+            : '<span class="muted">zawęź wyszukiwanie, żeby zobaczyć resztę</span>';
+
+        return '        <p class="quota-pages"><span class="muted">pokazane ' . formatCount($shown) . ' z ' . formatCount($total) . '</span> ' . $more . "</p>\n";
+    }
 
     function searchPage($s)
     {
@@ -113,7 +139,7 @@
         <p class="nobody">Nic nie znaleziono. Szukaj po nazwie konta, @nazwie, ID albo adresie IP, także po jego początku, np. <code>45.148.</code></p>
 <?php endif; ?>
 <?php if ($s['accounts']): ?>
-        <h3 class="diag-title">Konta <span class="muted"><?=count($s['accounts'])?></span></h3>
+        <h3 class="diag-title" id="konta">Konta <span class="muted"><?=formatCount($s['accountsTotal'])?></span></h3>
         <div class="logins logins-search">
 <?php foreach ($s['accounts'] as $id => $why): $id = (string)$id; $badge = roleBadge($knownRoles[$id]['roles'] ?? null); ?>
           <div class="login-row">
@@ -131,9 +157,10 @@
           </div>
 <?php endforeach; ?>
         </div>
+<?=searchMore($s, $s['accountsTotal'], 'konta')?>
 <?php endif; ?>
 <?php if ($s['addresses']): ?>
-        <h3 class="diag-title">Adresy <span class="muted"><?=count($s['addresses'])?> &middot; zapytania z 24 h liczone, gdy adres był wśród najaktywniejszych</span></h3>
+        <h3 class="diag-title" id="adresy">Adresy <span class="muted"><?=formatCount($s['addressesTotal'])?> &middot; zapytania z 24 h liczone, gdy adres był wśród najaktywniejszych</span></h3>
 <?php if ($s['cfError'] !== null): ?>
         <p class="hint"><b class="warn"><?=e($s['cfError'])?></b></p>
 <?php endif; ?>
@@ -147,6 +174,7 @@
           </li>
 <?php endforeach; ?>
         </ul>
+<?=searchMore($s, $s['addressesTotal'], 'adresy')?>
 <?php endif; ?>
       </section>
     </div>

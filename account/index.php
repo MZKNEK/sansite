@@ -145,7 +145,7 @@
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=28a7a59087" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=20f7e866c5" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">

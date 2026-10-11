@@ -87,6 +87,64 @@
     // nothing kept
   }
 
+  // ---- Changes of the Cloudflare list --------------------------------------------
+  // A block or unblock sent from the panel waits for Cloudflare's confirmation
+  // (inc/cloudflare.php) in the card above the page; while one waits,
+  // ?cloudflare is asked every few seconds and what each came to is written
+  // in, with a button to read the page's lists again once one is done.
+
+  var cfCard = document.getElementById('cf-pending');
+  var cfUntil = Date.now() + 7 * 60000;
+
+  function cfRow(id) {
+    return Array.prototype.find.call(cfCard.querySelectorAll('li[data-id]'), function (row) {
+      return row.dataset.id === id;
+    });
+  }
+
+  function cfRefreshButton() {
+    if (cfCard.querySelector('.cf-refresh')) return;
+    var p = document.createElement('p');
+    p.className = 'quota-pages cf-refresh';
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'admin-btn small';
+    button.textContent = 'Odśwież listy';
+    button.addEventListener('click', function () {
+      keepScrolls();
+      location.reload();
+    });
+    p.appendChild(button);
+    cfCard.appendChild(p);
+  }
+
+  function cfPoll() {
+    fetch('index.php?cloudflare', { cache: 'no-store' }).then(function (res) {
+      return res.json();
+    }).then(function (result) {
+      (result.ops || []).forEach(function (op) {
+        var row = cfRow(op.id);
+        if (!row || row.dataset.status === op.status) return;
+        var was = row.dataset.status;
+        row.dataset.status = op.status;
+        row.querySelector('.cf-op-status').textContent = op.text;
+        if (was !== 'pending') return;
+        gallery.toast(op.message, op.status !== 'completed');
+        if (op.status === 'completed') cfRefreshButton();
+      });
+      cfNext(3000);
+    }).catch(function () {
+      cfNext(10000);
+    });
+  }
+
+  function cfNext(delay) {
+    if (cfCard.querySelector('li[data-status="pending"]') && Date.now() < cfUntil)
+      setTimeout(cfPoll, delay);
+  }
+
+  if (cfCard) cfNext(1500);
+
   // ---- Date and time in the Polish way -------------------------------------------
   // The browser draws a datetime-local field in its own language, with AM/PM in
   // an English one. Each becomes a text field "05.10.2026 14:23" with a

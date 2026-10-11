@@ -6,6 +6,7 @@
   // (webp.js), which the gallery keeps as it is.
   import { account, cardName, loginUrl, saveToGallery } from './account.js';
   import { cardWebp } from './webp.js';
+  import { leaveWithDrafts } from './draft.js';
 
 
 
@@ -58,7 +59,8 @@
     <span class="note">Zapis w galerii: to konto nie ma w niej swojego folderu</span>
   {/if}
 {:else if $account?.login}
-  <a class="btn-save hud-corners" href={loginUrl()}>Zaloguj, żeby zapisać w galerii</a>
+  <!-- the work kept as a draft first, so it is all there after the login -->
+  <a class="btn-save hud-corners" href={loginUrl()} onclick={leaveWithDrafts}>Zaloguj, żeby zapisać w galerii</a>
 {/if}
 
 {#if result || error}

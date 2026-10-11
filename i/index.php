@@ -28,10 +28,10 @@
         exit;
     }
 
-    // i/<file>.png|jpg|gif|webm|mp4 that is not there (nginx sends these here
+    // i/<file>.png|jpg|gif|avif|webm|mp4 that is not there (nginx sends these here
     // too): the old link of a picture changed to WebP, or of a film changed to
     // WebM, goes on to the new one; anything else is a 404
-    if (strpos($requested, siteRoot() . 'i/') === 0 && preg_match('/\.(?:png|jpe?g|gif|webm|mp4)$/i', $requested)) {
+    if (strpos($requested, siteRoot() . 'i/') === 0 && preg_match('/\.(?:png|jpe?g|gif|avif|webm|mp4)$/i', $requested)) {
         sendMovedLink(substr($requested, strlen(siteRoot() . 'i/')));
         exit;
     }

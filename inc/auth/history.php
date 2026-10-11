@@ -11,13 +11,14 @@
         return dataDir() . '/history.log';
     }
 
-    // $who names who did it when no account did, e.g. a cron job
+    // $who names who did it when no account did, e.g. a cron job, or is the
+    // account (['id', 'name']) when the change is noted in another request
     function addHistory($action, $text, $who = null)
     {
         if (!is_dir(dataDir()))
             @mkdir(dataDir(), 0750, true);
 
-        $user = $who === null ? siteUser() : ['id' => '', 'name' => $who];
+        $user = $who === null ? siteUser() : (is_array($who) ? $who : ['id' => '', 'name' => $who]);
         // a log read by people: what is not UTF-8 is replaced, the entry stays
         $line = json_encode([
             'time' => time(),

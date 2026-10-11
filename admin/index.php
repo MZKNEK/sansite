@@ -76,6 +76,19 @@
         exit;
     }
 
+    // ?cloudflare: the changes of the Cloudflare list sent from the panel, each
+    // waiting one asked about once (js/admin.js asks again while one waits);
+    // the session is let go first, so the panel's other requests do not wait
+    if (isset($_GET['cloudflare'])) {
+        if (!$allowed)
+            reply(false, 'To konto nie ma dostępu do panelu.', 403);
+        session_write_close();
+        $ops = cloudflareConfigured() ? cloudflareCheckPending() : [];
+        reply(true, '', 200, ['ops' => array_map(function ($op) {
+            return ['id' => $op['id'], 'status' => $op['status'], 'text' => cloudflareOpStatus($op), 'message' => $op['message']];
+        }, $ops)]);
+    }
+
     $flash = takeFlash();
     // the login page itself is a 200, as Discord shows no link preview for a 401
     if (!$allowed)
@@ -113,7 +126,7 @@
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=28a7a59087" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=20f7e866c5" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -143,6 +156,9 @@
 <?php endif; ?>
     </header>
 
+<?php if ($allowed && cloudflareConfigured()): ?>
+<?=cloudflarePendingCard(cloudflarePending())?>
+<?php endif; ?>
 <?php if (!$allowed): ?>
     <section class="locked hud-corners">
       <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
@@ -194,7 +210,7 @@
   <script src="../js/account.js?v=292db1badf"></script>
   <script src="../js/netsphere.js?v=1c8be049a6"></script>
 <?php if ($allowed): ?>
-  <script src="../js/admin.js?v=caa6d26371"></script>
+  <script src="../js/admin.js?v=7a08a49a3c"></script>
 <?php endif; ?>
 </body>
 

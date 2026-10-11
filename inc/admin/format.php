@@ -212,3 +212,64 @@
         return '<img src="' . e($avatar) . '" alt="" width="28" height="28" loading="lazy" />'
             . '<span class="who"><a class="who-name" href="?konto=' . e($id) . '" title="Profil konta">' . e($name) . '</a><code>' . e($id) . '</code></span>';
     }
+
+    // what a change of the Cloudflare list sent from the panel came to (cloudflarePending())
+    function cloudflareOpStatus($op)
+    {
+        switch ($op['status']) {
+            case 'pending': return 'Oczekuje na potwierdzenie';
+            case 'completed': return 'Zrobione';
+            default: return $op['message'];
+        }
+    }
+
+    // The changes of the Cloudflare list sent from the panel, waiting or just
+    // finished, above every page of the panel; js/admin.js asks ?cloudflare
+    // about the waiting ones and writes in what they came to.
+    function cloudflarePendingCard($ops)
+    {
+        if (!$ops)
+            return '';
+        $html = '    <div class="panel-grid cf-pending-grid">' . "\n"
+            . '      <section class="card wide cf-pending" id="cf-pending" aria-live="polite">' . "\n"
+            . '        <h2><i>!</i>Zmiany w Cloudflare</h2>' . "\n"
+            . '        <ul class="diag-blocked">' . "\n";
+        foreach ($ops as $op)
+            $html .= '          <li data-id="' . e($op['id']) . '" data-status="' . e($op['status']) . '"><code>' . e($op['text']) . '</code>'
+                . '<span class="cf-op-status">' . e(cloudflareOpStatus($op)) . '</span>'
+                . '<span class="muted">' . e(date('H:i', (int)$op['sent'])) . '</span></li>' . "\n";
+
+        return $html . "        </ul>\n      </section>\n    </div>\n";
+    }
+
+    // How an account answers the panel's search (inc/panel-search.php) by its
+    // ID, name or Discord name: [rank, why], or null when it does not. Rank 0
+    // is the whole of it, 1 its start, 2 anywhere in it. "@name", as the
+    // search's hint puts it, is the Discord name, kept without the @; the
+    // name shown only after every Discord name (ranks 3 to 5), for an @ put
+    // before that one.
+    function accountSearchMatch($query, $id, $login)
+    {
+        $query = trim((string)$query);
+        $handle = $query !== '' && $query[0] === '@';
+        $needle = lower(ltrim($query, '@'));
+        if ($needle === '')
+            return null;
+
+        $rank = function ($text) use ($needle) {
+            $text = lower((string)$text);
+            if ($text === '' || ($at = strpos($text, $needle)) === false)
+                return null;
+            return $text === $needle ? 0 : ($at === 0 ? 1 : 2);
+        };
+        $username = (string)($login['username'] ?? '');
+        $checks = $handle
+            ? [[$username, '@' . $username, 0], [$login['name'] ?? '', 'nazwa', 3]]
+            : [[ctype_digit($needle) ? (string)$id : '', 'ID', 0], [$login['name'] ?? '', 'nazwa', 0], [$username, '@' . $username, 0]];
+        $best = null;
+        foreach ($checks as [$text, $why, $after])
+            if (($found = $rank($text)) !== null && ($best === null || $found + $after < $best[0]))
+                $best = [$found + $after, $why];
+
+        return $best;
+    }

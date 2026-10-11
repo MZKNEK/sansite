@@ -13,18 +13,18 @@
   // the bot's stars, which the site mirrors from its repository (inc/pw.php)
   const pwStarsBaseUrl = '/pw/stars';
 
-  let starShape = $state('Star');
-  let starColor = $state('Blue');
-  let starType = $state('Full');
-
   // the star of a shape and colour, as the bot draws it; Rainbow is a star of
   // its own, the last one, with no shapes: always its one picture (13_1)
   const starFile = (shape, color, type) =>
     `${pwStarsBaseUrl}/${type}/${starColors.indexOf(color)+1}_${color === 'Rainbow' ? 1 : starShapes.indexOf(shape)+1}.png`;
   const starIcon = (shape, color, type) => `background-image: url(${starFile(shape, color, type)});`;
 
-  // how many stars and the picture of one, for the card
-  let { count: starCnt = $bindable(0), value: selectedValue = $bindable() } = $props();
+  // how many stars and the picture of one, for the card, and what they look
+  // like (bound too, for the app's draft)
+  let {
+    count: starCnt = $bindable(0), value: selectedValue = $bindable(),
+    shape: starShape = $bindable('Star'), color: starColor = $bindable('Blue'), type: starType = $bindable('Full'),
+  } = $props();
   $effect.pre(() => {
     selectedValue = starFile(starShape, starColor, starType);
   });

@@ -6,8 +6,11 @@
     // An IPv6 address is blocked with its whole /64, which one machine usually
     // has to itself. Needs in inc/config.php CLOUDFLARE_API_TOKEN (a token with
     // Account Filter Lists: Edit), CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_LIST.
-    // Cloudflare changes a list in the background, so a change waits a few
-    // seconds for it to finish.
+    // Cloudflare changes a list in the background: the automatic blocking
+    // (cron) waits a few seconds for a change to finish, while the panel does
+    // not keep its request (and the admin's session) open for it, but notes
+    // the change as waiting and asks about it in short requests of its own and
+    // from cron (cloudflarePanelChange(), cloudflareCheckPending()).
     //
     // Cloudflare limits how fast its API may be asked, and answers too many
     // requests with "Please wait and consider throttling your request speed"
@@ -30,6 +33,12 @@
     const CLOUDFLARE_ITEMS_FRESH = 120;
     // how long nothing is asked after Cloudflare said to slow down
     const CLOUDFLARE_PAUSE = 300;
+    // a change sent from the panel: asked about at most every this many
+    // seconds, reported as unconfirmed when not done in CLOUDFLARE_PENDING_TIMEOUT,
+    // and its outcome shown in the panel for CLOUDFLARE_PENDING_SHOWN after that
+    const CLOUDFLARE_POLL_GAP = 2;
+    const CLOUDFLARE_PENDING_TIMEOUT = 300;
+    const CLOUDFLARE_PENDING_SHOWN = 600;
 
     function cloudflareConfigured()
     {
@@ -231,43 +240,176 @@
         return cloudflareBlockMany([[$ip, $comment]]);
     }
 
-    // puts addresses on the list in one change, [[ip, comment], ...]: null, or an error message
+    // puts addresses on the list in one change, [[ip, comment], ...], and
+    // waits for it: null, or an error message
     function cloudflareBlockMany($entries)
+    {
+        [$result, $error] = cloudflareSendBlock($entries);
+
+        return $error ?? cloudflareWait($result);
+    }
+
+    // takes items (by their ids from cloudflareBlocked, one or a list) off the
+    // list in one change, and waits for it: null, or an error message
+    function cloudflareUnblock($itemIds)
+    {
+        [$result, $error] = cloudflareSendUnblock($itemIds);
+
+        return $error ?? cloudflareWait($result);
+    }
+
+    // sends the change of cloudflareBlockMany() without waiting for it:
+    // [Cloudflare's answer, null] (with the operation_id to ask about), or
+    // [null, error message]
+    function cloudflareSendBlock($entries)
     {
         $items = [];
         foreach ($entries as [$ip, $comment]) {
             $target = cloudflareTarget($ip);
             if ($target === null)
-                return 'To nie jest publiczny adres IP.';
+                return [null, 'To nie jest publiczny adres IP.'];
             $items[] = ['ip' => $target, 'comment' => cutText($comment, CLOUDFLARE_COMMENT_LENGTH)];
         }
         if (!$items)
-            return null;
+            return [[], null];
         [$id, $error] = cloudflareListId();
         if ($id === null)
-            return $error;
+            return [null, $error];
 
-        $answer = cloudflareApi('POST', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', $items);
-        if (!$answer[0])
-            return $answer[1];
-        cloudflareListChanged();
-
-        return cloudflareWait($answer[1]);
+        return cloudflareSend('POST', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', $items);
     }
 
-    // takes items (by their ids from cloudflareBlocked, one or a list) off the
-    // list in one change: null, or an error message
-    function cloudflareUnblock($itemIds)
+    // sends the change of cloudflareUnblock() without waiting, as cloudflareSendBlock()
+    function cloudflareSendUnblock($itemIds)
     {
         [$id, $error] = cloudflareListId();
         if ($id === null)
-            return $error;
+            return [null, $error];
 
         $items = array_map(function ($itemId) { return ['id' => $itemId]; }, (array)$itemIds);
-        $answer = cloudflareApi('DELETE', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', ['items' => $items]);
+
+        return cloudflareSend('DELETE', cloudflareListsPath() . '/' . rawurlencode($id) . '/items', ['items' => $items]);
+    }
+
+    function cloudflareSend($method, $path, $body)
+    {
+        $answer = cloudflareApi($method, $path, $body);
         if (!$answer[0])
-            return $answer[1];
+            return [null, $answer[1]];
         cloudflareListChanged();
 
-        return cloudflareWait($answer[1]);
+        return [is_array($answer[1]) ? $answer[1] : [], null];
+    }
+
+    // ---- Changes sent from the panel ----------------------------------------------
+    // The panel sends a change and answers at once; the change waits in
+    // inc/data/cloudflare-pending.json under Cloudflare's operation id: 'text'
+    // what it is ("zablokowanie 1.2.3.4"), 'done' the history line once
+    // Cloudflare has made it, 'by' who asked (['id', 'name']), 'release' an
+    // address the automatic blocking leaves alone once it is off the list,
+    // 'sent' and 'checked' when it was sent and last asked about, 'status'
+    // (pending, completed, failed, unconfirmed), 'message' and 'finished'.
+
+    // Notes a change the panel sent, $sent being what cloudflareSendBlock() or
+    // cloudflareSendUnblock() answered: null when it is on its way (or already
+    // made), or an error message.
+    function cloudflarePanelChange($sent, $text, $done, $by, $release = '')
+    {
+        [$result, $error] = $sent;
+        if ($error !== null)
+            return $error;
+        $now = microtime(true);
+        $op = ['text' => $text, 'done' => $done, 'by' => $by, 'release' => (string)$release, 'sent' => $now, 'checked' => $now, 'status' => 'pending', 'message' => ''];
+        $operation = (string)($result['operation_id'] ?? '');
+        // nothing to wait for: made already
+        if ($operation === '') {
+            $operation = 'done-' . bin2hex(random_bytes(6));
+            $op = cloudflareFinished($op, 'completed');
+        }
+        if (!updateData('cloudflare-pending', function (&$pending) use ($operation, $op) { $pending[$operation] = $op; }))
+            return dataError();
+        if ($op['status'] === 'completed')
+            cloudflareMade($op);
+
+        return null;
+    }
+
+    // The changes of the panel to show: the waiting ones and the ones finished
+    // in the last CLOUDFLARE_PENDING_SHOWN seconds, the newest first, each with
+    // its 'id'.
+    function cloudflarePending()
+    {
+        $now = time();
+        $shown = [];
+        foreach (readData('cloudflare-pending') as $id => $op)
+            if (($op['status'] ?? '') === 'pending' || ($op['finished'] ?? 0) > $now - CLOUDFLARE_PENDING_SHOWN)
+                $shown[] = ['id' => (string)$id] + $op;
+        usort($shown, function ($a, $b) { return $b['sent'] <=> $a['sent']; });
+
+        return $shown;
+    }
+
+    // Asks Cloudflare once about each change of the panel still waiting (one
+    // not asked about in the last CLOUDFLARE_POLL_GAP seconds), notes what it
+    // says, drops the ones finished long ago, and returns cloudflarePending().
+    // Run by the panel's ?cloudflare while it shows a waiting change, and by
+    // cron (inc/check-site.php), so a change is confirmed with the panel shut.
+    function cloudflareCheckPending()
+    {
+        $now = microtime(true);
+        $claimed = [];
+        // a change is asked about by one request at a time
+        $paused = cloudflarePausedUntil() > 0;
+        updateData('cloudflare-pending', function (&$pending) use ($now, $paused, &$claimed) {
+            foreach ($pending as $id => $op) {
+                if (($op['status'] ?? '') !== 'pending') {
+                    if (($op['finished'] ?? 0) < $now - CLOUDFLARE_PENDING_SHOWN)
+                        unset($pending[$id]);
+                    continue;
+                }
+                if ($paused || ($op['checked'] ?? 0) > $now - CLOUDFLARE_POLL_GAP)
+                    continue;
+                $pending[$id]['checked'] = $now;
+                $claimed[] = (string)$id;
+            }
+        });
+
+        foreach ($claimed as $id) {
+            $answer = cloudflareApi('GET', cloudflareListsPath() . '/bulk_operations/' . rawurlencode($id));
+            $status = $answer[0] ? (string)($answer[1]['status'] ?? '') : '';
+            $error = 'Cloudflare: ' . ($answer[1]['error'] ?? 'zmiana się nie udała') . '.';
+            $finished = null;
+            updateData('cloudflare-pending', function (&$pending) use ($id, $status, $error, &$finished) {
+                $op = $pending[$id] ?? null;
+                if (($op['status'] ?? '') !== 'pending')
+                    return;
+                if ($status === 'completed')
+                    $finished = cloudflareFinished($op, 'completed');
+                else if ($status === 'failed')
+                    $finished = cloudflareFinished($op, 'failed', $error);
+                else if ($op['sent'] < microtime(true) - CLOUDFLARE_PENDING_TIMEOUT)
+                    $finished = cloudflareFinished($op, 'unconfirmed', 'Cloudflare nie potwierdził zmiany w ' . intdiv(CLOUDFLARE_PENDING_TIMEOUT, 60) . ' minut; odśwież listę, żeby sprawdzić, czy doszła.');
+                if ($finished !== null)
+                    $pending[$id] = $finished;
+            });
+            if (($finished['status'] ?? '') === 'completed')
+                cloudflareMade($finished);
+        }
+
+        return cloudflarePending();
+    }
+
+    function cloudflareFinished($op, $status, $message = '')
+    {
+        return ['status' => $status, 'message' => $status === 'completed' ? $op['done'] : $message, 'finished' => time()] + $op;
+    }
+
+    // what follows a change Cloudflare has made: the list read again, the
+    // history, and an address taken off by hand left alone by the automatic blocking
+    function cloudflareMade($op)
+    {
+        cloudflareListChanged();
+        addHistory('cloudflare', $op['done'], $op['by']);
+        if ($op['release'] !== '' && function_exists('autoBlockReleased'))
+            autoBlockReleased($op['release']);
     }

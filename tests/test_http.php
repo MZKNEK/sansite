@@ -288,6 +288,67 @@
         assertContains('publiczny', cloudflareBlockMany([['10.0.0.1', 'x']]));
     });
 
+    test('a change sent from the panel waits as pending and is confirmed by a later request', function () {
+        writeData('cloudflare-list', ['name' => CLOUDFLARE_LIST, 'id' => 'L9']);
+        $admin = ['id' => '123456789012345678', 'name' => 'Admin'];
+        $asked = 0;
+        $GLOBALS['SANAKAN_HTTP'] = function ($url, $options) use (&$asked) {
+            if (strpos($url, '/bulk_operations/op7') !== false) {
+                $asked++;
+                return [json_encode(['success' => true, 'result' => ['status' => $asked < 2 ? 'running' : 'completed']]), 200];
+            }
+
+            return [json_encode(['success' => true, 'result' => ['operation_id' => 'op7']]), 200];
+        };
+        $started = microtime(true);
+        assertNull(cloudflarePanelChange(cloudflareSendUnblock('i1'), 'odblokowanie 8.8.8.8', 'Odblokowano w Cloudflare 8.8.8.8.', $admin, '8.8.8.8'));
+        assertTrue(microtime(true) - $started < 1, 'the panel does not wait for Cloudflare');
+        assertSame(0, $asked, 'nor asks about it in the same request');
+        assertSame('pending', cloudflarePending()[0]['status']);
+
+        // asked at most every CLOUDFLARE_POLL_GAP seconds
+        cloudflareCheckPending();
+        assertSame(0, $asked, 'just sent');
+        updateData('cloudflare-pending', function (&$pending) { $pending['op7']['checked'] = 0; });
+        assertSame('pending', cloudflareCheckPending()[0]['status'], 'still running');
+        updateData('cloudflare-pending', function (&$pending) { $pending['op7']['checked'] = 0; });
+        $ops = cloudflareCheckPending();
+        withoutHttp();
+        assertSame(2, $asked);
+        assertSame('completed', $ops[0]['status']);
+        assertSame('Odblokowano w Cloudflare 8.8.8.8.', $ops[0]['message']);
+        $entry = historyEntries(1)[0];
+        assertSame([$admin['id'], 'Admin', 'Odblokowano w Cloudflare 8.8.8.8.'], [$entry['id'], $entry['name'], $entry['text']], 'the history names who asked');
+        assertTrue(isset(readData('autoblock-released')['8.8.8.8']), 'left alone by the automatic blocking');
+    });
+
+    test('a change sent from the panel that fails or is not confirmed in time says so', function () {
+        writeData('cloudflare-list', ['name' => CLOUDFLARE_LIST, 'id' => 'L9']);
+        $admin = ['id' => '1', 'name' => 'Admin'];
+        withHttp([
+            '/bulk_operations/opF' => [json_encode(['success' => true, 'result' => ['status' => 'failed', 'error' => 'boom']]), 200],
+            '/bulk_operations/opS' => [json_encode(['success' => true, 'result' => ['status' => 'running']]), 200],
+        ]);
+        foreach (['opF', 'opS'] as $op)
+            assertNull(cloudflarePanelChange([['operation_id' => $op], null], $op, 'done ' . $op, $admin));
+        updateData('cloudflare-pending', function (&$pending) {
+            $pending['opF']['checked'] = 0;
+            $pending['opS']['checked'] = 0;
+            $pending['opS']['sent'] = microtime(true) - CLOUDFLARE_PENDING_TIMEOUT - 1;
+        });
+        $ops = array_column(cloudflareCheckPending(), null, 'id');
+        withoutHttp();
+        assertSame('failed', $ops['opF']['status']);
+        assertContains('boom', $ops['opF']['message']);
+        assertSame('unconfirmed', $ops['opS']['status']);
+        assertContains('nie potwierdził', $ops['opS']['message']);
+        assertSame([], historyEntries(5), 'nothing noted as done');
+
+        assertSame('Cloudflare: x.', cloudflarePanelChange([null, 'Cloudflare: x.'], 't', 'd', $admin), 'an error of the request itself');
+        assertNull(cloudflarePanelChange([[], null], 'now', 'done now', $admin));
+        assertSame('completed', array_column(cloudflarePending(), null, 'text')['now']['status'], 'no operation: made at once');
+    });
+
     test('serviceCheck counts a page that answers', function () {
         withHttp(['sanakan.pl' => ['<html>', 200]]);
         [$up, $ms] = serviceCheck('https://sanakan.pl/');

@@ -15,6 +15,8 @@
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
   import GalleryPick from '../../shared/lib/GalleryPick.svelte';
+  import DraftNote from '../../shared/lib/DraftNote.svelte';
+  import { draftKeeper } from '../../shared/lib/draft.js';
 
   // the pictures of the bot's cards, which the site mirrors from its repository (inc/pw.php)
   const pw = '/pw';
@@ -245,6 +247,7 @@
   onMount(() => {
     calculateScaling();
     fetchVariants();
+    draft.load().then(restoreDraft);
 
     // the layout moving the card, the page's width with or without its
     // scroll bar, scrolling it (it stays at the top of the screen)
@@ -262,6 +265,7 @@
       window.removeEventListener('keydown', handleKeyDown);
       // what is still under way finds the app gone and leaves its result
       destroyed = true;
+      draft.close();
       clearTimeout(previewTimer);
       previewToken++;
       variantsAbort?.abort();
@@ -522,6 +526,62 @@
     }
   }
 
+  // The work kept as a draft in the browser (draft.js), so a Discord login,
+  // which leaves the page, or a reload starts where it was: both pictures
+  // (the one without its background too), the layers' crops and what was
+  // picked. Nothing is written until the draft is read, and one read after
+  // the visitor already chose a picture is not used.
+  const draft = draftKeeper('uskalpel');
+  let draftRead = $state(false);
+  let draftSavedAt = $state(0);
+
+  function restoreDraft(kept) {
+    const pictures = kept?.pictures ?? {};
+    if (destroyed || imageReads > 0 || extraReads > 0 || !kept) {
+      for (const picture of Object.values(pictures))
+        if (picture.own) URL.revokeObjectURL(picture.src);
+      draftRead = !destroyed;
+      return;
+    }
+    const s = kept.settings;
+    const shown = (picture) => picture.own ? urls.own(picture.src) : picture.src;
+    if (pictures.image) image = shown(pictures.image);
+    if (pictures.extraImage) extraImage = shown(pictures.extraImage);
+    selectedBorder = s.border ?? selectedBorder;
+    selectedDere = s.dere ?? selectedDere;
+    selectedStyle = s.style ?? selectedStyle;
+    showStats = s.showStats ?? showStats;
+    isLocalFile = s.isLocalFile ?? isLocalFile;
+    fileName = s.fileName ?? fileName;
+    extraFileName = s.extraFileName ?? extraFileName;
+    sharpen = s.sharpen ?? sharpen;
+    realPreview = s.realPreview ?? realPreview;
+    bgModel = s.bgModel ?? bgModel;
+    bgAutoLayer = s.bgAutoLayer ?? bgAutoLayer;
+    activeLayer = s.activeLayer ?? activeLayer;
+    zoomLevel = s.scale ?? zoomLevel;
+    if (s.crop) setLayers({ base: s.crop, extra: s.extraCrop ?? layersNow().extra });
+    editMode = s.editMode ?? editMode;
+    draftSavedAt = kept.savedAt;
+    draftRead = true;
+  }
+
+  $effect(() => {
+    if (!draftRead) return;
+    draft.save({
+      border: selectedBorder, dere: selectedDere, style: selectedStyle, showStats,
+      isLocalFile, fileName, extraFileName, editMode, sharpen, realPreview,
+      bgModel, bgAutoLayer, activeLayer, scale: zoomLevel,
+      crop: { x: crop.x, y: crop.y, zoom: curzoom },
+      extraCrop: { x: extraCrop.x, y: extraCrop.y, zoom: extraZoom },
+    }, { image, extraImage });
+  });
+
+  async function startOver() {
+    await draft.clear();
+    location.reload();
+  }
+
   // the card as it is saved: its layers, cropped and masked, on one canvas
   async function composeCard() {
     const canvas = document.createElement('canvas');
@@ -616,6 +676,9 @@
 <main class="content">
   <div class="app-layout">
     <div class="panel">
+      {#if draftSavedAt}
+        <DraftNote savedAt={draftSavedAt} onreset={startOver} />
+      {/if}
       <section class="group">
         <h2 class="group-title"><i>01</i>Karta</h2>
         <div class="field top"><span class="label">Ramka</span><Segmented bind:value={selectedBorder} options={borders} label="Ramka" words /></div>

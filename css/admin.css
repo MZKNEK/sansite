@@ -1457,6 +1457,24 @@ a.who-name:hover {
     overflow-wrap: anywhere;
 }
 
+/* the changes of the Cloudflare list sent from the panel, above every page of it */
+.cf-pending-grid {
+    margin-top: 24px;
+}
+
+.cf-pending li[data-status="pending"] .cf-op-status {
+    color: var(--accent-light);
+}
+
+.cf-pending li[data-status="completed"] .cf-op-status {
+    color: #3ba55c;
+}
+
+.cf-pending li[data-status="failed"] .cf-op-status,
+.cf-pending li[data-status="unconfirmed"] .cf-op-status {
+    color: #f0b232;
+}
+
 .diag-slow {
     max-height: 220px;
     margin: 6px 0 0;

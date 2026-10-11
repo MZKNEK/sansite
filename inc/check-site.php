@@ -6,7 +6,8 @@
     // A run takes a minute and, when the site does not answer, up to half a
     // minute more; the next one starts meanwhile, which is fine. After the
     // rounds it blocks new scanners in Cloudflare, when the panel turned that
-    // on (inc/autoblock.php).
+    // on (inc/autoblock.php), and asks Cloudflare about the changes the panel
+    // sent that still wait (inc/cloudflare.php).
     // Only from the command line; inc/ is also blocked from the web in nginx.
     if (PHP_SAPI !== 'cli') {
         http_response_code(404);
@@ -23,3 +24,6 @@
     diagRun();
     // the scanners of this minute blocked in Cloudflare, when the panel turned it on
     autoBlockRun();
+    // the changes sent from the panel that still wait, confirmed with the panel shut too
+    if (cloudflareConfigured())
+        cloudflareCheckPending();

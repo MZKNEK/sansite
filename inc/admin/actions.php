@@ -267,10 +267,12 @@
                 if ($protected !== null)
                     reply(false, 'Nie blokuję: ' . $protected . '.', 409);
                 $note = trim(validText($_POST['note'] ?? ''));
-                $error = cloudflareBlock($ip, 'Panel, ' . $user['name'] . ($note !== '' ? ': ' . $note : ''));
+                // not waited for here: the panel asks about it (cloudflareCheckPending())
+                $error = cloudflarePanelChange(cloudflareSendBlock([[$ip, 'Panel, ' . $user['name'] . ($note !== '' ? ': ' . $note : '')]]),
+                    'zablokowanie ' . $target, 'Zablokowano w Cloudflare ' . $target . ($note !== '' ? ' (' . cutText($note, 80) . ')' : '') . '.', $user);
                 if ($error !== null)
                     reply(false, $error, 502);
-                done('cloudflare', 'Zablokowano w Cloudflare ' . $target . ($note !== '' ? ' (' . cutText($note, 80) . ')' : '') . '.');
+                reply(true, 'Wysłano do Cloudflare zablokowanie ' . $target . ', czeka na potwierdzenie.');
 
             case 'cf-unblock':
                 if (!cloudflareConfigured())
@@ -278,14 +280,13 @@
                 $item = (string)($_POST['item'] ?? '');
                 if (!preg_match('/^[0-9a-f]{32}$/', $item))
                     reply(false, 'Nieznana pozycja listy, odśwież stronę.', 400);
-                $error = cloudflareUnblock($item);
+                // once off the list, not blocked again by the automatic blocking
+                $ip = cutText(trim((string)($_POST['ip'] ?? '')), 60);
+                $error = cloudflarePanelChange(cloudflareSendUnblock($item),
+                    'odblokowanie ' . $ip, 'Odblokowano w Cloudflare ' . $ip . '.', $user, $ip);
                 if ($error !== null)
                     reply(false, $error, 502);
-                // not blocked again by the automatic blocking
-                $ip = cutText(trim((string)($_POST['ip'] ?? '')), 60);
-                if ($ip !== '')
-                    autoBlockReleased($ip);
-                done('cloudflare', 'Odblokowano w Cloudflare ' . $ip . '.');
+                reply(true, 'Wysłano do Cloudflare odblokowanie ' . $ip . ', czeka na potwierdzenie.');
 
             case 'auto-block':
                 if (!cloudflareConfigured())

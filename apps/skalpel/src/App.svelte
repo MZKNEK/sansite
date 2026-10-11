@@ -11,6 +11,8 @@
   import Footer from '../../shared/lib/Footer.svelte';
   import GallerySave from '../../shared/lib/GallerySave.svelte';
   import GalleryPick from '../../shared/lib/GalleryPick.svelte';
+  import DraftNote from '../../shared/lib/DraftNote.svelte';
+  import { draftKeeper } from '../../shared/lib/draft.js';
 
   import Cropper from "svelte-easy-crop";
 	import { getCroppedImg, getCroppedCanvas, getMirroredImg, cropOnScreen, forgetPicture, closeRenderer } from "../../shared/lib/CanvasUtils.js"
@@ -44,6 +46,9 @@
 
   let starCntComp = $state(0);
   let selectedStarComp = $state();
+  let starShape = $state('Star');
+  let starColor = $state('Blue');
+  let starType = $state('Full');
   let selectedBorder =  $state('C');
   let selectedDere = $state('Kamidere');
 
@@ -86,14 +91,74 @@
   const urls = ownedUrls(forgetPicture);
   let destroyed = false;
 
-  onMount(() => () => {
-    // what is still under way finds the app gone and leaves its result
-    destroyed = true;
-    clearTimeout(previewTimer);
-    previewToken++;
-    urls.releaseAll();
-    closeRenderer();
+  // The work kept as a draft in the browser (draft.js), so a Discord login,
+  // which leaves the page, or a reload starts where it was: the picture, the
+  // crop and what was picked. Nothing is written until the draft is read,
+  // and one read after the visitor already chose a picture is not used.
+  const draft = draftKeeper('skalpel');
+  let draftRead = $state(false);
+  let draftSavedAt = $state(0);
+
+  onMount(() => {
+    draft.load().then(restoreDraft);
+    return () => {
+      // what is still under way finds the app gone and leaves its result
+      destroyed = true;
+      draft.close();
+      clearTimeout(previewTimer);
+      previewToken++;
+      urls.releaseAll();
+      closeRenderer();
+    };
   });
+
+  function restoreDraft(kept) {
+    const picture = kept?.pictures.image;
+    if (destroyed || imageReads > 0 || !kept) {
+      if (picture?.own) URL.revokeObjectURL(picture.src);
+      draftRead = !destroyed;
+      return;
+    }
+    const s = kept.settings;
+    if (picture) image = picture.own ? urls.own(picture.src) : picture.src;
+    customBorder = s.customBorder ?? customBorder;
+    showStats = s.showStats ?? showStats;
+    localImage = s.localImage ?? localImage;
+    mirrorImage = s.mirrorImage ?? mirrorImage;
+    fileName = s.fileName ?? fileName;
+    starCntComp = s.stars ?? starCntComp;
+    starShape = s.starShape ?? starShape;
+    starColor = s.starColor ?? starColor;
+    starType = s.starType ?? starType;
+    selectedBorder = s.border ?? selectedBorder;
+    selectedDere = s.dere ?? selectedDere;
+    sharpen = s.sharpen ?? sharpen;
+    realPreview = s.realPreview ?? realPreview;
+    if (s.crop) {
+      // the crop as it was, not the fit of a new picture
+      crop = { x: s.crop.x, y: s.crop.y };
+      curzoom = s.crop.zoom;
+      fitPending = false;
+    }
+    editMode = s.editMode ?? editMode;
+    draftSavedAt = kept.savedAt;
+    draftRead = true;
+  }
+
+  $effect(() => {
+    if (!draftRead) return;
+    draft.save({
+      customBorder, showStats, localImage, mirrorImage, fileName,
+      stars: starCntComp, starShape, starColor, starType,
+      border: selectedBorder, dere: selectedDere, editMode, sharpen, realPreview,
+      crop: { x: crop.x, y: crop.y, zoom: curzoom },
+    }, { image });
+  });
+
+  async function startOver() {
+    await draft.clear();
+    location.reload();
+  }
 
   function schedulePreview() {
     previewStale = true;
@@ -306,11 +371,14 @@
 <main class="content">
   <div class="app-layout">
     <div class="panel">
+      {#if draftSavedAt}
+        <DraftNote savedAt={draftSavedAt} onreset={startOver} />
+      {/if}
       <section class="group">
         <h2 class="group-title"><i>01</i>Karta</h2>
         <div class="field"><span class="label">Ramka</span><Segmented bind:value={selectedBorder} options={borders} label="Ramka" /></div>
         <div class="field"><span class="label">Dere</span><Select bind:value={selectedDere} options={deres} label="Dere" icon={dereIcon} /></div>
-        <Stars bind:value={selectedStarComp} bind:count={starCntComp}/>
+        <Stars bind:value={selectedStarComp} bind:count={starCntComp} bind:shape={starShape} bind:color={starColor} bind:type={starType}/>
         <div class="field"><span class="label">Link do ramki</span><LinkField bind:value={customBorder} label="Link do ramki" placeholder="https://… (opcjonalnie)" /></div>
         <Switch label="Pokaż statystyki" bind:checked={showStats} />
       </section>
