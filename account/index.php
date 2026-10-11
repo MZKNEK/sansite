@@ -50,10 +50,17 @@
             $mode = (string)($_POST['hud'] ?? '');
             // the colour is picked from the role user up; the others keep their own
             $color = canPickHudColor($user['id'], roleBadge(siteRoles())) ? (string)($_POST['hudcolor'] ?? 'own') : 'own';
-            if (!setHud($user['id'], $mode, $color)) {
+            // the snow's switch shows only while it snows (js/safeguard.js), but
+            // goes with the form all year, so it keeps what was picked
+            $snowOff = !isset($_POST['snow']);
+            $snowChanged = $snowOff !== snowOff($user['id']);
+            if (!setHud($user['id'], $mode, $color) || ($snowChanged && !setSnowOff($user['id'], $snowOff))) {
                 setFlash('Nie udało się zapisać wyglądu, spróbuj później.');
             } else {
                 addHistory('hud', 'Zmieniono wygląd na: ' . HUD_MODES[$mode] . ($mode !== 'default' ? ', ' . lower(HUD_COLORS[$color]) : '') . '.');
+                if ($snowChanged)
+                    addHistory('hud', $snowOff ? 'Wyłączono śnieg.' : 'Włączono śnieg.');
+                sendSnowCookie($user['id']);
                 setFlash('Zapisano wygląd.');
             }
         }
@@ -143,11 +150,11 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=2cafd60857" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=e7cc5b6981" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=81377d6a11" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=0392ce037d" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -334,12 +341,16 @@
             </label>
 <?php endif; ?>
           </div>
+          <label class="admin-check snow-field" data-snow-pref hidden>
+            <input type="checkbox" name="snow" value="on"<?=snowOff($id) ? '' : ' checked'?> />
+            <span>Śnieg na stronie zimą <span class="muted">(od 20 grudnia do 20 marca)</span></span>
+          </label>
           <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
         </form>
       </section>
 
       <section class="card wide" id="rejestr" data-safeguard-register data-found="<?=e(implode(' ', array_keys($finds)))?>">
-        <h2><i><?=$showGallery ? '07' : '06'?></i>Rejestr Safeguarda<span class="card-sum"><?=count($finds)?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
+        <h2><i><?=$showGallery ? '07' : '06'?></i>Rejestr Safeguarda<span class="card-sum"><?=count(array_intersect_key($finds, SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
         <p class="hint">Sekrety strony, które to konto już odkryło. Te znalezione bez logowania zostają w przeglądarce i trafiają tutaj po zalogowaniu. Reszta czeka, a Safeguard daje tylko wskazówki.</p>
         <ol class="register">
 <?php foreach (SAFEGUARD_FINDS as $key => [$name, $what, $hint]): $time = $finds[$key] ?? null; ?>
@@ -353,6 +364,24 @@
           <li>
             <b>Wpis niezidentyfikowany</b>
             <span><?=e($hint)?></span>
+          </li>
+<?php endif; ?>
+<?php endforeach; ?>
+        </ol>
+        <h3>Sezonowe</h3>
+        <p class="hint">Tylko w swoim czasie w roku, poza licznikiem.</p>
+        <ol class="register">
+<?php foreach (SAFEGUARD_SEASONAL as $key => [$name, $what, $when]): $time = $finds[$key] ?? null; ?>
+<?php if ($time !== null): ?>
+          <li class="found">
+            <b><?=e($name)?></b>
+            <span><?=e($what)?></span>
+            <time datetime="<?=e(date('c', $time))?>"><?=e(date('j.m.Y H:i', $time))?></time>
+          </li>
+<?php else: ?>
+          <li>
+            <b><?=e($name)?></b>
+            <span><?=e($when)?></span>
           </li>
 <?php endif; ?>
 <?php endforeach; ?>
@@ -374,8 +403,8 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=0a0f57d420"></script>
-  <script src="../js/safeguard.js?v=712f706950"></script>
+  <script src="../js/netsphere.js?v=98d5a60cc4"></script>
+  <script src="../js/safeguard.js?v=d9e966f0e3"></script>
   <script src="../js/palette.js?v=545fc5ad3b"></script>
 </body>
 

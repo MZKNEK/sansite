@@ -1,6 +1,7 @@
 // The home page: the motto in Morse code (which also listens to Morse, and
-// says something else on 1 April), the bot status dot, the page falling
-// asleep when left alone and the Discord account in the top right corner.
+// says something else on 1 April and at the holidays), the bot status dot,
+// Sanakan's Christmas hat, the page falling asleep when left alone and the
+// Discord account in the top right corner.
 // Kept out of index.html, so the security policy can allow only the site's
 // own script files (server/nginx).
 
@@ -9,12 +10,17 @@
 function homeToday() {
   if (window.SanakanSafeguard) return SanakanSafeguard.today();
   var now = new Date();
-  return { month: now.getMonth() + 1, day: now.getDate() };
+  return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+}
+
+// "xmas", "easter" or null (js/safeguard.js)
+function homeSeason() {
+  return window.SanakanSafeguard ? SanakanSafeguard.season() : null;
 }
 
 // Shows the motto in Morse code; every symbol lights up in real Morse timing,
 // like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7). On 1 April
-// it sends another one. It also takes a signal: dots and dashes keyed on it
+// and at Christmas and Easter it sends another one. It also takes a signal: dots and dashes keyed on it
 // with the mouse (a short press, a long one) or with the space bar, and when
 // the keying stops, the Safeguard answers in Morse, then in plain text. A word
 // it knows is a find of the Safeguard's register (js/safeguard.js).
@@ -37,6 +43,7 @@ function homeToday() {
   var START = 1200;   // ms, after the entrance animation
   var PAUSE = 21;     // units of silence before the signal repeats
   var APRIL = 'Zagrajmy w ping ponga';
+  var HOLIDAYS = { xmas: 'Wesołych świąt', easter: 'Smacznego jajka' };
 
   // what the Safeguard answers to a word keyed in; anything else gets AGAIN
   var REPLIES = {
@@ -58,9 +65,10 @@ function homeToday() {
   var motto = document.getElementById('motto');
   var text = motto.textContent.trim();
   var day = homeToday();
-  if (day.month === 4 && day.day === 1) {
-    text = APRIL;
-    motto.title = APRIL;
+  var special = day.month === 4 && day.day === 1 ? APRIL : HOLIDAYS[homeSeason()];
+  if (special) {
+    text = special;
+    motto.title = special;
   }
 
   function el(tag, cls, content) {
@@ -196,6 +204,52 @@ function homeToday() {
     if (!spaceKey(e)) return;
     e.preventDefault();
     release();
+  });
+})();
+
+// Christmas: Sanakan wears a Santa hat. A click knocks it off, and the
+// Safeguard makes clear what it thinks of the holidays; the first time it is
+// a seasonal find of the Safeguard's register. Knocked off, it stays off for
+// the rest of those holidays (localStorage "safeguard-hat": their year).
+(function () {
+  if (homeSeason() !== 'xmas') return;
+  var day = homeToday();
+  // the holidays that begin in December, also in their days of January
+  var holidays = String(day.month === 1 ? day.year - 1 : day.year);
+  var STORE = 'safeguard-hat';
+  try {
+    if (localStorage.getItem(STORE) === holidays) return;
+  } catch (err) {
+    // no storage: the hat is back on every visit
+  }
+  var wrap = document.querySelector('.logo-wrap');
+  var hat = document.createElement('button');
+  hat.type = 'button';
+  hat.className = 'santa-hat';
+  hat.title = 'Czapka Mikołaja';
+  hat.setAttribute('aria-label', 'Czapka Mikołaja');
+  hat.innerHTML = '<svg viewBox="0 0 100 80" aria-hidden="true">'
+    + '<path class="cap" d="M12 62C24 30 52 6 86 20 78 30 72 44 70 62Z" />'
+    + '<path class="shade" d="M52 18C64 14 76 15 86 20 80 27 75 36 72 46 66 34 60 25 52 18Z" />'
+    + '<rect class="fur" x="4" y="55" width="74" height="17" rx="8.5" />'
+    + '<circle class="fur" cx="87" cy="21" r="9" /></svg>';
+  wrap.appendChild(hat);
+
+  hat.addEventListener('click', function () {
+    hat.disabled = true;
+    hat.classList.add('off');
+    try {
+      localStorage.setItem(STORE, holidays);
+    } catch (err) {
+      // the same
+    }
+    var say = document.createElement('p');
+    say.className = 'santa-say';
+    say.setAttribute('role', 'status');
+    say.textContent = 'Safeguard nie obchodzi świąt. Ale dziękuje za pamięć.';
+    wrap.appendChild(say);
+    if (window.SanakanSafeguard) SanakanSafeguard.found('xmas');
+    setTimeout(function () { say.remove(); }, 4500);
   });
 })();
 

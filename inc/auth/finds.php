@@ -24,16 +24,25 @@
         'regen'     => ['Regeneracja', 'Trzy strzały z Emitera pod rząd rozłupały logo, a Sanakan się zregenerowała.', 'Jeden strzał z Emitera to za mało, żeby zranić Safeguarda.']
     ];
 
+    // The finds of a time of the year, the same way (js/safeguard.js, js/home.js),
+    // listed apart and left out of the count, as the rest of the year nobody
+    // can make them; the hint says when they come back.
+    const SAFEGUARD_SEASONAL = [
+        'xmas'   => ['Święta w Megastrukturze', 'Czapka Mikołaja strącona z głowy Sanakan. Safeguard nie obchodzi świąt.', 'Wraca co roku od 20 grudnia do Trzech Króli.'],
+        'easter' => ['Pisanki z Megastruktury', 'Pięć pisanek rozbitych na pięciu stronach w czasie Wielkanocy.', 'Wraca co roku od Niedzieli Palmowej do Poniedziałku Wielkanocnego.']
+    ];
+
     // the oldest time a find from a browser may carry; older (or later than
     // now) is a clock that is wrong, and the find counts from now
     const SAFEGUARD_FIND_DAYS = 365;
 
-    // the account's finds, key => time, in the order of the register
+    // the account's finds, key => time, in the order of the register, the
+    // seasonal ones last
     function safeguardFinds($id)
     {
         $kept = readData('finds')[(string)$id] ?? [];
         $finds = [];
-        foreach (array_keys(SAFEGUARD_FINDS) as $key)
+        foreach (array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL) as $key)
             if (is_array($kept) && isset($kept[$key]) && is_int($kept[$key]))
                 $finds[$key] = $kept[$key];
 
@@ -47,7 +56,7 @@
     {
         $new = [];
         foreach (is_array($found) ? $found : [] as $key => $time) {
-            if (!isset(SAFEGUARD_FINDS[$key]))
+            if (!isset(SAFEGUARD_FINDS[$key]) && !isset(SAFEGUARD_SEASONAL[$key]))
                 continue;
             $time = is_numeric($time) ? (int)$time : $now;
             $new[$key] = $time > $now || $time < $now - SAFEGUARD_FIND_DAYS * 86400 ? $now : $time;

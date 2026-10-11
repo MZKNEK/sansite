@@ -56,3 +56,14 @@
         assertTrue(strpos($attrs, 'class="role-dev"') !== false, 'the picked colour, not the role');
         assertTrue(strpos($attrs, 'data-hud-own="') !== false);
     });
+
+    test('snowOff is kept per account and clears when turned back on', function () {
+        clearData();
+        assertFalse(snowOff('111'));
+        assertTrue(setSnowOff('111', true));
+        assertTrue(snowOff('111'));
+        assertFalse(snowOff('222'), 'one account does not touch another');
+        assertTrue(setSnowOff('111', false));
+        assertFalse(snowOff('111'));
+        assertSame([], readData('snow'), 'snow on keeps no entry');
+    });

@@ -2015,3 +2015,13 @@ a.who-name:hover {
 .hud-form .admin-btn {
     margin-top: 16px;
 }
+
+/* the snow's switch under the fields, shown while it snows (js/safeguard.js) */
+.hud-form .snow-field {
+    display: flex;
+    margin-top: 14px;
+}
+
+.hud-form .snow-field + .admin-btn {
+    margin-top: 10px;
+}

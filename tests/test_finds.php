@@ -32,11 +32,19 @@
         assertSame([], readData('finds'));
     });
 
-    test('js/safeguard.js lists the same finds as SAFEGUARD_FINDS', function () {
+    test('addSafeguardFinds takes the seasonal finds too, listed last', function () {
+        clearData();
+        $now = 1760000000;
+        assertSame(['gbe' => $now, 'xmas' => $now - 5], addSafeguardFinds('111', ['xmas' => $now - 5, 'gbe' => $now], $now));
+    });
+
+    test('js/safeguard.js lists the same finds as SAFEGUARD_FINDS and SAFEGUARD_SEASONAL', function () {
         $js = file_get_contents(dirname(__DIR__) . '/js/safeguard.js');
-        assertTrue((bool)preg_match('/var FINDS = \{(.*?)\};/s', $js, $block), 'the FINDS block is in the script');
-        preg_match_all('/^\s*(\w+): \'([^\']*)\'/m', $block[1], $keys);
-        assertSame(array_keys(SAFEGUARD_FINDS), $keys[1], 'the same keys in the same order');
-        foreach ($keys[1] as $i => $key)
-            assertSame(SAFEGUARD_FINDS[$key][0], $keys[2][$i], 'the same name for ' . $key);
+        foreach (['FINDS' => SAFEGUARD_FINDS, 'SEASONAL' => SAFEGUARD_SEASONAL] as $name => $list) {
+            assertTrue((bool)preg_match('/var ' . $name . ' = \{(.*?)\};/s', $js, $block), 'the ' . $name . ' block is in the script');
+            preg_match_all('/^\s*(\w+): \'([^\']*)\'/m', $block[1], $keys);
+            assertSame(array_keys($list), $keys[1], 'the same keys in the same order in ' . $name);
+            foreach ($keys[1] as $i => $key)
+                assertSame($list[$key][0], $keys[2][$i], 'the same name for ' . $key);
+        }
     });

@@ -92,6 +92,36 @@
         });
     }
 
+    // ---- The snow ------------------------------------------------------------
+    // Snow falls on the pages at Christmas and through the calendar winter
+    // (js/safeguard.js); an account may turn it off in its profile. The
+    // accounts that did are kept in inc/data/snow.json, and the browser gets
+    // the cookie "snow" = "off", so the static pages know it at once too.
+
+    function snowOff($id)
+    {
+        return !empty(readData('snow')[(string)$id]);
+    }
+
+    function setSnowOff($id, $off)
+    {
+        return updateData('snow', function (&$all) use ($id, $off) {
+            if ($off)
+                $all[(string)$id] = true;
+            else
+                unset($all[(string)$id]);
+        });
+    }
+
+    // the cookie of the snow as the account has it
+    function sendSnowCookie($id)
+    {
+        if (snowOff($id))
+            setcookie('snow', 'off', time() + 31536000, '/');
+        else if (isset($_COOKIE['snow']))
+            setcookie('snow', '', time() - 3600, '/');
+    }
+
     // the attributes for <html> that put the chosen HUD and its colour on the
     // page; nothing when the visitor is not logged in. data-hud-own keeps the
     // account's own role, so the profile can put it back for "Kolor mojej roli".

@@ -7,8 +7,11 @@
 // On every page, and finds themselves: the Safeguard's word to whoever opens
 // the browser's console, the Konami code that lets a Silicon Creature into the
 // page, and the service worker (sw.js) whose offline page is one of the finds.
-// Not finds, as they come once a year: on 31 October Silicon Creatures scurry
-// along the edges of the HUD (and js/home.js sends another motto on 1 April).
+// Once a year: on 31 October Silicon Creatures scurry along the edges of the
+// HUD, at Christmas and through the winter snow falls (unless turned off in
+// the profile) and at Easter an egg hides on every page, five
+// of them a seasonal find, apart from the count (js/home.js adds the mottos
+// of the holidays and of 1 April, and Sanakan's Christmas hat).
 window.SanakanSafeguard = (function () {
   // the site's root, from this script's own address (js/safeguard.js)
   var ROOT = new URL('../', document.currentScript.src).pathname;
@@ -28,6 +31,16 @@ window.SanakanSafeguard = (function () {
     regen: 'Regeneracja'
   };
   var TOTAL = Object.keys(FINDS).length;
+  // the same as SAFEGUARD_SEASONAL: the finds of a time of the year, apart
+  // from the count, as the rest of the year nobody can make them
+  var SEASONAL = {
+    xmas: 'Święta w Megastrukturze',
+    easter: 'Pisanki z Megastruktury'
+  };
+  var NAMES = {};
+  [FINDS, SEASONAL].forEach(function (list) {
+    Object.keys(list).forEach(function (key) { NAMES[key] = list[key]; });
+  });
   // the cache sw.js leaves when it has shown the offline page
   var OFFLINE_SEEN = 'sanakan-offline-seen';
 
@@ -74,35 +87,44 @@ window.SanakanSafeguard = (function () {
 
   var toastTimer;
 
-  // "Nowy wpis" in the corner, a link to the register once there is an account
-  function toast(key, count) {
+  // a note in the corner, a link when href is given
+  function notice(title, text, small, href) {
     var old = document.querySelector('.sg-toast');
     if (old) old.remove();
     clearTimeout(toastTimer);
 
-    var box = document.createElement(loggedIn() ? 'a' : 'div');
+    var box = document.createElement(href ? 'a' : 'div');
     box.className = 'sg-toast hud-corners';
     box.setAttribute('role', 'status');
-    if (box.tagName === 'A') box.href = ROOT + 'account/#rejestr';
+    if (href) box.href = href;
     var head = document.createElement('b');
-    head.textContent = 'Rejestr Safeguarda · nowy wpis';
+    head.textContent = title;
     var name = document.createElement('span');
-    name.textContent = FINDS[key];
+    name.textContent = text;
     var note = document.createElement('small');
-    note.textContent = count + ' z ' + TOTAL + (loggedIn() ? ' · rejestr w profilu' : ' · zapisane w tej przeglądarce, po zalogowaniu trafi do profilu');
+    note.textContent = small;
     box.append(head, name, note);
     document.body.appendChild(box);
     toastTimer = setTimeout(function () { box.remove(); }, 6000);
   }
 
+  // "Nowy wpis", a link to the register once there is an account
+  function toast(key, state) {
+    var count = Object.keys(state.finds).filter(function (found) { return FINDS[found]; }).length;
+    notice('Rejestr Safeguarda · nowy wpis', NAMES[key],
+      (SEASONAL[key] ? 'wpis sezonowy' : count + ' z ' + TOTAL)
+        + (loggedIn() ? ' · rejestr w profilu' : ' · zapisane w tej przeglądarce, po zalogowaniu trafi do profilu'),
+      loggedIn() ? ROOT + 'account/#rejestr' : null);
+  }
+
   // Notes a find; the first time it shows the toast and goes to the account.
   function found(key) {
-    if (!FINDS[key]) return;
+    if (!NAMES[key]) return;
     var state = load();
     if (!state.finds[key]) {
       state.finds[key] = Math.floor(Date.now() / 1000);
       save(state);
-      toast(key, Object.keys(state.finds).length);
+      toast(key, state);
     }
     if (!state.sent[key]) sync();
   }
@@ -129,7 +151,7 @@ window.SanakanSafeguard = (function () {
 
     function take(state, finds) {
       Object.keys(finds || {}).forEach(function (key) {
-        if (!FINDS[key]) return;
+        if (!NAMES[key]) return;
         state.sent[key] = 1;
         if (!state.finds[key] || finds[key] < state.finds[key]) state.finds[key] = finds[key];
       });
@@ -309,18 +331,42 @@ window.SanakanSafeguard = (function () {
 
   // ---- The days of the year ------------------------------------------------------
 
-  // today's month and day; localStorage "safeguard-date" set to "MM-DD" makes
-  // the site pretend another day, to try out the days below
+  // today's year, month and day; localStorage "safeguard-date" set to "MM-DD"
+  // (this year) or "YYYY-MM-DD" makes the site pretend another day, to try
+  // out the days below
   function today() {
+    var now = new Date();
     var fake = null;
     try {
-      fake = /^(\d\d)-(\d\d)$/.exec(localStorage.getItem('safeguard-date') || '');
+      fake = /^(?:(\d{4})-)?(\d\d)-(\d\d)$/.exec(localStorage.getItem('safeguard-date') || '');
     } catch (err) {
       // no storage, no pretending
     }
-    if (fake) return { month: +fake[1], day: +fake[2] };
-    var now = new Date();
-    return { month: now.getMonth() + 1, day: now.getDate() };
+    if (fake) return { year: fake[1] ? +fake[1] : now.getFullYear(), month: +fake[2], day: +fake[3] };
+    return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+  }
+
+  // Easter Sunday of a year (the Gregorian computus), as a Date at midnight
+  function easterSunday(year) {
+    var a = year % 19, b = Math.floor(year / 100), c = year % 100;
+    var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31), day = (h + l - 7 * m + 114) % 31 + 1;
+    return new Date(year, month - 1, day);
+  }
+
+  // The holidays of the moment: "xmas" from 20 December to Epiphany (6
+  // January), "easter" from Palm Sunday to Easter Monday, otherwise null.
+  function season() {
+    var d = today();
+    if ((d.month === 12 && d.day >= 20) || (d.month === 1 && d.day <= 6)) return 'xmas';
+    var date = new Date(d.year, d.month - 1, d.day);
+    var easter = easterSunday(d.year);
+    var days = Math.round((date - easter) / 86400000);
+    if (days >= -7 && days <= 1) return 'easter';
+    return null;
   }
 
   // Halloween: now and then a Silicon Creature runs along an edge of a HUD box
@@ -380,8 +426,143 @@ window.SanakanSafeguard = (function () {
     })();
   }
 
+  // Snow of glyphs falling over the page, behind its dialogs: at Christmas and
+  // through the calendar winter, from 20 December to 20 March, unless the
+  // account turned it off in its profile (the cookie "snow", inc/auth/preferences.php)
+  function snowing() {
+    var d = today();
+    return (d.month === 12 && d.day >= 20) || d.month <= 2 || (d.month === 3 && d.day <= 20);
+  }
+
+  function snowOff() {
+    return /(?:^|; )snow=off(?:;|$)/.test(document.cookie);
+  }
+
+  var snowLayer = null;
+
+  function snow() {
+    if (still()) return;
+    if (snowLayer) {
+      snowLayer.hidden = false;
+      return;
+    }
+    var GLYPHS = ['*', '·', '+', '❄', '*', '·'];
+    var layer = document.createElement('div');
+    layer.className = 'sg-snow';
+    layer.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < 28; i++) {
+      var flake = document.createElement('i');
+      flake.textContent = GLYPHS[i % GLYPHS.length];
+      flake.style.left = (Math.random() * 100) + '%';
+      flake.style.fontSize = (9 + Math.random() * 9).toFixed(1) + 'px';
+      flake.style.opacity = (0.25 + Math.random() * 0.45).toFixed(2);
+      // falling and swaying, each at its own pace, already under way
+      flake.style.animationDuration = (9 + Math.random() * 10).toFixed(1) + 's, ' + (2.5 + Math.random() * 3).toFixed(1) + 's';
+      flake.style.animationDelay = (-Math.random() * 19).toFixed(1) + 's, ' + (-Math.random() * 5).toFixed(1) + 's';
+      layer.appendChild(flake);
+    }
+    document.body.appendChild(layer);
+    snowLayer = layer;
+  }
+
+  // the switch in the profile shows only while it snows, and shows at once
+  // what it does (saved with the form)
+  function snowSwitch() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-snow-pref]'), function (field) {
+      field.hidden = false;
+      var box = field.querySelector('input');
+      box.addEventListener('change', function () {
+        if (box.checked) snow();
+        else if (snowLayer) snowLayer.hidden = true;
+      });
+    });
+  }
+
+  // Easter: an egg sits on the top edge of one of the page's HUD boxes until
+  // it is clicked and breaks; eggs from five pages are a find. The pages are
+  // kept for the year, so each page has one egg a year. Only the pages anyone
+  // may open have one (and the 404 page, once, whatever the address), so a
+  // visitor without a login or rights finds them all the same.
+  var EGG_PAGES = 5;
+  var EGG_PLACES = ['', 'cmd/', 'cmd/zmiany/', 'state/', 'state/wersje/', 'privacy/'];
+  var EGG_STORE = 'safeguard-easter';
+  var EGG_COLORS = ['#9b59b6', '#4fd1c5', '#e86262', '#f0a35e', '#5fd38d', '#e8d36a'];
+  var EGG = '<svg viewBox="0 0 20 26" aria-hidden="true">'
+    + '<path class="shell" d="M10 1C5 1 1 9 1 15.5 1 21 5 25 10 25s9-4 9-9.5C19 9 15 1 10 1Z" />'
+    + '<path class="band" d="M1.6 13 4.5 10.5 7.5 13 10 10.5 12.5 13 15.5 10.5 18.4 13" />'
+    + '<circle class="dot" cx="6" cy="18.5" r="1.3" /><circle class="dot" cx="10" cy="20.3" r="1.3" />'
+    + '<circle class="dot" cx="14" cy="18.5" r="1.3" /><circle class="dot" cx="10" cy="6.5" r="1.1" /></svg>';
+
+  function eggHunt() {
+    var year = today().year;
+    var got = { year: year, pages: [] };
+    try {
+      var kept = JSON.parse(localStorage.getItem(EGG_STORE));
+      if (kept && kept.year === year && Array.isArray(kept.pages)) got = kept;
+    } catch (err) {
+      // no storage: the eggs of this visit only
+    }
+    var page = location.pathname.replace(/index\.(?:php|html)$/, '');
+    if (document.querySelector('.not-found'))
+      page = '404';
+    else if (page.indexOf(ROOT) !== 0 || EGG_PLACES.indexOf(page.slice(ROOT.length)) < 0)
+      return;
+    if (got.pages.indexOf(page) >= 0) return;
+
+    // once the page has settled; the boxes of dialogs and fixed buttons are left out
+    setTimeout(function () {
+      var boxes = Array.prototype.filter.call(document.querySelectorAll('.hud-corners'), function (el) {
+        var r = el.getBoundingClientRect();
+        return r.width > 80 && r.height > 20 && !el.closest('.sg-toast, .ns-overlay, .pl-overlay, .account-drop, .to-top');
+      });
+      if (!boxes.length) return;
+      var box = boxes[Math.floor(Math.random() * boxes.length)];
+      var along = Math.random();
+
+      var egg = document.createElement('button');
+      egg.type = 'button';
+      egg.className = 'sg-egg';
+      egg.title = 'Pisanka';
+      egg.setAttribute('aria-label', 'Pisanka');
+      egg.style.setProperty('--egg', EGG_COLORS[Math.floor(Math.random() * EGG_COLORS.length)]);
+      egg.innerHTML = EGG;
+      document.body.appendChild(egg);
+
+      // on the top edge of its box, where it is now (the page may move)
+      function place() {
+        var r = box.getBoundingClientRect();
+        egg.style.left = (r.left + scrollX + 10 + along * Math.max(0, r.width - 36)) + 'px';
+        egg.style.top = (r.top + scrollY - 25) + 'px';
+      }
+      place();
+      window.addEventListener('resize', place);
+
+      egg.addEventListener('click', function () {
+        egg.disabled = true;
+        egg.classList.add('broken');
+        window.removeEventListener('resize', place);
+        setTimeout(function () { egg.remove(); }, 900);
+        got.pages.push(page);
+        try {
+          localStorage.setItem(EGG_STORE, JSON.stringify(got));
+        } catch (err) {
+          // counted for this visit only
+        }
+        var count = got.pages.length;
+        if (count === EGG_PAGES) found('easter');
+        else if (count < EGG_PAGES) notice('Pisanka z Megastruktury', count + ' z ' + EGG_PAGES, 'Następna czeka na innej stronie.', null);
+        else notice('Pisanka z Megastruktury', count + ' zebranych', 'Wpis w rejestrze już jest. Safeguard docenia zapał.', null);
+      });
+    }, 1200);
+  }
+
   var day = today();
   if (day.month === 10 && day.day === 31) halloween();
+  if (snowing()) {
+    snowSwitch();
+    if (!snowOff()) snow();
+  }
+  if (season() === 'easter') eggHunt();
 
   // ---- Offline: the service worker and its page --------------------------------
 
@@ -404,11 +585,13 @@ window.SanakanSafeguard = (function () {
   }
 
   // found(key) notes a find, names its names, finds() what this browser found
-  // and today() the day of the year (maybe a pretended one)
+  // today() the day of the year (maybe a pretended one) and season() the
+  // holidays of the moment
   return {
     found: found,
     names: FINDS,
     finds: function () { return load().finds; },
-    today: today
+    today: today,
+    season: season
   };
 })();

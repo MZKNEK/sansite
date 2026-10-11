@@ -75,6 +75,7 @@
         $badge = roleBadge(siteRoles());
         setcookie('hud', hudMode($user['id']), time() + 31536000, '/');
         setcookie('hudrole', hudColorKey($user['id'], $badge), time() + 31536000, '/');
+        sendSnowCookie($user['id']);
     } else {
         forgetHudCookies();
     }

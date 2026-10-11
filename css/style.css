@@ -2169,3 +2169,200 @@ body.idle .logo-eye {
         animation: none;
     }
 }
+
+/* Christmas (js/safeguard.js): glyphs of snow falling over every page, each
+   swaying on its own (translate apart from the fall's transform) */
+.sg-snow {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.sg-snow i {
+    position: absolute;
+    top: -24px;
+    font: 12px "Sanakan Mono", monospace;
+    font-style: normal;
+    color: #efe2f7;
+    text-shadow: 0 0 6px rgba(var(--accent-light-rgb), 0.7);
+    animation-name: sg-fall, sg-sway;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: normal, alternate;
+}
+
+@keyframes sg-fall {
+    to {
+        transform: translateY(calc(100vh + 48px));
+    }
+}
+
+@keyframes sg-sway {
+    from {
+        translate: -14px 0;
+    }
+
+    to {
+        translate: 14px 0;
+    }
+}
+
+/* Christmas on the home page (js/home.js): Sanakan's hat, knocked off with a click */
+.santa-hat {
+    position: absolute;
+    left: 20%;
+    top: -17%;
+    z-index: 3;
+    width: 58%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    transform: rotate(-9deg);
+    transform-origin: 30% 90%;
+    transition: transform 0.8s cubic-bezier(0.3, 0, 0.7, 1), opacity 0.8s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.santa-hat svg {
+    display: block;
+    width: 100%;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+}
+
+.santa-hat .cap {
+    fill: #b8323a;
+}
+
+.santa-hat .shade {
+    fill: #8e222b;
+}
+
+.santa-hat .fur {
+    fill: #f3eef7;
+}
+
+.santa-hat:hover {
+    transform: rotate(-13deg);
+}
+
+.santa-hat:focus-visible {
+    outline: 1px solid var(--accent-light);
+}
+
+.santa-hat.off {
+    opacity: 0;
+    transform: translate(160px, -90px) rotate(70deg);
+    pointer-events: none;
+}
+
+.santa-say {
+    position: absolute;
+    left: 50%;
+    top: -38px;
+    z-index: 3;
+    width: max-content;
+    max-width: 80vw;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid rgba(var(--accent-rgb), 0.5);
+    background: rgba(20, 12, 26, 0.95);
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    transform: translateX(-50%);
+    animation: ns-in 0.3s ease-out;
+}
+
+/* Easter (js/safeguard.js): an egg on the top edge of a HUD box, in the colour
+   of a role; a click breaks it */
+.sg-egg {
+    position: absolute;
+    z-index: 35;
+    width: 20px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    filter: drop-shadow(0 0 5px var(--egg, #9b59b6));
+    animation: sg-egg-in 0.5s ease-out;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sg-egg svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.sg-egg .shell {
+    fill: #1a1320;
+    stroke: var(--egg, #9b59b6);
+    stroke-width: 1.4;
+}
+
+.sg-egg .band {
+    fill: none;
+    stroke: #efe2f7;
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+}
+
+.sg-egg .dot {
+    fill: var(--egg, #9b59b6);
+}
+
+.sg-egg:hover,
+.sg-egg:focus-visible {
+    animation: sg-egg-wobble 0.5s ease-in-out infinite;
+    outline: 0;
+}
+
+.sg-egg.broken {
+    animation: sg-egg-break 0.8s ease-out forwards;
+}
+
+@keyframes sg-egg-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes sg-egg-wobble {
+    25% {
+        transform: rotate(-10deg);
+    }
+
+    75% {
+        transform: rotate(10deg);
+    }
+}
+
+@keyframes sg-egg-break {
+    20% {
+        transform: scale(1.25) rotate(-8deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.8) rotate(25deg) translateY(-12px);
+        filter: drop-shadow(0 0 14px var(--egg, #9b59b6)) brightness(2);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sg-egg,
+    .sg-egg:hover,
+    .sg-egg.broken,
+    .santa-say {
+        animation: none;
+    }
+
+    .santa-hat {
+        transition: none;
+    }
+}

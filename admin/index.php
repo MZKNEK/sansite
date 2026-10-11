@@ -123,11 +123,11 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=2cafd60857" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=e7cc5b6981" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=81377d6a11" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=0392ce037d" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -209,8 +209,8 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=0a0f57d420"></script>
-  <script src="../js/safeguard.js?v=712f706950"></script>
+  <script src="../js/netsphere.js?v=98d5a60cc4"></script>
+  <script src="../js/safeguard.js?v=d9e966f0e3"></script>
   <script src="../js/palette.js?v=545fc5ad3b"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

@@ -194,9 +194,11 @@
     administracja: ['Administracja Netsfery straciła kontrolę nad Safeguardem i Budowniczymi,', 'gdy ludzie stracili gen terminala sieciowego.'],
     silikon: ['Formy krzemowe: wróg ludzi i Safeguarda. Też szukają genu.', 'Podobno wpuszcza je do sieci stary kod z 1986 roku.'],
     dhomochevsky: ['Dhomochevsky: forma krzemowa, która walczyła u boku Killy\'ego.', 'Wróg twojego wroga nie musi być przyjacielem.'],
-    emiter: ['Emiter Promienia Grawitacyjnego przebija wszystko na swojej drodze.', 'Na stronie głównej ktoś zostawił jeden przy kropce statusu. Trzeba go przytrzymać.']
+    emiter: ['Emiter Promienia Grawitacyjnego przebija wszystko na swojej drodze.', 'Na stronie głównej ktoś zostawił jeden przy kropce statusu. Trzeba go przytrzymać.'],
+    swieta: ['Safeguard nie obchodzi świąt.', 'Budowniczowie też nie robią przerwy, nawet w Wigilię.'],
+    pisanka: ['Kury wyginęły w Megastrukturze kilka tysięcy pięter temu.', 'Na Wielkanoc Safeguard i tak chowa pisanki na stronach. Ma swoje powody.']
   };
-  var LORE_ALIASES = { gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
+  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
   var LORE_FIND = 5;
   var LORE_STORE = 'safeguard-lore';
 
