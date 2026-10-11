@@ -3,7 +3,7 @@
   import Cropper from "svelte-easy-crop";
   import { getCroppedImg, getCroppedCanvas, cropOnScreen, forgetPicture, closeRenderer } from '../../shared/lib/CanvasUtils.js';
   import { ownedUrls } from '../../shared/lib/ownedUrls.js';
-  import { styleList, frameStyle, frameLayers } from './lib/frames.js';
+  import { styleList, frameStyle, frameLayers, scalpCoversOpening } from './lib/frames.js';
   import { CARD, alphaBounds, moveLayers } from './lib/layers.js';
   import Segmented from '../../shared/lib/Segmented.svelte';
   import Switch from '../../shared/lib/Switch.svelte';
@@ -141,8 +141,10 @@
     const img = el?.querySelector('img');
     return img?.complete && img.width ? { width: img.width, height: img.height } : null;
   }
-  // what Scalp has to cover: null until its picture and its mask are there
+  // what Scalp has to cover: null until its picture and its mask are there,
+  // and in the frames that let it go freely
   function scalpLimits() {
+    if (!scalpCoversOpening(selectedBorder)) return null;
     const size = shownSize(baseCropEl);
     return size && maskBounds ? { size, bounds: maskBounds } : null;
   }

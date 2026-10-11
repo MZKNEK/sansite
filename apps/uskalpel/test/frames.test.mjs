@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { styleList, frameStyle, frameLayers } from '../src/lib/frames.js';
+import { styleList, frameStyle, frameLayers, scalpCoversOpening } from '../src/lib/frames.js';
 
 const variants = { Delta: 8, Eta: 3, Lambda: 2, Omega: 4 };
 
@@ -56,4 +56,11 @@ test('Beta and Epsilon have their own stats only for Yami, Raito and Yato', () =
   assert.equal(frameLayers('/pw', 'Beta', 'Yato', '').stats, '/pw/CG/Beta/Stats/Yato.png');
   assert.equal(frameLayers('/pw', 'Epsilon', 'Raito', '').stats, '/pw/CG/Epsilon/Stats/Raito.png');
   assert.equal(frameLayers('/pw', 'Beta', 'Dandere', '').stats, '/pw/CG/Beta/Stats.png', 'the others the common one');
+});
+
+test('Scalp covers the opening of every frame but Jota and Lambda', () => {
+  assert.equal(scalpCoversOpening('Delta'), true);
+  assert.equal(scalpCoversOpening('Alpha'), true);
+  assert.equal(scalpCoversOpening('Jota'), false);
+  assert.equal(scalpCoversOpening('Lambda'), false);
 });

@@ -16,6 +16,12 @@ export function styleList(border, variants) {
   }
 }
 
+// whether Scalp has to cover the whole opening of the frame's mask: not in
+// Jota and Lambda, whose pictures are meant to be placed freely
+export function scalpCoversOpening(border) {
+  return border !== 'Jota' && border !== 'Lambda';
+}
+
 // The style as it goes into the names of the pictures: '' for none (a frame
 // without styles, or style 0). fits is false when the frame has styles but
 // not this one, which then goes back to '0'.
