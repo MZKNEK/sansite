@@ -87,6 +87,10 @@
 
         $scanners = diagScanners();
         [$cfItems, $cfError] = cloudflareConfigured() ? cloudflareBlocked() : [null, null];
+        // with the list read last the addresses are still marked; why Cloudflare
+        // was not asked now (e.g. its pause) is the server card's business
+        if ($cfItems !== null)
+            $cfError = null;
         $lastAddress = $own ? reset($own)[1] : 0;
 
         return [

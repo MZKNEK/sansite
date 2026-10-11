@@ -74,7 +74,10 @@
         if ($body !== null)
             $http['content'] = json_encode($body);
 
-        [$json, $status] = httpRaw(CLOUDFLARE_API . $path, $http);
+        // over IPv4: Cloudflare counts the API's per-address limit for an IPv6
+        // address by a large prefix the server shares with other customers of
+        // its provider, and answers error 971 to the site's few requests
+        [$json, $status] = httpRaw(CLOUDFLARE_API . $path, $http, 0, ['bindto' => '0:0']);
         $data = $json === false ? null : json_decode($json, true);
         if ($status === 429 || in_array(971, array_column($data['errors'] ?? [], 'code'), true)) {
             $until = time() + CLOUDFLARE_PAUSE;

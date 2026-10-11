@@ -77,6 +77,10 @@
                     $add($ip, 'skaner: ' . $scanner['reason'], ['cc' => $scanner['cc'], 'ua' => $scanner['ua'], 'path' => (string)key($scanner['paths'])]);
             if (cloudflareConfigured()) {
                 [$cfItems, $cfError] = cloudflareBlocked();
+                // the list read last is searched; why Cloudflare was not asked
+                // now (e.g. its pause) is the server card's business
+                if ($cfItems !== null)
+                    $cfError = null;
                 foreach ($cfItems ?: [] as $item) {
                     $ip = preg_replace('~/\d+$~', '', $item['ip']);
                     if ($matches($ip) || ($isAddress && sameAddress($query, $ip)))

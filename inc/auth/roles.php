@@ -35,13 +35,14 @@
     // One outbound HTTP request, so a test can replace it: with the SANAKAN_HTTP
     // callable in $GLOBALS set it is called instead and returns [body, status].
     // A request that cannot be made comes back as [false, 0]. $maxLen cuts the
-    // body (0 reads it whole).
-    function httpRaw($url, array $options = [], $maxLen = 0)
+    // body (0 reads it whole). $socket goes to the stream's socket options
+    // (['bindto' => '0:0'] asks over IPv4 only).
+    function httpRaw($url, array $options = [], $maxLen = 0, array $socket = [])
     {
         if (isset($GLOBALS['SANAKAN_HTTP']) && is_callable($GLOBALS['SANAKAN_HTTP']))
             return ($GLOBALS['SANAKAN_HTTP'])($url, $options, $maxLen);
 
-        $fp = @fopen($url, 'r', false, stream_context_create(['http' => $options]));
+        $fp = @fopen($url, 'r', false, stream_context_create(['http' => $options] + ($socket ? ['socket' => $socket] : [])));
         if ($fp === false)
             return [false, 0];
         $body = stream_get_contents($fp, $maxLen > 0 ? $maxLen : -1);
