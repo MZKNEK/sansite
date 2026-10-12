@@ -38,11 +38,13 @@
             return $data;
         });
 
-        // [id => [session key => [logged in, last seen, ip, country, user agent]]]
+        // [id => [session key => [logged in, last seen, ip, country, user agent,
+        // generation (sessionGeneration())]]]
         $key = sessionKey(session_id());
         $login = (int)($_SESSION['login_time'] ?? $now);
-        updateDataFile('devices.json', function ($data) use ($id, $key, $login, $ip, $now, $cc, $agent) {
-            $data[$id][$key] = [$login, $now, $ip, $cc, $agent];
+        $generation = $_SESSION['generation'] ?? null;
+        updateDataFile('devices.json', function ($data) use ($id, $key, $login, $ip, $now, $cc, $agent, $generation) {
+            $data[$id][$key] = [$login, $now, $ip, $cc, $agent, $generation];
             foreach ($data as $account => $devices) {
                 $devices = array_filter($devices, function ($device) use ($now) { return $device[1] >= $now - SESSION_DAYS * 86400; });
                 uasort($devices, function ($a, $b) { return $b[1] <=> $a[1]; });
@@ -63,16 +65,21 @@
     }
 
     // The devices an account is still logged in on, the latest first, as
-    // [key => [logged in, last seen, ip, country, user agent]]: their session is
-    // still on the server and none of the panel's "log out" came after the login.
+    // [key => [logged in, last seen, ip, country, user agent, generation]]: their
+    // session is still on the server, younger than SESSION_DAYS and of the
+    // generation of now (one noted before the generations: none of the "log
+    // out" came after the login).
     function accountDevices($id)
     {
         $devices = readData('devices')[(string)$id] ?? [];
         $files = sessionFiles();
+        $generation = sessionGeneration($id);
         $since = max(sessionsValidSince(), accountSessionsSince($id));
+        $oldest = time() - SESSION_DAYS * 86400;
 
-        return array_filter($devices, function ($device, $key) use ($files, $since) {
-            return isset($files[$key]) && $device[0] >= $since;
+        return array_filter($devices, function ($device, $key) use ($files, $generation, $since, $oldest) {
+            return isset($files[$key]) && $device[0] >= $oldest
+                && (isset($device[5]) ? $device[5] === $generation : $device[0] >= $since);
         }, ARRAY_FILTER_USE_BOTH);
     }
 

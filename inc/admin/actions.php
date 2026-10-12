@@ -158,11 +158,9 @@
                 sendZip($roots, 'sanakan-kopia-' . date('Y-m-d-His') . '.zip', './', null);
 
             case 'logout-all':
-                $now = time();
-                if (!writeData('sessions', ['since' => $now]))
-                    reply(false, dataError(), 500);
                 // the one who asked for it stays logged in
-                $_SESSION['login_time'] = $now;
+                if (!endSessions(null, true))
+                    reply(false, dataError(), 500);
                 done('sessions', 'Wylogowano wszystkich z galerii i panelu (poza sobą).');
 
             case 'logout-account':
@@ -170,10 +168,7 @@
                     reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
                 if ($id === $user['id'])
                     reply(false, 'Siebie wyloguj z menu konta w rogu strony.', 400);
-                $saved = updateData('sessions', function (&$sessions) use ($id) {
-                    $sessions['accounts'][$id] = time();
-                });
-                if (!$saved)
+                if (!endSessions($id))
                     reply(false, dataError(), 500);
                 done('sessions', 'Wylogowano ' . accountLabel($id, $logins) . ' na wszystkich urządzeniach.');
 

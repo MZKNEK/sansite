@@ -105,6 +105,7 @@
         session_regenerate_id(true);
         $_SESSION['gallery_user'] = ['id' => $id, 'name' => $name, 'avatar' => $avatar];
         $_SESSION['login_time'] = time();
+        $_SESSION['generation'] = sessionGeneration($id);
         // a new session: its address and device are noted at once
         unset($_SESSION['address_seen']);
         siteCsrf();

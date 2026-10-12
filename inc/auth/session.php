@@ -64,19 +64,73 @@
         if (!isset($user['id']))
             return null;
 
-        // logged in before "log out everyone", or before this account was logged out, in the panel
-        if (($_SESSION['login_time'] ?? 0) < max(sessionsValidSince(), accountSessionsSince($user['id']))) {
+        // logged in before "log out everyone", or before this account was logged
+        // out; a session from before the generations (sessionGeneration()) by
+        // the times it was logged in and logged out at
+        $generation = sessionGeneration($user['id']);
+        $revoked = isset($_SESSION['generation'])
+            ? $_SESSION['generation'] !== $generation
+            : ($_SESSION['login_time'] ?? 0) < max(sessionsValidSince(), accountSessionsSince($user['id']));
+        // and a login lasts SESSION_DAYS from when Discord confirmed it, however
+        // often the session is used meanwhile (PHP only clears a session file
+        // left alone that long)
+        $expired = ($_SESSION['login_time'] ?? 0) < time() - SESSION_DAYS * 86400;
+        if ($revoked || $expired) {
             unset($_SESSION['gallery_user']);
             $_SESSION['gallery_flash'] = 'Sesja wygasła, zaloguj się jeszcze raz.';
             return null;
         }
+        $_SESSION['generation'] = $generation;
 
         noteAccountAddress($user['id']);
 
         return $user;
     }
 
-    // sessions started before this time are not valid any more
+    // The generation of the logins a session belongs to, [everyone's, the
+    // account's], kept in the session at the login: "log out everyone" raises
+    // the first, logging an account out the second, and a session of an older
+    // one ends. A count, not a time, so a login in the very second of a log
+    // out ends too.
+    function sessionGeneration($id)
+    {
+        $sessions = readData('sessions');
+
+        return [(int)($sessions['generation'] ?? 0), (int)($sessions['generations'][(string)$id] ?? 0)];
+    }
+
+    // Ends the sessions of everyone ($id null) or of one account; with $keepOwn
+    // the session asking stays (it takes the new generation), without its login
+    // lasting any longer. The time is kept for the panel to show.
+    function endSessions($id = null, $keepOwn = false)
+    {
+        $now = time();
+        $own = (string)($_SESSION['gallery_user']['id'] ?? '');
+        // the asking session's generation right after this change, not after
+        // another log out made meanwhile
+        $generation = null;
+        $saved = updateData('sessions', function (&$sessions) use ($id, $now, $own, &$generation) {
+            if ($id === null) {
+                $sessions['since'] = $now;
+                $sessions['generation'] = (int)($sessions['generation'] ?? 0) + 1;
+            } else {
+                $sessions['accounts'][(string)$id] = $now;
+                $sessions['generations'][(string)$id] = (int)($sessions['generations'][(string)$id] ?? 0) + 1;
+            }
+            $generation = [(int)($sessions['generation'] ?? 0), (int)($sessions['generations'][$own] ?? 0)];
+        });
+        if ($saved && $keepOwn && $own !== '') {
+            $_SESSION['generation'] = $generation;
+            // noted again on the next page, with the new generation, or the list
+            // of devices would drop this one with the others
+            unset($_SESSION['address_seen']);
+        }
+
+        return $saved;
+    }
+
+    // sessions started before this time are not valid any more (the sessions
+    // from before the generations; the panel shows it)
     function sessionsValidSince()
     {
         return (int)(readData('sessions')['since'] ?? 0);

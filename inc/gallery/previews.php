@@ -155,14 +155,8 @@
         $targetFull = $dir . '/' . $target;
         $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $target, '/');
 
-        // the hash of what was first uploaded, kept when the file was made a WebP before
-        $hashes = readData('hashes');
-        $source = (string)($hashes[$rel]['source'] ?? '');
-        if ($source === '')
-            $source = fileHash($full, $rel, $hashes);
-
         $ok = swapInConverted($full, $rel, $candidateFull, $targetFull, $targetRel,
-            (int)filesize($full), (int)filesize($candidateFull), 'WebP', $source, (string)($user['name'] ?? ''), false, $why, $preview['fingerprint'] ?? null, $user['id']);
+            (int)filesize($full), (int)filesize($candidateFull), 'WebP', (string)($user['name'] ?? ''), false, $why, $preview['fingerprint'] ?? null, $user['id']);
         if (!$ok)
             return 'nie udało się zapisać WebP' . ($why !== null ? ': ' . $why : '');
         dropWebpPreview((string)$token);

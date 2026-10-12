@@ -53,6 +53,10 @@
 
     const BOT_ROLES_TTL = 600;
 
+    // how long a role the bot confirmed still counts for what an account may
+    // do while the bot does not answer (botRoles())
+    const BOT_ROLES_TRUSTED = 86400;
+
     const BOT_ROLES_KEEP = 200;
 
     function authConfigured()

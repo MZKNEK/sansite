@@ -75,7 +75,11 @@
 
     // The flags of an account (onGuild and the keys of BOT_ROLES), or null when
     // the bot was never asked; $refresh asks it again when the answer is old.
-    function botRoles($id, $refresh = false)
+    // With $trusted, for what the account may do, also null when the bot last
+    // confirmed them more than BOT_ROLES_TRUSTED ago, so a role taken away on
+    // Discord stops counting while the bot does not answer; the old ones still
+    // show (the badge, the panel).
+    function botRoles($id, $refresh = false, $trusted = false)
     {
         // a role being tried: only that one, on the server or off it
         $test = testRights($id);
@@ -120,15 +124,18 @@
             if (!$saved) throw new DataStoreException('write', 'roles');
         }
 
+        if ($trusted && time() - (int)($entry['checked'] ?? 0) > BOT_ROLES_TRUSTED)
+            return null;
+
         return $entry['roles'] ?? null;
     }
 
     // roles of the logged-in account, asked again when old, or null
-    function siteRoles()
+    function siteRoles($trusted = false)
     {
         $user = siteUser();
 
-        return $user === null ? null : botRoles($user['id'], true);
+        return $user === null ? null : botRoles($user['id'], true, $trusted);
     }
 
     // any role on the bot's server, user and up: the logged-in account's asked
@@ -136,7 +143,7 @@
     function hasServerRole($id)
     {
         $user = siteUser();
-        $roles = $user !== null && (string)$user['id'] === (string)$id ? siteRoles() : botRoles($id);
+        $roles = $user !== null && (string)$user['id'] === (string)$id ? siteRoles(true) : botRoles($id, false, true);
         foreach (array_keys(BOT_ROLES) as $role)
             if (!empty($roles[$role]))
                 return true;
@@ -146,7 +153,7 @@
 
     function hasBotRole($id, $roles)
     {
-        $known = botRoles($id);
+        $known = botRoles($id, false, true);
         foreach ($roles as $role)
             if (!empty($known[$role]))
                 return true;

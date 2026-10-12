@@ -30,19 +30,11 @@
                 setFlash('Wylogowano urządzenie.');
             }
         } else if (($_POST['action'] ?? '') === 'logout-others') {
-            // like "log out everyone" of the panel, for this account: the sessions
-            // started before now end, this one starts again now
-            $now = time();
-            $saved = updateData('sessions', function (&$sessions) use ($user, $now) {
-                $sessions['accounts'][$user['id']] = $now;
-            });
-            if (!$saved) {
+            // like "log out everyone" of the panel, for this account: its other
+            // sessions end, this one stays
+            if (!endSessions($user['id'], true)) {
                 setFlash('Nie udało się zapisać, spróbuj później.');
             } else {
-                $_SESSION['login_time'] = $now;
-                // noted again on the next page, with the new login time, or the
-                // list of devices would drop this one with the others
-                unset($_SESSION['address_seen']);
                 addHistory('sessions', 'Wylogowano się na pozostałych urządzeniach.');
                 setFlash('Wylogowano pozostałe urządzenia.');
             }

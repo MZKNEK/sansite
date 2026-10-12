@@ -279,9 +279,7 @@
             if (!updateData('trash', function (&$items) use ($op) { $items[$op['trash']] = $op['item']; })) return false;
             $rel = $op['item']['from'];
             $new = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . basename($op['target']), '/');
-            if ($rel !== $new && !addMovedLink($rel, $new)) return false;
-            if (!recordHash($op['target'], $new, $op['uploadHash'] ?? $op['sourceHash'])) return false;
-            return true;
+            return $rel === $new || addMovedLink($rel, $new);
         }
         if ($source === $op['sourceHash'] && $trash === null && ($op['target'] === $op['src'] || $target === null)) {
             if (!$dryRun && $hash($op['candidate']) === $op['candidateHash']) @unlink($op['candidate']);

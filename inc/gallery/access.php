@@ -91,6 +91,21 @@
         };
     }
 
+    // Whether the visitor may change a folder or a file (add to it, move it or
+    // into it, rename, turn, delete, share, bring back from the trash): a
+    // gallery admin everything but the private folder, which takes a right to
+    // it, as a link shared for it only shows it; an account with a folder of
+    // its own that folder.
+    function galleryCanChange($base, $rel)
+    {
+        if (!galleryIsAdmin()) {
+            $own = ownFolder($base);
+            return $own !== null && inFolder($rel, $own);
+        }
+
+        return !inPrivateDir($rel) || galleryCanSeePrivate();
+    }
+
     // The folders a visitor who does not see the whole gallery starts from: its
     // own folder first, then the ones shared with it.
     function galleryHomes($base)

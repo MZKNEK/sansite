@@ -765,7 +765,7 @@
   <script src="../js/safeguard.js?v=25e52849b5"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=42b6f19501"></script>
+  <script src="../js/explorer-admin.js?v=5c3e1c0087"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>

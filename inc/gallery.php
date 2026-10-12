@@ -41,7 +41,7 @@
     require_once __DIR__ . '/gallery/send.php';
     require_once __DIR__ . '/gallery/shares.php';
     require_once __DIR__ . '/gallery/export.php';
-    require_once __DIR__ . '/gallery/hashes.php';
+    require_once __DIR__ . '/gallery/moved.php';
     require_once __DIR__ . '/gallery/previews.php';
     require_once __DIR__ . '/gallery/jobs.php';
     require_once __DIR__ . '/gallery/trash.php';

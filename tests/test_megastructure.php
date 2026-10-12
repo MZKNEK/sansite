@@ -7,6 +7,16 @@
         return new DateTimeImmutable(sprintf('2026-10-12 %02d:%02d:30', $hour, $minute), new DateTimeZone('Europe/Warsaw'));
     }
 
+    // an answer with its proof replaced by whether it is the server's, of the
+    // find $key at $time (every proof has a nonce of its own, megaProof())
+    function proven($answer, $key, $time, $secret = 'a')
+    {
+        if (isset($answer['proof']))
+            $answer['proof'] = megaProofTime($secret, $key, $answer['proof']) === $time;
+
+        return $answer;
+    }
+
     test('the gene, its corridor and its words come from the secret alone', function () {
         assertSame(geneSequence('a'), geneSequence('a'), 'the same secret, the same gene');
         assertTrue(geneSequence('a') !== geneSequence('b'), 'another secret, another gene');
@@ -34,7 +44,7 @@
         assertSame(true, buildersHour(new DateTimeImmutable('2026-10-12 01:03:00', new DateTimeZone('UTC'))), 'the server\'s own zone does not matter');
         assertSame(['door' => false], megastructureAnswer('a', ['at' => '/nope'], megaAt(12, 0)), 'a plain dead end');
         assertSame(['closed' => true], megastructureAnswer('a', ['door' => '1'], megaAt(12, 0)));
-        assertSame(['fragment' => geneFragment('a', 1), 'corridor' => megaRoute('a')[0], 'proof' => megaProof('a', 'builders', megaAt(3, 2)->getTimestamp())], megastructureAnswer('a', ['door' => '1'], megaAt(3, 2)));
+        assertSame(['fragment' => geneFragment('a', 1), 'corridor' => megaRoute('a')[0], 'proof' => true], proven(megastructureAnswer('a', ['door' => '1'], megaAt(3, 2)), 'builders', megaAt(3, 2)->getTimestamp()));
     });
 
     test('the corridor leads from one address to the next, down to floor zero', function () {
@@ -47,7 +57,7 @@
         assertSame(geneFragment('a', 2), $zero['zero']['fragment']);
         $maze = megaMaze('a');
         assertSame(['width' => 2 * MEGA_MAZE_W + 1, 'height' => 2 * MEGA_MAZE_H + 1, 'start' => $maze['start'], 'sight' => megaSight('a', $maze['start'])], $zero['zero']['maze'], 'only what is seen from the way in');
-        assertSame(megaProof('a', 'floor0', $noon->getTimestamp()), $zero['zero']['proof']);
+        assertSame($noon->getTimestamp(), megaProofTime('a', 'floor0', $zero['zero']['proof']));
     });
 
     // the shortest walk through a maze, from its way in to its terminal
@@ -110,7 +120,7 @@
 
     test('the console word on paper gives the fourth fragment', function () {
         $noon = megaAt(12, 0);
-        assertSame(['fragment' => geneFragment('a', 4), 'proof' => megaProof('a', 'paper', $noon->getTimestamp())], megastructureAnswer('a', ['paper' => strtoupper(megaConsoleWord('a'))], $noon));
+        assertSame(['fragment' => geneFragment('a', 4), 'proof' => true], proven(megastructureAnswer('a', ['paper' => strtoupper(megaConsoleWord('a'))], $noon), 'paper', $noon->getTimestamp()));
         assertSame(['known' => false], megastructureAnswer('a', ['paper' => 'toha'], $noon));
         assertSame([], megastructureAnswer('', ['paper' => megaConsoleWord('a')], $noon));
     });
@@ -118,15 +128,15 @@
     test('the console word gives the third fragment', function () {
         $noon = megaAt(12, 0);
         assertSame(['known' => false], megastructureAnswer('a', ['ask' => 'toha'], $noon));
-        assertSame(['fragment' => geneFragment('a', 3), 'proof' => megaProof('a', 'maze', $noon->getTimestamp())], megastructureAnswer('a', ['ask' => strtoupper(megaConsoleWord('a'))], $noon));
+        assertSame(['fragment' => geneFragment('a', 3), 'proof' => true], proven(megastructureAnswer('a', ['ask' => strtoupper(megaConsoleWord('a'))], $noon), 'maze', $noon->getTimestamp()));
     });
 
     test('the terminal takes the gene however it is written', function () {
         $noon = megaAt(12, 0);
         $gene = geneSequence('a');
-        $right = ['ok' => true, 'proof' => megaProof('a', 'gene', $noon->getTimestamp())];
-        assertSame($right, megastructureAnswer('a', ['gene' => $gene], $noon));
-        assertSame($right, megastructureAnswer('a', ['gene' => strtolower(str_replace('-', ' ', $gene))], $noon));
+        $right = ['ok' => true, 'proof' => true];
+        assertSame($right, proven(megastructureAnswer('a', ['gene' => $gene], $noon), 'gene', $noon->getTimestamp()));
+        assertSame($right, proven(megastructureAnswer('a', ['gene' => strtolower(str_replace('-', ' ', $gene))], $noon), 'gene', $noon->getTimestamp()));
         assertSame(['ok' => false], megastructureAnswer('a', ['gene' => substr($gene, 0, -1)], $noon));
         assertSame(['ok' => false], megastructureAnswer('a', ['gene' => ''], $noon));
         assertSame(['ok' => false], megastructureAnswer('a', ['gene' => geneSequence('b')], $noon));
@@ -182,9 +192,9 @@
         $record = megaDecipher($archive['record'], $key);
         assertSame(megaRecord('a'), $record);
         assertTrue($archive['record'] !== $record, 'it is ciphered');
-        $right = ['ok' => true, 'proof' => megaProof('a', 'admin', $noon->getTimestamp())];
-        assertSame($right, megastructureAnswer('a', ['record' => strtolower($record)], $noon));
-        assertSame($right, megastructureAnswer('a', ['record' => '  ' . str_replace(' ', '  ', $record) . ' '], $noon));
+        $right = ['ok' => true, 'proof' => true];
+        assertSame($right, proven(megastructureAnswer('a', ['record' => strtolower($record)], $noon), 'admin', $noon->getTimestamp()));
+        assertSame($right, proven(megastructureAnswer('a', ['record' => '  ' . str_replace(' ', '  ', $record) . ' '], $noon), 'admin', $noon->getTimestamp()));
         assertSame(['ok' => false], megastructureAnswer('a', ['record' => $archive['record']], $noon));
         assertSame(['ok' => false], megastructureAnswer('a', ['record' => ''], $noon));
     });
@@ -207,8 +217,17 @@
         assertSame(null, megaProofTime('b', 'gene', $proof), 'and of one secret');
         assertSame(null, megaProofTime('', 'gene', $proof), 'without a secret nothing is proven');
         assertSame(null, megaProofTime('a', 'gene', ($time - 3600) . substr($proof, strlen((string)$time))), 'its time cannot be moved');
-        foreach ([null, '', 'x', 123, ['a'], $time . '.' . str_repeat('0', 32)] as $wrong)
+        foreach ([null, '', 'x', 123, ['a'], $time . '.' . str_repeat('0', 32), $time . '.' . str_repeat('0', 16) . '.' . str_repeat('0', 32)] as $wrong)
             assertSame(null, megaProofTime('a', 'gene', $wrong));
+        // every proof its own, so two visitors in the same second never share one
+        $again = megastructureAnswer('a', ['gene' => geneSequence('a')], $noon)['proof'];
+        assertTrue($again !== $proof);
+        assertSame($time, megaProofTime('a', 'gene', $again));
+        $nonce = explode('.', $proof)[1];
+        assertSame(null, megaProofTime('a', 'gene', $time . '.' . strrev($nonce) . '.' . explode('.', $proof)[2]), 'nor its nonce changed');
+        // the proofs given before the nonces still count
+        assertSame($time, megaProofTime('a', 'gene', megaProof('a', 'gene', $time, '')));
+        assertSame(1, preg_match('/^\d+\.[0-9a-f]{32}$/', megaProof('a', 'gene', $time, '')));
     });
 
     test('account.php takes a find only with the proof the server gave, at its time', function () {
@@ -239,6 +258,33 @@
         assertSame([], readData('proofs'), 'forgotten once too old to count anyway');
     });
 
+    test('two accounts with the same find in the same second both get it', function () {
+        clearData();
+        $now = time();
+        $finds = ['console' => $now];
+        $first = megaClaimProofs('111', $finds, ['console' => megaProof('a', 'console', $now)], $now);
+        $second = megaClaimProofs('222', $finds, ['console' => megaProof('a', 'console', $now)], $now);
+        assertSame([$finds, []], $first);
+        assertSame([$finds, []], $second);
+    });
+
+    test('a find the account has already is not claimed again', function () {
+        clearData();
+        $now = time();
+        addSafeguardFinds('111', ['console' => $now - 60], $now);
+        for ($i = 0; $i < 5; $i++)
+            assertSame([[], []], megaClaimProofs('111', ['console' => $now], ['console' => megaProof('a', 'console', $now)], $now));
+        assertSame([], readData('proofs'), 'the file does not grow');
+        $earlier = ['console' => $now - 120];
+        assertSame([$earlier, []], megaClaimProofs('111', $earlier, ['console' => megaProof('a', 'console', $now - 120)], $now), 'an earlier one still counts');
+    });
+
+    test('a ticket is no find, though signed the same way', function () {
+        $now = time();
+        $ticket = megaProof('a', 'ticket:idle', $now);
+        assertSame([[], ['ticket:idle']], megaProvenFinds('a', ['ticket:idle' => $now], ['ticket:idle' => $ticket], $now));
+    });
+
     test('the finds made in the browser get a proof only when the server can believe them', function () {
         $noon = megaAt(12, 0);
         $time = $noon->getTimestamp();
@@ -246,7 +292,7 @@
             return megastructureAnswer('a', $query, $at ?? $noon, $preview);
         };
         foreach (MEGA_PLAIN_FINDS as $key)
-            assertSame(['proof' => megaProof('a', $key, $time)], $witness(['witness' => $key]), $key);
+            assertSame(['proof' => true], proven($witness(['witness' => $key]), $key, $time), $key);
         assertSame(['denied' => true], $witness(['witness' => 'made-up']));
         assertSame(['denied' => true], $witness(['witness' => 'gene']), 'the way to the gene has its own answers');
 
@@ -262,7 +308,7 @@
         assertTrue((bool)preg_match('/^toha-[0-9a-f]{4}$/', megaHeaderWord('a')));
         assertTrue(megaHeaderWord('a') !== megaHeaderWord('b'));
         assertSame(['denied' => true], $witness(['witness' => 'header', 'word' => 'toha']));
-        assertSame(['proof' => megaProof('a', 'header', $time)], $witness(['witness' => 'header', 'word' => strtoupper(megaHeaderWord('a'))]));
+        assertSame(['proof' => true], proven($witness(['witness' => 'header', 'word' => strtoupper(megaHeaderWord('a'))]), 'header', $time));
     });
 
     test('the idle page and the Emitter need the time they take since their ticket', function () {

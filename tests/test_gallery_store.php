@@ -1,6 +1,6 @@
 <?php
     // inc/auth.php and inc/gallery.php: the per-request data cache, the links of
-    // an account's folder, the hashes/duplicates and the trash.
+    // an account's folder and the trash.
 
     test('readData caches and every write drops the entry', function () {
         writeData('demo', ['v' => 1]);
@@ -53,27 +53,6 @@
             if ($savedFile !== null)
                 $_SERVER['SCRIPT_FILENAME'] = $savedFile;
         }
-    });
-
-    test('hashes follow a move and the duplicate check walks a folder', function () {
-        $base = tempDir();
-        mkdir($base . '/sub');
-        $content = 'same-content';
-        file_put_contents($base . '/a.png', $content);
-        file_put_contents($base . '/sub/b.png', $content);
-        $hash = hash('sha256', $content);
-        $size = strlen($content);
-
-        assertSame(['i/a.png', 'i/sub/b.png'], findDuplicates($base, $size, $hash));
-        assertSame(['i/sub/b.png'], findDuplicates($base, $size, $hash, 'sub'), 'only the given folder');
-        assertSame([], findDuplicates($base, 3, hash('sha256', 'nope')));
-
-        moveHashes('a.png', 'c.png');
-        $moved = readData('hashes');
-        assertTrue(isset($moved['c.png']));
-        assertFalse(isset($moved['a.png']));
-        dropHashes('c.png');
-        assertFalse(isset(readData('hashes')['c.png']));
     });
 
     test('trash moves a file and brings it back', function () {

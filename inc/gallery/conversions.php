@@ -59,7 +59,7 @@
 
     // Entire commit is journaled. Recovery only recognizes its own artifacts
     // by their hashes; a file with the right name alone proves nothing.
-    function commitConversion($full, $rel, $candidate, $wanted, $fingerprint, &$error, $source = '', $actor = null)
+    function commitConversion($full, $rel, $candidate, $wanted, $fingerprint, &$error, $actor = null)
     {
         $mutation = galleryLock();
         $policy = galleryLock('policy', false);
@@ -97,7 +97,7 @@
                 'deleted' => time(), 'by' => 'konwersja'] + ($owner !== null ? ['owner' => $owner] : []);
             $operation = beginOperation(['kind' => 'conversion', 'trash' => $trashId, 'src' => $full,
                 'dst' => $trashPath, 'target' => $target, 'candidate' => $candidate, 'item' => $item,
-                'sourceHash' => $fingerprint['hash'], 'candidateHash' => $converted['hash'], 'uploadHash' => $source]);
+                'sourceHash' => $fingerprint['hash'], 'candidateHash' => $converted['hash']]);
             if ($operation === null) throw new RuntimeException('Nie można zapisać dziennika konwersji.');
             if (!galleryRename($full, $trashPath)) throw new RuntimeException('Nie można przenieść oryginału.');
             if (file_exists($target) || !galleryRename($candidate, $target)) throw new RuntimeException('Nie można opublikować wyniku.');
@@ -106,9 +106,8 @@
             if (!updateData('trash', function (&$items) use ($trashId, $item) { $items[$trashId] = $item; }))
                 throw new RuntimeException('Wynik zapisano, ale indeks kosza wymaga odzyskania; zachowano dziennik.');
             $targetRel = ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/');
-            if (($targetRel !== $rel && !addMovedLink($rel, $targetRel)) || !recordHash($target, $targetRel, $source))
+            if ($targetRel !== $rel && !addMovedLink($rel, $targetRel))
                 throw new RuntimeException('Wynik zapisano, ale metadane wymagają odzyskania; zachowano dziennik.');
-            if ($rel !== $targetRel) dropHashes($rel);
             endOperation($operation);
             $operation = null;
             return $targetRel;

@@ -103,25 +103,6 @@
   var progressFill = document.getElementById('progress-fill');
   var uploading = false;
 
-  // places in the gallery with the same content, by SHA-256; none when the browser
-  // cannot hash (crypto.subtle needs https) or the check fails, the upload goes on then
-  function findDuplicates(file) {
-    if (!window.crypto || !crypto.subtle || !file.arrayBuffer) return Promise.resolve([]);
-
-    return file.arrayBuffer().then(function (buffer) {
-      return crypto.subtle.digest('SHA-256', buffer);
-    }).then(function (digest) {
-      var hash = Array.prototype.map.call(new Uint8Array(digest), function (byte) {
-        return ('0' + byte.toString(16)).slice(-2);
-      }).join('');
-      return post({ action: 'duplicates', size: String(file.size), hash: hash, dir: data.dir });
-    }).then(function (result) {
-      return result.ok && result.matches ? result.matches : [];
-    }).catch(function () {
-      return [];
-    });
-  }
-
   function uploadFiles(fileList) {
     var files = Array.prototype.slice.call(fileList);
     if (!files.length || uploading) return;
@@ -152,24 +133,16 @@
         return next();
       }
 
-      progressText.textContent = label + ' (sprawdzanie, czy już jest w galerii)';
+      progressText.textContent = label;
       progressFill.style.width = '0';
 
-      // the same content already in the gallery? asked before sending, so a big file is not sent twice
-      findDuplicates(file).then(function (matches) {
-        if (matches.length && !window.confirm(file.name + ' już jest w galerii:\n' + matches.join('\n') + '\n\nDodać mimo to?')) {
-          problems.push(file.name + ': pominięto, już jest w galerii (' + matches[0] + ').');
-          return next();
-        }
-
-        post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0' }, file, function (part) {
-          progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
-          progressFill.style.width = (part * 100) + '%';
-        }).then(function (result) {
-          if (result.ok) added++;
-          else problems.push(result.message);
-          next();
-        });
+      post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0' }, file, function (part) {
+        progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
+        progressFill.style.width = (part * 100) + '%';
+      }).then(function (result) {
+        if (result.ok) added++;
+        else problems.push(result.message);
+        next();
       });
     }
 

@@ -101,6 +101,13 @@
             foreach ($data['accounts'] ?? [] as $time)
                 if (!is_int($time))
                     return false;
+            if (isset($data['generation']) && !is_int($data['generation']))
+                return false;
+            if (isset($data['generations']) && !is_array($data['generations']))
+                return false;
+            foreach ($data['generations'] ?? [] as $generation)
+                if (!is_int($generation))
+                    return false;
         }
         if ($name === 'maintenance') {
             foreach (['tried', 'succeeded'] as $key)

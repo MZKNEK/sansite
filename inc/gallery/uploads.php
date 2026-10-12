@@ -105,25 +105,23 @@
                 reply(false, 'Nie udało się zapisać wyniku.', 500);
             }
             $path = $final;
-            recordHash($path, ltrim($dir[1] . '/' . $target, '/'), hash_file('sha256', $file['tmp_name']));
             $sizes = ' (' . formatSize($file['size']) . ' → ' . formatSize(filesize($path)) . ')';
             done('upload', 'Dodano ' . galleryPath(ltrim($dir[1] . '/' . $target, '/')) . ', zamienione z ' . $name . $sizes . '.',
                 'Dodano ' . $name . ' jako ' . $target . $sizes . '.', uploadedLinks(ltrim($dir[1] . '/' . $target, '/')));
         }
 
         $target = freeName($dir[0], $name);
-        $sentHash = hash_file('sha256', $file['tmp_name']);
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
-        $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
+        if (!isVideo($name))
+            stripMetadata($dir[0] . '/' . $target);
         clearstatcache();
         if ($own && ($why = accountQuotaError($base, $owner, 0, 0, filesize($dir[0] . '/' . $target), true)) !== null) {
             @unlink($dir[0] . '/' . $target);
             reply(false, $name . ': ' . $why, 413);
         }
         $rel = ltrim($dir[1] . '/' . $target, '/');
-        recordHash($dir[0] . '/' . $target, $rel, $stripped ? $sentHash : null);
 
         // a picture or film with "change" on waits its turn as WebP or WebM: the
         // file is saved and the request answers at once, the change runs in the
@@ -137,7 +135,7 @@
                 $note = ' Serwer nie umie teraz zamienić na ' . $format . ', zostawiono oryginał.';
             } else {
                 $user = siteUser();
-                $queued = addMediaJob($rel, $user['id'] ?? '', $user['name'] ?? '', filesize($dir[0] . '/' . $target), $kind, $sentHash);
+                $queued = addMediaJob($rel, $user['id'] ?? '', $user['name'] ?? '', filesize($dir[0] . '/' . $target), $kind);
                 $note = $queued === null ? ' Plik zapisano, ale nie udało się dodać konwersji do kolejki.'
                     : ($kind === 'webm' ? ' Film' : ' Grafika') . ' zostanie zamieniona na ' . $format . ' w tle; status zobaczysz w galerii.';
             }

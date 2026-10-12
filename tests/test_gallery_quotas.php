@@ -56,7 +56,7 @@
     });
 
     test('corrupted access and invalid quota schemas fail closed rather than raising limits', function () {
-        writeData('roles', ['556' => ['roles' => ['user' => true]]]);
+        writeData('roles', ['556' => ['roles' => ['user' => true], 'checked' => time()]]);
         file_put_contents(dataFile('access'), '{broken');
         quotaThrows(DataStoreException::class, function () { isGalleryUploaderId('556'); });
         file_put_contents(dataFile('access'), '{"galleryUploaders":null}');

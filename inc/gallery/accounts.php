@@ -112,7 +112,6 @@
         } else if ($rel !== $named && !file_exists($base . '/' . $named) && @rename($base . '/' . $rel, $base . '/' . $named)) {
             // the account changed its nick on Discord: the folder follows, its links
             // stay as they go by the ID
-            moveHashes($rel, $named);
             addHistory('rename', 'Własny folder ' . galleryPath($rel) . ' nazywa się teraz ' . basename($named) . ' (nowy nick).');
             $rel = $named;
         }

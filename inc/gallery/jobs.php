@@ -65,17 +65,15 @@
     }
 
     // Adds a file to the queue; the request answers without waiting for it.
-    // $kind is 'webp' or 'webm'; $source is the hash of what was uploaded, so the
-    // changed file still recognises the original. Null when it could not be
-    // queued (the file then stays as it was uploaded).
-    function addMediaJob($rel, $id, $name, $size, $kind, $source = '')
+    // $kind is 'webp' or 'webm'. Null when it could not be queued (the file
+    // then stays as it was uploaded).
+    function addMediaJob($rel, $id, $name, $size, $kind)
     {
         $jobId = date('YmdHis') . '-' . bin2hex(random_bytes(4));
         $job = [
             'rel' => $rel,
             'name' => basename($rel),
             'kind' => $kind,
-            'source' => (string)$source,
             'by' => (string)$id,
             'byName' => (string)$name,
             'created' => time(),
@@ -188,9 +186,9 @@
     // it could not be put in place. $candidateFull is where the new file is now
     // (the same place as the target for a background job, a preview file for a
     // manual change); a re-encoded WebP keeps its own name and link.
-    function swapInConverted($full, $rel, $candidateFull, $targetFull, &$targetRel, $sizeFrom, $sizeTo, $format, $source, $byName, $background = false, &$error = null, $fingerprint = null, $actor = null)
+    function swapInConverted($full, $rel, $candidateFull, $targetFull, &$targetRel, $sizeFrom, $sizeTo, $format, $byName, $background = false, &$error = null, $fingerprint = null, $actor = null)
     {
-        $actual = commitConversion($full, $rel, $candidateFull, $targetFull, $fingerprint, $error, $source, $actor);
+        $actual = commitConversion($full, $rel, $candidateFull, $targetFull, $fingerprint, $error, $actor);
         if ($actual === false) return false;
         $targetFull = dirname($full) . '/' . basename($actual);
         $targetRel = $actual;
@@ -208,13 +206,8 @@
         $candidate = $targetFull;
         $full = $job['originalFull'] ?? $full;
         $wanted = dirname($full) . '/' . pathinfo(basename($rel), PATHINFO_FILENAME) . '.' . (($job['kind'] ?? '') === 'webm' ? 'webm' : 'webp');
-        $source = (string)($job['source'] ?? '');
-        if ($source === '') {
-            $hashes = readData('hashes');
-            $source = fileHash($full, $rel, $hashes);
-        }
         $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
-        if (!swapInConverted($full, $rel, $candidate, $wanted, $targetRel, $sizeFrom, $sizeTo, $format, $source, (string)($job['byName'] ?? ''), true, $why, $job['fingerprint'] ?? null, $job['by'] ?? null))
+        if (!swapInConverted($full, $rel, $candidate, $wanted, $targetRel, $sizeFrom, $sizeTo, $format, (string)($job['byName'] ?? ''), true, $why, $job['fingerprint'] ?? null, $job['by'] ?? null))
             finishMediaJob($job, 'failed', $why ?? 'nie udało się zatwierdzić konwersji', ['sizeFrom' => $sizeFrom]);
         else
             finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);

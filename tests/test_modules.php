@@ -63,8 +63,6 @@
     // be one of the first kind and be added here.
     test('a whole document is written over only where nothing else changes it', function () {
         $allowed = [
-            // "log out everyone": the time sessions start from, all of it
-            'inc/admin/actions.php' => ['sessions'],
             // the state of the automatic blocking, only its run (under autoblock.lock) writes it
             'inc/autoblock.php' => ['autoblock'],
             // what Cloudflare said, made again from its answers

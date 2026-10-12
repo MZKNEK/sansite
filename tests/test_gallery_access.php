@@ -234,3 +234,92 @@
         assertSame('a.png', $uploads[0]['rel']);
         assertSame(2, count($history));
     });
+
+    // one change asked of the gallery's page by an account, in a process of its
+    // own, as handlePost() ends the one it runs in: the answer
+    function galleryPost($id, $base, $fields)
+    {
+        $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
+        $process = proc_open([PHP_BINARY, __DIR__ . '/gallery-post-child.php', $id, $base, json_encode($fields)],
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes, __DIR__,
+            array_merge(getenv() ?: [], ['SANAKAN_TEST_DATA' => SITE_DATA_DIR]));
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        proc_close($process);
+
+        return json_decode((string)$output, true) ?? ['output' => $output];
+    }
+
+    test('a gallery admin without the private folder changes nothing in it', function () {
+        $base = tempDir();
+        mkdir($base . '/private', 0700, true);
+        file_put_contents($base . '/a.png', 'x');
+        file_put_contents($base . '/private/s.png', 'x');
+
+        $answer = galleryPost('111', $base, ['action' => 'mkdir', 'dir' => 'private', 'name' => 'new']);
+        assertFalse($answer['ok'] ?? null, json_encode($answer));
+        assertFalse(is_dir($base . '/private/new'), 'no folder made in it');
+
+        $answer = galleryPost('111', $base, ['action' => 'move', 'target' => 'private', 'items' => ['a.png']]);
+        assertFalse($answer['ok'] ?? null, json_encode($answer));
+        assertTrue(is_file($base . '/a.png'), 'nothing moved into it');
+        assertFalse(is_file($base . '/private/a.png'));
+
+        $answer = galleryPost('111', $base, ['action' => 'upload', 'dir' => 'private']);
+        assertSame('Nie masz dostępu do tego folderu.', $answer['message'] ?? null, 'nor uploaded');
+        $answer = galleryPost('111', $base, ['action' => 'share', 'dir' => 'private', 'days' => '7']);
+        assertSame('Nie masz dostępu do tego folderu.', $answer['message'] ?? null, 'nor shared');
+
+        // the whole gallery but that is still its own
+        $answer = galleryPost('111', $base, ['action' => 'mkdir', 'dir' => '', 'name' => 'pub']);
+        assertTrue($answer['ok'] ?? null, json_encode($answer));
+        assertTrue(is_dir($base . '/pub'));
+        // and a gallery admin who may see the private folder changes it too
+        $answer = galleryPost('445', $base, ['action' => 'mkdir', 'dir' => 'private', 'name' => 'new']);
+        assertTrue($answer['ok'] ?? null, json_encode($answer));
+        assertTrue(is_dir($base . '/private/new'));
+    });
+
+    test('a gallery admin brings nothing back from the trash into the private folder', function () {
+        $base = tempDir();
+        mkdir($base . '/private', 0700, true);
+        file_put_contents($base . '/private/s.png', 'x');
+        assertTrue(moveToTrash($base . '/private/s.png', 'private/s.png'));
+        $id = array_key_first(trashItems());
+
+        $answer = galleryPost('111', $base, ['action' => 'restore', 'item' => $id]);
+        assertFalse($answer['ok'] ?? null, json_encode($answer));
+        assertFalse(is_file($base . '/private/s.png'));
+        $answer = galleryPost('111', $base, ['action' => 'trash-delete', 'item' => $id]);
+        assertFalse($answer['ok'] ?? null, json_encode($answer));
+        forgetData('trash');
+        assertTrue(isset(trashItems()[$id]), 'nor deletes it for good');
+    });
+
+    test('the duplicate check is gone', function () {
+        $base = tempDir();
+        $answer = galleryPost('111', $base, ['action' => 'duplicates', 'dir' => '', 'size' => '1', 'hash' => str_repeat('0', 64)]);
+        assertSame('Nieznana akcja.', $answer['message'] ?? null);
+    });
+
+    test('a link shared for the private folder only shows it', function () {
+        $base = tempDir();
+        mkdir($base . '/private', 0700, true);
+        sessionFor('sanakan-change-share', ['id' => '111', 'name' => 'A', 'avatar' => 'a']);
+        $token = createShare('private', 7, siteUser());
+        assertSame('private', openShare($base, $token));
+        assertTrue(galleryCanSee($base, 'private/a.png'));
+        assertFalse(galleryCanChange($base, 'private/a.png'));
+        assertTrue(galleryCanChange($base, 'a.png'), 'the rest of the gallery it may change');
+        sessionEnd();
+
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]]);
+        // another gallery, as ownFolder() keeps the folder of a gallery for the request
+        $baseU = tempDir();
+        sessionFor('sanakan-change-own', ['id' => '556', 'name' => 'U', 'avatar' => 'a']);
+        $own = ownFolder($baseU);
+        assertTrue(galleryCanChange($baseU, $own . '/a.png'));
+        assertFalse(galleryCanChange($baseU, 'a.png'), 'an account with a folder of its own only that folder');
+        sessionEnd();
+    });

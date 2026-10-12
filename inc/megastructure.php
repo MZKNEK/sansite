@@ -329,33 +329,42 @@
     }
 
     // ---- Proofs of the finds ---------------------------------------------------------
-    // Every find of the register needs a proof of it, "<time>.<signature>", the
-    // server's time and the find signed with the secret, given by the answer
-    // of megastructureAnswer() that makes it. The browser keeps it with the
+    // Every find of the register needs a proof of it, "<time>.<nonce>.<signature>",
+    // the server's time, a random nonce and the find signed with the secret,
+    // given by the answer of megastructureAnswer() that makes it. The nonce
+    // makes every proof given out its own, so two visitors making a find in
+    // the same second do not get the same one, which only the first account
+    // sending it could use (megaClaimProofs()). The browser keeps it with the
     // find and sends it with it, and account.php notes a find only with a right
     // proof, at its time, so none comes earlier than the server gave it (the
     // ranking puts who got there first ahead, and the Safeguard's check of
     // finds made at once, safeguardCheat(), counts on these times). A proof
     // counts for one account only (megaClaimProofs()).
 
-    function megaProof($secret, $key, $time)
+    // the proof of a find at a time; a new nonce without one, and '' the proofs
+    // given before the nonces, "<time>.<signature>", which still count
+    function megaProof($secret, $key, $time, $nonce = null)
     {
-        return $time . '.' . substr(megaHash($secret, 'proof:' . $key . ':' . $time), 0, 32);
+        $nonce = $nonce ?? bin2hex(random_bytes(8));
+        $signed = 'proof:' . $key . ':' . $time . ($nonce === '' ? '' : ':' . $nonce);
+
+        return $time . '.' . ($nonce === '' ? '' : $nonce . '.') . substr(megaHash($secret, $signed), 0, 32);
     }
 
     // the time of a find's proof, or null when the server did not give it
     function megaProofTime($secret, $key, $proof)
     {
-        if ((string)$secret === '' || !is_string($proof) || !preg_match('/^(\d{1,12})\.[0-9a-f]{32}$/', $proof, $m))
+        if ((string)$secret === '' || !is_string($proof) || !preg_match('/^(\d{1,12})\.(?:([0-9a-f]{16})\.)?[0-9a-f]{32}$/D', $proof, $m))
             return null;
 
-        return hash_equals(megaProof($secret, $key, (int)$m[1]), $proof) ? (int)$m[1] : null;
+        return hash_equals(megaProof($secret, $key, (int)$m[1], $m[2] ?? ''), $proof) ? (int)$m[1] : null;
     }
 
     // The finds of a browser, key => time, as account.php notes them, with
-    // their proofs, key => proof: only those with a right proof, at its time,
-    // and not older than SAFEGUARD_FIND_DAYS. Returns [the finds, the keys
-    // left out], so the browser can forget those.
+    // their proofs, key => proof: only finds of the register (a ticket is
+    // signed the same way, but is none), with a right proof, at its time, and
+    // not older than SAFEGUARD_FIND_DAYS. Returns [the finds, the keys left
+    // out], so the browser can forget those.
     function megaProvenFinds($secret, $found, $proofs, $now)
     {
         if (!is_array($found))
@@ -365,7 +374,7 @@
         $left = [];
         foreach (array_keys($found) as $key) {
             $key = (string)$key;
-            $time = megaProofTime($secret, $key, $proofs[$key] ?? null);
+            $time = isset(SAFEGUARD_FINDS[$key]) || isset(SAFEGUARD_SEASONAL[$key]) ? megaProofTime($secret, $key, $proofs[$key] ?? null) : null;
             if ($time === null || $time > $now || $time < $now - SAFEGUARD_FIND_DAYS * 86400)
                 $left[] = $key;
             else
@@ -376,13 +385,18 @@
     }
 
     // A proof counts for the first account that sends it, so one passed on
-    // gives nobody else the find: inc/data/proofs.json keeps signature => [ID,
-    // time] while the proof is young enough to count. $finds are those of
+    // gives nobody else the find: inc/data/proofs.json keeps proof => [ID,
+    // time] while the proof is young enough to count. A find the account
+    // already has from no later is not claimed again, so the browser sending
+    // it once more adds nothing to the file. $finds are those of
     // megaProvenFinds(). Returns [the finds, the keys left out, as another
     // account has their proof], or null when it could not be saved.
     function megaClaimProofs($id, $finds, $proofs, $now)
     {
         $id = (string)$id;
+        foreach (safeguardFinds($id) as $key => $time)
+            if (isset($finds[$key]) && $time <= $finds[$key])
+                unset($finds[$key]);
         $saved = updateData('proofs', function (&$all) use ($id, $finds, $proofs, $now) {
             foreach ($all as $sig => $entry)
                 if (!is_array($entry) || (int)($entry[1] ?? 0) < $now - SAFEGUARD_FIND_DAYS * 86400)

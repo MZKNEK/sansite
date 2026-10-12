@@ -19,7 +19,7 @@
     });
 
     test('the background conversion queue', function () {
-        $id = addMediaJob('album/a.webm', '111', 'Test', 1000, 'webm', 'src');
+        $id = addMediaJob('album/a.webm', '111', 'Test', 1000, 'webm');
         $jobs = mediaJobs();
         assertSame('pending', $jobs[$id]['status']);
         assertSame('a.webm', $jobs[$id]['name']);

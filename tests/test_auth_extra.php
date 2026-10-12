@@ -130,3 +130,20 @@
         assertContains('LV.9', $html);
         assertSame('', roleBadgeHtml(null));
     });
+
+    test('accountDevices leaves out the devices of an older generation', function () {
+        if (!is_dir(dataDir() . '/sessions'))
+            mkdir(dataDir() . '/sessions', 0700, true);
+        $now = time();
+        foreach (['old', 'new', 'legacy', 'stale'] as $name)
+            file_put_contents(dataDir() . '/sessions/sess_' . $name, 'x');
+        writeData('sessions', ['since' => $now - 100, 'generations' => ['111' => 1]]);
+        writeData('devices', ['111' => [
+            sessionKey('old') => [$now, $now, '8.8.8.8', 'PL', 'ua', [0, 0]],
+            sessionKey('new') => [$now, $now, '8.8.8.8', 'PL', 'ua', [0, 1]],
+            sessionKey('legacy') => [$now - 50, $now, '8.8.8.8', 'PL', 'ua'],
+            sessionKey('stale') => [$now - (SESSION_DAYS + 1) * 86400, $now, '8.8.8.8', 'PL', 'ua', [0, 1]],
+        ]]);
+
+        assertSame([sessionKey('new'), sessionKey('legacy')], array_keys(accountDevices('111')));
+    });

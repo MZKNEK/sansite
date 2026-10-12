@@ -58,9 +58,9 @@
 
         // Serializes writers, never ZIP. Preview preparation releases its own
         // short lock before running the encoder.
-        if (!in_array($action, ['zip', 'webp-preview', 'duplicates', 'request-access'], true))
+        if (!in_array($action, ['zip', 'webp-preview', 'request-access'], true))
             $mutationRelease = galleryLock();
-        if (!in_array($action, ['zip', 'webp-preview', 'duplicates', 'request-access'], true))
+        if (!in_array($action, ['zip', 'webp-preview', 'request-access'], true))
             $policyRelease = galleryLock('policy', false);
 
         if ($action === 'request-access')
@@ -80,7 +80,7 @@
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
-            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'move', 'duplicates', 'restore', 'trash-delete', 'media-clear', 'zip'], true))
+            if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'move', 'restore', 'trash-delete', 'media-clear', 'zip'], true))
                 reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
             // new folders and uploads go only inside its own folder, subfolders included
             if (in_array($action, ['upload', 'mkdir'], true)) {
@@ -93,6 +93,19 @@
                     if (strpos($item[1], $own . '/') !== 0)
                         reply(false, 'Możesz zmieniać tylko pliki w swoim folderze.', 403);
         }
+
+        // what is changed and where it goes, only where the account may change
+        // things (the folder added to or moved into, the picked items); a ZIP
+        // only reads them
+        if (in_array($action, ['upload', 'mkdir', 'share', 'move'], true)) {
+            $dir = resolvePath($base, $_POST[$action === 'move' ? 'target' : 'dir'] ?? '', true);
+            if ($dir && !galleryCanChange($base, $dir[1]))
+                reply(false, 'Nie masz dostępu do tego folderu.', 403);
+        }
+        if (isset($_POST['items']) && $action !== 'zip')
+            foreach (postedItems($base) as $item)
+                if (!galleryCanChange($base, $item[1]))
+                    reply(false, 'Nie możesz zmieniać ' . displayPath($item[1]) . '.', 403);
 
         // the folder of an account goes by its ID in the name, so it keeps it and stays where it is
         if (in_array($action, ['rename', 'move'], true) && isset($_POST['items']))
@@ -135,7 +148,6 @@
                 foreach ($items as $item) {
                     if (moveToTrash($item[0], $item[1], $why)) {
                         $trashed[] = galleryPath($item[1]);
-                        dropHashes($item[1]);
                     } else {
                         $failed[] = basename($item[1]) . ($why !== null ? ' (' . $why . ')' : '');
                         $refused = $refused || $why !== null;
@@ -182,6 +194,9 @@
                 reply(true, '', 200, ['preview' => $preview]);
 
             case 'webp-accept':
+                $preview = webpPreviews()[(string)($_POST['token'] ?? '')] ?? null;
+                if (is_array($preview) && !galleryCanChange($base, (string)($preview['rel'] ?? '')))
+                    reply(false, 'Nie masz już dostępu do tego pliku.', 403);
                 $result = acceptWebpPreview($base, (string)($_POST['token'] ?? ''), siteUser());
                 if (is_string($result))
                     reply(false, $result, 500);
@@ -190,20 +205,6 @@
             case 'webp-reject':
                 rejectWebpPreview((string)($_POST['token'] ?? ''), siteUser());
                 reply(true, 'Odrzucono wynik, oryginał zostaje.');
-
-            case 'duplicates':
-                $hash = strtolower((string)($_POST['hash'] ?? ''));
-                if (!preg_match('/^[0-9a-f]{64}$/', $hash))
-                    reply(false, 'Zły skrót pliku.', 400);
-                // only the folder the page is in (an account with a folder of its
-                // own: that folder), so the check does not walk the whole gallery
-                $dir = resolvePath($base, $_POST['dir'] ?? '', true);
-                // and never outside it for that account, or it would learn of
-                // files in folders it may not see (the private one, others')
-                if ($dir && !galleryIsAdmin() && !inFolder($dir[1], $own))
-                    $dir = null;
-                $from = $dir ? $dir[1] : (galleryIsAdmin() ? '' : ownFolder($base));
-                reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash, $from)]);
 
             // clears the account's finished conversion jobs without waiting for
             // them to age out of the gallery panel
@@ -223,6 +224,8 @@
                     reply(false, 'Tego już nie ma w koszu, odśwież stronę.', 404);
                 if (!galleryIsAdmin() && !inUserFolder($item['from'] ?? '', siteUser()['id']))
                     reply(false, 'Możesz przywracać tylko rzeczy ze swojego folderu.', 403);
+                if (galleryIsAdmin() && !galleryCanChange($base, (string)($item['from'] ?? '')))
+                    reply(false, 'Nie masz dostępu do folderu, z którego to usunięto.', 403);
                 $where = restoreFromTrash($base, (string)$_POST['item'], $error);
                 if ($where === null)
                     reply(false, $error, 409);
@@ -236,6 +239,8 @@
                 // its own only takes the entry out of its own trash, the file
                 // stays and the panel can still bring it back
                 if (galleryIsAdmin()) {
+                    if (!galleryCanChange($base, (string)($item['from'] ?? '')))
+                        reply(false, 'Nie masz dostępu do folderu, z którego to usunięto.', 403);
                     if (!deleteFromTrash((string)$_POST['item']))
                         reply(false, 'Nie udało się usunąć.', 500);
                     done('purge', 'Usunięto na zawsze ' . galleryPath($item['from']) . ' (z kosza).');
@@ -286,7 +291,6 @@
                     reply(false, 'Coś o nazwie ' . $name . ' już tu jest.', 409);
                 if (!@rename($full, dirname($full) . '/' . $name))
                     reply(false, 'Nie udało się zmienić nazwy.', 500);
-                moveHashes($rel, ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/'));
                 followMovedLinks($rel, ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/'));
 
                 done('rename', 'Zmieniono nazwę ' . galleryPath($rel) . ' na ' . $name . '.');
@@ -325,7 +329,6 @@
                         $problems[] = $name . ' (nie udało się)';
                     } else {
                         $moved[] = galleryPath($item[1]);
-                        moveHashes($item[1], ltrim($target[1] . '/' . $name, '/'));
                         followMovedLinks($item[1], ltrim($target[1] . '/' . $name, '/'));
                     }
                 }
