@@ -33,7 +33,8 @@ window.SanakanSafeguard = (function () {
     offline: 'Odcięty od sieci',
     morse: 'Sygnał zwrotny',
     idle: 'Czuwanie',
-    regen: 'Regeneracja'
+    regen: 'Regeneracja',
+    killy: 'Spotkanie z Killym'
   };
   var TOTAL = Object.keys(FINDS).length;
   // the same as SAFEGUARD_SEASONAL: the finds of a time of the year, apart
@@ -616,6 +617,98 @@ window.SanakanSafeguard = (function () {
     glitching = { el: el, restore: restore };
   }
 
+  // ---- A passer-by ---------------------------------------------------------------
+
+  // Now and then, a while after a page opens, Killy walks along the bottom of
+  // the window, a shadow with one white eye and his Gravitational Beam Emitter
+  // charging in hand; with reduced motion he only stands in a corner for a
+  // while. The more finds the browser has, the likelier he comes: one page in
+  // KILLY_ODDS without any, each find one more chance in it, at most one page
+  // in KILLY_MOST. A click stops him, a find of the register, and once met he
+  // comes no more. localStorage "safeguard-killy" set to "1" sends him on every
+  // page all the same, to try it out.
+  var KILLY_ODDS = 250;
+  var KILLY_MOST = 20;
+  var KILLY_PACE = 85;   // px a second
+  var KILLY = '<svg viewBox="0 0 60 120" aria-hidden="true">'
+    + '<g class="leg back"><path d="M27 92v22h-4" /></g><g class="leg front"><path d="M33 92v22h5" /></g>'
+    + '<g class="body"><path class="coat" d="M23 26h14l4 5 2 30 5 35H34l-3-12-3 12H13l5-35 1-30Z" />'
+    + '<path class="coat" d="M37 28l4 3 1 26-4 1-2-24Z" />'
+    + '<path class="coat" d="M37 55h15v5h-7v4h-4v-4h-4Z" /><circle class="charge" cx="51" cy="57.5" r="1.6" />'
+    + '<path class="coat" d="M21 19C19 10 24 4 31 4c6 0 10 4 10 10l5 1-4 3 2 4-5-2-1 5-3-4-3 4-1-4-4 3 0-4-5 2 2-4Z" />'
+    + '<rect class="eye" x="35" y="15" width="3" height="1.2" /></g></svg>';
+
+  // the chance of a page, from the finds this browser has
+  function killyOdds(finds) {
+    return Math.min(1 / KILLY_MOST, (1 + Object.keys(finds).length) / KILLY_ODDS);
+  }
+
+  function passerBy() {
+    var sure = false;
+    try {
+      sure = localStorage.getItem('safeguard-killy') === '1';
+    } catch (err) {
+      // no storage, only luck
+    }
+    var finds = load().finds;
+    if (!sure && (finds.killy || Math.random() >= killyOdds(finds))) return;
+    setTimeout(function walk() {
+      if (document.hidden || infected || document.body.classList.contains('ns-open')) {
+        setTimeout(walk, 3000);
+        return;
+      }
+      killy();
+    }, 2000 + Math.random() * 8000);
+  }
+
+  function killy() {
+    var w = document.documentElement.clientWidth;
+    var man = document.createElement('button');
+    man.type = 'button';
+    man.className = 'sg-killy';
+    man.title = 'Killy';
+    man.setAttribute('aria-label', 'Killy');
+    man.innerHTML = KILLY;
+    document.body.appendChild(man);
+
+    var move = null;
+    var gone;
+    if (still()) {
+      man.style.transform = 'translateX(' + (w - 64) + 'px)';
+      man.classList.add('stopped');
+      gone = setTimeout(function () { man.remove(); }, 8000);
+    } else {
+      move = man.animate([
+        { transform: 'translateX(-50px)' },
+        { transform: 'translateX(' + (w + 10) + 'px)' }
+      ], { duration: (w + 60) / KILLY_PACE * 1000, easing: 'linear', fill: 'forwards' });
+      move.onfinish = function () { man.remove(); };
+    }
+
+    man.addEventListener('click', function () {
+      if (man.classList.contains('met')) return;
+      man.classList.add('met', 'stopped');
+      if (move) move.pause();
+      clearTimeout(gone);
+      var say = document.createElement('span');
+      say.className = 'sg-killy-say';
+      say.textContent = '…';
+      man.appendChild(say);
+      found('killy');
+      // he says nothing more and goes on his way
+      setTimeout(function () {
+        say.remove();
+        man.classList.remove('stopped');
+        if (move) {
+          move.playbackRate = 1.5;
+          move.play();
+        } else {
+          man.remove();
+        }
+      }, 2600);
+    });
+  }
+
   function fridayThe13th() {
     document.addEventListener('click', function (e) {
       if (!glitching || !glitching.el.contains(e.target)) return;
@@ -773,6 +866,7 @@ window.SanakanSafeguard = (function () {
   if (holiday('easter')) eggHunt();
   if (holiday('friday13')) fridayThe13th();
   newYearMidnight();
+  passerBy();
 
   // ---- Offline: the service worker and its page --------------------------------
 

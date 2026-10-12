@@ -121,10 +121,11 @@
         recordLogin((string)$id, $name, 'https://cdn.discordapp.com/embed/avatars/' . ((int)substr((string)$id, -1) % 6) . '.png', strtolower($name));
 
     // finds of the Safeguard's register for the ranking of the hunters
-    // (hunters/): Dev, the panel's admin, without a place; the others in turn
+    // (hunters/): Dev, the panel's admin, without a place, with every seasonal
+    // one too; the others in turn
     $keys = array_keys(SAFEGUARD_FINDS);
     $finds = [
-        '100000000000000001' => array_slice($keys, 0, 11),
+        '100000000000000001' => array_merge(array_slice($keys, 0, 11), array_keys(SAFEGUARD_SEASONAL)),
         '100000000000000004' => array_slice($keys, 0, 7),
         '100000000000000003' => array_slice($keys, 0, 7),
         '100000000000000002' => array_slice($keys, 0, 3),

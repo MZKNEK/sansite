@@ -60,11 +60,11 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=f41a86b89b" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=cc012401d5" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=a28763374d" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=6b8a4e6095" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -103,9 +103,13 @@
 <?php if ($me): ?>
             <small class="hunter-tag me">ty</small>
 <?php endif; ?>
+<?php if (count($seasonal) === count(SAFEGUARD_SEASONAL)): ?>
+            <small class="hunter-tag season-full" title="Wszystkie sezonowe: <?=e(implode(', ', array_column($seasonal, 0)))?>"><?=implode('', SEASON_MARKS)?> komplet sezonowy</small>
+<?php else: ?>
 <?php foreach ($seasonal as $key => [$name]): ?>
             <small class="hunter-season <?=e($key)?>" title="<?=e($name)?>"><?=SEASON_MARKS[$key] ?? '✦'?></small>
 <?php endforeach; ?>
+<?php endif; ?>
           </span>
           <span class="hunter-bar" aria-hidden="true"><i style="width: <?=round(100 * $row['count'] / max(1, $total), 1)?>%"></i></span>
           <span class="hunter-count"><b><?=$row['count']?></b> / <?=$total?></span>
@@ -139,7 +143,7 @@
             </summary>
             <ol class="secret-hunters">
 <?php foreach ($stat['all'] as $i => $got): ?>
-              <li><span class="secret-place"><?=hunterPlace($i + 1)?></span> <?=hunterName($got['row'])?> <time datetime="<?=e(date('c', $got['time']))?>"><?=e(date('j.m.Y H:i', $got['time']))?></time></li>
+              <li><span class="secret-place"><?=hunterPlace($i + 1)?></span><?php if ($got['row']['avatar'] !== ''): ?><img class="secret-avatar" src="<?=e($got['row']['avatar'])?>" alt="" width="20" height="20" loading="lazy" /><?php else: ?><span class="secret-avatar" aria-hidden="true"></span><?php endif; ?><?=hunterName($got['row'])?><time datetime="<?=e(date('c', $got['time']))?>"><?=e(date('j.m.Y H:i', $got['time']))?></time></li>
 <?php endforeach; ?>
             </ol>
           </details>
@@ -154,8 +158,9 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=f4094fa9db"></script>
-  <script src="../js/safeguard.js?v=c6a1ed1d32"></script>
+  <script src="../js/safeguard.js?v=15328d41c4"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
+  <script src="../js/hunters.js?v=15d089f4d3"></script>
 </body>
 
 </html>

@@ -987,6 +987,15 @@ a.version-row:hover .version-name {
     cursor: help;
 }
 
+/* every seasonal find: one tag in gold instead of the marks */
+.hunter-tag.season-full {
+    border-color: rgba(232, 211, 106, 0.6);
+    background: rgba(232, 211, 106, 0.08);
+    color: #e8d36a;
+    cursor: help;
+    white-space: nowrap;
+}
+
 .hunter-bar {
     height: 6px;
     background: rgba(var(--accent-rgb), 0.12);
@@ -1063,12 +1072,8 @@ a.version-row:hover .version-name {
     color: rgba(220, 221, 222, 0.45);
 }
 
-/* a secret someone found opens to all who did, and when; open, it takes
-   the whole row */
-.secrets li:has(details[open]) {
-    grid-column: 1 / -1;
-}
-
+/* a secret someone found opens to all who did, and when: in a dialog over
+   the page (js/hunters.js), or without the script in its own card */
 .secrets details {
     display: flex;
     flex-direction: column;
@@ -1089,12 +1094,12 @@ a.version-row:hover .version-name {
 }
 
 .secrets summary b::after {
-    content: " +";
+    content: " \203A";
     color: rgba(220, 221, 222, 0.35);
 }
 
-.secrets details[open] summary b::after {
-    content: " \2212";
+.secrets summary:hover b::after {
+    color: var(--accent-light);
 }
 
 .secrets summary:focus-visible {
@@ -1103,25 +1108,27 @@ a.version-row:hover .version-name {
 }
 
 .secret-hunters {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-    gap: 4px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     margin: 10px 0 0;
     padding: 10px 0 0;
     border-top: 1px solid rgba(var(--accent-rgb), 0.25);
     list-style: none;
-    font-size: 12px;
+    font-size: 13px;
 }
 
+.secrets .secret-hunters li,
 .secret-hunters li {
-    display: flex;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 22px 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
     min-width: 0;
-    padding: 0;
+    padding: 4px 0;
     border: 0;
     background: none;
+    color: var(--text);
 }
 
 .secret-hunters .hunter-name {
@@ -1130,16 +1137,75 @@ a.version-row:hover .version-name {
     white-space: nowrap;
 }
 
+.secret-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(var(--accent-rgb), 0.2);
+    object-fit: cover;
+}
+
 .secret-place {
     font: 11px "JetBrains Mono", Consolas, monospace;
     color: rgba(220, 221, 222, 0.35);
 }
 
 .secret-hunters time {
-    margin-left: auto;
     font: 11px "JetBrains Mono", Consolas, monospace;
     color: rgba(220, 221, 222, 0.45);
     white-space: nowrap;
+}
+
+/* the dialog: the secret's name, how many found it, and the list, which
+   scrolls when it is long */
+.secret-dialog {
+    max-height: min(560px, calc(100vh - 48px));
+    padding: 20px 22px;
+}
+
+.secret-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.secret-dialog-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.secret-dialog h2 {
+    font: 14px "Sanakan Mono", monospace;
+    letter-spacing: 0.14em;
+    color: var(--accent-light);
+}
+
+.secret-dialog-close {
+    margin: -6px -8px 0 0;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    font-size: 22px;
+    line-height: 1;
+    color: rgba(220, 221, 222, 0.6);
+    cursor: pointer;
+}
+
+.secret-dialog-close:hover,
+.secret-dialog-close:focus-visible {
+    color: #fff;
+}
+
+.secret-dialog p {
+    margin: 0;
+    font-size: 13px;
+}
+
+.secret-dialog-list {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 @media only screen and (max-width: 600px) {

@@ -21,7 +21,8 @@
         'offline'   => ['Odcięty od sieci', 'Zerwane połączenie z siecią i powrót do niej.', 'Odetnij się od sieci i spróbuj wrócić.'],
         'morse'     => ['Sygnał zwrotny', 'Słowo wystukane Morse\'em na motcie strony głównej i odpowiedź Safeguarda.', 'Motto na górze strony głównej nie tylko nadaje. Wołanie o pomoc to dobry początek.'],
         'idle'      => ['Czuwanie', 'Strona główna zasnęła w bezruchu, a Sanakan czuwała dalej.', 'Zostaw stronę główną na dłużej w spokoju.'],
-        'regen'     => ['Regeneracja', 'Trzy strzały z Emitera pod rząd rozłupały logo, a Sanakan się zregenerowała.', 'Jeden strzał z Emitera to za mało, żeby zranić Safeguarda.']
+        'regen'     => ['Regeneracja', 'Trzy strzały z Emitera pod rząd rozłupały logo, a Sanakan się zregenerowała.', 'Jeden strzał z Emitera to za mało, żeby zranić Safeguarda.'],
+        'killy'     => ['Spotkanie z Killym', 'Killy przeszedł przez stronę i dał się zatrzymać. Nic nie powiedział.', 'Czasem ktoś przechodzi dołem strony. Im więcej sekretów w rejestrze, tym częściej. Potem potrzeba refleksu.']
     ];
 
     // The finds of a time of the year, the same way (js/safeguard.js, js/home.js),
