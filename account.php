@@ -19,6 +19,8 @@
     // (proofs, as JSON, key => proof); the ones without are left out and
     // listed as rejected, for the browser to forget. New finds that could not
     // have been made (safeguardCheat()) flag the account's finds as cheated.
+    // It sends the password of the X-Safeguard header too, a find of the
+    // register (sendSafeguardHeader()), as every static page asks here.
     require __DIR__ . '/inc/auth.php';
     require __DIR__ . '/inc/megastructure.php';
     installDataErrorHandler();
@@ -40,7 +42,17 @@
             echo json_encode(['login' => true, 'error' => 'csrf']);
             exit;
         }
-        [$found, $rejected] = megaProvenFinds(safeguardSecret(), json_decode((string)($_POST['found'] ?? ''), true), json_decode((string)($_POST['proofs'] ?? ''), true));
+        $proofs = json_decode((string)($_POST['proofs'] ?? ''), true);
+        [$found, $rejected] = megaProvenFinds(safeguardSecret(), json_decode((string)($_POST['found'] ?? ''), true), $proofs, time());
+        // a proof another account sent first gives this one nothing
+        $claimed = $found ? megaClaimProofs($user['id'], $found, $proofs, time()) : [[], []];
+        if ($claimed === null) {
+            http_response_code(503);
+            echo json_encode(['login' => true, 'finds' => (object)safeguardFinds($user['id'])]);
+            exit;
+        }
+        [$found, $taken] = $claimed;
+        $rejected = array_merge($rejected, $taken);
         $before = safeguardFinds($user['id']);
         $finds = addSafeguardFinds($user['id'], $found, time());
         $cheat = $finds ? safeguardCheat($finds, array_keys(array_diff_key($finds, $before))) : null;

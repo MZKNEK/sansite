@@ -45,7 +45,8 @@
         assertSame(['door' => false, 'draught' => $route[1]], megastructureAnswer('a', ['at' => strtoupper($route[0]) . '/'], $noon), 'as the 404 page may show it');
         $zero = megastructureAnswer('a', ['at' => end($route)], $noon);
         assertSame(geneFragment('a', 2), $zero['zero']['fragment']);
-        assertSame(megaMaze('a'), $zero['zero']['maze']);
+        $maze = megaMaze('a');
+        assertSame(['width' => 2 * MEGA_MAZE_W + 1, 'height' => 2 * MEGA_MAZE_H + 1, 'start' => $maze['start'], 'sight' => megaSight('a', $maze['start'])], $zero['zero']['maze'], 'only what is seen from the way in');
         assertSame(megaProof('a', 'floor0', $noon->getTimestamp()), $zero['zero']['proof']);
     });
 
@@ -90,15 +91,20 @@
 
     test('the maze walked to its terminal gives the word for the console, a walk through a wall nothing', function () {
         $noon = megaAt(12, 0);
-        $walk = megaSolve(megaMaze('a'));
-        assertSame(['word' => megaConsoleWord('a')], megastructureAnswer('a', ['walk' => strtolower($walk)], $noon));
-        assertSame(['word' => megaConsoleWord('a')], megastructureAnswer('a', ['walk' => 'RL' . $walk], $noon), 'steps back are fine');
-        assertSame(['reached' => false], megastructureAnswer('a', ['walk' => substr($walk, 0, -1)], $noon), 'short of the terminal');
+        $maze = megaMaze('a');
+        $walk = megaSolve($maze);
+        $there = ['sight' => megaSight('a', $maze['end']), 'word' => megaConsoleWord('a')];
+        assertSame($there, megastructureAnswer('a', ['walk' => strtolower($walk)], $noon));
+        assertSame($there, megastructureAnswer('a', ['walk' => 'RL' . $walk], $noon), 'steps back are fine');
+        $short = megastructureAnswer('a', ['walk' => substr($walk, 0, -1)], $noon);
+        assertTrue(!isset($short['word']) && isset($short['sight']['end']), 'short of the terminal: it is seen, no word');
         assertSame(['reached' => false], megastructureAnswer('a', ['walk' => 'L' . $walk], $noon), 'out of the maze');
         assertSame(['reached' => false], megastructureAnswer('a', ['walk' => 'R' . str_repeat('U', 2 * MEGA_MAZE_H) . $walk], $noon), 'through a wall');
         assertSame(['reached' => false], megastructureAnswer('a', ['walk' => str_repeat('RL', MEGA_WALK_MAX) . $walk], $noon), 'too long');
-        assertSame(['reached' => false], megastructureAnswer('a', ['walk' => ''], $noon));
+        assertSame(['sight' => megaSight('a', $maze['start'])], megastructureAnswer('a', ['walk' => ''], $noon), 'no step: the way in');
         assertSame(['reached' => false], megastructureAnswer('a', ['walk' => 'X'], $noon));
+        assertSame([], megastructureAnswer('a', ['walk' => ['R']], $noon), 'only text counts');
+        assertSame(false, megaWalk('a', ''));
         assertTrue(megaWalk('b', megaSolve(megaMaze('b'))), 'every secret its own maze, each walkable');
     });
 
@@ -205,21 +211,118 @@
             assertSame(null, megaProofTime('a', 'gene', $wrong));
     });
 
-    test('account.php takes the finds of the way to the gene only with their proofs, at their time', function () {
+    test('account.php takes a find only with the proof the server gave, at its time', function () {
         $then = megaAt(3, 2)->getTimestamp();
-        // what the console trick sends: the finds without a proof
-        $found = ['builders' => 1, 'floor0' => 1, 'maze' => 1, 'paper' => 1, 'gene' => 1, 'admin' => 1, 'gbe' => 5];
-        assertSame([['gbe' => 5], MEGA_PROVEN_FINDS], megaProvenFinds('a', $found, null));
-        assertSame([['gbe' => 5], MEGA_PROVEN_FINDS], megaProvenFinds('a', $found, ['builders' => megaProof('b', 'builders', $then), 'gene' => megaProof('a', 'floor0', $then)]));
-        assertSame([['builders' => $then, 'gbe' => 5], ['floor0', 'maze', 'paper', 'gene', 'admin']],
-            megaProvenFinds('a', $found, ['builders' => megaProof('a', 'builders', $then)]), 'the time of the proof, not the one of the browser');
-        assertSame([[], []], megaProvenFinds('a', 'not an array', []));
-        assertSame([[], ['gene']], megaProvenFinds('', ['gene' => 1], ['gene' => megaProof('', 'gene', $then)]), 'no secret, no gene');
+        $now = $then + 60;
+        // what the console trick sends: finds without a proof
+        $found = ['builders' => 1, 'floor0' => 1, 'gene' => 1, 'gbe' => 5];
+        assertSame([[], ['builders', 'floor0', 'gene', 'gbe']], megaProvenFinds('a', $found, null, $now));
+        assertSame([[], ['builders', 'floor0', 'gene', 'gbe']], megaProvenFinds('a', $found, ['builders' => megaProof('b', 'builders', $then), 'gene' => megaProof('a', 'floor0', $then)], $now));
+        assertSame([['builders' => $then, 'gbe' => $then - 5], ['floor0', 'gene']],
+            megaProvenFinds('a', $found, ['builders' => megaProof('a', 'builders', $then), 'gbe' => megaProof('a', 'gbe', $then - 5)], $now), 'the time of the proof, not the one of the browser');
+        assertSame([[], ['gbe']], megaProvenFinds('a', ['gbe' => 1], ['gbe' => megaProof('a', 'gbe', $now + 60)], $now), 'not from the future');
+        assertSame([[], ['gbe']], megaProvenFinds('a', ['gbe' => 1], ['gbe' => megaProof('a', 'gbe', $now - (SAFEGUARD_FIND_DAYS + 1) * 86400)], $now), 'nor too old');
+        assertSame([[], []], megaProvenFinds('a', 'not an array', [], $now));
+        assertSame([[], ['gene']], megaProvenFinds('', ['gene' => 1], ['gene' => megaProof('', 'gene', $then)], $now), 'no secret, no gene');
     });
 
-    test('js/safeguard.js asks a proof of the same finds as MEGA_PROVEN_FINDS', function () {
-        $js = file_get_contents(dirname(__DIR__) . '/js/safeguard.js');
-        assertTrue((bool)preg_match('/var PROVEN = \{(.*?)\};/', $js, $block), 'the PROVEN list is in the script');
-        preg_match_all('/(\w+): 1/', $block[1], $keys);
-        assertSame(MEGA_PROVEN_FINDS, $keys[1]);
+    test('a proof counts for the first account that sends it', function () {
+        clearData();
+        $now = 1760000000;
+        $proofs = ['gbe' => megaProof('a', 'gbe', $now - 10), 'lost' => megaProof('a', 'lost', $now - 5)];
+        $finds = ['gbe' => $now - 10, 'lost' => $now - 5];
+        assertSame([$finds, []], megaClaimProofs('111', $finds, $proofs, $now));
+        assertSame([$finds, []], megaClaimProofs('111', $finds, $proofs, $now), 'its own again');
+        assertSame([[], ['gbe', 'lost']], megaClaimProofs('222', $finds, $proofs, $now), 'passed on, worth nothing');
+        $later = $now + (SAFEGUARD_FIND_DAYS + 1) * 86400;
+        megaClaimProofs('333', [], [], $later);
+        assertSame([], readData('proofs'), 'forgotten once too old to count anyway');
+    });
+
+    test('the finds made in the browser get a proof only when the server can believe them', function () {
+        $noon = megaAt(12, 0);
+        $time = $noon->getTimestamp();
+        $witness = function ($query, $at = null, $preview = false) use ($noon) {
+            return megastructureAnswer('a', $query, $at ?? $noon, $preview);
+        };
+        foreach (MEGA_PLAIN_FINDS as $key)
+            assertSame(['proof' => megaProof('a', $key, $time)], $witness(['witness' => $key]), $key);
+        assertSame(['denied' => true], $witness(['witness' => 'made-up']));
+        assertSame(['denied' => true], $witness(['witness' => 'gene']), 'the way to the gene has its own answers');
+
+        // the seasonal ones on their day only, give or take the time zones
+        assertSame(['denied' => true], $witness(['witness' => 'halloween']));
+        $halloween = new DateTimeImmutable('2026-10-31 12:00', new DateTimeZone('Europe/Warsaw'));
+        assertTrue(isset($witness(['witness' => 'halloween'], $halloween)['proof']));
+        assertTrue(isset($witness(['witness' => 'halloween'], $halloween->modify('+20 hours'))['proof']), 'still 31 October in America');
+        assertSame(['denied' => true], $witness(['witness' => 'halloween'], $halloween->modify('+2 days')));
+        assertTrue(isset($witness(['witness' => 'xmas'], null, true)['proof']), 'the preview pretends any day');
+
+        // the header's password, from the secret
+        assertTrue((bool)preg_match('/^toha-[0-9a-f]{4}$/', megaHeaderWord('a')));
+        assertTrue(megaHeaderWord('a') !== megaHeaderWord('b'));
+        assertSame(['denied' => true], $witness(['witness' => 'header', 'word' => 'toha']));
+        assertSame(['proof' => megaProof('a', 'header', $time)], $witness(['witness' => 'header', 'word' => strtoupper(megaHeaderWord('a'))]));
+    });
+
+    test('the idle page and the Emitter need the time they take since their ticket', function () {
+        $noon = megaAt(12, 0);
+        $ticket = function ($kind, $at) { return megastructureAnswer('a', ['ticket' => $kind], $at)['ticket'] ?? null; };
+        $witness = function ($key, $ticket, $at, $preview = false) {
+            return isset(megastructureAnswer('a', ['witness' => $key, 'ticket' => $ticket], $at, $preview)['proof']);
+        };
+        $idle = $ticket('idle', $noon);
+        assertSame(false, $witness('idle', $idle, $noon->modify('+60 seconds')), 'too soon');
+        assertSame(true, $witness('idle', $idle, $noon->modify('+3 minutes')));
+        assertSame(true, $witness('idle', $idle, $noon->modify('+5 seconds'), true), 'the preview waits less');
+        assertSame(false, $witness('idle', $idle, $noon->modify('+2 days')), 'too old');
+        assertSame(false, $witness('idle', $idle, $noon->modify('-10 seconds')), 'from the future');
+        $gbe = $ticket('gbe', $noon);
+        assertSame(false, $witness('gbe', $gbe, $noon));
+        assertSame(true, $witness('gbe', $gbe, $noon->modify('+3 seconds')));
+        assertSame(false, $witness('regen', $gbe, $noon->modify('+3 seconds')), 'three shots take longer');
+        assertSame(true, $witness('regen', $gbe, $noon->modify('+13 seconds')));
+        assertSame(false, $witness('gbe', $idle, $noon->modify('+3 minutes')), 'a ticket of another kind');
+        assertSame(false, $witness('idle', null, $noon->modify('+3 minutes')));
+        assertSame(['none' => true], megastructureAnswer('a', ['ticket' => 'gene'], $noon));
+    });
+
+    test('Killy walks in one slot in MEGA_KILLY_CHANCE, the same for everyone', function () {
+        $start = megaAt(12, 0)->getTimestamp();
+        $walks = 0;
+        $slots = 500;
+        $first = null;
+        for ($i = 0; $i < $slots; $i++) {
+            $at = (new DateTimeImmutable('@' . ($start + $i * MEGA_KILLY_SLOT)));
+            $answer = megastructureAnswer('a', ['ticket' => 'killy'], $at);
+            assertSame(megaKillyWalks('a', $at->getTimestamp()), isset($answer['ticket']));
+            if (isset($answer['ticket'])) {
+                $walks++;
+                $first = $first ?? [$answer['ticket'], $at];
+            }
+        }
+        assertTrue($walks > $slots / MEGA_KILLY_CHANCE / 2 && $walks < $slots / MEGA_KILLY_CHANCE * 2, 'about one in ' . MEGA_KILLY_CHANCE . ': ' . $walks);
+        assertTrue(isset(megastructureAnswer('a', ['witness' => 'killy', 'ticket' => $first[0]], $first[1]->modify('+10 seconds'))['proof']));
+        assertSame(['denied' => true], megastructureAnswer('a', ['witness' => 'killy', 'ticket' => $first[0]], $first[1]->modify('+1 hour')), 'a ticket of long ago');
+        assertTrue(isset(megastructureAnswer('a', ['ticket' => 'killy'], megaAt(12, 0), true)['ticket']), 'the preview sends him always');
+    });
+
+    test('what is seen in the maze is only what is near, the terminal only once close', function () {
+        $maze = megaMaze('a');
+        $sight = megaSight('a', $maze['start']);
+        assertTrue(count($sight['rows']) <= 2 * MEGA_SIGHT + 1 && strlen($sight['rows'][0]) <= 2 * MEGA_SIGHT + 1);
+        assertSame(0, $sight['x'], 'cut at the left edge');
+        foreach ($sight['rows'] as $dy => $row)
+            assertSame(substr($maze['rows'][$sight['y'] + $dy], 0, strlen($row)), $row);
+        assertTrue(!isset($sight['end']), 'the terminal is far from the way in');
+        assertSame($maze['end'], megaSight('a', $maze['end'])['end']);
+        assertSame(null, megaWalkTo('a', 'L'), 'out of the way in');
+        assertSame($maze['start'], megaWalkTo('a', ''));
+    });
+
+    test('js/safeguard.js witnesses through megastructure.php the finds it makes itself', function () {
+        $js = '';
+        foreach (['safeguard', 'home', '404', 'netsphere'] as $name)
+            $js .= file_get_contents(dirname(__DIR__) . '/js/' . $name . '.js');
+        assertSame(0, preg_match_all("/found\('[a-z0-9]+'\)/", $js), 'no find noted without a proof');
     });

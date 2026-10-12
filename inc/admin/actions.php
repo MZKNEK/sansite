@@ -330,7 +330,7 @@
                 $reason = cutText(trim((string)($_POST['note'] ?? '')), 120);
                 if (!setSafeguardFlag($id, $flag ? ($reason !== '' ? $reason : 'Oznaczone przez administratora.') : null, (string)$user['id']))
                     reply(false, dataError(), 500);
-                done('safeguard', ($flag ? 'Oflagowano jako oszukane' : 'Zdjęto flagę oszustwa z') . ' wpisy w rejestrze Safeguarda ' . accountLabel($id, $logins) . '.');
+                done('safeguard', ($flag ? 'Oflagowano jako oszukane wpisy' : 'Zdjęto flagę oszustwa z wpisów') . ' w rejestrze Safeguarda ' . accountLabel($id, $logins) . '.');
         }
 
         reply(false, 'Nieznana akcja.', 400);

@@ -112,7 +112,7 @@ document.getElementById('lost').textContent = path;
   document.getElementById('mega-note').textContent = NOTES[pick(NOTES.length)];
   document.getElementById('mega').hidden = false;
 
-  if (window.SanakanSafeguard) SanakanSafeguard.found('lost');
+  if (window.SanakanSafeguard) SanakanSafeguard.witness('lost');
 
   // ---- The way to the Net Terminal Gene (inc/megastructure.php) ----
   // The server says whether this address is more than a dead end: at the
@@ -139,10 +139,11 @@ document.getElementById('lost').textContent = path;
   // Floor zero: a maze in the dark, the visitor at its way in on the left and
   // a terminal (T) deep inside. The arrows or WASD take a step, a swipe runs
   // on to the next turn; nothing on the page says so. Only what is near
-  // shows, what was seen stays dim. At the terminal the walk, without its
-  // steps back, goes to megastructure.php, which checks it and gives a word
-  // for the Safeguard in the console.
-  var SIGHT = 3;   // characters around the visitor that show
+  // shows, what was seen stays dim. The page never has the whole maze: after
+  // each step the walk so far, without its steps back, goes to
+  // megastructure.php, which checks it and answers with what is seen where
+  // it ends, and at the terminal with a word for the Safeguard in the console.
+  var SIGHT = 3;   // characters around the visitor that show (MEGA_SIGHT)
   var STEPS = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] };
   var BACK = { U: 'D', D: 'U', L: 'R', R: 'L' };
   var KEYS = { arrowup: 'U', arrowdown: 'D', arrowleft: 'L', arrowright: 'R', w: 'U', s: 'D', a: 'L', d: 'R' };
@@ -157,40 +158,78 @@ document.getElementById('lost').textContent = path;
     sg.fragment(2, zero.fragment);
     sg.found('floor0', zero.proof);
 
-    var rows = zero.maze.rows;
-    var end = zero.maze.end;
+    var width = zero.maze.width, height = zero.maze.height;
     var x = zero.maze.start[0], y = zero.maze.start[1];
+    var known = {};     // "x,y" => the character seen there
+    var end = null;     // the terminal, once seen
     var path = [];
-    var seen = {};
     var done = false;
+    var asking = false; // a walk on its way to the server
+    var again = false;  // and a newer one to send after it
+    var running = null; // the way a swipe runs on, while it waits to see
     var map = document.getElementById('mega-map');
     map.classList.add('mega-maze');
 
+    function learn(sight) {
+      sight.rows.forEach(function (row, dy) {
+        for (var dx = 0; dx < row.length; dx++) known[(sight.x + dx) + ',' + (sight.y + dy)] = row[dx];
+      });
+      if (sight.end) end = sight.end;
+    }
+
     function open(cx, cy) {
-      return (rows[cy] || '')[cx] === ' ';
+      return known[cx + ',' + cy] === ' ';
     }
 
     function draw() {
-      for (var dy = -SIGHT; dy <= SIGHT; dy++)
-        for (var dx = -SIGHT; dx <= SIGHT; dx++) seen[(x + dx) + ',' + (y + dy)] = true;
       var html = '';
-      rows.forEach(function (row, ry) {
+      for (var ry = 0; ry < height; ry++) {
         var dim = false;
-        for (var rx = 0; rx < row.length; rx++) {
+        for (var rx = 0; rx < width; rx++) {
+          var seen = known[rx + ',' + ry];
           var near = Math.abs(rx - x) <= SIGHT && Math.abs(ry - y) <= SIGHT;
-          var shade = !near && seen[rx + ',' + ry];
+          var shade = !near && seen !== undefined;
           if (shade !== dim) {
             html += shade ? '<span class="mega-dim">' : '</span>';
             dim = shade;
           }
           if (rx === x && ry === y) html += '<b class="mega-you">@</b>';
-          else if (rx === end[0] && ry === end[1]) html += '<b class="mega-end">T</b>';
-          else html += near || shade ? row[rx] : ' ';
+          else if (end && rx === end[0] && ry === end[1]) html += '<b class="mega-end">T</b>';
+          else html += seen === '#' ? '#' : ' ';
         }
         if (dim) html += '</span>';
-        if (ry < rows.length - 1) html += '\n';
-      });
+        if (ry < height - 1) html += '\n';
+      }
       map.innerHTML = html;
+    }
+
+    // the walk so far to the server, one at a time, the newest last
+    function ask() {
+      if (asking) {
+        again = true;
+        return;
+      }
+      asking = true;
+      sg.mega({ walk: path.join('') }).then(function (answer) {
+        asking = false;
+        if (answer && answer.sight) {
+          learn(answer.sight);
+          draw();
+          if (answer.word && !done) {
+            done = true;
+            running = null;
+            var word = line('mega-secret', 'Terminal piętra zero. Na ekranie jedno słowo dla Safeguarda: ');
+            word.appendChild(code(answer.word));
+            return;
+          }
+        }
+        if (again) {
+          again = false;
+          ask();
+        } else if (running) {
+          keepRunning();
+        }
+      });
     }
 
     function move(dir) {
@@ -200,30 +239,29 @@ document.getElementById('lost').textContent = path;
       if (path.length && path[path.length - 1] === BACK[dir]) path.pop();
       else path.push(dir);
       draw();
-      if (x === end[0] && y === end[1]) reach();
+      ask();
       return true;
     }
 
-    // on along a corridor, until it turns, splits or ends
-    function run(dir) {
-      if (!move(dir)) return;
+    // on along a corridor, until it turns, splits or ends; where it has not
+    // been seen yet, on once the server has shown it
+    function keepRunning() {
+      var dir = running;
       var sides = dir === 'U' || dir === 'D' ? ['L', 'R'] : ['U', 'D'];
-      while (!done && !sides.some(function (s) { return open(x + STEPS[s][0], y + STEPS[s][1]); }) && move(dir)) {
-        // each step drawn by move()
+      while (!done && running === dir) {
+        if (sides.some(function (s) { return open(x + STEPS[s][0], y + STEPS[s][1]); })) break;
+        var ahead = known[(x + STEPS[dir][0]) + ',' + (y + STEPS[dir][1])];
+        if (ahead === undefined) return;
+        if (!move(dir)) break;
       }
+      running = null;
     }
 
-    function reach() {
-      done = true;
-      sg.mega({ walk: path.join('') }).then(function (answer) {
-        if (!answer || !answer.word) {
-          // no answer: one step away and back asks again
-          done = false;
-          return;
-        }
-        var word = line('mega-secret', 'Terminal piętra zero. Na ekranie jedno słowo dla Safeguarda: ');
-        word.appendChild(code(answer.word));
-      });
+    function run(dir) {
+      running = null;
+      if (!move(dir)) return;
+      running = dir;
+      keepRunning();
     }
 
     document.addEventListener('keydown', function (e) {
@@ -233,6 +271,7 @@ document.getElementById('lost').textContent = path;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (document.body.classList.contains('ns-open') || document.body.classList.contains('pl-open')) return;
       e.preventDefault();
+      running = null;
       move(dir);
     });
 
@@ -248,6 +287,7 @@ document.getElementById('lost').textContent = path;
       run(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U'));
     });
 
+    learn(zero.maze.sight);
     draw();
   }
 

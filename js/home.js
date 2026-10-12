@@ -187,7 +187,7 @@ function homeSay(wrap, text, ms) {
     var answer = REPLIES[heard] || AGAIN;
     busy = true;
     var sent = 300 + send(answer, 300, FAST) - PAUSE * FAST;
-    if (REPLIES[heard] && window.SanakanSafeguard) SanakanSafeguard.found('morse');
+    if (REPLIES[heard] && window.SanakanSafeguard) SanakanSafeguard.witness('morse');
 
     setTimeout(function () {
       motto.classList.add('decoded');
@@ -271,7 +271,7 @@ function homeSay(wrap, text, ms) {
     say.setAttribute('role', 'status');
     say.textContent = 'Safeguard nie obchodzi świąt. Ale dziękuje za pamięć.';
     wrap.appendChild(say);
-    if (window.SanakanSafeguard) SanakanSafeguard.found('xmas');
+    if (window.SanakanSafeguard) SanakanSafeguard.witness('xmas');
     setTimeout(function () { say.remove(); }, 4500);
   });
 })();
@@ -375,7 +375,7 @@ function homeSay(wrap, text, ms) {
     say.setAttribute('role', 'status');
     say.textContent = 'Sanakan kończy dziś ' + age(years) + '. Safeguard nie świętuje, ale odnotował.';
     wrap.appendChild(say);
-    if (window.SanakanSafeguard) SanakanSafeguard.found('birthday');
+    if (window.SanakanSafeguard) SanakanSafeguard.witness('birthday');
     setTimeout(function () { say.remove(); }, 5000);
   });
 })();
@@ -406,7 +406,7 @@ function homeSay(wrap, text, ms) {
     var r = rocket.getBoundingClientRect();
     if (window.SanakanSafeguard) {
       SanakanSafeguard.fireworks(7, { x: r.left + r.width / 2, y: r.top });
-      SanakanSafeguard.found('newyear');
+      SanakanSafeguard.witness('newyear');
     }
     homeSay(wrap, 'Nowy cykl Megastruktury. Safeguard odnotował.', 4500);
     setTimeout(function () {
@@ -529,7 +529,7 @@ function homeSay(wrap, text, ms) {
       points[who]++;
       showScore();
       if (who === 0) {
-        if (window.SanakanSafeguard) SanakanSafeguard.found('aprilfools');
+        if (window.SanakanSafeguard) SanakanSafeguard.witness('aprilfools');
         note.textContent = 'Safeguard przepuścił piłkę. To się nie powtórzy.';
       } else {
         note.textContent = 'Punkt dla Safeguarda.';
@@ -648,8 +648,10 @@ function homeSay(wrap, text, ms) {
 
 // Left alone for a few minutes, the page falls asleep: everything goes dark
 // and grey but Sanakan herself, whose eyes glow faintly. Anything done wakes
-// it. The first time it is a find of the Safeguard's register. To try it out,
-// localStorage "safeguard-idle" set to a number of seconds sleeps sooner.
+// it. The first time it is a find of the Safeguard's register, with a ticket
+// of when the page opened, so the server sees the minutes it took (only the
+// preview's takes fewer). To try it out, localStorage "safeguard-idle" set to
+// a number of seconds sleeps sooner.
 (function () {
   var IDLE = 3 * 60 * 1000;  // ms without anything done
   var CHECK = 5000;          // ms between the looks at the clock
@@ -664,6 +666,9 @@ function homeSay(wrap, text, ms) {
   }
   var body = document.body;
   var last = Date.now();
+  var pass = null;
+  var sg = window.SanakanSafeguard;
+  if (sg && !(sg.finds().idle)) sg.ticket('idle').then(function (got) { pass = got; });
   var veil = document.createElement('div');
   veil.className = 'idle-veil';
   veil.setAttribute('aria-hidden', 'true');
@@ -681,7 +686,7 @@ function homeSay(wrap, text, ms) {
   setInterval(function () {
     if (body.classList.contains('idle') || Date.now() - last < IDLE) return;
     body.classList.add('idle');
-    if (window.SanakanSafeguard) SanakanSafeguard.found('idle');
+    if (sg && pass) sg.witness('idle', { ticket: pass });
   }, CHECK);
 })();
 
@@ -725,12 +730,19 @@ function homeSay(wrap, text, ms) {
   var GAP = 15000;       // ms at most between two shots of a row
   var shots = [];        // the times of the shots of this row
   var broken = false;    // while the logo is split and growing back
+  // the server's tickets of when the shot held now and the first shot of the
+  // row began, for the finds of the shot and of the broken logo
+  var held = null, row = null;
 
   function hold(e) {
     if (e.button > 0 || broken) return;
     pressed = Date.now();
     dot.classList.add('charging');
     timer = setTimeout(fire, 3000);
+    held = null;
+    var finds = window.SanakanSafeguard ? SanakanSafeguard.finds() : null;
+    if (finds && !(finds.gbe && finds.regen))
+      SanakanSafeguard.ticket('gbe').then(function (got) { held = got; });
   }
 
   function release() {
@@ -745,6 +757,7 @@ function homeSay(wrap, text, ms) {
     release();
     var now = Date.now();
     if (shots.length && now - shots[shots.length - 1] > GAP) shots = [];
+    if (!shots.length) row = held;
     shots.push(now);
     if (shots.length >= SERIES) {
       shots = [];
@@ -763,7 +776,7 @@ function homeSay(wrap, text, ms) {
     document.body.classList.add('gbe-shot');
     dot.classList.add('recoil');
     // a find of the Safeguard's register (js/safeguard.js)
-    if (window.SanakanSafeguard) SanakanSafeguard.found('gbe');
+    if (window.SanakanSafeguard && held) SanakanSafeguard.witness('gbe', { ticket: held });
     setTimeout(function () {
       document.body.classList.remove('gbe-shot');
       dot.classList.remove('recoil');
@@ -868,7 +881,7 @@ function homeSay(wrap, text, ms) {
       regen.remove();
       wrap.classList.remove('broken', 'regenerating');
       broken = false;
-      if (window.SanakanSafeguard) SanakanSafeguard.found('regen');
+      if (window.SanakanSafeguard && row) SanakanSafeguard.witness('regen', { ticket: row });
     }, 3800);
   }
 

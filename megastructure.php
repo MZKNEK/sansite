@@ -10,12 +10,16 @@
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
     header('X-Robots-Tag: noindex');
+    sendSafeguardHeader();
 
     $secret = safeguardSecret();
     $now = new DateTimeImmutable('now');
+    // the preview also skips the waits and the days of the finds the server
+    // witnesses (megaWitness())
+    $preview = defined('SAFEGUARD_PRETEND_TIME') && SAFEGUARD_PRETEND_TIME;
     // only the preview (tools/preview/config.php) lets the cookie "safeguard-time",
     // "HH:MM" Polish time, pretend the hour, to try out the Builders' door
-    if (defined('SAFEGUARD_PRETEND_TIME') && SAFEGUARD_PRETEND_TIME
+    if ($preview
         && preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', (string)($_COOKIE['safeguard-time'] ?? ''), $time))
         $now = new DateTimeImmutable('today ' . $time[1] . ':' . $time[2], new DateTimeZone('Europe/Warsaw'));
-    echo json_encode(megastructureAnswer($secret, $_GET, $now), JSON_UNESCAPED_UNICODE);
+    echo json_encode(megastructureAnswer($secret, $_GET, $now, $preview), JSON_UNESCAPED_UNICODE);

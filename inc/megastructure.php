@@ -24,9 +24,12 @@
     // out, each where it belongs. Without the secret there is no gene to find.
     //
     // A find is noted in the browser (js/safeguard.js), where anyone could note
-    // any of them from the console. The finds of the way to the gene are the
+    // any of them from the console, so every find of the register is the
     // server's to give: each answer that makes one carries a proof of it, and
-    // account.php notes them for an account only with one (megaProvenFinds()).
+    // account.php notes it for an account only with one (megaProvenFinds()).
+    // The finds of the way to the gene are made here; the others the server
+    // witnesses as well as it can (megaWitness()). Floor zero's maze is never
+    // given whole either: a walk in it shows only what is near its end.
 
     const GENE_FRAGMENTS = 4;
     // the corridor's addresses before floor zero
@@ -41,10 +44,14 @@
     const MEGA_MAZE_H = 9;
     // the longest walk the maze takes, in steps
     const MEGA_WALK_MAX = 4000;
+    // how far the visitor sees in the maze, in characters each way
+    const MEGA_SIGHT = 3;
 
-    // SAFEGUARD_SECRET, or '' without one
+    // SAFEGUARD_SECRET, or '' without one; inc/config.php is read first
     function safeguardSecret()
     {
+        authConfigured();
+
         return defined('SAFEGUARD_SECRET') ? (string)SAFEGUARD_SECRET : '';
     }
 
@@ -161,25 +168,53 @@
         return $made[$secret] = ['rows' => array_map('implode', $grid), 'start' => $start, 'end' => $far[0]];
     }
 
-    // whether a walk, "RRDL…" (up, down, left, right), goes from the way in
-    // through the corridors only and ends at the terminal
-    function megaWalk($secret, $moves)
+    // where a walk, "RRDL…" (up, down, left, right), from the way in through
+    // the corridors only ends, [x, y], or null when it goes through a wall;
+    // an empty walk stays at the way in
+    function megaWalkTo($secret, $moves)
     {
         $moves = strtoupper((string)$moves);
-        if ($moves === '' || strlen($moves) > MEGA_WALK_MAX || !preg_match('/^[UDLR]+$/', $moves))
-            return false;
+        if (strlen($moves) > MEGA_WALK_MAX || !preg_match('/^[UDLR]*$/', $moves))
+            return null;
 
         $maze = megaMaze($secret);
         $steps = ['U' => [0, -1], 'D' => [0, 1], 'L' => [-1, 0], 'R' => [1, 0]];
         [$x, $y] = $maze['start'];
-        foreach (str_split($moves) as $move) {
+        foreach ($moves === '' ? [] : str_split($moves) as $move) {
             $x += $steps[$move][0];
             $y += $steps[$move][1];
             if (($maze['rows'][$y][$x] ?? '#') !== ' ')
-                return false;
+                return null;
         }
 
-        return [$x, $y] === $maze['end'];
+        return [$x, $y];
+    }
+
+    // whether a walk goes through the corridors to the terminal
+    function megaWalk($secret, $moves)
+    {
+        return (string)$moves !== '' && megaWalkTo($secret, $moves) === megaMaze($secret)['end'];
+    }
+
+    // What is seen from a place of the maze: ['x', 'y' of the top left corner,
+    // 'rows' => up to MEGA_SIGHT characters each way, cut at the edges], with
+    // 'end' => [x, y] when the terminal is among them
+    function megaSight($secret, $at)
+    {
+        $maze = megaMaze($secret);
+        $x0 = max(0, $at[0] - MEGA_SIGHT);
+        $y0 = max(0, $at[1] - MEGA_SIGHT);
+        $x1 = min(strlen($maze['rows'][0]) - 1, $at[0] + MEGA_SIGHT);
+        $y1 = min(count($maze['rows']) - 1, $at[1] + MEGA_SIGHT);
+        $rows = [];
+        for ($y = $y0; $y <= $y1; $y++)
+            $rows[] = substr($maze['rows'][$y], $x0, $x1 - $x0 + 1);
+        $sight = ['x' => $x0, 'y' => $y0, 'rows' => $rows];
+        [$ex, $ey] = $maze['end'];
+        if ($ex >= $x0 && $ex <= $x1 && $ey >= $y0 && $ey <= $y1)
+            $sight['end'] = $maze['end'];
+
+        return $sight;
     }
 
     // whether the Builders' door is open at a time (a DateTimeImmutable), in
@@ -294,14 +329,14 @@
     }
 
     // ---- Proofs of the finds ---------------------------------------------------------
-    // Each answer of megastructureAnswer() that makes one of these finds
-    // carries 'proof', "<time>.<signature>", the server's time and the find
-    // signed with the secret. The browser keeps it with the find and sends it
-    // with it; the time of the proof is the time of the find, so none comes
-    // earlier than the server gave it (the ranking puts who got there first
-    // ahead). A proof can be passed on, as the gene itself can; it only keeps
-    // the register from taking a find the server never gave.
-    const MEGA_PROVEN_FINDS = ['builders', 'floor0', 'maze', 'paper', 'gene', 'admin'];
+    // Every find of the register needs a proof of it, "<time>.<signature>", the
+    // server's time and the find signed with the secret, given by the answer
+    // of megastructureAnswer() that makes it. The browser keeps it with the
+    // find and sends it with it, and account.php notes a find only with a right
+    // proof, at its time, so none comes earlier than the server gave it (the
+    // ranking puts who got there first ahead, and the Safeguard's check of
+    // finds made at once, safeguardCheat(), counts on these times). A proof
+    // counts for one account only (megaClaimProofs()).
 
     function megaProof($secret, $key, $time)
     {
@@ -318,47 +353,177 @@
     }
 
     // The finds of a browser, key => time, as account.php notes them, with
-    // their proofs, key => proof: those of MEGA_PROVEN_FINDS only with a right
-    // proof and at its time, the rest as they are. Returns [the finds, the
-    // keys left out], so the browser can forget those.
-    function megaProvenFinds($secret, $found, $proofs)
+    // their proofs, key => proof: only those with a right proof, at its time,
+    // and not older than SAFEGUARD_FIND_DAYS. Returns [the finds, the keys
+    // left out], so the browser can forget those.
+    function megaProvenFinds($secret, $found, $proofs, $now)
     {
         if (!is_array($found))
             return [[], []];
         $proofs = is_array($proofs) ? $proofs : [];
         $finds = [];
         $left = [];
-        foreach ($found as $key => $time) {
+        foreach (array_keys($found) as $key) {
             $key = (string)$key;
-            if (in_array($key, MEGA_PROVEN_FINDS, true)) {
-                $time = megaProofTime($secret, $key, $proofs[$key] ?? null);
-                if ($time === null) {
-                    $left[] = $key;
-                    continue;
-                }
-            }
-            $finds[$key] = $time;
+            $time = megaProofTime($secret, $key, $proofs[$key] ?? null);
+            if ($time === null || $time > $now || $time < $now - SAFEGUARD_FIND_DAYS * 86400)
+                $left[] = $key;
+            else
+                $finds[$key] = $time;
         }
 
         return [$finds, $left];
     }
 
+    // A proof counts for the first account that sends it, so one passed on
+    // gives nobody else the find: inc/data/proofs.json keeps signature => [ID,
+    // time] while the proof is young enough to count. $finds are those of
+    // megaProvenFinds(). Returns [the finds, the keys left out, as another
+    // account has their proof], or null when it could not be saved.
+    function megaClaimProofs($id, $finds, $proofs, $now)
+    {
+        $id = (string)$id;
+        $saved = updateData('proofs', function (&$all) use ($id, $finds, $proofs, $now) {
+            foreach ($all as $sig => $entry)
+                if (!is_array($entry) || (int)($entry[1] ?? 0) < $now - SAFEGUARD_FIND_DAYS * 86400)
+                    unset($all[$sig]);
+            $left = [];
+            foreach ($finds as $key => $time) {
+                $sig = (string)$proofs[$key];
+                if (isset($all[$sig]) && (string)$all[$sig][0] !== $id) {
+                    unset($finds[$key]);
+                    $left[] = $key;
+                } else {
+                    $all[$sig] = [$id, $time];
+                }
+            }
+
+            return [$finds, $left];
+        }, $result);
+
+        return $saved ? $result : null;
+    }
+
+    // ---- What the server witnesses -------------------------------------------------
+    // Most finds happen in the browser alone, where the server cannot see them
+    // made, so it checks what it can before it gives their proof (?witness=):
+    //   - a seasonal find, its day (Polish time, give or take MEGA_DAY_SLACK
+    //     hours for the browsers of other time zones);
+    //   - the idle home page, the Emitter held and the logo broken, the time
+    //     they took, from a ticket the browser got when they began (?ticket=);
+    //   - Killy, the server's own roll: a ticket only in one slot of
+    //     MEGA_KILLY_SLOT seconds in MEGA_KILLY_CHANCE, the same for everyone;
+    //   - the password of the X-Safeguard header, which comes from the secret.
+    // The others (the scan, the console, the Konami code, the lore, the
+    // network lost, the Morse code, the 404) are as easy to make as to fake;
+    // their proof only puts the server's time on them.
+
+    // the seconds a ticket of a find has to be old before it counts, and the
+    // most it may be
+    const MEGA_TICKETS = [
+        'idle' => ['idle', 170, 86400],
+        // held 3 seconds, a second less for the way of the ticket
+        'gbe' => ['gbe', 2, 120],
+        // three shots in a row, each held 3 seconds, and the logo growing back
+        'regen' => ['gbe', 10, 300],
+        'killy' => ['killy', 0, 300]
+    ];
+    const MEGA_KILLY_SLOT = 20;
+    const MEGA_KILLY_CHANCE = 5;
+    const MEGA_DAY_SLACK = 14;
+    // the finds the server gives a proof of when asked
+    const MEGA_PLAIN_FINDS = ['netsphere', 'lost', 'console', 'silicon', 'lore', 'offline', 'morse'];
+
+    // the password of the X-Safeguard header, "toha-" and four characters of the secret
+    function megaHeaderWord($secret)
+    {
+        return 'toha-' . substr(megaHash($secret, 'header'), 0, 4);
+    }
+
+    // The header itself, sent by account.php (which every static page asks)
+    // and megastructure.php; nginx sends the rest of it, without the password
+    // (server/nginx/sanakan-headers.conf). Nothing without the secret.
+    function sendSafeguardHeader()
+    {
+        $secret = safeguardSecret();
+        if ($secret !== '' && !headers_sent())
+            header('X-Safeguard-Haslo-Awaryjne: ' . megaHeaderWord($secret));
+    }
+
+    // whether Killy walks in the slot of a time, the same for every visitor
+    function megaKillyWalks($secret, $time)
+    {
+        return megaPick($secret, 'killy', intdiv($time, MEGA_KILLY_SLOT), MEGA_KILLY_CHANCE) === 0;
+    }
+
+    // whether it is a seasonal find's day at a time, in Poland or in a time
+    // zone up to MEGA_DAY_SLACK hours away
+    function megaSeason($key, $now)
+    {
+        foreach ([-MEGA_DAY_SLACK, 0, MEGA_DAY_SLACK] as $hours)
+            if (in_array($key, safeguardHolidays($now->setTimezone(new DateTimeZone('Europe/Warsaw'))->modify(($hours >= 0 ? '+' : '') . $hours . ' hours')), true))
+                return true;
+
+        return false;
+    }
+
+    // The proof of a find the browser says it made, or null when the server
+    // does not believe it: $query has 'witness' (the key) and, for some, the
+    // 'ticket' or the 'word'. $preview skips the waiting and the days, to try
+    // it out (tools/preview).
+    function megaWitness($secret, array $query, $now, $preview = false)
+    {
+        $key = (string)$query['witness'];
+        $time = $now->getTimestamp();
+        if (in_array($key, MEGA_PLAIN_FINDS, true))
+            $ok = true;
+        elseif (isset(SAFEGUARD_SEASONAL[$key]))
+            $ok = $preview || megaSeason($key, $now);
+        elseif ($key === 'header')
+            $ok = hash_equals(megaHeaderWord($secret), strtolower(trim((string)($query['word'] ?? ''))));
+        elseif (isset(MEGA_TICKETS[$key])) {
+            [$kind, $wait, $life] = MEGA_TICKETS[$key];
+            $since = megaProofTime($secret, 'ticket:' . $kind, $query['ticket'] ?? null);
+            $ok = $since !== null && $since <= $time && $time - $since <= $life && ($preview || $time - $since >= $wait);
+        } else
+            $ok = false;
+
+        return $ok ? megaProof($secret, $key, $time) : null;
+    }
+
+    // A ticket of when something began: idle, gbe (an Emitter's shot held,
+    // whose first of a row is the regen's too) or killy, which only the slots
+    // Killy walks in give (always in the preview). Null when there is none.
+    function megaTicket($secret, $kind, $now, $preview = false)
+    {
+        $time = $now->getTimestamp();
+        if (!in_array($kind, ['idle', 'gbe', 'killy'], true) || ($kind === 'killy' && !$preview && !megaKillyWalks($secret, $time)))
+            return null;
+
+        return megaProof($secret, 'ticket:' . $kind, $time);
+    }
+
     // The answer of megastructure.php to one question of its query:
     //   at=<address>  the 404 page: whether the door is open, the draught of a
-    //                 corridor's address, floor zero and its maze, the archive
+    //                 corridor's address, floor zero (with what is seen from
+    //                 the maze's way in), the archive
     //   door          the door opened: the first fragment and the corridor
-    //   walk=<moves>  the maze walked: the word for the console
+    //   walk=<moves>  a walk in the maze: what is seen where it ends, and the
+    //                 word for the console when that is the terminal
     //   ask=<word>    a word said in the console: the third fragment
     //   paper=<word>  the same word, from a page about to be printed: the fourth
     //   gene=<code>   the sequence given to the terminal: right or not
     //   enter=<code>  the gene given to enter the Netsphere: the archive's address
     //   record=<text> the archive's last record, deciphered: right or not
+    //   ticket=<kind> when something began (megaTicket())
+    //   witness=<key> a find made in the browser (megaWitness())
     // Each answer that makes a find carries its proof (megaProof()). Anything
-    // else, or no secret, is an empty answer.
-    function megastructureAnswer($secret, array $query, $now)
+    // else, or no secret, is an empty answer; only text counts in the query.
+    function megastructureAnswer($secret, array $query, $now, $preview = false)
     {
         if ((string)$secret === '')
             return [];
+        $query = array_filter($query, 'is_string');
         $proof = function ($key) use ($secret, $now) {
             return megaProof($secret, $key, $now->getTimestamp());
         };
@@ -370,9 +535,14 @@
             $answer = ['door' => buildersHour($now)];
             if ($step !== false && $step < MEGA_ROUTE_STEPS)
                 $answer['draught'] = $route[$step + 1];
-            elseif ($step === MEGA_ROUTE_STEPS)
-                $answer['zero'] = ['fragment' => geneFragment($secret, 2), 'maze' => megaMaze($secret), 'proof' => $proof('floor0')];
-            elseif ($path === megaArchivePath($secret)) {
+            elseif ($step === MEGA_ROUTE_STEPS) {
+                $maze = megaMaze($secret);
+                $answer['zero'] = [
+                    'fragment' => geneFragment($secret, 2),
+                    'maze' => ['width' => strlen($maze['rows'][0]), 'height' => count($maze['rows']), 'start' => $maze['start'], 'sight' => megaSight($secret, $maze['start'])],
+                    'proof' => $proof('floor0')
+                ];
+            } elseif ($path === megaArchivePath($secret)) {
                 $key = megaKey($secret);
                 $answer['archive'] = ['record' => megaCipher(megaRecord($secret), $key['letters']), 'key' => $key['places']];
             }
@@ -395,18 +565,24 @@
                 ? ['fragment' => geneFragment($secret, 1), 'corridor' => megaRoute($secret)[0], 'proof' => $proof('builders')]
                 : ['closed' => true];
 
-        if (isset($query['walk']))
-            return megaWalk($secret, $query['walk'])
-                ? ['word' => megaConsoleWord($secret)]
-                : ['reached' => false];
+        if (isset($query['walk'])) {
+            $at = megaWalkTo($secret, $query['walk']);
+            if ($at === null)
+                return ['reached' => false];
+            $answer = ['sight' => megaSight($secret, $at)];
+            if ($at === megaMaze($secret)['end'])
+                $answer['word'] = megaConsoleWord($secret);
+
+            return $answer;
+        }
 
         if (isset($query['ask']))
-            return strtolower(trim((string)$query['ask'])) === megaConsoleWord($secret)
+            return strtolower(trim($query['ask'])) === megaConsoleWord($secret)
                 ? ['fragment' => geneFragment($secret, 3), 'proof' => $proof('maze')]
                 : ['known' => false];
 
         if (isset($query['paper']))
-            return strtolower(trim((string)$query['paper'])) === megaConsoleWord($secret)
+            return strtolower(trim($query['paper'])) === megaConsoleWord($secret)
                 ? ['fragment' => geneFragment($secret, 4), 'proof' => $proof('paper')]
                 : ['known' => false];
 
@@ -414,6 +590,19 @@
             return hash_equals(megaCode(geneSequence($secret)), megaCode($query['gene']))
                 ? ['ok' => true, 'proof' => $proof('gene')]
                 : ['ok' => false];
+
+        // before ticket=, which a witness may carry
+        if (isset($query['witness'])) {
+            $witnessed = megaWitness($secret, $query, $now, $preview);
+
+            return $witnessed !== null ? ['proof' => $witnessed] : ['denied' => true];
+        }
+
+        if (isset($query['ticket'])) {
+            $ticket = megaTicket($secret, $query['ticket'], $now, $preview);
+
+            return $ticket !== null ? ['ticket' => $ticket] : ['none' => true];
+        }
 
         return [];
     }

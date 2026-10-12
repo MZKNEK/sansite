@@ -2,7 +2,10 @@
 // (inc/auth/finds.php, the card in /account/). A find is kept in the browser
 // first, so it counts without a login too, and goes to the account through
 // account.php?finds once there is one: at once, or on the next page that shows
-// the account. The other scripts note a find with SanakanSafeguard.found(key).
+// the account. Every find needs a proof from the server (megastructure.php),
+// which the browser keeps with it and the account asks for; the other scripts
+// ask for one with SanakanSafeguard.witness(key), or note a find whose answer
+// carried it with SanakanSafeguard.found(key, proof).
 //
 // On every page, and finds themselves: the Safeguard's word to whoever opens
 // the browser's console, the Konami code that lets a Silicon Creature into the
@@ -43,10 +46,6 @@ window.SanakanSafeguard = (function () {
     killy: 'Spotkanie z Killym'
   };
   var TOTAL = Object.keys(FINDS).length;
-  // the same as MEGA_PROVEN_FINDS in inc/megastructure.php: the finds of the
-  // way to the gene, which megastructure.php gives with a proof, and the
-  // account takes only with it
-  var PROVEN = { builders: 1, floor0: 1, maze: 1, paper: 1, gene: 1, admin: 1 };
   // the same as SAFEGUARD_SEASONAL: the finds of a time of the year, apart
   // from the count, as the rest of the year nobody can make them
   var SEASONAL = {
@@ -76,8 +75,8 @@ window.SanakanSafeguard = (function () {
   // ---- The register ---------------------------------------------------------
 
   // what this browser knows: its finds, key => unix time, which of them the
-  // account already has (sent), and the proofs of those that need one (key =>
-  // proof); localStorage may be off, then nothing stays
+  // account already has (sent), and their proofs (key => proof); localStorage
+  // may be off, then nothing stays
   function load() {
     var state = null;
     try {
@@ -140,10 +139,10 @@ window.SanakanSafeguard = (function () {
       loggedIn() ? ROOT + 'account/#rejestr' : null);
   }
 
-  // Notes a find; the first time it shows the toast and goes to the account.
-  // One of the way to the gene comes with the proof megastructure.php gave.
+  // Notes a find with the proof megastructure.php gave; the first time it
+  // shows the toast and goes to the account.
   function found(key, proof) {
-    if (!NAMES[key] || (PROVEN[key] && !proof)) return;
+    if (!NAMES[key] || !proof) return;
     var state = load();
     var fresh = !state.finds[key];
     if (fresh) state.finds[key] = Math.floor(Date.now() / 1000);
@@ -214,7 +213,7 @@ window.SanakanSafeguard = (function () {
           .then(function (answer) {
             if (!answer || !answer.finds) return;
             var state = load();
-            // a find of the way to the gene without its proof was never one
+            // a find without its proof, or with one another account sent first, was never one
             (answer.rejected || []).forEach(function (key) {
               delete state.finds[key];
               delete state.proofs[key];
@@ -257,7 +256,7 @@ window.SanakanSafeguard = (function () {
   // right one, from the terminal of floor zero's maze, gets the gene's third
   // fragment
   window.safeguard = function (word) {
-    found('console');
+    witness('console');
     if (word == null) {
       console.log('%cZgłoszenie przyjęte. Wpis w rejestrze: Intruz w kodzie.\nSafeguard nie zapomina. Nie ruszaj się.', 'font: 12px monospace; line-height: 1.6; color: #e86262;');
       return;
@@ -286,6 +285,32 @@ window.SanakanSafeguard = (function () {
     return fetch(ROOT + 'megastructure.php?' + new URLSearchParams(query), opts)
       .then(function (res) { return res.ok ? res.json() : null; })
       .catch(function () { return null; });
+  }
+
+  // Asks megastructure.php to witness a find made here, with what it needs
+  // for it (a ticket of when it began, a word), and notes it with the proof
+  // the server gives; the answer is whether there is one. A find this browser
+  // has with its proof is not asked for again.
+  function witness(key, extra) {
+    var state = load();
+    if (state.finds[key] && state.proofs[key]) {
+      if (!state.sent[key]) sync();
+      return Promise.resolve(true);
+    }
+    var query = { witness: key };
+    Object.keys(extra || {}).forEach(function (name) {
+      if (extra[name] != null) query[name] = extra[name];
+    });
+    return mega(query).then(function (answer) {
+      if (!answer || !answer.proof) return false;
+      found(key, answer.proof);
+      return true;
+    });
+  }
+
+  // a ticket of when something began (idle, gbe, killy), or null
+  function ticket(kind) {
+    return mega({ ticket: kind }).then(function (answer) { return answer && answer.ticket || null; });
   }
 
   // the gene's fragments this browser has, number => "7C2E" (localStorage
@@ -467,7 +492,7 @@ window.SanakanSafeguard = (function () {
         sweep.remove();
         box.remove();
         infected = false;
-        found('silicon');
+        witness('silicon');
       }, calm ? 2200 : 2800);
     }
   }
@@ -625,7 +650,7 @@ window.SanakanSafeguard = (function () {
     if (load().finds.halloween)
       notice('Forma krzemowa · zneutralizowana', 'Kolejna', 'Wpis w rejestrze już jest. Safeguard poluje dalej.', null);
     else
-      found('halloween');
+      witness('halloween');
   }
 
   function halloween() {
@@ -756,11 +781,15 @@ window.SanakanSafeguard = (function () {
   // charging in hand; with reduced motion he only stands in a corner for a
   // while. The more finds the browser has, the likelier he comes: one page in
   // KILLY_ODDS without any, each find one more chance in it, at most one page
-  // in KILLY_MOST. A click stops him, a find of the register, and once met he
-  // comes no more. localStorage "safeguard-killy" set to "1" sends him on every
-  // page all the same, to try it out.
+  // in KILLY_MOST. The browser rolls KILLY_SLOTS times likelier, and he comes
+  // only when the server's roll says he walks too (one slot of its time in
+  // KILLY_SLOTS, MEGA_KILLY_CHANCE in inc/megastructure.php), with a ticket a
+  // click needs for the find. A click stops him, and once met he comes no
+  // more. localStorage "safeguard-killy" set to "1" sends him on every page
+  // all the same, to try it out (the find only with the server's ticket).
   var KILLY_ODDS = 250;
   var KILLY_MOST = 20;
+  var KILLY_SLOTS = 5;
   var KILLY_PACE = 85;   // px a second
   var KILLY = '<svg viewBox="0 0 60 120" aria-hidden="true">'
     + '<g class="leg back"><path d="M27 92v22h-4" /></g><g class="leg front"><path d="M33 92v22h5" /></g>'
@@ -783,17 +812,19 @@ window.SanakanSafeguard = (function () {
       // no storage, only luck
     }
     var finds = load().finds;
-    if (!sure && (finds.killy || Math.random() >= killyOdds(finds))) return;
+    if (!sure && (finds.killy || Math.random() >= killyOdds(finds) * KILLY_SLOTS)) return;
     setTimeout(function walk() {
       if (document.hidden || infected || document.body.classList.contains('ns-open')) {
         setTimeout(walk, 3000);
         return;
       }
-      killy();
+      ticket('killy').then(function (pass) {
+        if (pass || sure) killy(pass);
+      });
     }, 2000 + Math.random() * 8000);
   }
 
-  function killy() {
+  function killy(pass) {
     var w = document.documentElement.clientWidth;
     var man = document.createElement('button');
     man.type = 'button';
@@ -826,7 +857,7 @@ window.SanakanSafeguard = (function () {
       say.className = 'sg-killy-say';
       say.textContent = '…';
       man.appendChild(say);
-      found('killy');
+      if (pass) witness('killy', { ticket: pass });
       // he says nothing more and goes on his way
       setTimeout(function () {
         say.remove();
@@ -850,7 +881,7 @@ window.SanakanSafeguard = (function () {
       if (load().finds.friday13)
         notice('Usterka · namierzona', 'Kolejna', 'Wpis w rejestrze już jest. Safeguard dalej łata Megastrukturę.', null);
       else
-        found('friday13');
+        witness('friday13');
     }, true);
     (function next(wait) {
       setTimeout(function () {
@@ -983,7 +1014,7 @@ window.SanakanSafeguard = (function () {
           // counted for this visit only
         }
         var count = got.pages.length;
-        if (count === EGG_PAGES) found('easter');
+        if (count === EGG_PAGES) witness('easter');
         else if (count < EGG_PAGES) notice('Pisanka z Megastruktury', count + ' z ' + EGG_PAGES, 'Następna czeka na innej stronie.', null);
         else notice('Pisanka z Megastruktury', count + ' zebranych', 'Wpis w rejestrze już jest. Safeguard docenia zapał.', null);
       });
@@ -1010,7 +1041,7 @@ window.SanakanSafeguard = (function () {
   window.addEventListener('online', function () {
     if (!cutOff) return;
     cutOff = false;
-    found('offline');
+    witness('offline');
   });
 
   // sw.js shows offline.html when a page cannot be reached and leaves a cache
@@ -1019,7 +1050,7 @@ window.SanakanSafeguard = (function () {
     caches.has(OFFLINE_SEEN).then(function (seen) {
       if (!seen) return;
       caches.delete(OFFLINE_SEEN);
-      found('offline');
+      witness('offline');
     }).catch(function () {});
   }
 
@@ -1031,8 +1062,8 @@ window.SanakanSafeguard = (function () {
     });
   }
 
-  // found(key, proof) notes a find (with its proof, for one of the way to the
-  // gene), names its names, finds() what this browser found
+  // found(key, proof) notes a find with its proof, witness(key, extra) asks
+  // the server for one first and ticket(kind) for a ticket, names its names, finds() what this browser found
   // today() the day of the year (maybe a pretended one), holiday(key) whether
   // it is that one's (holidays() above), and fireworks(rockets, from) the New
   // Year's, from a point {x, y} of the window or from its bottom; mega(query)
@@ -1040,6 +1071,8 @@ window.SanakanSafeguard = (function () {
   // and fragments() gives those kept
   return {
     found: found,
+    witness: witness,
+    ticket: ticket,
     mega: mega,
     fragment: fragment,
     fragments: fragments,

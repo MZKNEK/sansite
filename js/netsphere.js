@@ -7,8 +7,10 @@
 // leaves its emergency terminal open: a prompt with a few commands that answer
 // with the site's real data (status, ping, whoami, going to a page) and some
 // lore of the Megastructure. The scan, five entries of the lore and the
-// password from the X-Safeguard header (server/nginx/sanakan-headers.conf) are
-// finds of the Safeguard's register (js/safeguard.js).
+// password from the X-Safeguard-Haslo-Awaryjne header (sendSafeguardHeader()
+// in inc/megastructure.php, "toha-" and four characters of the site's
+// secret, typed as a command) are finds of the Safeguard's register
+// (js/safeguard.js).
 (function () {
   var WORD = 'netsphere';
   var TAPS = 5;
@@ -170,9 +172,11 @@
   }
 
   // a find for the Safeguard's register (js/safeguard.js), when it is on the
-  // page, with megastructure.php's proof for one of the way to the gene
+  // page: with the proof of an answer of megastructure.php, or witnessed by it
   function note(key, proof) {
-    if (window.SanakanSafeguard) SanakanSafeguard.found(key, proof);
+    if (!window.SanakanSafeguard) return;
+    if (proof) SanakanSafeguard.found(key, proof);
+    else SanakanSafeguard.witness(key);
   }
 
   // whether this browser has found the Net Terminal Gene
@@ -470,11 +474,22 @@
         say('Wskazówki do reszty: idź rejestr', 'dim');
       },
 
-      // the password the server gives in its X-Safeguard header
-      toha: function () {
-        say('Hasło awaryjne Toha Heavy Industries: PRZYJĘTE.', 'ok');
-        say('Hasło się zgadza. Genu terminala sieciowego nadal brak.');
-        note('header');
+      // the password the server gives in its X-Safeguard-Haslo-Awaryjne
+      // header, "toha-" and four characters; megastructure.php checks it
+      toha: function (arg, rest, word) {
+        if (!window.SanakanSafeguard || word === 'toha') {
+          say('Hasło awaryjne Toha Heavy Industries: NIEPEŁNE.', 'bad');
+          say('Serwer podaje całe hasło tym, którzy go słuchają.', 'dim');
+          return;
+        }
+        SanakanSafeguard.witness('header', { word: word }).then(function (ok) {
+          if (!ok) {
+            say('Hasło awaryjne Toha Heavy Industries: ODRZUCONE.', 'bad');
+            return;
+          }
+          say('Hasło awaryjne Toha Heavy Industries: PRZYJĘTE.', 'ok');
+          say('Hasło się zgadza. Genu terminala sieciowego nadal brak.');
+        });
       },
 
       // Past the gene (inc/megastructure.php): with the gene the Netsphere
@@ -549,6 +564,8 @@
         LORE[entry].forEach(function (text) { say(text); });
         readLore(entry);
       }
+      else if (/^toha(-|$)/.test(name))
+        commands.toha(arg, words.slice(1).join(' '), name);
       else if (commands[aliases[name] || name])
         commands[aliases[name] || name](arg, words.slice(1).join(' '));
       else
