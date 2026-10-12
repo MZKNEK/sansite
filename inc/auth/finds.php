@@ -156,6 +156,84 @@
         return $saved ? safeguardFinds($id) : null;
     }
 
+    // takes finds back from an account, the given keys or all of them (null),
+    // from the panel (inc/panel-account.php); false when they could not be saved
+    function removeSafeguardFinds($id, $keys = null)
+    {
+        return updateData('finds', function (&$all) use ($id, $keys) {
+            $id = (string)$id;
+            if ($keys !== null && is_array($all[$id] ?? null)) {
+                foreach ($keys as $key)
+                    unset($all[$id][$key]);
+                if ($all[$id])
+                    return;
+            }
+            unset($all[$id]);
+        });
+    }
+
+    // ---- Cheats ----------------------------------------------------------------------
+    // An account caught noting finds it could not have made is flagged: all
+    // its finds count as cheated, it is listed last in the ranking without a
+    // place and left out of who found each secret. The flag is kept with the
+    // hunter in inc/data/hunters.json, 'cheat' => ['time', 'reason', 'by' => ID
+    // of the admin who set it, none when the Safeguard did]; the panel's
+    // profile of the account takes it off and takes finds back.
+
+    // more than SAFEGUARD_BURST finds within SAFEGUARD_BURST_SECONDS of a new
+    // one were noted at once, which nobody does by hand
+    const SAFEGUARD_BURST = 3;
+    const SAFEGUARD_BURST_SECONDS = 5;
+
+    // Why the finds an account just made are a cheat, or null: $finds all its
+    // finds now (safeguardFinds()), $new the keys it just made. Only the new
+    // ones are checked, so a flag an admin took off stays off for the finds
+    // that admin saw. The Builders' hour comes from inc/megastructure.php,
+    // which account.php loads.
+    function safeguardCheat($finds, $new)
+    {
+        if (in_array('builders', $new, true) && isset($finds['builders'])
+            && !buildersHour(new DateTimeImmutable('@' . $finds['builders']))) {
+            $when = (new DateTimeImmutable('@' . $finds['builders']))->setTimezone(new DateTimeZone('Europe/Warsaw'));
+
+            return 'Godzina Budowniczych zdobyta poza ich godziną, ' . $when->format('j.m.Y H:i:s') . '.';
+        }
+        foreach ($new as $key) {
+            if (!isset($finds[$key]))
+                continue;
+            $near = count(array_filter($finds, function ($time) use ($finds, $key) {
+                return abs($time - $finds[$key]) <= SAFEGUARD_BURST_SECONDS;
+            }));
+            if ($near > SAFEGUARD_BURST)
+                return $near . ' ' . plural($near, 'wpis', 'wpisy', 'wpisów') . ' zdobyte w ciągu kilku sekund.';
+        }
+
+        return null;
+    }
+
+    // the flag of an account, ['time', 'reason', 'by'?], or null
+    function safeguardFlag($id)
+    {
+        $flag = readData('hunters')[(string)$id]['cheat'] ?? null;
+
+        return is_array($flag) ? $flag : null;
+    }
+
+    // flags the finds of an account as cheated, or takes the flag off (a null
+    // reason); $by the admin who did it, '' for the Safeguard
+    function setSafeguardFlag($id, $reason, $by = '')
+    {
+        return updateData('hunters', function (&$all) use ($id, $reason, $by) {
+            $id = (string)$id;
+            $entry = is_array($all[$id] ?? null) ? $all[$id] : [];
+            if ($reason === null)
+                unset($entry['cheat']);
+            else
+                $entry['cheat'] = ['time' => time(), 'reason' => (string)$reason] + ((string)$by !== '' ? ['by' => (string)$by] : []);
+            $all[$id] = $entry;
+        });
+    }
+
     // ---- The hunters' ranking ----------------------------------------------------
     // /lowcy/ ranks the accounts by their finds, the seasonal ones apart as in
     // the count, the one that got to its number first ahead. The panel's
@@ -202,7 +280,9 @@
     // The ranking, best first, as ['id', 'name', 'avatar', 'badge' (roleBadge(),
     // null when unknown), 'finds' (key => time, as safeguardFinds()), 'count' of
     // the register's finds, 'reached' (when it got to that count), 'admin',
-    // 'place' (null for an admin)]. The accounts that left it are not there.
+    // 'cheat' (the flag, or null), 'place' (null for an admin or a flagged
+    // account)]. The flagged ones come last; the accounts that left it are
+    // not there.
     function safeguardRanking()
     {
         $hunters = readData('hunters');
@@ -226,16 +306,17 @@
                 'count' => count($counted),
                 'reached' => $counted ? max($counted) : min($finds),
                 'admin' => realPanelAdminId($id),
+                'cheat' => is_array($hunters[$id]['cheat'] ?? null) ? $hunters[$id]['cheat'] : null,
                 'place' => null
             ];
         }
 
         usort($rows, function ($a, $b) {
-            return [$b['count'], $a['reached'], $a['id']] <=> [$a['count'], $b['reached'], $b['id']];
+            return [$a['cheat'] !== null, $b['count'], $a['reached'], $a['id']] <=> [$b['cheat'] !== null, $a['count'], $b['reached'], $b['id']];
         });
         $place = 0;
         foreach ($rows as &$row)
-            if (!$row['admin'])
+            if (!$row['admin'] && $row['cheat'] === null)
                 $row['place'] = ++$place;
         unset($row);
 
@@ -245,14 +326,15 @@
     // Every find of the register and the seasonal ones, key => ['hunters' =>
     // how many of the ranking made it, 'first' => the row of the one who made
     // it first, or null, 'time' => when, 'all' => [['row', 'time'], ...] of
-    // everyone who made it, the first first]; the admins are left out of all.
+    // everyone who made it, the first first]; the admins and the flagged
+    // accounts are left out of all.
     function safeguardFindStats($ranking)
     {
         $stats = [];
         foreach (array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL) as $key)
             $stats[$key] = ['hunters' => 0, 'first' => null, 'time' => null, 'all' => []];
         foreach ($ranking as $row) {
-            if ($row['admin'])
+            if ($row['admin'] || $row['cheat'] !== null)
                 continue;
             foreach ($row['finds'] as $key => $time)
                 $stats[$key]['all'][] = ['row' => $row, 'time' => $time];

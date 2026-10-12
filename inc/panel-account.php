@@ -6,8 +6,9 @@
     // addresses it came from in the last ADDRESS_KEEP_DAYS days (whether one is
     // a scanner or blocked in Cloudflare, and the other accounts that came from
     // the same ones), its own folder in the gallery and how full it is, what it
-    // did in the gallery, its requests for access, and
-    // the history of what it changed and what was changed for it.
+    // did in the gallery, its requests for access, its finds in the
+    // Safeguard's register (each can be taken back, and the cheat flag set or
+    // taken off), and the history of what it changed and what was changed for it.
     // admin/index.php includes it after the login check and has the helpers;
     // $profile is ready before the page starts, profilePage() writes the cards.
     if (!function_exists('accountCell')) {
@@ -116,6 +117,8 @@
             'filesLimit' => userFilesLimit($id),
             'marks' => diagMarks($scanners, $cfItems),
             'cfError' => $cfError,
+            'finds' => safeguardFinds($id),
+            'flag' => safeguardFlag($id),
             'logins' => $logins
         ];
     })($profileId);
@@ -354,6 +357,35 @@
           </li>
 <?php endforeach; ?>
         </ol>
+<?php endif; ?>
+      </section>
+      <section class="card wide" id="rejestr">
+        <h2><i>09</i>Rejestr Safeguarda<span class="card-sum"><?=count(array_intersect_key($p['finds'], SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
+        <p class="hint">Sekrety strony, które konto odkryło, z <a href="../hunters/">rankingu łowców</a>. Cofnięty wpis znika też z przeglądarki konta przy jego następnym wejściu. Safeguard sam flaguje konto, gdy Godzina Budowniczych przyjdzie poza ich godziną albo więcej niż <?=SAFEGUARD_BURST?> wpisy w ciągu kilku sekund; oflagowane jest w rankingu na końcu, bez miejsca.</p>
+<?php if ($p['flag']): ?>
+        <p class="profile-flag"><b class="warn">Wpisy oflagowane jako oszukane</b> <?=e(date('j.m.Y H:i', (int)($p['flag']['time'] ?? 0)))?>, <?=!empty($p['flag']['by']) ? e(accountLabel($p['flag']['by'], $p['logins'])) : 'Safeguard'?>: <?=e($p['flag']['reason'] ?? '')?>
+          <button type="button" class="admin-btn small" data-action="finds-unflag" data-id="<?=e($id)?>">Zdejmij flagę</button>
+        </p>
+<?php else: ?>
+        <form class="grant" data-action="finds-flag">
+          <input type="hidden" name="id" value="<?=e($id)?>" />
+          <input type="text" class="field" name="note" maxlength="120" placeholder="Powód (opcjonalnie)" aria-label="Powód" />
+          <button type="submit" class="admin-btn danger">Oflaguj jako oszukane</button>
+        </form>
+<?php endif; ?>
+<?php if (!$p['finds']): ?>
+        <p class="nobody">Żadnych wpisów.</p>
+<?php else: ?>
+        <ul class="devices">
+<?php foreach ($p['finds'] as $key => $time): ?>
+          <li>
+            <span class="device-name"><?=e((SAFEGUARD_FINDS + SAFEGUARD_SEASONAL)[$key][0])?><?=isset(SAFEGUARD_SEASONAL[$key]) ? ' <span class="muted">(sezonowy)</span>' : ''?></span>
+            <span class="muted"><?=e(date('j.m.Y H:i:s', $time))?></span>
+            <button type="button" class="admin-btn small danger" data-action="finds-remove" data-id="<?=e($id)?>" data-find="<?=e($key)?>" data-confirm="<?=e('Cofnąć wpis „' . (SAFEGUARD_FINDS + SAFEGUARD_SEASONAL)[$key][0] . '” kontu ' . $p['name'] . '?')?>">Cofnij</button>
+          </li>
+<?php endforeach; ?>
+        </ul>
+        <button type="button" class="admin-btn danger" data-action="finds-remove" data-id="<?=e($id)?>" data-confirm="<?=e('Wyzerować cały rejestr Safeguarda konta ' . $p['name'] . '? Tego nie da się cofnąć.')?>">Wyzeruj rejestr</button>
 <?php endif; ?>
       </section>
     </div>

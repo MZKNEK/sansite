@@ -127,8 +127,8 @@
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=6b8a4e6095" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=5df9dd0e71" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=fe589881ad" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=45903195cd" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -210,8 +210,8 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=50aa0afdde"></script>
-  <script src="../js/safeguard.js?v=b486d14717"></script>
+  <script src="../js/netsphere.js?v=4b4c9dce25"></script>
+  <script src="../js/safeguard.js?v=974bc524d6"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

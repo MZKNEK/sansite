@@ -14,8 +14,13 @@
     // says whether there is an account, its finds and the CSRF token; a POST
     // of action=finds with the token and the browser's finds as JSON (key =>
     // time) notes them, with the account's name and avatar for the ranking of
-    // the hunters (/lowcy/), and answers with all the account's finds.
+    // the hunters (/lowcy/), and answers with all the account's finds. Those of
+    // the way to the gene need the proofs megastructure.php gave with them
+    // (proofs, as JSON, key => proof); the ones without are left out and
+    // listed as rejected, for the browser to forget. New finds that could not
+    // have been made (safeguardCheat()) flag the account's finds as cheated.
     require __DIR__ . '/inc/auth.php';
+    require __DIR__ . '/inc/megastructure.php';
     installDataErrorHandler();
 
     if (isset($_GET['finds']) || ($_POST['action'] ?? '') === 'finds') {
@@ -35,13 +40,18 @@
             echo json_encode(['login' => true, 'error' => 'csrf']);
             exit;
         }
-        $finds = addSafeguardFinds($user['id'], json_decode((string)($_POST['found'] ?? ''), true), time());
+        [$found, $rejected] = megaProvenFinds(safeguardSecret(), json_decode((string)($_POST['found'] ?? ''), true), json_decode((string)($_POST['proofs'] ?? ''), true));
+        $before = safeguardFinds($user['id']);
+        $finds = addSafeguardFinds($user['id'], $found, time());
+        $cheat = $finds ? safeguardCheat($finds, array_keys(array_diff_key($finds, $before))) : null;
+        if ($cheat !== null && safeguardFlag($user['id']) === null && setSafeguardFlag($user['id'], $cheat))
+            addHistory('safeguard', 'Safeguard oflagował wpisy w rejestrze jako oszukane: ' . $cheat);
         if ($finds === null)
             http_response_code(503);
         // the name and avatar the ranking of the hunters shows (/lowcy/)
         else if ($finds)
             noteHunter($user);
-        echo json_encode(['login' => true, 'finds' => (object)($finds ?? safeguardFinds($user['id']))]);
+        echo json_encode(['login' => true, 'finds' => (object)($finds ?? safeguardFinds($user['id'])), 'rejected' => $rejected]);
         exit;
     }
 

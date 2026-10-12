@@ -155,7 +155,7 @@ document.getElementById('lost').textContent = path;
     var got = line('mega-secret', 'Fragment sekwencji 2/4: ');
     got.appendChild(code(zero.fragment));
     sg.fragment(2, zero.fragment);
-    sg.found('floor0');
+    sg.found('floor0', zero.proof);
 
     var rows = zero.maze.rows;
     var end = zero.maze.end;
@@ -270,7 +270,7 @@ document.getElementById('lost').textContent = path;
         var way = line('mega-secret', 'Korytarz prowadzi dalej: ');
         way.appendChild(code(answer.corridor));
         sg.fragment(1, answer.fragment);
-        sg.found('builders');
+        sg.found('builders', answer.proof);
       });
     });
   }

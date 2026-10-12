@@ -1641,6 +1641,20 @@ a.who-name:hover {
     color: var(--accent-light);
 }
 
+/* the account's finds flagged as cheated (inc/auth/finds.php), in the profile and the panel */
+.register-flag,
+.profile-flag {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px solid rgba(232, 98, 98, 0.45);
+    background: rgba(232, 98, 98, 0.08);
+    color: #e86262;
+}
+
+.profile-flag .warn {
+    margin-right: 6px;
+}
+
 /* ---- Layout, sticky nav, folded cards, alerts ---- */
 
 .admin-layout {

@@ -168,8 +168,8 @@
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=6b8a4e6095" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=5df9dd0e71" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=fe589881ad" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=45903195cd" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -367,6 +367,9 @@
       <section class="card wide" id="rejestr" data-safeguard-register data-found="<?=e(implode(' ', array_keys($finds)))?>">
         <h2><i><?=$showGallery ? '07' : '06'?></i>Rejestr Safeguarda<span class="card-sum"><?=count(array_intersect_key($finds, SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
         <p class="hint">Sekrety strony, które to konto już odkryło. Te znalezione bez logowania zostają w przeglądarce i trafiają tutaj po zalogowaniu. Reszta czeka, a Safeguard daje tylko wskazówki. Kto znalazł najwięcej: <a href="../hunters/">ranking łowców</a>.</p>
+<?php if ($flag = safeguardFlag($id)): ?>
+        <p class="register-flag">Safeguard uznał wpisy tego konta za oszukane: <?=e($flag['reason'] ?? '')?> W rankingu łowców konto jest na końcu, bez miejsca.</p>
+<?php endif; ?>
         <ol class="register">
 <?php foreach (SAFEGUARD_FINDS as $key => [$name, $what, $hint]): $time = $finds[$key] ?? null; ?>
 <?php if ($time !== null): ?>
@@ -429,8 +432,8 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=50aa0afdde"></script>
-  <script src="../js/safeguard.js?v=b486d14717"></script>
+  <script src="../js/netsphere.js?v=4b4c9dce25"></script>
+  <script src="../js/safeguard.js?v=974bc524d6"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 

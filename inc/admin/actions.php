@@ -307,6 +307,30 @@
                     if (deleteFromTrash($item))
                         $removed++;
                 done('purge', 'Opróżniono kosz: ' . countLabel($removed) . ' usunięte na zawsze.');
+
+            // the Safeguard's register of an account (inc/panel-account.php):
+            // one find taken back (find=<key>), or all of them, and its flag
+            case 'finds-remove':
+                if (!preg_match('/^\d{17,20}$/', $id))
+                    reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
+                $key = (string)($_POST['find'] ?? '');
+                if ($key !== '' && !isset(SAFEGUARD_FINDS[$key]) && !isset(SAFEGUARD_SEASONAL[$key]))
+                    reply(false, 'Nie ma takiego wpisu w rejestrze.', 400);
+                if (!removeSafeguardFinds($id, $key !== '' ? [$key] : null))
+                    reply(false, dataError(), 500);
+                done('safeguard', $key !== ''
+                    ? 'Cofnięto wpis „' . (SAFEGUARD_FINDS + SAFEGUARD_SEASONAL)[$key][0] . '” w rejestrze Safeguarda ' . accountLabel($id, $logins) . '.'
+                    : 'Wyzerowano rejestr Safeguarda ' . accountLabel($id, $logins) . '.');
+
+            case 'finds-flag':
+            case 'finds-unflag':
+                if (!preg_match('/^\d{17,20}$/', $id))
+                    reply(false, 'ID konta Discord to 17-20 cyfr.', 400);
+                $flag = $action === 'finds-flag';
+                $reason = cutText(trim((string)($_POST['note'] ?? '')), 120);
+                if (!setSafeguardFlag($id, $flag ? ($reason !== '' ? $reason : 'Oznaczone przez administratora.') : null, (string)$user['id']))
+                    reply(false, dataError(), 500);
+                done('safeguard', ($flag ? 'Oflagowano jako oszukane' : 'Zdjęto flagę oszustwa z') . ' wpisy w rejestrze Safeguarda ' . accountLabel($id, $logins) . '.');
         }
 
         reply(false, 'Nieznana akcja.', 400);

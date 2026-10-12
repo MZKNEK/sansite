@@ -4,7 +4,9 @@
     // panel's admins among them without a place, and how many found each
     // secret and who was first. A secret's name shows only to the account that
     // found it (the profile has the hints); an account leaves the ranking in
-    // its profile.
+    // its profile. An account flagged for cheating (inc/auth/finds.php) is
+    // listed last, without a place; the panel's admins can open its profile
+    // there from its name.
     require __DIR__ . '/../inc/auth.php';
     require __DIR__ . '/../inc/meta.php';
 
@@ -64,7 +66,7 @@
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=6b8a4e6095" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=fe589881ad" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -82,13 +84,13 @@
 
     <section class="card state-card">
       <h2><i>01</i>Ranking</h2>
-      <p class="hunters-hint">Konta, które odkryły sekrety strony, według liczby wpisów w rejestrze. Przy równej liczbie wyżej jest to, które doszło do niej pierwsze. Administratorzy panelu są na liście bez miejsca: wiedzą, gdzie szukać, więc nikogo nie wyprzedzają.</p>
+      <p class="hunters-hint">Konta, które odkryły sekrety strony, według liczby wpisów w rejestrze. Przy równej liczbie wyżej jest to, które doszło do niej pierwsze. Administratorzy panelu są na liście bez miejsca: wiedzą, gdzie szukać, więc nikogo nie wyprzedzają. Konta z wpisami, których nie dało się zdobyć uczciwie, są na końcu, też bez miejsca.</p>
 <?php if (!$ranking): ?>
       <p class="incidents-none">Jeszcze nikt niczego nie znalazł. Safeguard czeka.</p>
 <?php else: ?>
       <ol class="hunters">
 <?php foreach ($ranking as $row): $me = $user !== null && $row['id'] === (string)$user['id']; $seasonal = array_intersect_key(SAFEGUARD_SEASONAL, $row['finds']); ?>
-        <li class="hunter<?=$row['admin'] ? ' admin' : ''?><?=$me ? ' me' : ''?><?=$row['place'] !== null && $row['place'] <= 3 ? ' top top-' . $row['place'] : ''?>">
+        <li class="hunter<?=$row['admin'] ? ' admin' : ''?><?=$row['cheat'] !== null ? ' cheat' : ''?><?=$me ? ' me' : ''?><?=$row['place'] !== null && $row['place'] <= 3 ? ' top top-' . $row['place'] : ''?>">
           <span class="hunter-place"><?=$row['place'] !== null ? hunterPlace($row['place']) : '&mdash;'?></span>
 <?php if ($row['avatar'] !== ''): ?>
           <img class="hunter-avatar" src="<?=e($row['avatar'])?>" alt="" width="32" height="32" loading="lazy" />
@@ -96,7 +98,10 @@
           <span class="hunter-avatar" aria-hidden="true"></span>
 <?php endif; ?>
           <span class="hunter-who">
-            <?=hunterName($row)?>
+            <?=$seeAll ? '<a href="../admin/?konto=' . e($row['id']) . '#rejestr">' . hunterName($row) . '</a>' : hunterName($row)?>
+<?php if ($row['cheat'] !== null): ?>
+            <small class="hunter-tag cheat" title="<?=e('Safeguard uznał wpisy tego konta za oszukane: ' . ($row['cheat']['reason'] ?? ''))?>">oszukane wpisy</small>
+<?php endif; ?>
 <?php if ($row['admin']): ?>
             <small class="hunter-tag" title="Administrator panelu: zna sekrety, więc nie zajmuje miejsca w rankingu">poza rankingiem</small>
 <?php endif; ?>
@@ -157,8 +162,8 @@
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=50aa0afdde"></script>
-  <script src="../js/safeguard.js?v=b486d14717"></script>
+  <script src="../js/netsphere.js?v=4b4c9dce25"></script>
+  <script src="../js/safeguard.js?v=974bc524d6"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
   <script src="../js/hunters.js?v=15d089f4d3"></script>
 </body>

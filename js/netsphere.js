@@ -169,9 +169,10 @@
     open = shut;
   }
 
-  // a find for the Safeguard's register (js/safeguard.js), when it is on the page
-  function note(key) {
-    if (window.SanakanSafeguard) SanakanSafeguard.found(key);
+  // a find for the Safeguard's register (js/safeguard.js), when it is on the
+  // page, with megastructure.php's proof for one of the way to the gene
+  function note(key, proof) {
+    if (window.SanakanSafeguard) SanakanSafeguard.found(key, proof);
   }
 
   // whether this browser has found the Net Terminal Gene
@@ -414,7 +415,7 @@
               row(step[0], step[1], step[2]);
               if (i === steps.length - 1) {
                 say('Safeguard opuszcza broń. Pierwszy raz od tysięcy lat ktoś ma prawo tu być.');
-                SanakanSafeguard.found('gene');
+                SanakanSafeguard.found('gene', answer.proof);
               }
             }, (i + 1) * STEP);
           });
@@ -519,7 +520,7 @@
           row('zapis', 'ROZPOZNANY', 'ok');
           row('klasyfikacja', 'ADMINISTRATOR NETSFERY', 'ok');
           say('Netsfera rozpoznała swojego. Safeguard melduje się do rozkazów.');
-          note('admin');
+          note('admin', answer.proof);
         });
       },
 

@@ -11,7 +11,7 @@
     header('Cache-Control: no-store');
     header('X-Robots-Tag: noindex');
 
-    $secret = defined('SAFEGUARD_SECRET') ? (string)SAFEGUARD_SECRET : '';
+    $secret = safeguardSecret();
     $now = new DateTimeImmutable('now');
     // only the preview (tools/preview/config.php) lets the cookie "safeguard-time",
     // "HH:MM" Polish time, pretend the hour, to try out the Builders' door

@@ -160,3 +160,61 @@
         assertSame('', $rows[0]['avatar']);
         assertSame(null, $rows[0]['badge']);
     });
+
+    test('safeguardCheat catches the Builders\' hour outside it and finds made all at once', function () {
+        $at = function ($hour, $minute) {
+            return (new DateTimeImmutable(sprintf('2026-10-12 %02d:%02d:30', $hour, $minute), new DateTimeZone('Europe/Warsaw')))->getTimestamp();
+        };
+        assertSame(null, safeguardCheat(['builders' => $at(3, 2)], ['builders']));
+        assertSame(null, safeguardCheat(['builders' => $at(15, 6)], ['builders']));
+        assertTrue(strpos((string)safeguardCheat(['builders' => $at(12, 0)], ['builders']), '12.10.2026 12:00:30') !== false, 'outside it, with when');
+        assertSame(null, safeguardCheat(['builders' => $at(12, 0), 'gbe' => 1], ['gbe']), 'only what was just made is checked');
+        // what the console trick leaves: every find in the same second
+        $now = 1760000000;
+        $burst = ['gbe' => $now, 'lost' => $now, 'console' => $now + 2, 'silicon' => $now + 4];
+        assertTrue(strpos((string)safeguardCheat($burst, ['silicon']), '4 wpisy') === 0);
+        assertSame(null, safeguardCheat(array_slice($burst, 0, 3), ['console']), 'three at once is still fine');
+        assertSame(null, safeguardCheat(['gbe' => $now, 'lost' => $now + 10, 'console' => $now + 20, 'silicon' => $now + 30], ['silicon']), 'one after another');
+        assertSame(null, safeguardCheat($burst, []), 'nothing new, nothing to check');
+    });
+
+    test('setSafeguardFlag flags an account: last in the ranking, without a place, out of the first finds', function () {
+        clearData();
+        writeData('finds', [
+            '111' => ['gbe' => 50],
+            '222' => ['gbe' => 10, 'lost' => 20, 'console' => 30],
+            '333' => ['gbe' => 30, 'lost' => 40]
+        ]);
+        noteHunter(['id' => '222', 'name' => 'Oszust', 'avatar' => 'a.png']);
+        assertTrue(setSafeguardFlag('222', 'Za szybko.'));
+        assertSame('Za szybko.', safeguardFlag('222')['reason']);
+        assertTrue(!isset(safeguardFlag('222')['by']), 'set by the Safeguard');
+        assertSame('Oszust', readData('hunters')['222']['name'], 'the hunter keeps its name');
+        $rows = safeguardRanking();
+        assertSame(['333', '111', '222'], array_column($rows, 'id'));
+        assertSame([1, 2, null], array_column($rows, 'place'));
+        assertSame('Za szybko.', $rows[2]['cheat']['reason']);
+        $stats = safeguardFindStats($rows);
+        assertSame('333', $stats['gbe']['first']['id']);
+        assertSame(0, $stats['console']['hunters']);
+
+        noteHunter(['id' => '222', 'name' => 'Oszust 2', 'avatar' => 'a.png']);
+        assertTrue(safeguardFlag('222') !== null, 'a new name keeps the flag');
+        assertTrue(setSafeguardFlag('222', null, '999'));
+        assertSame(null, safeguardFlag('222'));
+        assertSame([1, 2, 3], array_column(safeguardRanking(), 'place'));
+        assertTrue(setSafeguardFlag('333', 'Ręcznie.', '999'));
+        assertSame('999', safeguardFlag('333')['by']);
+    });
+
+    test('removeSafeguardFinds takes back one find or all of them', function () {
+        clearData();
+        writeData('finds', ['111' => ['gbe' => 50, 'lost' => 60], '222' => ['gbe' => 10]]);
+        assertTrue(removeSafeguardFinds('111', ['lost']));
+        assertSame(['gbe' => 50], safeguardFinds('111'));
+        assertTrue(removeSafeguardFinds('111', ['gbe']));
+        assertTrue(!isset(readData('finds')['111']), 'the last one taken, the account is gone from the register');
+        assertTrue(removeSafeguardFinds('222'));
+        assertSame([], readData('finds'));
+        assertTrue(removeSafeguardFinds('333', ['gbe']), 'an account without finds');
+    });

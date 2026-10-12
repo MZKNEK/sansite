@@ -105,7 +105,7 @@
   <link href="../../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=6b8a4e6095" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=fe589881ad" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
   <link rel="prev" href="?v=<?=e(rawurlencode($around['older']['version']))?>" />
 <?php endif; ?>
@@ -224,8 +224,8 @@
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
   <script src="../../js/account.js?v=ff288d9afb"></script>
-  <script src="../../js/netsphere.js?v=50aa0afdde"></script>
-  <script src="../../js/safeguard.js?v=b486d14717"></script>
+  <script src="../../js/netsphere.js?v=4b4c9dce25"></script>
+  <script src="../../js/safeguard.js?v=974bc524d6"></script>
   <script src="../../js/palette.js?v=15434ca4d0"></script>
 </body>
 

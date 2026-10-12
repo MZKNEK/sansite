@@ -43,6 +43,10 @@ window.SanakanSafeguard = (function () {
     killy: 'Spotkanie z Killym'
   };
   var TOTAL = Object.keys(FINDS).length;
+  // the same as MEGA_PROVEN_FINDS in inc/megastructure.php: the finds of the
+  // way to the gene, which megastructure.php gives with a proof, and the
+  // account takes only with it
+  var PROVEN = { builders: 1, floor0: 1, maze: 1, paper: 1, gene: 1, admin: 1 };
   // the same as SAFEGUARD_SEASONAL: the finds of a time of the year, apart
   // from the count, as the rest of the year nobody can make them
   var SEASONAL = {
@@ -71,8 +75,9 @@ window.SanakanSafeguard = (function () {
 
   // ---- The register ---------------------------------------------------------
 
-  // what this browser knows: its finds, key => unix time, and which of them
-  // the account already has (sent); localStorage may be off, then nothing stays
+  // what this browser knows: its finds, key => unix time, which of them the
+  // account already has (sent), and the proofs of those that need one (key =>
+  // proof); localStorage may be off, then nothing stays
   function load() {
     var state = null;
     try {
@@ -83,6 +88,7 @@ window.SanakanSafeguard = (function () {
     if (!state || typeof state !== 'object') state = {};
     if (!state.finds || typeof state.finds !== 'object') state.finds = {};
     if (!state.sent || typeof state.sent !== 'object') state.sent = {};
+    if (!state.proofs || typeof state.proofs !== 'object') state.proofs = {};
     return state;
   }
 
@@ -135,14 +141,15 @@ window.SanakanSafeguard = (function () {
   }
 
   // Notes a find; the first time it shows the toast and goes to the account.
-  function found(key) {
-    if (!NAMES[key]) return;
+  // One of the way to the gene comes with the proof megastructure.php gave.
+  function found(key, proof) {
+    if (!NAMES[key] || (PROVEN[key] && !proof)) return;
     var state = load();
-    if (!state.finds[key]) {
-      state.finds[key] = Math.floor(Date.now() / 1000);
-      save(state);
-      toast(key, state);
-    }
+    var fresh = !state.finds[key];
+    if (fresh) state.finds[key] = Math.floor(Date.now() / 1000);
+    if (proof && !state.proofs[key]) state.proofs[key] = String(proof);
+    if (fresh || proof) save(state);
+    if (fresh) toast(key, state);
     if (!state.sent[key]) sync();
   }
 
@@ -154,7 +161,8 @@ window.SanakanSafeguard = (function () {
   }
 
   // Asks account.php for the account's finds; with an account, it takes those
-  // into the browser and sends the ones it lacks. The profile shows them only
+  // into the browser, forgets those the account was sent and lost, and sends
+  // the ones it lacks. The profile shows them only
   // after a reload, so its register is reloaded once when it gained some.
   function sync() {
     if (syncing) {
@@ -179,9 +187,20 @@ window.SanakanSafeguard = (function () {
       .then(function (me) {
         if (!me || !me.login) return null;
         var state = load();
+        // what the account had and has no more, an admin took back: gone here too
+        Object.keys(state.sent).forEach(function (key) {
+          if (me.finds && me.finds[key]) return;
+          delete state.sent[key];
+          delete state.finds[key];
+          delete state.proofs[key];
+        });
         take(state, me.finds);
         var send = {};
-        pending(state).forEach(function (key) { send[key] = state.finds[key]; });
+        var proofs = {};
+        pending(state).forEach(function (key) {
+          send[key] = state.finds[key];
+          if (state.proofs[key]) proofs[key] = state.proofs[key];
+        });
         save(state);
         if (!Object.keys(send).length) return null;
 
@@ -189,11 +208,17 @@ window.SanakanSafeguard = (function () {
         body.append('action', 'finds');
         body.append('csrf', me.csrf);
         body.append('found', JSON.stringify(send));
+        body.append('proofs', JSON.stringify(proofs));
         return fetch(ROOT + 'account.php', { method: 'POST', body: body, credentials: 'same-origin' })
           .then(json)
           .then(function (answer) {
             if (!answer || !answer.finds) return;
             var state = load();
+            // a find of the way to the gene without its proof was never one
+            (answer.rejected || []).forEach(function (key) {
+              delete state.finds[key];
+              delete state.proofs[key];
+            });
             take(state, answer.finds);
             save(state);
             if (register && Object.keys(answer.finds).some(function (key) { return shown.indexOf(key) < 0; }))
@@ -241,7 +266,7 @@ window.SanakanSafeguard = (function () {
       if (answer && answer.fragment) {
         fragment(3, answer.fragment);
         fragment('word', word);
-        found('maze');
+        found('maze', answer.proof);
         paper();
         console.log('%cSłowo rozpoznane. Fragment sekwencji 3/4: ' + answer.fragment + '\nOstatni fragment Safeguard zostawia tylko na papierze.', 'font: 12px monospace; line-height: 1.6; color: #4fd1c5;');
       } else {
@@ -292,13 +317,17 @@ window.SanakanSafeguard = (function () {
   // enough) gets it as a line on top, gone again after, and then the terminal
   // knows it too. Nothing on the screen ever shows it.
   var paperFragment = null;
+  var paperProof = null;
   var paperLine = null;
 
   function paper() {
     var word = fragments().word;
     if (!word || paperFragment) return;
     mega({ paper: word }).then(function (answer) {
-      if (answer && answer.fragment) paperFragment = answer.fragment;
+      if (answer && answer.fragment) {
+        paperFragment = answer.fragment;
+        paperProof = answer.proof;
+      }
     });
   }
 
@@ -313,7 +342,7 @@ window.SanakanSafeguard = (function () {
     paperLine.appendChild(value);
     document.body.insertBefore(paperLine, document.body.firstChild);
     fragment(4, paperFragment);
-    found('paper');
+    found('paper', paperProof);
   }
 
   function offPaper() {
@@ -1002,7 +1031,8 @@ window.SanakanSafeguard = (function () {
     });
   }
 
-  // found(key) notes a find, names its names, finds() what this browser found
+  // found(key, proof) notes a find (with its proof, for one of the way to the
+  // gene), names its names, finds() what this browser found
   // today() the day of the year (maybe a pretended one), holiday(key) whether
   // it is that one's (holidays() above), and fireworks(rockets, from) the New
   // Year's, from a point {x, y} of the window or from its bottom; mega(query)

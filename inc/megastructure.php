@@ -22,6 +22,11 @@
     // fragments, the addresses, the maze and the word all come from
     // SAFEGUARD_SECRET in inc/config.php, and only megastructure.php gives them
     // out, each where it belongs. Without the secret there is no gene to find.
+    //
+    // A find is noted in the browser (js/safeguard.js), where anyone could note
+    // any of them from the console. The finds of the way to the gene are the
+    // server's to give: each answer that makes one carries a proof of it, and
+    // account.php notes them for an account only with one (megaProvenFinds()).
 
     const GENE_FRAGMENTS = 4;
     // the corridor's addresses before floor zero
@@ -36,6 +41,12 @@
     const MEGA_MAZE_H = 9;
     // the longest walk the maze takes, in steps
     const MEGA_WALK_MAX = 4000;
+
+    // SAFEGUARD_SECRET, or '' without one
+    function safeguardSecret()
+    {
+        return defined('SAFEGUARD_SECRET') ? (string)SAFEGUARD_SECRET : '';
+    }
 
     function megaHash($secret, $label)
     {
@@ -282,6 +293,56 @@
         return trim(preg_replace('/[^A-Z]+/', ' ', strtoupper((string)$text)));
     }
 
+    // ---- Proofs of the finds ---------------------------------------------------------
+    // Each answer of megastructureAnswer() that makes one of these finds
+    // carries 'proof', "<time>.<signature>", the server's time and the find
+    // signed with the secret. The browser keeps it with the find and sends it
+    // with it; the time of the proof is the time of the find, so none comes
+    // earlier than the server gave it (the ranking puts who got there first
+    // ahead). A proof can be passed on, as the gene itself can; it only keeps
+    // the register from taking a find the server never gave.
+    const MEGA_PROVEN_FINDS = ['builders', 'floor0', 'maze', 'paper', 'gene', 'admin'];
+
+    function megaProof($secret, $key, $time)
+    {
+        return $time . '.' . substr(megaHash($secret, 'proof:' . $key . ':' . $time), 0, 32);
+    }
+
+    // the time of a find's proof, or null when the server did not give it
+    function megaProofTime($secret, $key, $proof)
+    {
+        if ((string)$secret === '' || !is_string($proof) || !preg_match('/^(\d{1,12})\.[0-9a-f]{32}$/', $proof, $m))
+            return null;
+
+        return hash_equals(megaProof($secret, $key, (int)$m[1]), $proof) ? (int)$m[1] : null;
+    }
+
+    // The finds of a browser, key => time, as account.php notes them, with
+    // their proofs, key => proof: those of MEGA_PROVEN_FINDS only with a right
+    // proof and at its time, the rest as they are. Returns [the finds, the
+    // keys left out], so the browser can forget those.
+    function megaProvenFinds($secret, $found, $proofs)
+    {
+        if (!is_array($found))
+            return [[], []];
+        $proofs = is_array($proofs) ? $proofs : [];
+        $finds = [];
+        $left = [];
+        foreach ($found as $key => $time) {
+            $key = (string)$key;
+            if (in_array($key, MEGA_PROVEN_FINDS, true)) {
+                $time = megaProofTime($secret, $key, $proofs[$key] ?? null);
+                if ($time === null) {
+                    $left[] = $key;
+                    continue;
+                }
+            }
+            $finds[$key] = $time;
+        }
+
+        return [$finds, $left];
+    }
+
     // The answer of megastructure.php to one question of its query:
     //   at=<address>  the 404 page: whether the door is open, the draught of a
     //                 corridor's address, floor zero and its maze, the archive
@@ -292,11 +353,15 @@
     //   gene=<code>   the sequence given to the terminal: right or not
     //   enter=<code>  the gene given to enter the Netsphere: the archive's address
     //   record=<text> the archive's last record, deciphered: right or not
-    // Anything else, or no secret, is an empty answer.
+    // Each answer that makes a find carries its proof (megaProof()). Anything
+    // else, or no secret, is an empty answer.
     function megastructureAnswer($secret, array $query, $now)
     {
         if ((string)$secret === '')
             return [];
+        $proof = function ($key) use ($secret, $now) {
+            return megaProof($secret, $key, $now->getTimestamp());
+        };
 
         if (isset($query['at'])) {
             $path = megaPath($query['at']);
@@ -306,7 +371,7 @@
             if ($step !== false && $step < MEGA_ROUTE_STEPS)
                 $answer['draught'] = $route[$step + 1];
             elseif ($step === MEGA_ROUTE_STEPS)
-                $answer['zero'] = ['fragment' => geneFragment($secret, 2), 'maze' => megaMaze($secret)];
+                $answer['zero'] = ['fragment' => geneFragment($secret, 2), 'maze' => megaMaze($secret), 'proof' => $proof('floor0')];
             elseif ($path === megaArchivePath($secret)) {
                 $key = megaKey($secret);
                 $answer['archive'] = ['record' => megaCipher(megaRecord($secret), $key['letters']), 'key' => $key['places']];
@@ -321,11 +386,13 @@
                 : ['denied' => true];
 
         if (isset($query['record']))
-            return ['ok' => hash_equals(megaRecord($secret), megaWords($query['record']))];
+            return hash_equals(megaRecord($secret), megaWords($query['record']))
+                ? ['ok' => true, 'proof' => $proof('admin')]
+                : ['ok' => false];
 
         if (isset($query['door']))
             return buildersHour($now)
-                ? ['fragment' => geneFragment($secret, 1), 'corridor' => megaRoute($secret)[0]]
+                ? ['fragment' => geneFragment($secret, 1), 'corridor' => megaRoute($secret)[0], 'proof' => $proof('builders')]
                 : ['closed' => true];
 
         if (isset($query['walk']))
@@ -335,16 +402,18 @@
 
         if (isset($query['ask']))
             return strtolower(trim((string)$query['ask'])) === megaConsoleWord($secret)
-                ? ['fragment' => geneFragment($secret, 3)]
+                ? ['fragment' => geneFragment($secret, 3), 'proof' => $proof('maze')]
                 : ['known' => false];
 
         if (isset($query['paper']))
             return strtolower(trim((string)$query['paper'])) === megaConsoleWord($secret)
-                ? ['fragment' => geneFragment($secret, 4)]
+                ? ['fragment' => geneFragment($secret, 4), 'proof' => $proof('paper')]
                 : ['known' => false];
 
         if (isset($query['gene']))
-            return ['ok' => hash_equals(megaCode(geneSequence($secret)), megaCode($query['gene']))];
+            return hash_equals(megaCode(geneSequence($secret)), megaCode($query['gene']))
+                ? ['ok' => true, 'proof' => $proof('gene')]
+                : ['ok' => false];
 
         return [];
     }

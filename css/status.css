@@ -940,6 +940,24 @@ a.version-row:hover .version-name {
     color: rgba(220, 221, 222, 0.4);
 }
 
+/* flagged for cheating (inc/auth/finds.php): last, without a place */
+.hunter.cheat {
+    border-color: rgba(232, 98, 98, 0.35);
+    opacity: 0.5;
+}
+
+.hunter.cheat .hunter-place,
+.hunter.cheat .hunter-count {
+    color: rgba(220, 221, 222, 0.4);
+    text-decoration: line-through;
+}
+
+.hunter-tag.cheat {
+    border-color: rgba(232, 98, 98, 0.6);
+    color: #e86262;
+    cursor: help;
+}
+
 .hunter-avatar {
     width: 32px;
     height: 32px;
