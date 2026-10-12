@@ -99,8 +99,8 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=eb5782e454"></script>
-  <script src="../js/safeguard.js?v=ff1f3fd585"></script>
+  <script src="../js/netsphere.js?v=50aa0afdde"></script>
+  <script src="../js/safeguard.js?v=b486d14717"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 
@@ -224,8 +224,8 @@
 <script src="../js/account.js?v=ff288d9afb"></script>
 <script src="./init.js?v=9e46400eb6"></script>
 <script src="../js/to-top.js?v=6ce6e2481f"></script>
-<script src="../js/netsphere.js?v=eb5782e454"></script>
-<script src="../js/safeguard.js?v=ff1f3fd585"></script>
+<script src="../js/netsphere.js?v=50aa0afdde"></script>
+<script src="../js/safeguard.js?v=b486d14717"></script>
 <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>

@@ -3,6 +3,7 @@
     // the two on its way. In BLAME! everyone looks for the gene; here it has
     // fallen apart into four fragments of a sequence:
     //   1. the Builders' door: on the 404 page, only from 3:00 to 3:07 at night
+    //      or from 15:00 to 15:07 in the afternoon, for whoever cannot stay up
     //      (Polish time, the server's clock), a door opens; behind it, the first
     //      fragment and the first address of a corridor (a find, "builders");
     //   2. floor zero: each address of the corridor, a 404 page, feels a draught
@@ -25,8 +26,8 @@
     const GENE_FRAGMENTS = 4;
     // the corridor's addresses before floor zero
     const MEGA_ROUTE_STEPS = 5;
-    // the Builders' hour, Polish time: from HOUR:00 for MINUTES minutes
-    const BUILDERS_HOUR = 3;
+    // the Builders' hours, Polish time: from each HOUR:00 for MINUTES minutes
+    const BUILDERS_HOURS = [3, 15];
     const BUILDERS_MINUTES = 7;
     // the first part of the corridor's addresses, as the places of the Megastructure
     const MEGA_ROUTE_WORDS = ['szyb', 'korytarz', 'sektor', 'poziom', 'wezel', 'przejscie', 'kanal', 'tunel'];
@@ -170,12 +171,13 @@
         return [$x, $y] === $maze['end'];
     }
 
-    // whether the Builders' door is open at a time (a DateTimeImmutable)
+    // whether the Builders' door is open at a time (a DateTimeImmutable), in
+    // one of their hours
     function buildersHour($now)
     {
         $warsaw = $now->setTimezone(new DateTimeZone('Europe/Warsaw'));
 
-        return (int)$warsaw->format('G') === BUILDERS_HOUR && (int)$warsaw->format('i') < BUILDERS_MINUTES;
+        return in_array((int)$warsaw->format('G'), BUILDERS_HOURS, true) && (int)$warsaw->format('i') < BUILDERS_MINUTES;
     }
 
     // an address as the 404 page shows it, to compare: small letters, no
@@ -193,14 +195,103 @@
         return preg_replace('/[^0-9A-F]/', '', strtoupper((string)$code));
     }
 
+    // ---- Past the gene ---------------------------------------------------------------
+    // The one who has the gene may enter the Netsphere ("netsfera" in the
+    // terminal), an address only the gene opens: the archive of its
+    // Administration, with its last record ciphered. Each letter of the key
+    // is given as a place in what the register says of the finds on the way to
+    // the gene, which whoever got this far has; the record, deciphered and
+    // given to the terminal, is a find of its own ("admin"), shown as ??? to
+    // everyone else.
+
+    // the words of the last record, without Polish letters, so the cipher
+    // runs over A to Z alone
+    const MEGA_RECORD_WORDS = [
+        'MROK', 'SZYB', 'ECHO', 'RDZEN', 'KABEL', 'PYL', 'WIEZA', 'BRAMA', 'ZAPIS', 'SYGNAL', 'KLUCZ', 'PROMIEN',
+        'CIEN', 'SZUM', 'PUSTKA', 'KANAL', 'TUNEL', 'WEZEL', 'SEKTOR', 'POZIOM', 'GRANICA', 'SIEC', 'KOD', 'RDZA',
+        'STAL', 'BETON', 'PIETRO', 'SCIANA', 'DRZWI', 'MOST', 'OTCHLAN', 'PRZEPUST', 'ZAMEK', 'KLATKA', 'WIDMO', 'ZNAK',
+        'SLAD', 'IMIE', 'GLOS', 'CISZA', 'STRAZ', 'ROZKAZ', 'PAMIEC', 'ARCHIWUM', 'DOSTEP', 'ODMOWA', 'PROTOKOL', 'RDZENIE',
+        'MASZYNA', 'BUDOWA', 'WIECZNOSC', 'POCZATEK', 'KONIEC', 'ZRODLO', 'SYNAPSA', 'PULS', 'ISKRA', 'POPIOL', 'SZKIELET', 'SKORUPA',
+        'OKO', 'DLON', 'KREW', 'GEN'
+    ];
+    // the finds the key's letters are taken from: every one of them is on the
+    // way to the gene, so whoever opened the archive has them all
+    const MEGA_KEY_FINDS = ['builders', 'floor0', 'maze', 'paper', 'gene'];
+    const MEGA_KEY_LENGTH = 6;
+    const MEGA_RECORD_LENGTH = 4;
+
+    // the archive's address, which only the gene opens
+    function megaArchivePath($secret)
+    {
+        return '/netsfera/' . substr(megaHash($secret, 'archive'), 0, 8);
+    }
+
+    // the last record of the Administration, deciphered: four words
+    function megaRecord($secret)
+    {
+        $words = [];
+        for ($i = 0; $i < MEGA_RECORD_LENGTH; $i++)
+            $words[] = MEGA_RECORD_WORDS[megaPick($secret, 'record', $i, count(MEGA_RECORD_WORDS))];
+
+        return implode(' ', $words);
+    }
+
+    // The key: ['letters' => "QWERTY", 'places' => [[name of the find, word, letter], ...]],
+    // each letter the given letter (from 1) of the given word (from 1) of what
+    // the register says of that find once found, always one of A to Z.
+    function megaKey($secret)
+    {
+        $letters = '';
+        $places = [];
+        for ($i = 0; $i < MEGA_KEY_LENGTH; $i++) {
+            $key = MEGA_KEY_FINDS[megaPick($secret, 'key-find', $i, count(MEGA_KEY_FINDS))];
+            [$name, $what] = SAFEGUARD_FINDS[$key];
+            $spots = [];
+            foreach (preg_split('/\s+/u', trim($what)) as $w => $word)
+                foreach (mb_str_split($word) as $l => $char)
+                    if (preg_match('/^[A-Za-z]$/', $char))
+                        $spots[] = [$w + 1, $l + 1, strtoupper($char)];
+            [$word, $letter, $char] = $spots[megaPick($secret, 'key-spot', $i, count($spots))];
+            $letters .= $char;
+            $places[] = [$name, $word, $letter];
+        }
+
+        return ['letters' => $letters, 'places' => $places];
+    }
+
+    // each letter of a text moved on by the letter of the key under it (A by
+    // nothing, B by one…), the key going on over the letters only
+    function megaCipher($text, $key)
+    {
+        $out = '';
+        $k = 0;
+        foreach (str_split($text) as $char) {
+            if ($char >= 'A' && $char <= 'Z') {
+                $char = chr(65 + (ord($char) - 65 + ord($key[$k % strlen($key)]) - 65) % 26);
+                $k++;
+            }
+            $out .= $char;
+        }
+
+        return $out;
+    }
+
+    // a record as typed: capitals, one space between the words
+    function megaWords($text)
+    {
+        return trim(preg_replace('/[^A-Z]+/', ' ', strtoupper((string)$text)));
+    }
+
     // The answer of megastructure.php to one question of its query:
     //   at=<address>  the 404 page: whether the door is open, the draught of a
-    //                 corridor's address, floor zero and its maze
+    //                 corridor's address, floor zero and its maze, the archive
     //   door          the door opened: the first fragment and the corridor
     //   walk=<moves>  the maze walked: the word for the console
     //   ask=<word>    a word said in the console: the third fragment
     //   paper=<word>  the same word, from a page about to be printed: the fourth
     //   gene=<code>   the sequence given to the terminal: right or not
+    //   enter=<code>  the gene given to enter the Netsphere: the archive's address
+    //   record=<text> the archive's last record, deciphered: right or not
     // Anything else, or no secret, is an empty answer.
     function megastructureAnswer($secret, array $query, $now)
     {
@@ -208,16 +299,29 @@
             return [];
 
         if (isset($query['at'])) {
+            $path = megaPath($query['at']);
             $route = megaRoute($secret);
-            $step = array_search(megaPath($query['at']), $route, true);
+            $step = array_search($path, $route, true);
             $answer = ['door' => buildersHour($now)];
             if ($step !== false && $step < MEGA_ROUTE_STEPS)
                 $answer['draught'] = $route[$step + 1];
             elseif ($step === MEGA_ROUTE_STEPS)
                 $answer['zero'] = ['fragment' => geneFragment($secret, 2), 'maze' => megaMaze($secret)];
+            elseif ($path === megaArchivePath($secret)) {
+                $key = megaKey($secret);
+                $answer['archive'] = ['record' => megaCipher(megaRecord($secret), $key['letters']), 'key' => $key['places']];
+            }
 
             return $answer;
         }
+
+        if (isset($query['enter']))
+            return hash_equals(megaCode(geneSequence($secret)), megaCode($query['enter']))
+                ? ['archive' => megaArchivePath($secret)]
+                : ['denied' => true];
+
+        if (isset($query['record']))
+            return ['ok' => hash_equals(megaRecord($secret), megaWords($query['record']))];
 
         if (isset($query['door']))
             return buildersHour($now)

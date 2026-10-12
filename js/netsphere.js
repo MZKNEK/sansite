@@ -222,7 +222,7 @@
     sylwester: ['Megastruktura nie zna lat, tylko cykle Budowniczych.', 'W Sylwestra Safeguard i tak zostawia przy logo rakietę.'],
     pingpong: ['1 kwietnia Safeguard zaprasza do ping ponga.', 'Seta jeszcze nikt z nim nie wygrał. Punkt czasem się zdarza.'],
     piatek: ['W piątek trzynastego usterek w Megastrukturze jest więcej.', 'Safeguard je łapie. Ty też możesz spróbować.'],
-    zero: ['Mówią, że pod najniższym piętrem jest jeszcze jedno, piętro zero.', 'Prowadzi tam tylko korytarz Budowniczych, a ich drzwi otwierają się nocą.']
+    zero: ['Mówią, że pod najniższym piętrem jest jeszcze jedno, piętro zero.', 'Prowadzi tam tylko korytarz Budowniczych, a ich drzwi otwierają się o trzeciej.']
   };
   var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', dynia: 'halloween', psikus: 'halloween', nowyrok: 'sylwester', fajerwerki: 'sylwester', 'ping-pong': 'pingpong', ping_pong: 'pingpong', prima: 'pingpong', aprilis: 'pingpong', 'piątek': 'piatek', trzynasty: 'piatek', usterka: 'piatek', 'piętro': 'zero', pietro: 'zero', drzwi: 'zero', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
   var LORE_FIND = 5;
@@ -319,7 +319,7 @@
           ['czas', 'czas sieci'],
           ['wyczyść', 'czyści ekran'],
           ['zamknij', 'zamyka terminal (Esc)']
-        ].forEach(function (help) { row(help[0], help[1], null, 'ns-help'); });
+        ].concat(hasGene() ? [['netsfera', 'wejście do Netsfery']] : []).forEach(function (help) { row(help[0], help[1], null, 'ns-help'); });
         say('Strzałki ↑ i ↓ przywołują wcześniejsze polecenia.', 'dim');
       },
 
@@ -476,6 +476,53 @@
         note('header');
       },
 
+      // Past the gene (inc/megastructure.php): with the gene the Netsphere
+      // opens, an address of its own; with the archive's last record,
+      // deciphered, the Netsphere knows its own
+      netsfera: function (arg, rest) {
+        if (!window.SanakanSafeguard) {
+          say('Rejestr Safeguarda nie odpowiada.', 'bad');
+          return;
+        }
+        var line = rest || '';
+        var compact = line.replace(/[\s-]/g, '');
+        var sequence = /^[0-9a-f]{16}$/i.test(compact) ? compact : null;
+        if (!sequence && !line) {
+          var kept = SanakanSafeguard.fragments();
+          if ([1, 2, 3, 4].every(function (n) { return kept[n]; }))
+            sequence = [1, 2, 3, 4].map(function (n) { return kept[n]; }).join('');
+        }
+        if (!line && !sequence) {
+          row('gen terminala sieciowego', hasGene() ? 'PODAJ SEKWENCJĘ' : 'NIE WYKRYTO', 'bad');
+          say('Netsfera wpuszcza tylko z genem: netsfera XXXX-XXXX-XXXX-XXXX', 'dim');
+          return;
+        }
+        if (sequence) {
+          say('łączenie z Netsferą…', 'dim');
+          SanakanSafeguard.mega({ enter: sequence }).then(function (answer) {
+            if (!answer || !answer.archive) {
+              row('dostęp do Netsfery', 'ODMOWA', 'bad');
+              return;
+            }
+            row('dostęp do Netsfery', 'PRZYZNANY', 'ok');
+            say('przechodzenie: archiwum Administracji…', 'ok');
+            setTimeout(function () { go(answer.archive.replace(/^\//, '')); }, 900);
+          });
+          return;
+        }
+        say('weryfikacja zapisu…', 'dim');
+        SanakanSafeguard.mega({ record: line }).then(function (answer) {
+          if (!answer || !answer.ok) {
+            row('zapis', 'NIEROZPOZNANY', 'bad');
+            return;
+          }
+          row('zapis', 'ROZPOZNANY', 'ok');
+          row('klasyfikacja', 'ADMINISTRATOR NETSFERY', 'ok');
+          say('Netsfera rozpoznała swojego. Safeguard melduje się do rozkazów.');
+          note('admin');
+        });
+      },
+
       'wyczyść': function () { log.textContent = ''; },
 
       zamknij: function () { shut(); }
@@ -502,7 +549,7 @@
         readLore(entry);
       }
       else if (commands[aliases[name] || name])
-        commands[aliases[name] || name](arg, words.slice(1).join(''));
+        commands[aliases[name] || name](arg, words.slice(1).join(' '));
       else
         say('Nieznane polecenie: ' + name + '. Wpisz pomoc.', 'bad');
     }

@@ -39,6 +39,7 @@ window.SanakanSafeguard = (function () {
     maze: 'Labirynt piętra zero',
     paper: 'Ślad na papierze',
     gene: 'Gen terminala sieciowego',
+    admin: 'Administrator Netsfery',
     killy: 'Spotkanie z Killym'
   };
   var TOTAL = Object.keys(FINDS).length;

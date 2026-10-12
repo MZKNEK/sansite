@@ -275,8 +275,49 @@ document.getElementById('lost').textContent = path;
     });
   }
 
+  // The Netsphere's archive, past the gene (inc/megastructure.php): the
+  // Administration's records, the last one ciphered, and where its key is.
+  function archive(data) {
+    var box = document.querySelector('.not-found');
+    box.classList.add('mega-archive');
+    document.title = 'Netsfera · Sanakan';
+    box.querySelector('h2').textContent = 'Netsfera · archiwum Administracji';
+    box.querySelector('h2 + p').textContent = 'Połączenie z Netsferą nawiązane. Dostęp przyznany przez gen terminala sieciowego.';
+    mega.hidden = true;
+
+    var records = document.createElement('ol');
+    records.className = 'mega-records';
+    function record(text, extra) {
+      var li = document.createElement('li');
+      li.appendChild(document.createTextNode(text));
+      if (extra) li.appendChild(extra);
+      records.appendChild(li);
+    }
+    record('Populacja utraciła gen terminala sieciowego. Kontrolę nad Megastrukturą przejmuje Safeguard.');
+    record('Budowniczowie nie przyjmują rozkazów. Rozbudowa trwa bez planu.');
+    var cipher = document.createElement('code');
+    cipher.className = 'mega-cipher';
+    cipher.textContent = data.record;
+    record('Ostatni zapis Administracji, zaszyfrowany:', cipher);
+    record('Szyfr przesuwa każdą literę zapisu o literę klucza pod nią, A o zero, B o jeden. Klucz biegnie dalej tylko po literach.');
+    var key = document.createElement('ul');
+    key.className = 'mega-key';
+    data.key.forEach(function (place) {
+      var li = document.createElement('li');
+      li.textContent = place[0] + ' · słowo ' + place[1] + ' · litera ' + place[2];
+      key.appendChild(li);
+    });
+    record('Klucz rozproszono w rejestrze Safeguarda, w opisach wpisów:', key);
+    record('Kto odczyta zapis, niech poda go terminalowi Netsfery.');
+    box.appendChild(records);
+  }
+
   sg.mega({ at: path }).then(function (answer) {
     if (!answer) return;
+    if (answer.archive) {
+      archive(answer.archive);
+      return;
+    }
     if (answer.zero) floorZero(answer.zero);
     if (answer.draught) {
       var draught = line('mega-secret', 'Czuć przeciąg. Ciągnie od: ');

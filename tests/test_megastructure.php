@@ -21,12 +21,16 @@
         assertTrue(megaMaze('a')['rows'] !== megaMaze('b')['rows'], 'another secret, another maze');
     });
 
-    test('the Builders\' door opens from 3:00 to 3:07, Polish time', function () {
+    test('the Builders\' door opens from 3:00 to 3:07 and from 15:00 to 15:07, Polish time', function () {
         assertSame(false, buildersHour(megaAt(2, 59)));
         assertSame(true, buildersHour(megaAt(3, 0)));
         assertSame(true, buildersHour(megaAt(3, 6)));
         assertSame(false, buildersHour(megaAt(3, 7)));
-        assertSame(false, buildersHour(megaAt(15, 3)));
+        assertSame(false, buildersHour(megaAt(14, 59)));
+        assertSame(true, buildersHour(megaAt(15, 0)));
+        assertSame(true, buildersHour(megaAt(15, 6)));
+        assertSame(false, buildersHour(megaAt(15, 7)));
+        assertSame(false, buildersHour(megaAt(4, 3)));
         assertSame(true, buildersHour(new DateTimeImmutable('2026-10-12 01:03:00', new DateTimeZone('UTC'))), 'the server\'s own zone does not matter');
         assertSame(['door' => false], megastructureAnswer('a', ['at' => '/nope'], megaAt(12, 0)), 'a plain dead end');
         assertSame(['closed' => true], megastructureAnswer('a', ['door' => '1'], megaAt(12, 0)));
@@ -124,4 +128,63 @@
         foreach ([['at' => '/x'], ['door' => '1'], ['walk' => 'R'], ['ask' => 'x'], ['gene' => 'x'], []] as $query)
             assertSame([], megastructureAnswer('', $query, megaAt(3, 1)));
         assertSame([], megastructureAnswer('a', ['nothing' => '1'], megaAt(3, 1)));
+    });
+
+    // a cipher of megaCipher() undone with its key
+    function megaDecipher($text, $key)
+    {
+        $out = '';
+        $k = 0;
+        foreach (str_split($text) as $char) {
+            if ($char >= 'A' && $char <= 'Z') {
+                $char = chr(65 + (ord($char) - 65 - (ord($key[$k % strlen($key)]) - 65) + 26) % 26);
+                $k++;
+            }
+            $out .= $char;
+        }
+
+        return $out;
+    }
+
+    test('only the gene opens the way to the archive', function () {
+        $noon = megaAt(12, 0);
+        assertSame(['denied' => true], megastructureAnswer('a', ['enter' => geneSequence('b')], $noon));
+        assertSame(['denied' => true], megastructureAnswer('a', ['enter' => ''], $noon));
+        $open = megastructureAnswer('a', ['enter' => strtolower(str_replace('-', '', geneSequence('a')))], $noon);
+        assertSame(megaArchivePath('a'), $open['archive']);
+        assertTrue((bool)preg_match('~^/netsfera/[0-9a-f]{8}$~', $open['archive']));
+        assertTrue(megaArchivePath('a') !== megaArchivePath('b'));
+    });
+
+    test('the archive\'s record deciphers with the letters the register shows', function () {
+        $noon = megaAt(12, 0);
+        $archive = megastructureAnswer('a', ['at' => megaArchivePath('a')], $noon)['archive'];
+        assertSame(MEGA_KEY_LENGTH, count($archive['key']));
+        // the key read as a hunter would, from what the register says
+        $names = [];
+        foreach (SAFEGUARD_FINDS as $key => [$name, $what])
+            $names[$name] = $what;
+        $key = '';
+        foreach ($archive['key'] as [$name, $word, $letter]) {
+            assertTrue(isset($names[$name]), 'a find of the register: ' . $name);
+            $words = preg_split('/\s+/u', trim($names[$name]));
+            $key .= strtoupper(mb_str_split($words[$word - 1])[$letter - 1]);
+        }
+        assertTrue((bool)preg_match('/^[A-Z]+$/', $key), 'only A to Z: ' . $key);
+        $record = megaDecipher($archive['record'], $key);
+        assertSame(megaRecord('a'), $record);
+        assertTrue($archive['record'] !== $record, 'it is ciphered');
+        assertSame(['ok' => true], megastructureAnswer('a', ['record' => strtolower($record)], $noon));
+        assertSame(['ok' => true], megastructureAnswer('a', ['record' => '  ' . str_replace(' ', '  ', $record) . ' '], $noon));
+        assertSame(['ok' => false], megastructureAnswer('a', ['record' => $archive['record']], $noon));
+        assertSame(['ok' => false], megastructureAnswer('a', ['record' => ''], $noon));
+    });
+
+    test('the archive\'s key comes only from the finds on the way to the gene', function () {
+        $allowed = array_map(function ($key) { return SAFEGUARD_FINDS[$key][0]; }, MEGA_KEY_FINDS);
+        foreach (['a', 'b', 'c', 'preview'] as $secret)
+            foreach (megaKey($secret)['places'] as [$name])
+                assertTrue(in_array($name, $allowed, true), $name);
+        assertSame([], megastructureAnswer('', ['enter' => geneSequence('a')], megaAt(12, 0)));
+        assertSame([], megastructureAnswer('', ['record' => megaRecord('a')], megaAt(12, 0)));
     });
