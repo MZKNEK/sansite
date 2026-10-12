@@ -1626,6 +1626,21 @@ a.who-name:hover {
     color: rgba(220, 221, 222, 0.5);
 }
 
+/* how soon a seasonal find not made yet comes back; lit while it lasts */
+.register-soon {
+    margin-top: auto;
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.5);
+}
+
+.register li.now {
+    border-color: rgba(var(--accent-rgb), 0.6);
+}
+
+.register li.now .register-soon {
+    color: var(--accent-light);
+}
+
 /* ---- Layout, sticky nav, folded cards, alerts ---- */
 
 .admin-layout {

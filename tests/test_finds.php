@@ -87,6 +87,54 @@
         assertSame(null, $stats['console']['first']);
     });
 
+    test('safeguardFindStats lists everyone who made a find, the first first', function () {
+        clearData();
+        writeData('finds', [
+            '111' => ['gbe' => 50],
+            '999' => ['gbe' => 1],
+            '222' => ['gbe' => 10, 'lost' => 20],
+            '333' => ['gbe' => 30]
+        ]);
+        $stats = safeguardFindStats(safeguardRanking());
+        assertSame(['222', '333', '111'], array_map(function ($got) { return $got['row']['id']; }, $stats['gbe']['all']), 'without the admin');
+        assertSame([10, 30, 50], array_column($stats['gbe']['all'], 'time'));
+        assertSame(3, $stats['gbe']['hunters']);
+        assertSame([], $stats['console']['all']);
+    });
+
+    test('safeguardHolidays knows the days of the seasonal finds', function () {
+        $on = function ($day) {
+            return safeguardHolidays(new DateTimeImmutable($day, new DateTimeZone('Europe/Warsaw')));
+        };
+        assertSame(['xmas', 'newyear'], $on('2026-12-31'), 'the New Year in the middle of Christmas');
+        assertSame(['xmas', 'newyear'], $on('2027-01-01'));
+        assertSame(['xmas'], $on('2027-01-06'));
+        assertSame([], $on('2027-01-07'));
+        assertSame(['easter'], $on('2027-03-21'), 'Palm Sunday, Easter on 28 March 2027');
+        assertSame(['easter'], $on('2027-03-29'), 'Easter Monday');
+        assertSame([], $on('2027-03-30'));
+        assertSame(['easter', 'aprilfools'], $on('2029-04-01'), 'Easter Sunday on 1 April 2029');
+        assertSame(['birthday'], $on('2026-10-13'));
+        assertSame(['halloween'], $on('2026-10-31'));
+        assertSame(['friday13'], $on('2026-11-13'));
+        assertSame(['birthday', 'friday13'], $on('2028-10-13'), 'the birthday on a Friday');
+        assertSame([], $on('2026-10-12'));
+    });
+
+    test('safeguardHolidayIn says how soon a seasonal find comes back', function () {
+        $day = new DateTimeImmutable('2026-10-12 23:30', new DateTimeZone('Europe/Warsaw'));
+        assertSame(1, safeguardHolidayIn('birthday', $day));
+        assertSame(19, safeguardHolidayIn('halloween', $day));
+        assertSame(32, safeguardHolidayIn('friday13', $day), 'Friday 13 November 2026');
+        assertSame(80, safeguardHolidayIn('newyear', $day));
+        assertSame(0, safeguardHolidayIn('halloween', $day->modify('+19 days')), 'while it lasts');
+        assertSame('wraca jutro', safeguardHolidayWhen(1));
+        assertSame('wraca za 19 dni', safeguardHolidayWhen(19));
+        assertSame('trwa teraz', safeguardHolidayWhen(0));
+        foreach (array_keys(SAFEGUARD_SEASONAL) as $key)
+            assertTrue(safeguardHolidayIn($key, $day) !== null, $key . ' comes back within the year and a bit');
+    });
+
     test('safeguardRanking takes the latest name and leaves out who left it', function () {
         clearData();
         writeData('finds', ['111' => ['gbe' => 5], '222' => ['gbe' => 6], '333' => ['gbe' => 7]]);

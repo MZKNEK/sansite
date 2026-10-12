@@ -1063,6 +1063,85 @@ a.version-row:hover .version-name {
     color: rgba(220, 221, 222, 0.45);
 }
 
+/* a secret someone found opens to all who did, and when; open, it takes
+   the whole row */
+.secrets li:has(details[open]) {
+    grid-column: 1 / -1;
+}
+
+.secrets details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.secrets summary {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 4px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.secrets summary::-webkit-details-marker {
+    display: none;
+}
+
+.secrets summary b::after {
+    content: " +";
+    color: rgba(220, 221, 222, 0.35);
+}
+
+.secrets details[open] summary b::after {
+    content: " \2212";
+}
+
+.secrets summary:focus-visible {
+    outline: 1px solid var(--accent-light);
+    outline-offset: 4px;
+}
+
+.secret-hunters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: 4px 16px;
+    margin: 10px 0 0;
+    padding: 10px 0 0;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.25);
+    list-style: none;
+    font-size: 12px;
+}
+
+.secret-hunters li {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.secret-hunters .hunter-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.secret-place {
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.35);
+}
+
+.secret-hunters time {
+    margin-left: auto;
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.45);
+    white-space: nowrap;
+}
+
 @media only screen and (max-width: 600px) {
     .hunter {
         grid-template-columns: 28px 32px minmax(0, 1fr) auto;

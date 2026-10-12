@@ -1915,7 +1915,7 @@ body.idle .logo-eye {
 }
 
 /* Halloween (js/safeguard.js): a Silicon Creature running along an edge; its
-   box is centred on the edge, so its feet are on it */
+   box is centred on the edge, so its feet are on it. A click catches it */
 .sg-crawler {
     position: fixed;
     left: 0;
@@ -1923,7 +1923,37 @@ body.idle .logo-eye {
     z-index: 950;
     width: 28px;
     height: 28px;
-    pointer-events: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: crosshair;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sg-crawler:disabled {
+    cursor: default;
+}
+
+.sg-crawler.caught svg {
+    animation: sg-caught 0.65s ease-out forwards;
+}
+
+.sg-crawler.caught .legs {
+    animation: none;
+}
+
+@keyframes sg-caught {
+    25% {
+        transform: scale(1.4);
+        stroke: #fff;
+        filter: drop-shadow(0 0 8px #e86262) brightness(1.8);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.2) rotate(180deg);
+        stroke: #e86262;
+    }
 }
 
 .sg-crawler svg {
@@ -1957,8 +1987,14 @@ body.idle .logo-eye {
 
 @media (prefers-reduced-motion: reduce) {
     .motto.decoded,
-    body.idle .logo-eye {
+    body.idle .logo-eye,
+    .sg-crawler .legs,
+    .sg-crawler.caught svg {
         animation: none;
+    }
+
+    .sg-crawler.caught svg {
+        opacity: 0.3;
     }
 }
 
@@ -2208,6 +2244,212 @@ body.idle .logo-eye {
     text-shadow: 0 0 6px currentColor;
 }
 
+/* New Year (js/home.js): a rocket by the logo's left edge, where the cake
+   stands on the birthday; a click sends it up, and it comes back */
+.ny-rocket,
+.pp-paddle {
+    position: absolute;
+    left: -4%;
+    bottom: -4%;
+    z-index: 3;
+    width: 13%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    transform: rotate(-8deg);
+    transition: transform 0.3s, opacity 0.3s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ny-rocket svg,
+.pp-paddle svg {
+    display: block;
+    width: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+}
+
+.ny-rocket:hover:not(:disabled),
+.pp-paddle:hover {
+    transform: rotate(-8deg) scale(1.06);
+}
+
+.ny-rocket:focus-visible,
+.pp-paddle:focus-visible {
+    outline: 1px solid var(--accent-light);
+}
+
+.ny-rocket .stick {
+    stroke: #8a6a4a;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+}
+
+.ny-rocket .cone {
+    fill: #e86262;
+}
+
+.ny-rocket .tube {
+    fill: #3a2148;
+    stroke: var(--accent-light);
+    stroke-width: 1.5;
+}
+
+.ny-rocket .band {
+    stroke: #e8d36a;
+    stroke-width: 2;
+}
+
+.ny-rocket .fuse {
+    fill: none;
+    stroke: #f0a35e;
+    stroke-width: 1.5;
+}
+
+.ny-rocket.launched {
+    opacity: 0;
+    transform: translateY(-60vh) rotate(0deg);
+    transition: transform 0.8s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.8s ease-in;
+}
+
+/* the fireworks (js/safeguard.js): sparks moved by their animation, over
+   the page but under its dialogs */
+.sg-spark {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 940;
+    margin: -8px 0 0 -5px;
+    font: 15px "Sanakan Mono", monospace;
+    font-style: normal;
+    line-height: 1;
+    pointer-events: none;
+    text-shadow: 0 0 6px currentColor;
+}
+
+/* 1 April (js/home.js): a ping pong paddle by the logo, and the game against
+   the Safeguard it opens */
+.pp-paddle {
+    width: 17%;
+}
+
+.pp-paddle .blade {
+    fill: #3a2148;
+    stroke: #e86262;
+    stroke-width: 3;
+}
+
+.pp-paddle .handle {
+    fill: #8a6a4a;
+}
+
+.pp-paddle .ball {
+    fill: #fff;
+}
+
+.pp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 960;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(6, 3, 10, 0.78);
+    animation: ns-in 0.25s ease-out;
+}
+
+.pp-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(560px, 100%);
+    padding: 16px;
+    --fill: rgba(16, 10, 22, 0.97);
+    outline: 0;
+}
+
+.pp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.pp-head b {
+    font: 13px "Sanakan Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+}
+
+.pp-close {
+    padding: 0 6px;
+    border: 0;
+    background: none;
+    font-size: 22px;
+    line-height: 1;
+    color: rgba(220, 221, 222, 0.6);
+    cursor: pointer;
+}
+
+.pp-close:hover,
+.pp-close:focus-visible {
+    color: #fff;
+}
+
+.pp-score {
+    margin: 0;
+    font: 14px "JetBrains Mono", Consolas, monospace;
+    text-align: center;
+    color: var(--text);
+}
+
+.pp-table {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    background: rgba(8, 5, 12, 0.9);
+    cursor: none;
+    touch-action: none;
+}
+
+.pp-note {
+    min-height: 1.4em;
+    margin: 0;
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.06em;
+    text-align: center;
+    color: rgba(220, 221, 222, 0.7);
+}
+
+.pp-again {
+    align-self: center;
+    padding: 8px 18px;
+    border: 0;
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
+    color: var(--text);
+    cursor: pointer;
+}
+
+/* Friday the 13th (js/safeguard.js): a title that glitches for a moment */
+.sg-glitch {
+    position: relative;
+    color: #e86262 !important;
+    text-shadow: 2px 0 rgba(79, 209, 197, 0.75), -2px 0 rgba(232, 98, 98, 0.75);
+    cursor: crosshair;
+    animation: sg-glitch 0.18s steps(2) infinite;
+}
+
+@keyframes sg-glitch {
+    50% {
+        transform: translate(1px, -1px) skewX(-6deg);
+    }
+}
+
 /* Easter (js/safeguard.js): an egg on the top edge of a HUD box, in the colour
    of a role; a click breaks it */
 .sg-egg {
@@ -2296,8 +2538,16 @@ body.idle .logo-eye {
 
     .santa-hat,
     .birthday-cake,
-    .birthday-cake .flame {
+    .birthday-cake .flame,
+    .ny-rocket,
+    .ny-rocket.launched,
+    .pp-paddle {
         transition: none;
+    }
+
+    .sg-glitch,
+    .pp-overlay {
+        animation: none;
     }
 
     .birthday-cake .flame,

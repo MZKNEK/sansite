@@ -123,12 +123,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=3b12b4a18b" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=f41a86b89b" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=f9c143a63a" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=7edb88cff8" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=a28763374d" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=5df9dd0e71" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -210,8 +210,8 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=59bbd96f55"></script>
-  <script src="../js/safeguard.js?v=29a153249c"></script>
+  <script src="../js/netsphere.js?v=f4094fa9db"></script>
+  <script src="../js/safeguard.js?v=c6a1ed1d32"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

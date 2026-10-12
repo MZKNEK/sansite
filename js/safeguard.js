@@ -8,12 +8,15 @@
 // the browser's console, the Konami code that lets a Silicon Creature into the
 // page, and the service worker (sw.js) whose offline page is one of the finds
 // (as is the network lost and back while a page is open).
-// Once a year: on 31 October Silicon Creatures scurry along the edges of the
-// HUD, at Christmas and through the winter snow falls (unless turned off in
-// the profile) and at Easter an egg hides on every page, five
-// of them a seasonal find, apart from the count (js/home.js adds the mottos
-// of the holidays and of 1 April, Sanakan's Christmas hat and the cake of the
-// bot's birthday, 13 October, another seasonal find).
+// In their time of the year: on 31 October Silicon Creatures scurry along the
+// edges of the page, one of them caught a seasonal find; at Christmas and
+// through the winter snow falls (unless turned off in the profile); on 31
+// December fireworks go off at midnight; at Easter an egg hides on every page,
+// five of them a seasonal find; on a Friday the 13th the titles glitch, one
+// caught a seasonal find too. Those are apart from the count. js/home.js adds
+// the mottos of the holidays, Sanakan's Christmas hat, the New Year's rocket,
+// the ping pong of 1 April and the cake of the bot's birthday, 13 October,
+// each another seasonal find.
 window.SanakanSafeguard = (function () {
   // the site's root, from this script's own address (js/safeguard.js)
   var ROOT = new URL('../', document.currentScript.src).pathname;
@@ -37,8 +40,12 @@ window.SanakanSafeguard = (function () {
   // from the count, as the rest of the year nobody can make them
   var SEASONAL = {
     xmas: 'Święta w Megastrukturze',
+    newyear: 'Nowy cykl',
     easter: 'Pisanki z Megastruktury',
-    birthday: 'Sto lat'
+    aprilfools: 'Punkt z Safeguardem',
+    birthday: 'Sto lat',
+    halloween: 'Noc form krzemowych',
+    friday13: 'Piątek trzynastego'
   };
   var NAMES = {};
   [FINDS, SEASONAL].forEach(function (list) {
@@ -360,75 +367,272 @@ window.SanakanSafeguard = (function () {
     return new Date(year, month - 1, day);
   }
 
-  // The holidays of the moment: "xmas" from 20 December to Epiphany (6
-  // January), "easter" from Palm Sunday to Easter Monday, "birthday" on the
-  // bot's, 13 October (js/home.js), otherwise null.
-  function season() {
-    var d = today();
-    if (d.month === 10 && d.day === 13) return 'birthday';
-    if ((d.month === 12 && d.day >= 20) || (d.month === 1 && d.day <= 6)) return 'xmas';
+  // The holidays of a day (today() by default), each with an easter egg of its
+  // own; a day may have more than one: "xmas" from 20 December to Epiphany (6
+  // January), "newyear" on 31 December and 1 January, "easter" from Palm
+  // Sunday to Easter Monday, "aprilfools" on 1 April, "birthday" on the bot's,
+  // 13 October, "halloween" on 31 October and "friday13" on every Friday the
+  // 13th (the same as safeguardHolidays() in inc/auth/finds.php).
+  function holidays(d) {
+    d = d || today();
+    var list = [];
     var date = new Date(d.year, d.month - 1, d.day);
-    var easter = easterSunday(d.year);
-    var days = Math.round((date - easter) / 86400000);
-    if (days >= -7 && days <= 1) return 'easter';
-    return null;
+    if ((d.month === 12 && d.day >= 20) || (d.month === 1 && d.day <= 6)) list.push('xmas');
+    if ((d.month === 12 && d.day === 31) || (d.month === 1 && d.day === 1)) list.push('newyear');
+    var days = Math.round((date - easterSunday(d.year)) / 86400000);
+    if (days >= -7 && days <= 1) list.push('easter');
+    if (d.month === 4 && d.day === 1) list.push('aprilfools');
+    if (d.month === 10 && d.day === 13) list.push('birthday');
+    if (d.month === 10 && d.day === 31) list.push('halloween');
+    if (d.day === 13 && date.getDay() === 5) list.push('friday13');
+    return list;
   }
 
-  // Halloween: now and then a Silicon Creature runs along an edge of a HUD box
-  // in view (or of the window), stops for a moment halfway and runs on
+  function holiday(key) {
+    return holidays().indexOf(key) >= 0;
+  }
+
+  // Halloween: now and then a Silicon Creature runs along an edge in view, of
+  // a box of the page or of the window itself, stops for a moment halfway and
+  // runs on; with reduced motion it only sits there for a while. A click
+  // catches it, a seasonal find.
   var CRAWLER = '<svg viewBox="0 0 28 16" aria-hidden="true">'
     + '<g class="legs"><path d="M9 9 4 14M12 9l-2 6M16 9l2 6M19 9l5 5M9 7 3 3M19 7l6-4" /></g>'
     + '<ellipse cx="14" cy="8" rx="7" ry="3.6" /><circle cx="22.5" cy="7.5" r="2.6" />'
     + '<circle class="eye" cx="23.4" cy="6.8" r="0.9" /></svg>';
+  // what has edges to run on: the HUD's corners and the cards, the links,
+  // fields and rows with a frame
+  var CRAWL_ON = '.hud-corners, .links a, .field, .card, .notice-bar, .changes-line, .hunter, .secrets li, article.cmd, .version-group';
+  var EDGE = 60;   // px of an edge in view, at least
+
+  // the edges of the boxes in view, each as far as it is in view, walked
+  // clockwise: the creature runs on the outside of the box
+  function boxEdges(w, h) {
+    var list = [];
+    Array.prototype.forEach.call(document.querySelectorAll(CRAWL_ON), function (el) {
+      if (el.closest('.sg-toast, .ns-overlay, .pl-overlay, .pp-overlay, .account-drop, .to-top')) return;
+      var r = el.getBoundingClientRect();
+      if (r.width < EDGE || r.height < 24) return;
+      var left = Math.max(r.left, 0), right = Math.min(r.right, w);
+      var top = Math.max(r.top, 0), bottom = Math.min(r.bottom, h);
+      if (right - left >= EDGE) {
+        if (r.top > 14 && r.top < h - 2) list.push([left, r.top, right, r.top]);
+        if (r.bottom > 14 && r.bottom < h - 2) list.push([right, r.bottom, left, r.bottom]);
+      }
+      if (bottom - top >= EDGE) {
+        if (r.right > 2 && r.right < w - 14) list.push([r.right, top, r.right, bottom]);
+        if (r.left > 14 && r.left < w - 2) list.push([r.left, bottom, r.left, top]);
+      }
+    });
+    return list;
+  }
 
   function crawl() {
     var w = document.documentElement.clientWidth, h = innerHeight;
-    var boxes = Array.prototype.map.call(document.querySelectorAll('.hud-corners'), function (el) {
-      return el.getBoundingClientRect();
-    }).filter(function (r) {
-      return r.width > 60 && r.height > 24 && r.top > 0 && r.bottom < h && r.left >= 0 && r.right <= w;
-    });
-    var r = boxes.length && Math.random() < 0.85
-      ? boxes[Math.floor(Math.random() * boxes.length)]
-      : { left: 2, top: 2, right: w - 2, bottom: h - 2 };
-
-    // an edge, walked one way or the other, with the creature's feet on it
-    var edges = [
-      [r.left, r.top, r.right, r.top],
-      [r.right, r.top, r.right, r.bottom],
-      [r.right, r.bottom, r.left, r.bottom],
-      [r.left, r.bottom, r.left, r.top]
-    ];
-    var e = edges[Math.floor(Math.random() * 4)];
-    if (Math.random() < 0.5) e = [e[2], e[3], e[0], e[1]];
+    var boxes = boxEdges(w, h);
+    var e;
+    if (boxes.length && Math.random() < 0.6) {
+      // on the outside of the box, or now and then upside down on its inside
+      e = boxes[Math.floor(Math.random() * boxes.length)];
+      if (Math.random() < 0.3) e = [e[2], e[3], e[0], e[1]];
+    } else {
+      // the window's edges, walked the other way round, so it stays in view
+      var windowEdges = [[w, 0, 0, 0], [0, 0, 0, h], [0, h, w, h], [w, h, w, 0]];
+      e = windowEdges[Math.floor(Math.random() * 4)];
+      // its middle stretch on a long one
+      var cut = Math.random() * 0.3;
+      e = [e[0] + (e[2] - e[0]) * cut, e[1] + (e[3] - e[1]) * cut, e[2] - (e[2] - e[0]) * cut, e[3] - (e[3] - e[1]) * cut];
+    }
     var angle = Math.atan2(e[3] - e[1], e[2] - e[0]) * 180 / Math.PI;
     var length = Math.hypot(e[2] - e[0], e[3] - e[1]);
     var mid = [(e[0] + e[2]) / 2, (e[1] + e[3]) / 2];
     function at(x, y) { return 'translate(' + (x - 14) + 'px, ' + (y - 14) + 'px) rotate(' + angle + 'deg)'; }
 
-    var bug = document.createElement('div');
+    // a button, but out of the tab order and hidden from screen readers: it
+    // is gone in a few seconds
+    var bug = document.createElement('button');
+    bug.type = 'button';
     bug.className = 'sg-crawler';
+    bug.tabIndex = -1;
+    bug.setAttribute('aria-hidden', 'true');
     bug.innerHTML = CRAWLER;
     document.body.appendChild(bug);
-    var move = bug.animate([
-      { transform: at(e[0], e[1]), opacity: 0 },
-      { transform: at(e[0], e[1]), opacity: 1, offset: 0.05 },
-      { transform: at(mid[0], mid[1]), offset: 0.45 },
-      { transform: at(mid[0], mid[1]), offset: 0.6 },
-      { transform: at(e[2], e[3]), opacity: 1, offset: 0.95 },
-      { transform: at(e[2], e[3]), opacity: 0 }
-    ], { duration: 1600 + length * 4, easing: 'ease-in-out' });
-    move.onfinish = function () { bug.remove(); };
+    var move = null;
+    var gone;
+    if (still()) {
+      bug.style.transform = at(mid[0], mid[1]);
+      gone = setTimeout(function () { bug.remove(); }, 4000);
+    } else {
+      move = bug.animate([
+        { transform: at(e[0], e[1]), opacity: 0 },
+        { transform: at(e[0], e[1]), opacity: 1, offset: 0.05 },
+        { transform: at(mid[0], mid[1]), offset: 0.4 },
+        { transform: at(mid[0], mid[1]), offset: 0.65 },
+        { transform: at(e[2], e[3]), opacity: 1, offset: 0.95 },
+        { transform: at(e[2], e[3]), opacity: 0 }
+      ], { duration: 1600 + length * 4, easing: 'ease-in-out', fill: 'forwards' });
+      move.onfinish = function () { bug.remove(); };
+    }
+
+    bug.addEventListener('click', function () {
+      if (bug.disabled) return;
+      bug.disabled = true;
+      clearTimeout(gone);
+      if (move) {
+        move.onfinish = null;
+        move.pause();
+      }
+      bug.classList.add('caught');
+      setTimeout(function () { bug.remove(); }, 700);
+      caught();
+    });
+  }
+
+  function caught() {
+    if (load().finds.halloween)
+      notice('Forma krzemowa · zneutralizowana', 'Kolejna', 'Wpis w rejestrze już jest. Safeguard poluje dalej.', null);
+    else
+      found('halloween');
   }
 
   function halloween() {
-    if (still() || !document.body.animate) return;
+    if (!document.body.animate && !still()) return;
     (function next() {
       setTimeout(function () {
         if (!document.hidden) crawl();
         next();
       }, 2500 + Math.random() * 5000);
     })();
+  }
+
+  // New Year: fireworks of glyphs, rockets that rise from the bottom of the
+  // window (or from a point given) and burst. js/home.js fires them from its
+  // rocket; on 31 December they go off by themselves at midnight on any page
+  // open, and on one opened in the first minutes of the year.
+  var SPARKS = ['✦', '✧', '*', '+', '◆', '·', '▪', '❖', '✺'];
+  var SPARK_COLOURS = ['#b670d3', '#4fd1c5', '#e86262', '#f0a35e', '#5fd38d', '#e8d36a'];
+
+  function spark(glyph, colour) {
+    var bit = document.createElement('i');
+    bit.className = 'sg-spark';
+    bit.setAttribute('aria-hidden', 'true');
+    bit.textContent = glyph;
+    bit.style.color = colour;
+    document.body.appendChild(bit);
+    return bit;
+  }
+
+  function burst(x, y, colour) {
+    var count = 22 + Math.floor(Math.random() * 10);
+    for (var i = 0; i < count; i++) {
+      var bit = spark(SPARKS[i % SPARKS.length], Math.random() < 0.2 ? '#fff' : colour);
+      var angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+      var far = 50 + Math.random() * 90;
+      var dx = Math.cos(angle) * far, dy = Math.sin(angle) * far;
+      bit.animate([
+        { transform: 'translate(' + x + 'px, ' + y + 'px) scale(0.5)', opacity: 1 },
+        { transform: 'translate(' + (x + dx) + 'px, ' + (y + dy) + 'px) scale(1)', opacity: 1, offset: 0.55 },
+        { transform: 'translate(' + (x + dx * 1.15) + 'px, ' + (y + dy + 50) + 'px) scale(0.8)', opacity: 0 }
+      ], { duration: 1200 + Math.random() * 600, easing: 'cubic-bezier(0.15, 0.7, 0.4, 1)' }).onfinish = (function (node) {
+        return function () { node.remove(); };
+      })(bit);
+    }
+  }
+
+  function rocket(from) {
+    var w = document.documentElement.clientWidth, h = innerHeight;
+    var x0 = from ? from.x : w * (0.15 + Math.random() * 0.7), y0 = from ? from.y : h + 10;
+    var x = w * (0.12 + Math.random() * 0.76), y = h * (0.1 + Math.random() * 0.35);
+    var colour = SPARK_COLOURS[Math.floor(Math.random() * SPARK_COLOURS.length)];
+    var head = spark('•', colour);
+    head.animate([
+      { transform: 'translate(' + x0 + 'px, ' + y0 + 'px)', opacity: 1 },
+      { transform: 'translate(' + x + 'px, ' + y + 'px)', opacity: 0.9 }
+    ], { duration: 650 + Math.random() * 300, easing: 'cubic-bezier(0.3, 0.6, 0.5, 1)' }).onfinish = function () {
+      head.remove();
+      burst(x, y, colour);
+    };
+  }
+
+  function fireworks(rockets, from) {
+    if (still() || !document.body.animate) return;
+    for (var n = 0; n < rockets; n++) setTimeout(rocket, n * 380 + Math.random() * 250, from);
+  }
+
+  // the real clock, not a pretended day: midnight is midnight
+  function newYearMidnight() {
+    var now = new Date();
+    if (now.getMonth() === 0 && now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 15) {
+      setTimeout(function () { fireworks(8); }, 1500);
+      return;
+    }
+    if (now.getMonth() !== 11 || now.getDate() !== 31) return;
+    setTimeout(function () { fireworks(14); }, new Date(now.getFullYear() + 1, 0, 1) - now);
+  }
+
+  // Friday the 13th: now and then a title of the page in view breaks into
+  // glyphs for a moment, a glitch. A click on it while it lasts catches it, a
+  // seasonal find, and does nothing else (a link is not followed then).
+  var GLITCH_ON = 'h1, h2, h3, .hud-title, .links a';
+  var glitching = null;
+
+  function glitch() {
+    if (glitching || infected || document.hidden || document.body.classList.contains('ns-open')) return;
+    var h = innerHeight;
+    var titles = Array.prototype.filter.call(document.querySelectorAll(GLITCH_ON), function (el) {
+      var r = el.getBoundingClientRect();
+      return el.textContent.trim().length > 2 && r.width > 0 && r.top > 0 && r.bottom < h
+        && !el.closest('.sg-toast, .ns-overlay, .pl-overlay, .pp-overlay, .account-drop, .sg-silicon, #motto');
+    });
+    if (!titles.length) return;
+    var el = titles[Math.floor(Math.random() * titles.length)];
+
+    // only its text changes, whatever else it holds stays
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    var nodes = [], texts = [];
+    while (walker.nextNode()) {
+      nodes.push(walker.currentNode);
+      texts.push(walker.currentNode.nodeValue);
+    }
+    function scramble() {
+      nodes.forEach(function (node, i) {
+        node.nodeValue = texts[i].replace(/\S/g, function (ch) {
+          return Math.random() < 0.4 ? GLYPHS[Math.floor(Math.random() * GLYPHS.length)] : ch;
+        });
+      });
+    }
+    var calm = still();
+    el.classList.add('sg-glitch');
+    scramble();
+    var tick = calm ? null : setInterval(scramble, 90);
+    var stop = setTimeout(restore, calm ? 3500 : 2400);
+    function restore() {
+      clearInterval(tick);
+      clearTimeout(stop);
+      nodes.forEach(function (node, i) { node.nodeValue = texts[i]; });
+      el.classList.remove('sg-glitch');
+      glitching = null;
+    }
+    glitching = { el: el, restore: restore };
+  }
+
+  function fridayThe13th() {
+    document.addEventListener('click', function (e) {
+      if (!glitching || !glitching.el.contains(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      glitching.restore();
+      if (load().finds.friday13)
+        notice('Usterka · namierzona', 'Kolejna', 'Wpis w rejestrze już jest. Safeguard dalej łata Megastrukturę.', null);
+      else
+        found('friday13');
+    }, true);
+    (function next(wait) {
+      setTimeout(function () {
+        glitch();
+        next(12000 + Math.random() * 18000);
+      }, wait);
+    })(4000 + Math.random() * 4000);
   }
 
   // Snow of glyphs falling over the page, behind its dialogs: at Christmas and
@@ -561,13 +765,14 @@ window.SanakanSafeguard = (function () {
     }, 1200);
   }
 
-  var day = today();
-  if (day.month === 10 && day.day === 31) halloween();
+  if (holiday('halloween')) halloween();
   if (snowing()) {
     snowSwitch();
     if (!snowOff()) snow();
   }
-  if (season() === 'easter') eggHunt();
+  if (holiday('easter')) eggHunt();
+  if (holiday('friday13')) fridayThe13th();
+  newYearMidnight();
 
   // ---- Offline: the service worker and its page --------------------------------
 
@@ -601,13 +806,15 @@ window.SanakanSafeguard = (function () {
   }
 
   // found(key) notes a find, names its names, finds() what this browser found
-  // today() the day of the year (maybe a pretended one) and season() the
-  // holidays of the moment
+  // today() the day of the year (maybe a pretended one), holiday(key) whether
+  // it is that one's (holidays() above), and fireworks(rockets, from) the New
+  // Year's, from a point {x, y} of the window or from its bottom
   return {
     found: found,
     names: FINDS,
     finds: function () { return load().finds; },
     today: today,
-    season: season
+    holiday: holiday,
+    fireworks: fireworks
   };
 })();

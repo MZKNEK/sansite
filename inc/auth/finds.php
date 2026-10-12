@@ -26,12 +26,83 @@
 
     // The finds of a time of the year, the same way (js/safeguard.js, js/home.js),
     // listed apart and left out of the count, as the rest of the year nobody
-    // can make them; the hint says when they come back.
+    // can make them; the hint says when they come back (and the register how
+    // soon, safeguardHolidayIn()).
     const SAFEGUARD_SEASONAL = [
-        'xmas'   => ['Święta w Megastrukturze', 'Czapka Mikołaja strącona z głowy Sanakan. Safeguard nie obchodzi świąt.', 'Wraca co roku od 20 grudnia do Trzech Króli.'],
-        'easter' => ['Pisanki z Megastruktury', 'Pięć pisanek rozbitych na pięciu stronach w czasie Wielkanocy.', 'Wraca co roku od Niedzieli Palmowej do Poniedziałku Wielkanocnego.'],
-        'birthday' => ['Sto lat', 'Świeczki na torcie zdmuchnięte w urodziny bota.', 'Wraca co roku 13 października, w urodziny bota.']
+        'xmas'       => ['Święta w Megastrukturze', 'Czapka Mikołaja strącona z głowy Sanakan. Safeguard nie obchodzi świąt.', 'Wraca co roku od 20 grudnia do Trzech Króli.'],
+        'newyear'    => ['Nowy cykl', 'Fajerwerki z glifów odpalone na Sylwestra.', 'Wraca co roku 31 grudnia i 1 stycznia.'],
+        'easter'     => ['Pisanki z Megastruktury', 'Pięć pisanek rozbitych na pięciu stronach w czasie Wielkanocy.', 'Wraca co roku od Niedzieli Palmowej do Poniedziałku Wielkanocnego.'],
+        'aprilfools' => ['Punkt z Safeguardem', 'Piłka przepuszczona przez Safeguarda w ping pongu na prima aprilis.', 'Wraca co roku 1 kwietnia. Safeguard zaprasza wtedy do gry.'],
+        'birthday'   => ['Sto lat', 'Świeczki na torcie zdmuchnięte w urodziny bota.', 'Wraca co roku 13 października, w urodziny bota.'],
+        'halloween'  => ['Noc form krzemowych', 'Forma krzemowa złapana na krawędzi strony w Halloween.', 'Wraca co roku 31 października.'],
+        'friday13'   => ['Piątek trzynastego', 'Usterka złapana na stronie w piątek trzynastego.', 'Wraca w każdy piątek trzynastego.']
     ];
+
+    // Easter Sunday of a year (the Gregorian computus), as "Y-m-d"
+    function safeguardEaster($year)
+    {
+        $a = $year % 19; $b = intdiv($year, 100); $c = $year % 100;
+        $d = intdiv($b, 4); $e = $b % 4; $f = intdiv($b + 8, 25);
+        $g = intdiv($b - $f + 1, 3); $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = intdiv($c, 4); $k = $c % 4; $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = intdiv($a + 11 * $h + 22 * $l, 451);
+        $month = intdiv($h + $l - 7 * $m + 114, 31);
+        $day = ($h + $l - 7 * $m + 114) % 31 + 1;
+
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
+    }
+
+    // the keys of SAFEGUARD_SEASONAL whose time a day is (a DateTimeImmutable),
+    // the same as holidays() in js/safeguard.js
+    function safeguardHolidays($date)
+    {
+        $month = (int)$date->format('n');
+        $day = (int)$date->format('j');
+        $list = [];
+        if (($month === 12 && $day >= 20) || ($month === 1 && $day <= 6))
+            $list[] = 'xmas';
+        if (($month === 12 && $day === 31) || ($month === 1 && $day === 1))
+            $list[] = 'newyear';
+        $easter = new DateTimeImmutable(safeguardEaster((int)$date->format('Y')), $date->getTimezone());
+        $days = (int)round(($date->setTime(0, 0)->getTimestamp() - $easter->getTimestamp()) / 86400);
+        if ($days >= -7 && $days <= 1)
+            $list[] = 'easter';
+        if ($month === 4 && $day === 1)
+            $list[] = 'aprilfools';
+        if ($month === 10 && $day === 13)
+            $list[] = 'birthday';
+        if ($month === 10 && $day === 31)
+            $list[] = 'halloween';
+        if ($day === 13 && $date->format('N') === '5')
+            $list[] = 'friday13';
+
+        return $list;
+    }
+
+    // in how many days a seasonal find's time comes back from a day: 0 while
+    // it lasts (the longest wait, for a Friday the 13th, is 14 months)
+    function safeguardHolidayIn($key, $date)
+    {
+        $date = $date->setTime(12, 0);
+        for ($in = 0; $in <= 430; $in++)
+            if (in_array($key, safeguardHolidays($date->modify('+' . $in . ' days')), true))
+                return $in;
+
+        return null;
+    }
+
+    // "trwa teraz", "wraca jutro", "wraca za 19 dni"
+    function safeguardHolidayWhen($in)
+    {
+        if ($in === null)
+            return '';
+        if ($in === 0)
+            return 'trwa teraz';
+        if ($in === 1)
+            return 'wraca jutro';
+
+        return 'wraca za ' . $in . ' dni';
+    }
 
     // the oldest time a find from a browser may carry; older (or later than
     // now) is a clock that is wrong, and the find counts from now
@@ -166,21 +237,30 @@
 
     // Every find of the register and the seasonal ones, key => ['hunters' =>
     // how many of the ranking made it, 'first' => the row of the one who made
-    // it first, or null, 'time' => when]; the admins are left out of both.
+    // it first, or null, 'time' => when, 'all' => [['row', 'time'], ...] of
+    // everyone who made it, the first first]; the admins are left out of all.
     function safeguardFindStats($ranking)
     {
         $stats = [];
         foreach (array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL) as $key)
-            $stats[$key] = ['hunters' => 0, 'first' => null, 'time' => null];
+            $stats[$key] = ['hunters' => 0, 'first' => null, 'time' => null, 'all' => []];
         foreach ($ranking as $row) {
             if ($row['admin'])
                 continue;
-            foreach ($row['finds'] as $key => $time) {
-                $stats[$key]['hunters']++;
-                if ($stats[$key]['time'] === null || $time < $stats[$key]['time'])
-                    $stats[$key] = ['hunters' => $stats[$key]['hunters'], 'first' => $row, 'time' => $time];
+            foreach ($row['finds'] as $key => $time)
+                $stats[$key]['all'][] = ['row' => $row, 'time' => $time];
+        }
+        foreach ($stats as &$stat) {
+            usort($stat['all'], function ($a, $b) {
+                return [$a['time'], $a['row']['id']] <=> [$b['time'], $b['row']['id']];
+            });
+            $stat['hunters'] = count($stat['all']);
+            if ($stat['all']) {
+                $stat['first'] = $stat['all'][0]['row'];
+                $stat['time'] = $stat['all'][0]['time'];
             }
         }
+        unset($stat);
 
         return $stats;
     }

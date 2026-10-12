@@ -199,9 +199,13 @@
     emiter: ['Emiter Promienia Grawitacyjnego przebija wszystko na swojej drodze.', 'Na stronie głównej ktoś zostawił jeden przy kropce statusu. Trzeba go przytrzymać.'],
     swieta: ['Safeguard nie obchodzi świąt.', 'Budowniczowie też nie robią przerwy, nawet w Wigilię.'],
     pisanka: ['Kury wyginęły w Megastrukturze kilka tysięcy pięter temu.', 'Na Wielkanoc Safeguard i tak chowa pisanki na stronach. Ma swoje powody.'],
-    urodziny: ['Sanakan uruchomiono 13 października 2017 roku.', 'Safeguard nie liczy lat. W ten dzień na stronie głównej i tak stoi tort.']
+    urodziny: ['Sanakan uruchomiono 13 października 2017 roku.', 'Safeguard nie liczy lat. W ten dzień na stronie głównej i tak stoi tort.'],
+    halloween: ['31 października formy krzemowe wychodzą na krawędzie strony.', 'Safeguard odnotowuje każdą złapaną. Cukierków nie rozdaje.'],
+    sylwester: ['Megastruktura nie zna lat, tylko cykle Budowniczych.', 'W Sylwestra Safeguard i tak zostawia przy logo rakietę.'],
+    pingpong: ['1 kwietnia Safeguard zaprasza do ping ponga.', 'Seta jeszcze nikt z nim nie wygrał. Punkt czasem się zdarza.'],
+    piatek: ['W piątek trzynastego usterek w Megastrukturze jest więcej.', 'Safeguard je łapie. Ty też możesz spróbować.']
   };
-  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
+  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', dynia: 'halloween', psikus: 'halloween', nowyrok: 'sylwester', fajerwerki: 'sylwester', 'ping-pong': 'pingpong', ping_pong: 'pingpong', prima: 'pingpong', aprilis: 'pingpong', 'piątek': 'piatek', trzynasty: 'piatek', usterka: 'piatek', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
   var LORE_FIND = 5;
   var LORE_STORE = 'safeguard-lore';
 

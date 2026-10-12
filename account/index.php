@@ -164,12 +164,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=3b12b4a18b" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=f41a86b89b" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=f9c143a63a" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=7edb88cff8" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=a28763374d" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=5df9dd0e71" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -386,7 +386,7 @@
         <h3>Sezonowe</h3>
         <p class="hint">Tylko w swoim czasie w roku, poza licznikiem.</p>
         <ol class="register">
-<?php foreach (SAFEGUARD_SEASONAL as $key => [$name, $what, $when]): $time = $finds[$key] ?? null; ?>
+<?php foreach (SAFEGUARD_SEASONAL as $key => [$name, $what, $when]): $time = $finds[$key] ?? null; $soon = safeguardHolidayIn($key, new DateTimeImmutable('now')); ?>
 <?php if ($time !== null): ?>
           <li class="found">
             <b><?=e($name)?></b>
@@ -394,9 +394,10 @@
             <time datetime="<?=e(date('c', $time))?>"><?=e(date('j.m.Y H:i', $time))?></time>
           </li>
 <?php else: ?>
-          <li>
+          <li<?=$soon === 0 ? ' class="now"' : ''?>>
             <b><?=e($name)?></b>
             <span><?=e($when)?></span>
+            <small class="register-soon"><?=e(safeguardHolidayWhen($soon))?></small>
           </li>
 <?php endif; ?>
 <?php endforeach; ?>
@@ -428,8 +429,8 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=59bbd96f55"></script>
-  <script src="../js/safeguard.js?v=29a153249c"></script>
+  <script src="../js/netsphere.js?v=f4094fa9db"></script>
+  <script src="../js/safeguard.js?v=c6a1ed1d32"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 

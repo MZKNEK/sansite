@@ -30,7 +30,7 @@
         header('Cache-Control: private, no-store');
 
     // the mark of a seasonal find next to a hunter's name
-    const SEASON_MARKS = ['xmas' => '❄', 'easter' => '◒', 'birthday' => '✦'];
+    const SEASON_MARKS = ['xmas' => '❄', 'newyear' => '✺', 'easter' => '◒', 'aprilfools' => '◉', 'birthday' => '✦', 'halloween' => '☾', 'friday13' => '⌁'];
 
     // "01", like the numbers of the cards
     function hunterPlace($n)
@@ -60,11 +60,11 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=3b12b4a18b" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=f41a86b89b" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=f9c143a63a" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=a28763374d" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -121,15 +121,28 @@
 
     <section class="card state-card">
       <h2><i>02</i>Sekrety</h2>
-      <p class="hunters-hint">Ilu łowców odkryło każdy sekret i kto był pierwszy. Nazwę sekretu widzi tylko ten, kto go znalazł<?=$user === null ? ', po zalogowaniu' : ''?>; wskazówki są w <a href="../account/#rejestr">rejestrze w profilu</a>.</p>
+      <p class="hunters-hint">Ilu łowców odkryło każdy sekret i kto był pierwszy; kliknięty sekret pokazuje wszystkich, którzy go zdobyli, i kiedy. Nazwę sekretu widzi tylko ten, kto go znalazł<?=$user === null ? ', po zalogowaniu' : ''?>; wskazówki są w <a href="../account/#rejestr">rejestrze w profilu</a>.</p>
       <ol class="secrets">
 <?php foreach ([SAFEGUARD_FINDS, SAFEGUARD_SEASONAL] as $list => $finds): ?>
-<?php foreach ($finds as $key => [$name]): $stat = $stats[$key]; $known = $seeAll || isset($mine[$key]); ?>
+<?php foreach ($finds as $key => [$name]): $stat = $stats[$key]; $known = $seeAll || isset($mine[$key]); $when = $list ? safeguardHolidayWhen(safeguardHolidayIn($key, new DateTimeImmutable('now'))) : ''; ?>
         <li class="<?=isset($mine[$key]) ? 'found' : ''?><?=$list ? ' seasonal' : ''?>">
+<?php if ($stat['all']): ?>
+          <details>
+            <summary>
+<?php endif; ?>
           <b><?=$known || $list ? e($name) : 'Wpis niezidentyfikowany'?></b>
-          <span><?=$stat['hunters'] ? $stat['hunters'] . ' ' . plural($stat['hunters'], 'łowca', 'łowców', 'łowców') : 'nikt jeszcze'?><?=$list ? ' &middot; sezonowy' : ''?></span>
+          <span><?=$stat['hunters'] ? $stat['hunters'] . ' ' . plural($stat['hunters'], 'łowca', 'łowców', 'łowców') : 'nikt jeszcze'?><?=$list ? ' &middot; sezonowy &middot; ' . e($when) : ''?></span>
 <?php if ($stat['first'] !== null): ?>
           <span class="secret-first">pierwszy: <?=hunterName($stat['first'])?> <time datetime="<?=e(date('c', $stat['time']))?>"><?=e(date('j.m.Y', $stat['time']))?></time></span>
+<?php endif; ?>
+<?php if ($stat['all']): ?>
+            </summary>
+            <ol class="secret-hunters">
+<?php foreach ($stat['all'] as $i => $got): ?>
+              <li><span class="secret-place"><?=hunterPlace($i + 1)?></span> <?=hunterName($got['row'])?> <time datetime="<?=e(date('c', $got['time']))?>"><?=e(date('j.m.Y H:i', $got['time']))?></time></li>
+<?php endforeach; ?>
+            </ol>
+          </details>
 <?php endif; ?>
         </li>
 <?php endforeach; ?>
@@ -140,8 +153,8 @@
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=59bbd96f55"></script>
-  <script src="../js/safeguard.js?v=29a153249c"></script>
+  <script src="../js/netsphere.js?v=f4094fa9db"></script>
+  <script src="../js/safeguard.js?v=c6a1ed1d32"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 

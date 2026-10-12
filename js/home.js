@@ -1,9 +1,9 @@
 // The home page: the motto in Morse code (which also listens to Morse, and
-// says something else on 1 April and at the holidays), the bot status dot,
-// Sanakan's Christmas hat, the cake of the bot's birthday, the page falling
-// asleep when left alone and the Discord account in the top right corner.
-// Kept out of index.html, so the security policy can allow only the site's
-// own script files (server/nginx).
+// says something else at the holidays), the bot status dot, Sanakan's
+// Christmas hat, the New Year's rocket, the ping pong of 1 April, the cake of
+// the bot's birthday, the page falling asleep when left alone and the Discord
+// account in the top right corner. Kept out of index.html, so the security
+// policy can allow only the site's own script files (server/nginx).
 
 // the date, or the one js/safeguard.js was told to pretend (for trying out
 // the days that have an easter egg of their own)
@@ -13,14 +13,26 @@ function homeToday() {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
 }
 
-// "xmas", "easter", "birthday" or null (js/safeguard.js)
-function homeSeason() {
-  return window.SanakanSafeguard ? SanakanSafeguard.season() : null;
+// whether today is a holiday of js/safeguard.js: "xmas", "newyear", "easter",
+// "aprilfools", "birthday", "halloween", "friday13"
+function homeHoliday(key) {
+  return window.SanakanSafeguard ? SanakanSafeguard.holiday(key) : false;
+}
+
+// a note over the logo that goes away by itself
+function homeSay(wrap, text, ms) {
+  var say = document.createElement('p');
+  say.className = 'santa-say';
+  say.setAttribute('role', 'status');
+  say.textContent = text;
+  wrap.appendChild(say);
+  setTimeout(function () { say.remove(); }, ms);
 }
 
 // Shows the motto in Morse code; every symbol lights up in real Morse timing,
-// like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7). On 1 April,
-// at Christmas and Easter and on the bot's birthday it sends another one. It also takes a signal: dots and dashes keyed on it
+// like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7). At the
+// holidays it sends another one (the first of them in HOLIDAYS that is
+// today's). It also takes a signal: dots and dashes keyed on it
 // with the mouse (a short press, a long one) or with the space bar, and when
 // the keying stops, the Safeguard answers in Morse, then in plain text. A word
 // it knows is a find of the Safeguard's register (js/safeguard.js).
@@ -42,8 +54,16 @@ function homeSeason() {
   var FAST = 45;      // ms, the unit of the Safeguard's answer
   var START = 1200;   // ms, after the entrance animation
   var PAUSE = 21;     // units of silence before the signal repeats
-  var APRIL = 'Zagrajmy w ping ponga';
-  var HOLIDAYS = { xmas: 'Wesołych świąt', easter: 'Smacznego jajka', birthday: 'Sto lat' };
+  // in this order: the New Year's eve and day are in the middle of Christmas,
+  // and 1 April may be at Easter
+  var HOLIDAYS = [
+    ['newyear', 'Szczęśliwego Nowego Roku'],
+    ['aprilfools', 'Zagrajmy w ping ponga'],
+    ['xmas', 'Wesołych świąt'],
+    ['easter', 'Smacznego jajka'],
+    ['birthday', 'Sto lat'],
+    ['halloween', 'Cukierek albo psikus']
+  ];
 
   // what the Safeguard answers to a word keyed in; anything else gets AGAIN
   var REPLIES = {
@@ -64,8 +84,11 @@ function homeSeason() {
 
   var motto = document.getElementById('motto');
   var text = motto.textContent.trim();
-  var day = homeToday();
-  var special = day.month === 4 && day.day === 1 ? APRIL : HOLIDAYS[homeSeason()];
+  var special = null;
+  HOLIDAYS.some(function (holiday) {
+    if (homeHoliday(holiday[0])) special = holiday[1];
+    return special;
+  });
   if (special) {
     text = special;
     motto.title = special;
@@ -212,7 +235,7 @@ function homeSeason() {
 // a seasonal find of the Safeguard's register. Knocked off, it stays off for
 // the rest of those holidays (localStorage "safeguard-hat": their year).
 (function () {
-  if (homeSeason() !== 'xmas') return;
+  if (!homeHoliday('xmas')) return;
   var day = homeToday();
   // the holidays that begin in December, also in their days of January
   var holidays = String(day.month === 1 ? day.year - 1 : day.year);
@@ -259,7 +282,7 @@ function homeSeason() {
 // it is a seasonal find of the Safeguard's register. Blown out, the candles
 // stay out for the rest of the day (localStorage "safeguard-cake": the year).
 (function () {
-  if (homeSeason() !== 'birthday') return;
+  if (!homeHoliday('birthday')) return;
   var BORN = 2017;
   var STORE = 'safeguard-cake';
   var day = homeToday();
@@ -355,6 +378,272 @@ function homeSeason() {
     if (window.SanakanSafeguard) SanakanSafeguard.found('birthday');
     setTimeout(function () { say.remove(); }, 5000);
   });
+})();
+
+// New Year's Eve and Day: a rocket stands by Sanakan. A click sends it up and
+// fireworks of glyphs burst over the page (js/safeguard.js); the first time it
+// is a seasonal find of the Safeguard's register. It is back after a while,
+// for more.
+(function () {
+  if (!homeHoliday('newyear')) return;
+  var wrap = document.querySelector('.logo-wrap');
+  var rocket = document.createElement('button');
+  rocket.type = 'button';
+  rocket.className = 'ny-rocket';
+  rocket.title = 'Rakieta noworoczna';
+  rocket.setAttribute('aria-label', 'Rakieta noworoczna: odpal');
+  rocket.innerHTML = '<svg viewBox="0 0 30 100" aria-hidden="true">'
+    + '<path class="stick" d="M15 50v48" />'
+    + '<path class="cone" d="M15 2 24 18H6Z" />'
+    + '<rect class="tube" x="6" y="18" width="18" height="34" rx="1.5" />'
+    + '<path class="band" d="M6 27h18M6 43h18" />'
+    + '<path class="fuse" d="M15 52c3 3-3 6 0 9" /></svg>';
+  wrap.appendChild(rocket);
+
+  rocket.addEventListener('click', function () {
+    rocket.disabled = true;
+    rocket.classList.add('launched');
+    var r = rocket.getBoundingClientRect();
+    if (window.SanakanSafeguard) {
+      SanakanSafeguard.fireworks(7, { x: r.left + r.width / 2, y: r.top });
+      SanakanSafeguard.found('newyear');
+    }
+    homeSay(wrap, 'Nowy cykl Megastruktury. Safeguard odnotował.', 4500);
+    setTimeout(function () {
+      rocket.classList.remove('launched');
+      rocket.disabled = false;
+    }, 5000);
+  });
+})();
+
+// 1 April: the motto asks for a game of ping pong, and a paddle by Sanakan
+// opens one against the Safeguard. The player's paddle on the left follows
+// the mouse or a finger, or the arrow keys (W and S too); the Safeguard's on
+// the right follows the ball, but only so fast, so a steep ball off the edge
+// of a paddle gets past it. To five; the first point won against it is a
+// seasonal find of the Safeguard's register.
+(function () {
+  if (!homeHoliday('aprilfools')) return;
+  var W = 480, H = 270;     // the table, in its own pixels
+  var PAD = 46, PW = 6;     // a paddle's length and width
+  var EDGE = 14;            // from a paddle to its end of the table
+  var BALL = 7;
+  var SERVE = 240, FASTER = 1.07, FASTEST = 640;   // px a second, and more at every hit
+  var REACH = 1.0;          // radians a ball leaves at, off a paddle's very end
+  var KEYS = 380;           // px a second the arrows move the paddle
+  var GUARD = 225;          // px a second the Safeguard's paddle moves at most
+  var WIN = 5;
+
+  var wrap = document.querySelector('.logo-wrap');
+  var paddle = document.createElement('button');
+  paddle.type = 'button';
+  paddle.className = 'pp-paddle';
+  paddle.title = 'Ping pong z Safeguardem';
+  paddle.setAttribute('aria-label', 'Zagraj w ping ponga z Safeguardem');
+  paddle.innerHTML = '<svg viewBox="0 0 60 90" aria-hidden="true">'
+    + '<circle class="blade" cx="30" cy="30" r="26" />'
+    + '<path class="handle" d="M25 54h10v30a5 5 0 0 1-10 0Z" />'
+    + '<circle class="ball" cx="52" cy="66" r="6" /></svg>';
+  wrap.appendChild(paddle);
+  paddle.addEventListener('click', open);
+
+  function el(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function open() {
+    var overlay = el('div', 'pp-overlay');
+    var box = el('div', 'pp-box hud-corners');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', 'Ping pong z Safeguardem');
+    box.tabIndex = -1;
+    var head = el('div', 'pp-head');
+    var close = el('button', 'pp-close', '×');
+    close.type = 'button';
+    close.title = 'Zamknij (Esc)';
+    close.setAttribute('aria-label', 'Zamknij');
+    head.append(el('b', null, 'Ping pong z Safeguardem'), close);
+    var score = el('p', 'pp-score');
+    var canvas = el('canvas', 'pp-table');
+    var dpr = Math.min(3, window.devicePixelRatio || 1);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    var note = el('p', 'pp-note', 'Mysz, palec albo strzałki. Do pięciu punktów.');
+    note.setAttribute('role', 'status');
+    var again = el('button', 'pp-again hud-corners', 'Jeszcze raz');
+    again.type = 'button';
+    again.hidden = true;
+    box.append(head, score, canvas, note, again);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    box.focus();
+
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var style = getComputedStyle(document.documentElement);
+    var mine = style.getPropertyValue('--accent-light').trim() || '#b670d3';
+
+    var me, guard, ball, speed, points, serving, playing, target, frame, last;
+    var keys = { up: false, down: false };
+
+    function start() {
+      me = H / 2;
+      guard = H / 2;
+      points = [0, 0];
+      playing = true;
+      again.hidden = true;
+      showScore();
+      serve(-1);
+    }
+
+    // from the middle, after a moment, to the one who lost the point
+    function serve(dir) {
+      ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
+      speed = SERVE;
+      serving = setTimeout(function () {
+        serving = null;
+        var angle = (Math.random() - 0.5) * 0.8;
+        ball.vx = dir * speed * Math.cos(angle);
+        ball.vy = speed * Math.sin(angle);
+      }, 900);
+    }
+
+    function showScore() {
+      score.textContent = 'Ty ' + points[0] + ' : ' + points[1] + ' Safeguard';
+    }
+
+    // off a paddle: the farther from its middle, the steeper
+    function hit(y, dir) {
+      var off = Math.max(-1, Math.min(1, (ball.y - y) / (PAD / 2)));
+      speed = Math.min(FASTEST, speed * FASTER);
+      ball.vx = dir * speed * Math.cos(off * REACH);
+      ball.vy = speed * Math.sin(off * REACH);
+      ball.x = dir > 0 ? EDGE + PW + BALL / 2 : W - EDGE - PW - BALL / 2;
+    }
+
+    function point(who) {
+      points[who]++;
+      showScore();
+      if (who === 0) {
+        if (window.SanakanSafeguard) SanakanSafeguard.found('aprilfools');
+        note.textContent = 'Safeguard przepuścił piłkę. To się nie powtórzy.';
+      } else {
+        note.textContent = 'Punkt dla Safeguarda.';
+      }
+      if (points[who] >= WIN) {
+        playing = false;
+        ball = null;
+        note.textContent = who ? 'Safeguard wygrywa ' + points[1] + ':' + points[0] + '. Jak zawsze.'
+          : 'Wygrywasz ' + points[0] + ':' + points[1] + '. Safeguard żąda rewanżu.';
+        again.hidden = false;
+        again.focus();
+        return;
+      }
+      serve(who ? -1 : 1);
+    }
+
+    function step(dt) {
+      if (keys.up) me -= KEYS * dt;
+      if (keys.down) me += KEYS * dt;
+      if (target !== null && target !== undefined) me += (target - me) * Math.min(1, dt * 20);
+      me = Math.max(PAD / 2, Math.min(H - PAD / 2, me));
+
+      // the Safeguard follows a ball that comes to it, otherwise goes back to the middle
+      var aim = ball && ball.vx > 0 ? ball.y : H / 2;
+      var most = GUARD * dt;
+      guard += Math.max(-most, Math.min(most, aim - guard));
+      guard = Math.max(PAD / 2, Math.min(H - PAD / 2, guard));
+
+      if (!ball || serving) return;
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+      if (ball.y < BALL / 2) {
+        ball.y = BALL / 2;
+        ball.vy = Math.abs(ball.vy);
+      } else if (ball.y > H - BALL / 2) {
+        ball.y = H - BALL / 2;
+        ball.vy = -Math.abs(ball.vy);
+      }
+      var reach = PAD / 2 + BALL / 2;
+      if (ball.vx < 0 && ball.x - BALL / 2 <= EDGE + PW && ball.x > EDGE - BALL && Math.abs(ball.y - me) <= reach) hit(me, 1);
+      else if (ball.vx > 0 && ball.x + BALL / 2 >= W - EDGE - PW && ball.x < W - EDGE + BALL && Math.abs(ball.y - guard) <= reach) hit(guard, -1);
+      else if (ball.x < -BALL) point(1);
+      else if (ball.x > W + BALL) point(0);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(220, 221, 222, 0.18)';
+      for (var y = 6; y < H; y += 18) ctx.fillRect(W / 2 - 1, y, 2, 9);
+      ctx.fillStyle = mine;
+      ctx.fillRect(EDGE, me - PAD / 2, PW, PAD);
+      ctx.fillStyle = '#e86262';
+      ctx.fillRect(W - EDGE - PW, guard - PAD / 2, PW, PAD);
+      if (ball) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(ball.x - BALL / 2, ball.y - BALL / 2, BALL, BALL);
+      }
+    }
+
+    function loop(now) {
+      var dt = last ? Math.min(0.033, (now - last) / 1000) : 0;
+      last = now;
+      step(dt);
+      draw();
+      frame = requestAnimationFrame(loop);
+    }
+
+    function shut() {
+      cancelAnimationFrame(frame);
+      clearTimeout(serving);
+      overlay.remove();
+      paddle.focus();
+    }
+
+    // the paddle where the pointer is, over the table
+    canvas.addEventListener('pointermove', function (e) {
+      var r = canvas.getBoundingClientRect();
+      target = (e.clientY - r.top) * H / r.height;
+    });
+    canvas.addEventListener('pointerdown', function (e) {
+      var r = canvas.getBoundingClientRect();
+      target = (e.clientY - r.top) * H / r.height;
+    });
+
+    // the keys stay in the game: the motto's Morse, the Konami code and the
+    // Netsphere's word do not hear them
+    function key(e, down) {
+      e.stopPropagation();
+      var k = e.key.toLowerCase();
+      if (k === 'escape') {
+        if (down) shut();
+        return;
+      }
+      if (k === 'arrowup' || k === 'w') keys.up = down;
+      else if (k === 'arrowdown' || k === 's') keys.down = down;
+      else return;
+      e.preventDefault();
+      target = null;
+    }
+    overlay.addEventListener('keydown', function (e) { key(e, true); });
+    overlay.addEventListener('keyup', function (e) { key(e, false); });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) shut();
+    });
+    close.addEventListener('click', shut);
+    again.addEventListener('click', function () {
+      box.focus();
+      note.textContent = 'Rewanż. Safeguard się nie męczy.';
+      start();
+    });
+
+    start();
+    frame = requestAnimationFrame(loop);
+  }
 })();
 
 // Left alone for a few minutes, the page falls asleep: everything goes dark
