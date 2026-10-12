@@ -1,4 +1,4 @@
-// state/wersje/: the arrow keys step to the previous (older) and the next
+// state/versions/: the arrow keys step to the previous (older) and the next
 // (newer) version on a version's page, and on the list the search box shows
 // only the versions whose number or changes have every word typed, opening
 // the series they are in, and the older line (1.3, 1.2, ...) the series is

@@ -12,12 +12,13 @@
   var PAGES = [
     ['Strona główna', '', 'start home sanakan'],
     ['Polecenia', 'cmd/', 'komendy commands cmd'],
-    ['Zmiany w poleceniach', 'cmd/zmiany/', 'historia changes nowe'],
+    ['Zmiany w poleceniach', 'cmd/changes/', 'historia changes nowe zmiany'],
     ['Status bota', 'state/', 'dostępność uptime awarie ping'],
-    ['Historia wersji', 'state/wersje/', 'changelog versions verdiff'],
+    ['Historia wersji', 'state/versions/', 'changelog versions verdiff'],
     ['Galeria', 'i/', 'obrazki zdjęcia gallery pliki'],
     ['Profil', 'account/', 'konto account wygląd kolor urządzenia'],
     ['Rejestr Safeguarda', 'account/#rejestr', 'sekrety znaleziska easter egg'],
+    ['Łowcy sekretów', 'hunters/', 'ranking łowcy rejestr znaleziska easter egg hunters'],
     ['Dokumentacja API', 'api/', 'swagger endpoint'],
     ['Skalpelator', 'skalpel/', 'karta przycinanie obrazek crop'],
     ['USkalpelator', 'uskalpel/', 'ultimate karta przycinanie crop'],
@@ -83,7 +84,7 @@
             cmd.description, cmd.aliases, [cmd.module]));
         });
         (data.versions || []).forEach(function (version) {
-          extra.push(item('version', version, ROOT + 'state/wersje/?v=' + encodeURIComponent(version), '', [], []));
+          extra.push(item('version', version, ROOT + 'state/versions/?v=' + encodeURIComponent(version), '', [], []));
         });
       })
       // tried again on the next opening
@@ -185,7 +186,8 @@
 
     var field = el('label', 'pl-field');
     field.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 21 21" /></svg>';
-    var input = el('input');
+    // "bare": the croppers' styles of their own fields leave it alone
+    var input = el('input', 'bare');
     input.type = 'search';
     input.autocomplete = 'off';
     input.spellcheck = false;

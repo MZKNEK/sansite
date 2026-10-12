@@ -3,7 +3,8 @@
     // by tools/preview.sh before the servers start: 24 hours of the bot's
     // checks with a short outage, 120 days of availability with a planned
     // break, the bot's versions, a week of changes in its commands, the other
-    // Sanakan sites, a notice saying this is a preview, an access request and
+    // Sanakan sites, a notice saying this is a preview, finds of the register
+    // for the ranking of the hunters, an access request and
     // a few made-up pictures in the gallery (i/Podgląd, written down in
     // .preview/created.txt so tools/preview-stop.sh --clean takes them away).
     //   php tools/preview/seed.php
@@ -118,6 +119,25 @@
     // every made-up account logged in once, so the panel knows them by name
     foreach (array_reverse($previewData['accounts'], true) as $id => [$name])
         recordLogin((string)$id, $name, 'https://cdn.discordapp.com/embed/avatars/' . ((int)substr((string)$id, -1) % 6) . '.png', strtolower($name));
+
+    // finds of the Safeguard's register for the ranking of the hunters
+    // (hunters/): Dev, the panel's admin, without a place; the others in turn
+    $keys = array_keys(SAFEGUARD_FINDS);
+    $finds = [
+        '100000000000000001' => array_slice($keys, 0, 11),
+        '100000000000000004' => array_slice($keys, 0, 7),
+        '100000000000000003' => array_slice($keys, 0, 7),
+        '100000000000000002' => array_slice($keys, 0, 3),
+        '100000000000000005' => array_slice($keys, 0, 1)
+    ];
+    $register = [];
+    foreach ($finds as $id => $list) {
+        foreach ($list as $i => $key)
+            $register[$id][$key] = $now - 86400 * (12 - $i) + (int)substr($id, -1) * 3600;
+        if ((string)$id === '100000000000000004')
+            $register[$id]['xmas'] = $now - 300 * 86400;
+    }
+    writeData('finds', $register);
 
     // the guest asks for the gallery
     writeData('requests', ['gallery' => ['100000000000000005' => ['name' => 'Gość', 'note' => 'Chcę zobaczyć galerię (podgląd).', 'time' => $now - 5400]]]);

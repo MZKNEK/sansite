@@ -1826,214 +1826,6 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
     }
 }
 
-/* The search of every page (js/palette.js): Ctrl+K or the button in the footer */
-.foot-search {
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
-    color: rgba(220, 221, 222, 0.35);
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.foot-search:hover,
-.foot-search:focus-visible {
-    color: var(--accent-light);
-}
-
-.foot-search kbd {
-    margin-left: 6px;
-    padding: 0 4px;
-    border: 1px solid rgba(220, 221, 222, 0.2);
-    font: inherit;
-    letter-spacing: 0.05em;
-}
-
-@media (hover: none) {
-    .foot-search kbd {
-        display: none;
-    }
-}
-
-body.pl-open {
-    overflow: hidden;
-}
-
-.pl-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: min(12vh, 96px) 16px 16px;
-    background: rgba(8, 9, 9, 0.82);
-    animation: ns-in 0.15s ease-out;
-}
-
-.pl-box {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 600px;
-    max-height: 100%;
-    padding: 14px;
-    --fill: rgba(20, 12, 26, 0.97);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-}
-
-.pl-field {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 4px 6px 10px;
-    border-bottom: 1px solid rgba(var(--accent-rgb), 0.35);
-}
-
-.pl-field svg {
-    flex: none;
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: var(--accent-light);
-    stroke-width: 2;
-}
-
-/* 16px, or phones zoom in on the field */
-.pl-field input {
-    flex: 1;
-    min-width: 0;
-    padding: 4px 0;
-    border: 0;
-    outline: 0;
-    background: none;
-    font: 16px Lato, Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #fff;
-    caret-color: var(--accent-light);
-}
-
-.pl-field input::-webkit-search-cancel-button {
-    display: none;
-}
-
-.pl-field kbd {
-    flex: none;
-    padding: 1px 5px;
-    border: 1px solid rgba(220, 221, 222, 0.2);
-    font: 11px "Sanakan Mono", monospace;
-    color: rgba(220, 221, 222, 0.5);
-}
-
-.pl-list {
-    margin: 8px 0 0;
-    padding: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    list-style: none;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
-}
-
-.pl-list a {
-    display: grid;
-    grid-template-columns: 76px minmax(0, 1fr);
-    align-items: baseline;
-    gap: 0 12px;
-    padding: 7px 8px;
-    border-left: 2px solid transparent;
-    color: var(--text);
-}
-
-.pl-list [aria-selected="true"] a {
-    border-left-color: var(--accent-light);
-    background: rgba(var(--accent-rgb), 0.16);
-    color: #fff;
-}
-
-.pl-kind {
-    grid-row: span 2;
-    font: 10px "Sanakan Mono", monospace;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(220, 221, 222, 0.45);
-}
-
-.pl-kind.pl-command {
-    color: var(--accent-light);
-}
-
-.pl-list b {
-    overflow: hidden;
-    font: 14px "JetBrains Mono", Consolas, monospace;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.pl-list .pl-page + b {
-    font: 15px Lato, Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-
-.pl-list mark {
-    background: none;
-    color: var(--accent-light);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
-
-.pl-list small {
-    overflow: hidden;
-    font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: rgba(220, 221, 222, 0.5);
-}
-
-.pl-info {
-    margin: 0;
-    padding: 0 8px;
-    font-size: 13px;
-    color: rgba(220, 221, 222, 0.5);
-}
-
-.pl-info:not(:empty) {
-    padding: 10px 8px 4px;
-}
-
-.pl-foot {
-    margin: 8px 0 0;
-    padding: 8px 8px 0;
-    border-top: 1px solid rgba(var(--accent-rgb), 0.2);
-    font: 11px "Sanakan Mono", monospace;
-    letter-spacing: 0.08em;
-    color: rgba(220, 221, 222, 0.4);
-}
-
-@media (hover: none) {
-    .pl-foot,
-    .pl-field kbd {
-        display: none;
-    }
-}
-
-@media (max-width: 480px) {
-    .pl-list a {
-        grid-template-columns: 1fr;
-    }
-
-    .pl-kind {
-        grid-row: auto;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .pl-overlay {
-        animation: none;
-    }
-}
-
 /* The motto takes Morse too (js/home.js): pressed with the mouse or the space
    bar; while the key is down a light burns after the signal, what was keyed
    stays lit, and the answer ends in plain text */
@@ -2276,6 +2068,146 @@ body.idle .logo-eye {
     animation: ns-in 0.3s ease-out;
 }
 
+/* The bot's birthday, 13 October (js/home.js): a cake by the logo's left
+   edge, opposite the status dot, its flames flickering until a click blows
+   them out; glyphs burst out of it */
+.birthday-cake {
+    position: absolute;
+    left: -10%;
+    bottom: -6%;
+    z-index: 3;
+    width: 41%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    transform: rotate(-4deg);
+    transition: transform 0.3s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.birthday-cake svg {
+    display: block;
+    width: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+}
+
+.birthday-cake:hover:not(:disabled) {
+    transform: rotate(-4deg) scale(1.05);
+}
+
+.birthday-cake:focus-visible {
+    outline: 1px solid var(--accent-light);
+}
+
+.birthday-cake:disabled {
+    cursor: default;
+}
+
+.birthday-cake .plate {
+    fill: #c9ccd3;
+}
+
+.birthday-cake .sponge {
+    fill: #3a2148;
+}
+
+.birthday-cake .cream {
+    fill: #f3eef7;
+}
+
+.birthday-cake .band {
+    stroke: var(--accent-light);
+    stroke-width: 3;
+    stroke-dasharray: 2 4;
+}
+
+.birthday-cake .candle {
+    font: 700 31px Lato, Roboto, "Helvetica Neue", Arial, sans-serif;
+    fill: var(--accent-light);
+    stroke: #f3eef7;
+    stroke-width: 1.5;
+    paint-order: stroke;
+}
+
+.birthday-cake .wick {
+    stroke: #c9ccd3;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+}
+
+.birthday-cake .flame,
+.birthday-cake .flame-core {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: flicker 0.5s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -0.13s);
+    transition: opacity 0.25s, transform 0.25s;
+}
+
+.birthday-cake .flame {
+    fill: #f0a35e;
+    filter: drop-shadow(0 0 4px rgba(240, 195, 94, 1)) drop-shadow(0 0 10px rgba(240, 163, 94, 0.7));
+}
+
+.birthday-cake .flame-core {
+    fill: #fff3c4;
+}
+
+.birthday-cake .smoke {
+    fill: none;
+    stroke: rgba(220, 221, 222, 0.6);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    opacity: 0;
+}
+
+/* blown out one after another, left to right */
+.birthday-cake.blown .flame,
+.birthday-cake.blown .flame-core {
+    opacity: 0;
+    transform: scale(0.2) translateY(-6px);
+    animation: none;
+    transition-delay: calc(var(--i) * 0.12s);
+}
+
+.birthday-cake.blowing .smoke {
+    animation: smoke 1.8s ease-out forwards;
+    animation-delay: calc(0.15s + var(--i) * 0.12s);
+}
+
+@keyframes smoke {
+    from {
+        opacity: 0.9;
+        transform: translateY(2px);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+}
+
+@keyframes flicker {
+    from {
+        transform: scaleY(0.85) rotate(-4deg);
+    }
+
+    to {
+        transform: scaleY(1.1) rotate(4deg);
+    }
+}
+
+.cake-bit {
+    position: absolute;
+    z-index: 40;
+    font: 14px "Sanakan Mono", monospace;
+    font-style: normal;
+    pointer-events: none;
+    text-shadow: 0 0 6px currentColor;
+}
+
 /* Easter (js/safeguard.js): an egg on the top edge of a HUD box, in the colour
    of a role; a click breaks it */
 .sg-egg {
@@ -2362,7 +2294,15 @@ body.idle .logo-eye {
         animation: none;
     }
 
-    .santa-hat {
+    .santa-hat,
+    .birthday-cake,
+    .birthday-cake .flame {
         transition: none;
+    }
+
+    .birthday-cake .flame,
+    .birthday-cake .flame-core,
+    .birthday-cake.blowing .smoke {
+        animation: none;
     }
 }

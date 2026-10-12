@@ -71,7 +71,7 @@
     const BOT_HEARTBEAT_SECRET = '';
 
     // Optional: the changelog of the bot, verdiff.md in the root of its
-    // repository, read by state/wersje/. Give the raw address of the file, e.g.
+    // repository, read by state/versions/. Give the raw address of the file, e.g.
     // https://raw.githubusercontent.com/OWNER/REPO/main/verdiff.md. A heading per
     // version with a "Data:" and an optional "Commit:" line and the changes under
     // it. Without it the page still lists the versions the bot reported, but

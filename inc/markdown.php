@@ -1,6 +1,6 @@
 <?php
     // A small Markdown renderer for the changelog the bot keeps in its
-    // repository (verdiff.md, state/wersje/). It is deliberately tiny and
+    // repository (verdiff.md, state/versions/). It is deliberately tiny and
     // dependency-free, like the rest of the site: headings, paragraphs, ordered
     // and unordered lists, fenced code, blockquotes, rules, bold, italic,
     // strikethrough, inline code, links, and an @nick of an account the site
@@ -16,7 +16,7 @@
     }
 
     // an avatar and the nick of an account the site knows, for its @nick; when
-    // its role is known, hovering it opens a tag with the rank (state/wersje/)
+    // its role is known, hovering it opens a tag with the rank (state/versions/)
     function markdownMention($handle, $user)
     {
         $avatar = (string)($user['avatar'] ?? '');

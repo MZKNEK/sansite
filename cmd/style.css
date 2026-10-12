@@ -302,7 +302,7 @@ code {
     text-decoration: underline;
 }
 
-/* cmd/zmiany/: the history of changes */
+/* cmd/changes/: the history of changes */
 .change {
     margin-top: 36px;
 }

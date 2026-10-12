@@ -11,7 +11,7 @@
     // every outage is kept with its start and end. Each check also notes how
     // long the API took to answer. The panel can set a notice for the home page
     // and state/, and mark a planned maintenance break. Changes in the command
-    // list (new, removed, changed commands) are logged for cmd/ and cmd/zmiany/.
+    // list (new, removed, changed commands) are logged for cmd/ and cmd/changes/.
     // Changes of the version the bot reports are logged for state/, which shows
     // since when each one ran.
     // The bot's api/health says whether it is connected to Discord, its ping and

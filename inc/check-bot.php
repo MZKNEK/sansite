@@ -22,7 +22,7 @@
     $state = botState(true);
     // the bot's changelog from its repository, asked for again every
     // VERDIFF_TTL (sooner while a new version has no section in it yet), so
-    // state/wersje/ opens without waiting on the network; the sections the file
+    // state/versions/ opens without waiting on the network; the sections the file
     // no longer has are read from its history
     verdiffBackfill();
     // the pictures of the cards for the croppers, mirrored from the bot's

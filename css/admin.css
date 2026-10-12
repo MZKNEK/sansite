@@ -2025,3 +2025,16 @@ a.who-name:hover {
 .hud-form .snow-field + .admin-btn {
     margin-top: 10px;
 }
+
+/* leaving the ranking of the hunters, under the register of the profile */
+.ranking-form .admin-check {
+    display: flex;
+}
+
+.ranking-form .admin-check a {
+    color: var(--accent-light);
+}
+
+.ranking-form .admin-btn {
+    margin-top: 10px;
+}

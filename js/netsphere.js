@@ -167,7 +167,7 @@
   var PLACES = {
     start: ['', 'strona główna'],
     polecenia: ['cmd/', 'polecenia bota'],
-    zmiany: ['cmd/zmiany/', 'zmiany w poleceniach'],
+    zmiany: ['cmd/changes/', 'zmiany w poleceniach'],
     status: ['state/', 'status bota'],
     api: ['api/', 'dokumentacja API'],
     galeria: ['i/', 'galeria'],
@@ -175,11 +175,13 @@
     panel: ['admin/', 'panel'],
     prywatnosc: ['privacy/', 'prywatność'],
     rejestr: ['account/#rejestr', 'rejestr Safeguarda w profilu'],
+    lowcy: ['hunters/', 'ranking łowców sekretów'],
     wiki: ['https://wiki.sanakan.pl', 'wiki']
   };
   var PLACE_ALIASES = {
     '~': 'start', '/': 'start', home: 'start', cmd: 'polecenia', state: 'status', i: 'galeria',
-    account: 'profil', admin: 'panel', privacy: 'prywatnosc', 'prywatność': 'prywatnosc'
+    account: 'profil', admin: 'panel', privacy: 'prywatnosc', 'prywatność': 'prywatnosc',
+    'łowcy': 'lowcy', hunters: 'lowcy', ranking: 'lowcy'
   };
 
   // commands not in the help, answered with a few lines of BLAME!; five of
@@ -196,9 +198,10 @@
     dhomochevsky: ['Dhomochevsky: forma krzemowa, która walczyła u boku Killy\'ego.', 'Wróg twojego wroga nie musi być przyjacielem.'],
     emiter: ['Emiter Promienia Grawitacyjnego przebija wszystko na swojej drodze.', 'Na stronie głównej ktoś zostawił jeden przy kropce statusu. Trzeba go przytrzymać.'],
     swieta: ['Safeguard nie obchodzi świąt.', 'Budowniczowie też nie robią przerwy, nawet w Wigilię.'],
-    pisanka: ['Kury wyginęły w Megastrukturze kilka tysięcy pięter temu.', 'Na Wielkanoc Safeguard i tak chowa pisanki na stronach. Ma swoje powody.']
+    pisanka: ['Kury wyginęły w Megastrukturze kilka tysięcy pięter temu.', 'Na Wielkanoc Safeguard i tak chowa pisanki na stronach. Ma swoje powody.'],
+    urodziny: ['Sanakan uruchomiono 13 października 2017 roku.', 'Safeguard nie liczy lat. W ten dzień na stronie głównej i tak stoi tort.']
   };
-  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
+  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
   var LORE_FIND = 5;
   var LORE_STORE = 'safeguard-lore';
 

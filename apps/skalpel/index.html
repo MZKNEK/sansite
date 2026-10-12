@@ -8,6 +8,7 @@
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="stylesheet" href="/css/fonts.css?v=8b0e8a863d" />
     <link rel="stylesheet" href="/css/account.css?v=1f284a3102" />
+    <link rel="stylesheet" href="/css/palette.css?v=ff07306679" />
     <!-- the HUD colour of the account (before the first paint) and its menu,
          from the site itself (account.php, apps/shared/lib/account.js) -->
     <script src="/js/hud.js?v=2894733f39"></script>
@@ -30,5 +31,10 @@
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <!-- the search of every page (Ctrl+K and "Szukaj" in the footer), after
+         the app, whose footer it puts its button into; the easter eggs of the
+         other pages stay out, their keys and snow would get in the way of
+         the cropping -->
+    <script src="/js/palette.js?v=15434ca4d0" defer></script>
   </body>
 </html>

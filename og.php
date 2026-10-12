@@ -17,9 +17,9 @@
     const OG_PAGES = [
         'home' => ['drawHome', BOT_CACHE_TTL],
         'cmd' => ['drawCommands', BOT_COMMANDS_TTL],
-        'zmiany' => ['drawChanges', BOT_COMMANDS_TTL],
+        'changes' => ['drawChanges', BOT_COMMANDS_TTL],
         // how long the current version runs grows on it
-        'wersje' => ['drawVersions', BOT_COMMANDS_TTL],
+        'versions' => ['drawVersions', BOT_COMMANDS_TTL],
         'i' => ['drawGallery', 86400],
         'api' => ['drawApi', 86400],
         'privacy' => ['drawPrivacy', 86400],
@@ -33,18 +33,21 @@
     ];
     // as long as cmd/ marks a command new or changed
     const OG_NEW_DAYS = 14;
-    // the changes listed on the picture of cmd/zmiany
+    // the changes listed on the picture of cmd/changes
     const OG_CHANGE_ROWS = 4;
     // the versions on the line of the version history picture
     const OG_VERSION_NODES = 6;
 
     $page = $_GET['p'] ?? 'home';
+    // the names the pages had before they moved to state/versions/ and
+    // cmd/changes/, still in the previews Discord keeps
+    $page = ['wersje' => 'versions', 'zmiany' => 'changes'][$page] ?? $page;
     if (!isset(OG_PAGES[$page]))
         $page = 'home';
 
-    // one version of state/wersje/ (&v=) has a picture of its own, a version
+    // one version of state/versions/ (&v=) has a picture of its own, a version
     // the site does not know the one of the whole history
-    $version = $page === 'wersje' && isset($_GET['v']) && is_string($_GET['v']) ? knownVersion($_GET['v']) : null;
+    $version = $page === 'versions' && isset($_GET['v']) && is_string($_GET['v']) ? knownVersion($_GET['v']) : null;
     if ($version !== null)
         ogServe('og-wersja-' . preg_replace('/[^0-9A-Za-z.-]/', '_', verdiffKey($version['version'])) . '.png', BOT_COMMANDS_TTL,
             function ($file) use ($version) { return drawVersion($file, $version); });
@@ -184,12 +187,12 @@
                 text($img, OG_REGULAR, 22, $x, $y, color($img, '#dcddde', 50), ogFit(OG_REGULAR, 22, $what, OG_WIDTH - 80 - $x));
         }
 
-        ogFoot($img, 'sanakan.pl/cmd/zmiany', $since ? 'zapisywane od ' . date('j.m.Y', $since) : '');
+        ogFoot($img, 'sanakan.pl/cmd/changes', $since ? 'zapisywane od ' . date('j.m.Y', $since) : '');
 
         return ogSave($img, $file);
     }
 
-    // The versions of state/wersje/, newest first, each with 'ran' (how long it
+    // The versions of state/versions/, newest first, each with 'ran' (how long it
     // ran until the next one started, the newest up to now; null without a
     // start) and 'current' (the one the bot reports now)
     function versionRuns()
@@ -323,7 +326,7 @@
                 $mark = $i;
         versionBranch($img, $entries, $mark, 484);
 
-        ogFoot($img, 'sanakan.pl/state/wersje', 'stan z ' . date('j.m.Y H:i'));
+        ogFoot($img, 'sanakan.pl/state/versions', 'stan z ' . date('j.m.Y H:i'));
 
         return ogSave($img, $file);
     }
@@ -379,7 +382,7 @@
         $note = '';
         if ($entry['ran'] !== null)
             $note = ($entry['current'] ? 'działa ' : 'działała ') . duration($entry['ran']);
-        ogFoot($img, 'sanakan.pl/state/wersje', $note);
+        ogFoot($img, 'sanakan.pl/state/versions', $note);
 
         return ogSave($img, $file);
     }

@@ -73,7 +73,7 @@
 
     // URL path of the site root, e.g. "/": the page's address (SCRIPT_NAME)
     // less the page's place in the site's folder, so a page at any depth
-    // (admin/, state/wersje/) gets the same root. Without the page's file in
+    // (admin/, state/versions/) gets the same root. Without the page's file in
     // the site's folder, the page is taken to be one folder deep (i/, admin/).
     function siteRoot()
     {
@@ -83,7 +83,7 @@
         if ($site !== false && $file !== false) {
             $site = str_replace('\\', '/', $site);
             $file = str_replace('\\', '/', $file);
-            // "/state/wersje/index.php" of the page, when SCRIPT_NAME ends with it
+            // "/state/versions/index.php" of the page, when SCRIPT_NAME ends with it
             $inSite = strpos($file, $site . '/') === 0 ? substr($file, strlen($site)) : '';
             if ($inSite !== '' && substr($script, -strlen($inSite)) === $inSite)
                 return substr($script, 0, -strlen($inSite)) . '/';

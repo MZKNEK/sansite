@@ -63,6 +63,17 @@
                 sendSnowCookie($user['id']);
                 setFlash('Zapisano wygląd.');
             }
+        } else if (($_POST['action'] ?? '') === 'ranking') {
+            // the ranking of the hunters (/hunters/) shows the account unless it left it
+            $hide = !isset($_POST['ranking']);
+            if ($hide === hunterHidden($user['id']))
+                setFlash('Bez zmian.');
+            else if (!setHunterHidden($user, $hide))
+                setFlash('Nie udało się zapisać, spróbuj później.');
+            else {
+                addHistory('ranking', $hide ? 'Wypisano się z rankingu łowców.' : 'Wrócono do rankingu łowców.');
+                setFlash($hide ? 'Konta nie ma już w rankingu łowców.' : 'Konto wróciło do rankingu łowców.');
+            }
         }
         header('Location: ./', true, 303);
         exit;
@@ -134,6 +145,9 @@
         $galleryRoot = dirname(__DIR__) . '/i/';
         $showGallery = canViewGalleryId($id) || isGalleryUploaderId($id) || array_sum($gallery) > 0;
         $finds = safeguardFinds($id);
+        // the name and avatar the ranking of the hunters shows, as they are now
+        if ($finds)
+            noteHunter($user);
     }
 ?>
 <!DOCTYPE html>
@@ -150,11 +164,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=e7cc5b6981" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=3b12b4a18b" type="text/css" rel="stylesheet" />
+  <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=00b87dda40" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=0392ce037d" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=f9c143a63a" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=7edb88cff8" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -351,7 +366,7 @@
 
       <section class="card wide" id="rejestr" data-safeguard-register data-found="<?=e(implode(' ', array_keys($finds)))?>">
         <h2><i><?=$showGallery ? '07' : '06'?></i>Rejestr Safeguarda<span class="card-sum"><?=count(array_intersect_key($finds, SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
-        <p class="hint">Sekrety strony, które to konto już odkryło. Te znalezione bez logowania zostają w przeglądarce i trafiają tutaj po zalogowaniu. Reszta czeka, a Safeguard daje tylko wskazówki.</p>
+        <p class="hint">Sekrety strony, które to konto już odkryło. Te znalezione bez logowania zostają w przeglądarce i trafiają tutaj po zalogowaniu. Reszta czeka, a Safeguard daje tylko wskazówki. Kto znalazł najwięcej: <a href="../hunters/">ranking łowców</a>.</p>
         <ol class="register">
 <?php foreach (SAFEGUARD_FINDS as $key => [$name, $what, $hint]): $time = $finds[$key] ?? null; ?>
 <?php if ($time !== null): ?>
@@ -386,6 +401,16 @@
 <?php endif; ?>
 <?php endforeach; ?>
         </ol>
+        <h3>Ranking łowców</h3>
+        <form method="post" action="./" class="ranking-form">
+          <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
+          <input type="hidden" name="action" value="ranking" />
+          <label class="admin-check">
+            <input type="checkbox" name="ranking" value="on"<?=hunterHidden($id) ? '' : ' checked'?> />
+            <span>Pokazuj to konto w <a href="../hunters/">rankingu łowców</a> <span class="muted">(nazwa, awatar, rola i znaleziska, widoczne dla każdego)</span></span>
+          </label>
+          <button type="submit" class="admin-btn">Zapisz</button>
+        </form>
       </section>
 
       <p class="hint own-note">Tak wyglądają dane tego konta zapisane przez stronę. Więcej w <a href="../privacy/">informacji o prywatności</a>. O usunięcie danych można poprosić pod adresem <a href="mailto:privacy@sanakan.pl">privacy@sanakan.pl</a>.</p>
@@ -403,9 +428,9 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=98d5a60cc4"></script>
-  <script src="../js/safeguard.js?v=d9e966f0e3"></script>
-  <script src="../js/palette.js?v=545fc5ad3b"></script>
+  <script src="../js/netsphere.js?v=59bbd96f55"></script>
+  <script src="../js/safeguard.js?v=29a153249c"></script>
+  <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 
 </html>

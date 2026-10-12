@@ -1,6 +1,6 @@
 <?php
     // The bot's changelog, verdiff.md in the root of its repository
-    // (state/wersje/). The file is a heading per version, with the changes under
+    // (state/versions/). The file is a heading per version, with the changes under
     // it in Markdown:
     //
     //   # 1.4.10.14
@@ -303,7 +303,7 @@
         return $users;
     }
 
-    // The version log of state/wersje/: every version the bot reported, newest
+    // The version log of state/versions/: every version the bot reported, newest
     // first, each with the changelog section that matches it when there is one.
     // Each entry is ['version', 'since' => time or null, 'date' => text or null,
     // 'commit' => hash or null, 'changes' => whether a section exists]. A version
@@ -348,7 +348,7 @@
         return $entries;
     }
 
-    // The series a version belongs to on state/wersje/: its first three parts
+    // The series a version belongs to on state/versions/: its first three parts
     // ("1.4.10" of "1.4.10.16", "1.0.0" of "1.0.0.0-alpha")
     function versionSeries($version)
     {

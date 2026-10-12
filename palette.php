@@ -2,7 +2,7 @@
     // What the search of every page (Ctrl+K, js/palette.js) finds besides the
     // pages themselves: the bot's commands with their address on /cmd/
     // (commandAnchor() in inc/bot.php, so a link opens the same command as the
-    // page's own) and the versions of /state/wersje/. Only what anyone sees:
+    // page's own) and the versions of /state/versions/. Only what anyone sees:
     // the moderator and debug commands stay on /cmd/, so the answer is the same
     // for everyone and browsers may keep it a few minutes.
     require __DIR__ . '/inc/bot.php';

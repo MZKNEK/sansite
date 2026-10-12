@@ -13,7 +13,8 @@
     // The Safeguard's register (inc/auth/finds.php, js/safeguard.js): ?finds
     // says whether there is an account, its finds and the CSRF token; a POST
     // of action=finds with the token and the browser's finds as JSON (key =>
-    // time) notes them, and answers with all the account's finds.
+    // time) notes them, with the account's name and avatar for the ranking of
+    // the hunters (/lowcy/), and answers with all the account's finds.
     require __DIR__ . '/inc/auth.php';
     installDataErrorHandler();
 
@@ -37,6 +38,9 @@
         $finds = addSafeguardFinds($user['id'], json_decode((string)($_POST['found'] ?? ''), true), time());
         if ($finds === null)
             http_response_code(503);
+        // the name and avatar the ranking of the hunters shows (/lowcy/)
+        else if ($finds)
+            noteHunter($user);
         echo json_encode(['login' => true, 'finds' => (object)($finds ?? safeguardFinds($user['id']))]);
         exit;
     }

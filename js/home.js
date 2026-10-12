@@ -1,7 +1,7 @@
 // The home page: the motto in Morse code (which also listens to Morse, and
 // says something else on 1 April and at the holidays), the bot status dot,
-// Sanakan's Christmas hat, the page falling asleep when left alone and the
-// Discord account in the top right corner.
+// Sanakan's Christmas hat, the cake of the bot's birthday, the page falling
+// asleep when left alone and the Discord account in the top right corner.
 // Kept out of index.html, so the security policy can allow only the site's
 // own script files (server/nginx).
 
@@ -13,14 +13,14 @@ function homeToday() {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
 }
 
-// "xmas", "easter" or null (js/safeguard.js)
+// "xmas", "easter", "birthday" or null (js/safeguard.js)
 function homeSeason() {
   return window.SanakanSafeguard ? SanakanSafeguard.season() : null;
 }
 
 // Shows the motto in Morse code; every symbol lights up in real Morse timing,
-// like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7). On 1 April
-// and at Christmas and Easter it sends another one. It also takes a signal: dots and dashes keyed on it
+// like a signal being sent (dot 1 unit, dash 3, gaps 1 / 3 / 7). On 1 April,
+// at Christmas and Easter and on the bot's birthday it sends another one. It also takes a signal: dots and dashes keyed on it
 // with the mouse (a short press, a long one) or with the space bar, and when
 // the keying stops, the Safeguard answers in Morse, then in plain text. A word
 // it knows is a find of the Safeguard's register (js/safeguard.js).
@@ -43,7 +43,7 @@ function homeSeason() {
   var START = 1200;   // ms, after the entrance animation
   var PAUSE = 21;     // units of silence before the signal repeats
   var APRIL = 'Zagrajmy w ping ponga';
-  var HOLIDAYS = { xmas: 'Wesołych świąt', easter: 'Smacznego jajka' };
+  var HOLIDAYS = { xmas: 'Wesołych świąt', easter: 'Smacznego jajka', birthday: 'Sto lat' };
 
   // what the Safeguard answers to a word keyed in; anything else gets AGAIN
   var REPLIES = {
@@ -250,6 +250,110 @@ function homeSeason() {
     wrap.appendChild(say);
     if (window.SanakanSafeguard) SanakanSafeguard.found('xmas');
     setTimeout(function () { say.remove(); }, 4500);
+  });
+})();
+
+// The bot's birthday, 13 October (it first ran on 13 October 2017): a cake
+// with candles in the shape of the digits of its age stands by Sanakan. A click blows them
+// out, glyphs burst out of it and the Safeguard notes the day; the first time
+// it is a seasonal find of the Safeguard's register. Blown out, the candles
+// stay out for the rest of the day (localStorage "safeguard-cake": the year).
+(function () {
+  if (homeSeason() !== 'birthday') return;
+  var BORN = 2017;
+  var STORE = 'safeguard-cake';
+  var day = homeToday();
+  var years = day.year - BORN;
+  var year = String(day.year);
+  var blown = false;
+  try {
+    blown = localStorage.getItem(STORE) === year;
+  } catch (err) {
+    // no storage: the candles burn again on every visit
+  }
+
+  // "1 rok", "2 lata", "5 lat", "22 lata"
+  function age(n) {
+    if (n === 1) return '1 rok';
+    var last = n % 10, two = n % 100;
+    return n + (last >= 2 && last <= 4 && (two < 12 || two > 14) ? ' lata' : ' lat');
+  }
+
+  // a candle for each digit, side by side over the middle of the cake, each
+  // with its wick and flame
+  var digits = String(Math.max(1, years)).split('');
+  var candles = '';
+  digits.forEach(function (digit, i) {
+    var x = 50 + (i - (digits.length - 1) / 2) * 24;
+    candles += '<text class="candle" x="' + x + '" y="47" text-anchor="middle">' + digit + '</text>'
+      + '<path class="wick" d="M' + x + ' 18.5v7.5" />'
+      + '<path class="smoke" style="--i: ' + i + '" d="M' + x + ' 18c-3-3 3-6 0-9s3-6 0-9" />'
+      + '<path class="flame" style="--i: ' + i + '" d="M' + x + ' 4c4.5 5 5 10 0 15-5-5-4.5-10 0-15Z" />'
+      + '<path class="flame-core" style="--i: ' + i + '" d="M' + x + ' 11c2 2.5 2 5 0 7.5-2-2.5-2-5 0-7.5Z" />';
+  });
+
+  var wrap = document.querySelector('.logo-wrap');
+  var cake = document.createElement('button');
+  cake.type = 'button';
+  cake.className = 'birthday-cake' + (blown ? ' blown' : '');
+  cake.title = 'Tort na ' + age(years) + ' bota';
+  cake.setAttribute('aria-label', blown ? cake.title + ', świeczki zdmuchnięte' : cake.title + ': zdmuchnij świeczki');
+  cake.innerHTML = '<svg viewBox="0 -6 100 96" aria-hidden="true">'
+    + '<ellipse class="plate" cx="50" cy="84" rx="47" ry="5" />'
+    + '<rect class="sponge" x="10" y="46" width="80" height="36" rx="4" />'
+    + '<path class="cream" d="M10 52c0-4 2-6 6-6h68c4 0 6 2 6 6v5c-4 4-7 4-10 0-3 5-7 5-10 0-3 5-7 5-10 0-3 5-7 5-10 0-3 5-7 5-10 0-3 5-7 5-10 0-3 5-7 5-10 0-3 4-6 4-10 0Z" />'
+    + '<path class="band" d="M10 70h80" />' + candles + '</svg>';
+  wrap.appendChild(cake);
+  if (blown) {
+    cake.disabled = true;
+    return;
+  }
+
+  // glyphs out of the cake in every direction, unless the system asks for no motion
+  function burst() {
+    if ((window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !document.body.animate) return;
+    var GLYPHS = ['✦', '✧', '*', '+', '◆', '·', '▪', '❖'];
+    var COLOURS = ['#b670d3', '#4fd1c5', '#e86262', '#f0a35e', '#5fd38d', '#e8d36a'];
+    var r = cake.getBoundingClientRect();
+    for (var i = 0; i < 28; i++) {
+      var bit = document.createElement('i');
+      bit.className = 'cake-bit';
+      bit.textContent = GLYPHS[i % GLYPHS.length];
+      bit.style.left = (r.left + scrollX + r.width / 2) + 'px';
+      bit.style.top = (r.top + scrollY + r.height * 0.2) + 'px';
+      bit.style.color = COLOURS[i % COLOURS.length];
+      document.body.appendChild(bit);
+      var angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.4;
+      var far = 70 + Math.random() * 120;
+      var dx = Math.cos(angle) * far, dy = Math.sin(angle) * far;
+      bit.animate([
+        { transform: 'translate(-50%, -50%) scale(0.6)', opacity: 1 },
+        { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(1)', opacity: 1, offset: 0.6 },
+        { transform: 'translate(calc(-50% + ' + dx * 1.1 + 'px), calc(-50% + ' + (dy + 60) + 'px)) rotate(' + (Math.random() * 360 - 180) + 'deg)', opacity: 0 }
+      ], { duration: 1300 + Math.random() * 700, easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)' }).onfinish = (function (node) {
+        return function () { node.remove(); };
+      })(bit);
+    }
+  }
+
+  cake.addEventListener('click', function () {
+    cake.disabled = true;
+    // a wisp of smoke rises from each digit only now, not on a later visit
+    cake.classList.add('blown', 'blowing');
+    cake.setAttribute('aria-label', cake.title + ', świeczki zdmuchnięte');
+    try {
+      localStorage.setItem(STORE, year);
+    } catch (err) {
+      // the same
+    }
+    burst();
+    var say = document.createElement('p');
+    say.className = 'santa-say';
+    say.setAttribute('role', 'status');
+    say.textContent = 'Sanakan kończy dziś ' + age(years) + '. Safeguard nie świętuje, ale odnotował.';
+    wrap.appendChild(say);
+    if (window.SanakanSafeguard) SanakanSafeguard.found('birthday');
+    setTimeout(function () { say.remove(); }, 5000);
   });
 })();
 

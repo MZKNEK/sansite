@@ -91,7 +91,7 @@
 
         // with the page's file: any depth, also a page in the root
         $site = str_replace('\\', '/', dirname(__DIR__));
-        foreach (['/state/wersje/index.php', '/cmd/zmiany/index.php', '/admin/index.php', '/account.php'] as $page) {
+        foreach (['/state/versions/index.php', '/cmd/changes/index.php', '/admin/index.php', '/account.php'] as $page) {
             $_SERVER['SCRIPT_FILENAME'] = $site . $page;
             $_SERVER['SCRIPT_NAME'] = $page;
             assertSame('/', siteRoot(), $page);

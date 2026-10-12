@@ -111,7 +111,7 @@ include 'sanakan.head.html';
     <p class="notice">Nie udało się pobrać listy poleceń. Spróbuj ponownie później.</p>
 <?php else: ?>
 <?php if ($latest): ?>
-    <p class="changes-line"><span>Ostatnia zmiana w poleceniach <?=e(date('j.m.Y', $latest['time']))?>: <?=e(implode(', ', $latestParts))?></span><a href="zmiany/">Historia zmian &rarr;</a></p>
+    <p class="changes-line"><span>Ostatnia zmiana w poleceniach <?=e(date('j.m.Y', $latest['time']))?>: <?=e(implode(', ', $latestParts))?></span><a href="changes/">Historia zmian &rarr;</a></p>
 <?php endif; ?>
 <?php if ($state['status'] == 'offline'): ?>
     <p class="notice"><?=$status === 'maintenance' ? 'Bot ma przerwę techniczną' : 'Bot teraz nie odpowiada'?>, poniżej jest ostatnia zapisana lista poleceń.</p>
@@ -161,7 +161,7 @@ include 'sanakan.head.html';
           <div class="cmd-name">
             <a class="cmd-anchor" href="#<?=e($id)?>" title="Link do tego polecenia"><code class="cmd-main"><?=e($command['name'])?></code></a>
 <?php if ($mark): ?>
-            <a class="cmd-mark <?=$mark?>" href="zmiany/" title="<?=$mark === 'new' ? 'Nowe' : 'Zmienione'?> w ostatnich <?=MARK_DAYS?> dniach"><?=$mark === 'new' ? 'nowe' : 'zmienione'?></a>
+            <a class="cmd-mark <?=$mark?>" href="changes/" title="<?=$mark === 'new' ? 'Nowe' : 'Zmienione'?> w ostatnich <?=MARK_DAYS?> dniach"><?=$mark === 'new' ? 'nowe' : 'zmienione'?></a>
 <?php endif; ?>
             <button class="copy copy-link" type="button" data-anchor="<?=e($id)?>" hidden>Link</button>
 <?php if ($aliases): ?>

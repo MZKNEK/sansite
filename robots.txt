@@ -1,10 +1,12 @@
 # The gallery, the admin panel and the profile need a login, inc/ is not reachable at all,
-# the API documentation is not meant for search results
+# the API documentation and the ranking of the hunters (Discord names) are not meant for
+# search results
 User-agent: *
 Disallow: /i/
 Disallow: /admin/
 Disallow: /account/
 Disallow: /inc/
 Disallow: /api/
+Disallow: /hunters/
 
 Sitemap: https://sanakan.pl/sitemap.xml

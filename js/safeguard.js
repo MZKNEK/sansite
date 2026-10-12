@@ -6,12 +6,14 @@
 //
 // On every page, and finds themselves: the Safeguard's word to whoever opens
 // the browser's console, the Konami code that lets a Silicon Creature into the
-// page, and the service worker (sw.js) whose offline page is one of the finds.
+// page, and the service worker (sw.js) whose offline page is one of the finds
+// (as is the network lost and back while a page is open).
 // Once a year: on 31 October Silicon Creatures scurry along the edges of the
 // HUD, at Christmas and through the winter snow falls (unless turned off in
 // the profile) and at Easter an egg hides on every page, five
 // of them a seasonal find, apart from the count (js/home.js adds the mottos
-// of the holidays and of 1 April, and Sanakan's Christmas hat).
+// of the holidays and of 1 April, Sanakan's Christmas hat and the cake of the
+// bot's birthday, 13 October, another seasonal find).
 window.SanakanSafeguard = (function () {
   // the site's root, from this script's own address (js/safeguard.js)
   var ROOT = new URL('../', document.currentScript.src).pathname;
@@ -35,7 +37,8 @@ window.SanakanSafeguard = (function () {
   // from the count, as the rest of the year nobody can make them
   var SEASONAL = {
     xmas: 'Święta w Megastrukturze',
-    easter: 'Pisanki z Megastruktury'
+    easter: 'Pisanki z Megastruktury',
+    birthday: 'Sto lat'
   };
   var NAMES = {};
   [FINDS, SEASONAL].forEach(function (list) {
@@ -358,9 +361,11 @@ window.SanakanSafeguard = (function () {
   }
 
   // The holidays of the moment: "xmas" from 20 December to Epiphany (6
-  // January), "easter" from Palm Sunday to Easter Monday, otherwise null.
+  // January), "easter" from Palm Sunday to Easter Monday, "birthday" on the
+  // bot's, 13 October (js/home.js), otherwise null.
   function season() {
     var d = today();
+    if (d.month === 10 && d.day === 13) return 'birthday';
     if ((d.month === 12 && d.day >= 20) || (d.month === 1 && d.day <= 6)) return 'xmas';
     var date = new Date(d.year, d.month - 1, d.day);
     var easter = easterSunday(d.year);
@@ -484,7 +489,7 @@ window.SanakanSafeguard = (function () {
   // may open have one (and the 404 page, once, whatever the address), so a
   // visitor without a login or rights finds them all the same.
   var EGG_PAGES = 5;
-  var EGG_PLACES = ['', 'cmd/', 'cmd/zmiany/', 'state/', 'state/wersje/', 'privacy/'];
+  var EGG_PLACES = ['', 'cmd/', 'cmd/changes/', 'state/', 'state/versions/', 'privacy/'];
   var EGG_STORE = 'safeguard-easter';
   var EGG_COLORS = ['#9b59b6', '#4fd1c5', '#e86262', '#f0a35e', '#5fd38d', '#e8d36a'];
   var EGG = '<svg viewBox="0 0 20 26" aria-hidden="true">'
@@ -565,6 +570,17 @@ window.SanakanSafeguard = (function () {
   if (season() === 'easter') eggHunt();
 
   // ---- Offline: the service worker and its page --------------------------------
+
+  // A page open while the browser loses the network and gets it back is the
+  // find too: a browser set to work offline (Firefox) may answer from its own
+  // cache or show its own error, and never ask sw.js for the offline page.
+  var cutOff = false;
+  window.addEventListener('offline', function () { cutOff = true; });
+  window.addEventListener('online', function () {
+    if (!cutOff) return;
+    cutOff = false;
+    found('offline');
+  });
 
   // sw.js shows offline.html when a page cannot be reached and leaves a cache
   // behind to say so; the next page that loads notes the find

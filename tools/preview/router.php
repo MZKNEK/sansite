@@ -95,7 +95,7 @@
     }
 
     // short links to commands: /cmd/daily goes to /cmd/#daily
-    if (preg_match('~^/cmd/(?!zmiany(?:/|$))([^/.]+)/?$~', $path, $match)) {
+    if (preg_match('~^/cmd/(?!(?:changes|zmiany)(?:/|$))([^/.]+)/?$~', $path, $match)) {
         header('Location: /cmd/#' . $match[1], true, 302);
         return true;
     }

@@ -450,7 +450,7 @@
     }
 }
 
-/* the version history on state/wersje/: a search box, then the versions in
+/* the version history on state/versions/: a search box, then the versions in
    series (1.4.10.x) that open and close, each version one row that opens it */
 .version-search {
     margin: 4px 0 6px;
@@ -735,7 +735,7 @@ a.version-row:hover .version-name {
     }
 }
 
-/* the changelog (verdiff.md) rendered on state/wersje/ */
+/* the changelog (verdiff.md) rendered on state/versions/ */
 .markdown {
     font-size: 15px;
     line-height: 1.7;
@@ -868,4 +868,213 @@ a.version-row:hover .version-name {
     margin: 18px 0;
     border: 0;
     border-top: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+/* The ranking of the hunters, hunters/: a row per account, its place, the
+   name in the colour of its role and a bar of its finds; the panel's admins
+   dim and without a place; then the secrets, how many found each and who first */
+.hunters-page .state-card + .state-card {
+    margin-top: 24px;
+}
+
+.hunters-hint {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.hunters-hint a,
+.secrets a {
+    color: var(--accent-light);
+}
+
+.hunters {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hunter {
+    display: grid;
+    grid-template-columns: 34px 32px minmax(0, 1fr) minmax(60px, 160px) auto minmax(76px, auto);
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border: 1px solid rgba(var(--accent-rgb), 0.16);
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.hunter.me {
+    border-color: rgba(var(--accent-rgb), 0.55);
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+.hunter.admin {
+    border-style: dashed;
+    opacity: 0.6;
+}
+
+.hunter-place {
+    font: 15px "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+}
+
+.hunter.top-1 .hunter-place {
+    color: #e8d36a;
+    text-shadow: 0 0 10px rgba(232, 211, 106, 0.5);
+}
+
+.hunter.top-2 .hunter-place {
+    color: #c9ccd3;
+}
+
+.hunter.top-3 .hunter-place {
+    color: #d79a62;
+}
+
+.hunter.admin .hunter-place {
+    color: rgba(220, 221, 222, 0.4);
+}
+
+.hunter-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(var(--accent-rgb), 0.2);
+}
+
+.hunter-who {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    min-width: 0;
+}
+
+.hunter-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+}
+
+/* its own role, not the one the page took from the account looking (<html>) */
+.hunter-name[class*="role-"] {
+    color: var(--role);
+}
+
+.hunter-tag {
+    padding: 1px 6px;
+    border: 1px solid rgba(220, 221, 222, 0.25);
+    font: 10px "Sanakan Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(220, 221, 222, 0.6);
+}
+
+.hunter-tag.me {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    color: var(--accent-light);
+}
+
+.hunter-season {
+    font-size: 12px;
+    color: var(--accent-light);
+    cursor: help;
+}
+
+.hunter-bar {
+    height: 6px;
+    background: rgba(var(--accent-rgb), 0.12);
+}
+
+.hunter-bar i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.5);
+}
+
+.hunter-count {
+    font: 13px "JetBrains Mono", Consolas, monospace;
+    text-align: right;
+    color: rgba(220, 221, 222, 0.55);
+    white-space: nowrap;
+}
+
+.hunter-count b {
+    font-weight: normal;
+    color: var(--text);
+}
+
+.hunter-when {
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    text-align: right;
+    color: rgba(220, 221, 222, 0.45);
+    white-space: nowrap;
+}
+
+.secrets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.secrets li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px dashed rgba(220, 221, 222, 0.15);
+    font-size: 13px;
+    color: rgba(220, 221, 222, 0.55);
+}
+
+.secrets li.found {
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--text);
+}
+
+.secrets b {
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.secrets li.found b {
+    color: var(--accent-light);
+}
+
+.secret-first {
+    margin-top: auto;
+    font-size: 12px;
+}
+
+.secret-first time {
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: rgba(220, 221, 222, 0.45);
+}
+
+@media only screen and (max-width: 600px) {
+    .hunter {
+        grid-template-columns: 28px 32px minmax(0, 1fr) auto;
+        gap: 6px 10px;
+    }
+
+    .hunter-bar {
+        grid-column: 2 / -1;
+        grid-row: 2;
+    }
+
+    .hunter-when {
+        display: none;
+    }
 }
