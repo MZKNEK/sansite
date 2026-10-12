@@ -34,6 +34,11 @@ window.SanakanSafeguard = (function () {
     morse: 'Sygnał zwrotny',
     idle: 'Czuwanie',
     regen: 'Regeneracja',
+    builders: 'Godzina Budowniczych',
+    floor0: 'Piętro zero',
+    maze: 'Labirynt piętra zero',
+    paper: 'Ślad na papierze',
+    gene: 'Gen terminala sieciowego',
     killy: 'Spotkanie z Killym'
   };
   var TOTAL = Object.keys(FINDS).length;
@@ -222,10 +227,107 @@ window.SanakanSafeguard = (function () {
       'font: 12px monospace; line-height: 1.6; color: #b670d3;');
   }
 
-  window.safeguard = function () {
+  // safeguard() reports to it; safeguard('<word>') says a word to it, and the
+  // right one, from the terminal of floor zero's maze, gets the gene's third
+  // fragment
+  window.safeguard = function (word) {
     found('console');
-    console.log('%cZgłoszenie przyjęte. Wpis w rejestrze: Intruz w kodzie.\nSafeguard nie zapomina. Nie ruszaj się.', 'font: 12px monospace; line-height: 1.6; color: #e86262;');
+    if (word == null) {
+      console.log('%cZgłoszenie przyjęte. Wpis w rejestrze: Intruz w kodzie.\nSafeguard nie zapomina. Nie ruszaj się.', 'font: 12px monospace; line-height: 1.6; color: #e86262;');
+      return;
+    }
+    mega({ ask: String(word) }).then(function (answer) {
+      if (answer && answer.fragment) {
+        fragment(3, answer.fragment);
+        fragment('word', word);
+        found('maze');
+        paper();
+        console.log('%cSłowo rozpoznane. Fragment sekwencji 3/4: ' + answer.fragment + '\nOstatni fragment Safeguard zostawia tylko na papierze.', 'font: 12px monospace; line-height: 1.6; color: #4fd1c5;');
+      } else {
+        console.log('%cSafeguard nie zna tego słowa.', 'font: 12px monospace; color: #e86262;');
+      }
+    });
+    return 'nadawanie…';
   };
+
+  // ---- The Net Terminal Gene ------------------------------------------------------
+
+  // megastructure.php's answer to a question, or null without one: the way to
+  // the gene is kept on the server, as the repository is public
+  function mega(query) {
+    var opts = { cache: 'no-store', credentials: 'same-origin' };
+    if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
+    return fetch(ROOT + 'megastructure.php?' + new URLSearchParams(query), opts)
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .catch(function () { return null; });
+  }
+
+  // the gene's fragments this browser has, number => "7C2E" (localStorage
+  // "safeguard-gene"), so the terminal can list them
+  var GENE_STORE = 'safeguard-gene';
+
+  function fragments() {
+    try {
+      var kept = JSON.parse(localStorage.getItem(GENE_STORE));
+      return kept && typeof kept === 'object' ? kept : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function fragment(n, value) {
+    var kept = fragments();
+    kept[n] = String(value).toUpperCase();
+    try {
+      localStorage.setItem(GENE_STORE, JSON.stringify(kept));
+    } catch (err) {
+      // remembered by whoever wrote it down
+    }
+  }
+
+  // The fourth fragment the Safeguard leaves only on paper. Once the browser
+  // has the word of floor zero's maze, every page asks for it beforehand and
+  // keeps it in memory only; a page about to be printed (its preview is
+  // enough) gets it as a line on top, gone again after, and then the terminal
+  // knows it too. Nothing on the screen ever shows it.
+  var paperFragment = null;
+  var paperLine = null;
+
+  function paper() {
+    var word = fragments().word;
+    if (!word || paperFragment) return;
+    mega({ paper: word }).then(function (answer) {
+      if (answer && answer.fragment) paperFragment = answer.fragment;
+    });
+  }
+
+  function onPaper() {
+    if (!paperFragment || paperLine) return;
+    paperLine = document.createElement('div');
+    paperLine.className = 'sg-paper';
+    paperLine.setAttribute('aria-hidden', 'true');
+    paperLine.textContent = 'SAFEGUARD · LV.9 — ślad na papierze';
+    var value = document.createElement('b');
+    value.textContent = 'Fragment sekwencji 4/4: ' + paperFragment;
+    paperLine.appendChild(value);
+    document.body.insertBefore(paperLine, document.body.firstChild);
+    fragment(4, paperFragment);
+    found('paper');
+  }
+
+  function offPaper() {
+    if (paperLine) paperLine.remove();
+    paperLine = null;
+  }
+
+  window.addEventListener('beforeprint', onPaper);
+  window.addEventListener('afterprint', offPaper);
+  // Safari before 13 knows only the print media query
+  if (!('onbeforeprint' in window) && window.matchMedia) {
+    var printing = matchMedia('print');
+    if (printing.addListener) printing.addListener(function (e) { if (e.matches) onPaper(); else offPaper(); });
+  }
+  paper();
 
   // ---- The Konami code: a Silicon Creature gets into the page ------------------
 
@@ -902,9 +1004,14 @@ window.SanakanSafeguard = (function () {
   // found(key) notes a find, names its names, finds() what this browser found
   // today() the day of the year (maybe a pretended one), holiday(key) whether
   // it is that one's (holidays() above), and fireworks(rockets, from) the New
-  // Year's, from a point {x, y} of the window or from its bottom
+  // Year's, from a point {x, y} of the window or from its bottom; mega(query)
+  // asks megastructure.php, fragment(n, value) keeps a fragment of the gene
+  // and fragments() gives those kept
   return {
     found: found,
+    mega: mega,
+    fragment: fragment,
+    fragments: fragments,
     names: FINDS,
     finds: function () { return load().finds; },
     today: today,

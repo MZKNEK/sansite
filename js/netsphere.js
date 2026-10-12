@@ -1,7 +1,8 @@
 // Easter egg from BLAME!: typing "netsphere" anywhere on the site (or tapping
 // the SAFEGUARD tag five times, for phones) asks the Netsphere for access. The
-// Safeguard scans for the Net Terminal Gene, never finds it, and the visitor is
-// marked an illegal resident. A logged-in account shows its Safeguard level from
+// Safeguard scans for the Net Terminal Gene, does not find it, and the visitor
+// is marked an illegal resident; only a browser that has given the terminal
+// the gene (inc/megastructure.php) is let in. A logged-in account shows its Safeguard level from
 // the account menu, which does not help either. After the verdict the Safeguard
 // leaves its emergency terminal open: a prompt with a few commands that answer
 // with the site's real data (status, ping, whoami, going to a page) and some
@@ -89,7 +90,12 @@
     document.body.classList.add('ns-open');
     close.focus();
 
-    var gene = line('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
+    // a browser that has given the terminal the gene (inc/megastructure.php)
+    // is let in, the only one
+    var legal = hasGene();
+    var gene = legal
+      ? line('gen terminala sieciowego', 'WYKRYTO', 'ok')
+      : line('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
     var steps = [
       function () { log.appendChild(line('łączenie z Netsferą', 'OK', 'ok')); },
       function () {
@@ -101,17 +107,24 @@
         bar.classList.add('run');
       },
       null, null, null,
-      function () { bar.classList.add('fail'); log.appendChild(gene); },
+      function () { bar.classList.add(legal ? 'pass' : 'fail'); log.appendChild(gene); },
       function () { log.appendChild(line('poziom Safeguard', lv || 'NIEZNANY', lv ? '' : 'bad')); },
       function () {
-        overlay.classList.add('alarm');
-        log.appendChild(el('p', 'ns-verdict', 'NIELEGALNY MIESZKANIEC'));
+        if (legal) {
+          overlay.classList.add('granted');
+          log.appendChild(el('p', 'ns-verdict', 'DOSTĘP PRZYZNANY'));
+        } else {
+          overlay.classList.add('alarm');
+          log.appendChild(el('p', 'ns-verdict', 'NIELEGALNY MIESZKANIEC'));
+        }
         note('netsphere');
       },
       function () {
-        log.appendChild(el('p', 'ns-note', dev
-          ? 'Poziom LV.9 nie zastąpi genu. Nawet Safeguard nie ma wstępu do Netsfery.'
-          : 'Dostęp zabroniony. Wezwano Safeguard, nie ruszaj się.'));
+        log.appendChild(el('p', 'ns-note', legal
+          ? 'Uprawniony użytkownik Netsfery. Safeguard opuszcza broń.'
+          : dev
+            ? 'Poziom LV.9 nie zastąpi genu. Nawet Safeguard nie ma wstępu do Netsfery.'
+            : 'Dostęp zabroniony. Wezwano Safeguard, nie ruszaj się.'));
       },
       function () { input = terminal(log, box, close, shut, lv); }
     ];
@@ -161,6 +174,11 @@
     if (window.SanakanSafeguard) SanakanSafeguard.found(key);
   }
 
+  // whether this browser has found the Net Terminal Gene
+  function hasGene() {
+    return !!(window.SanakanSafeguard && SanakanSafeguard.finds().gene);
+  }
+
   // ---- The emergency terminal ----------------------------------------------
 
   // where "idź" goes: [path from the site's root, or a full address, name]
@@ -203,9 +221,10 @@
     halloween: ['31 października formy krzemowe wychodzą na krawędzie strony.', 'Safeguard odnotowuje każdą złapaną. Cukierków nie rozdaje.'],
     sylwester: ['Megastruktura nie zna lat, tylko cykle Budowniczych.', 'W Sylwestra Safeguard i tak zostawia przy logo rakietę.'],
     pingpong: ['1 kwietnia Safeguard zaprasza do ping ponga.', 'Seta jeszcze nikt z nim nie wygrał. Punkt czasem się zdarza.'],
-    piatek: ['W piątek trzynastego usterek w Megastrukturze jest więcej.', 'Safeguard je łapie. Ty też możesz spróbować.']
+    piatek: ['W piątek trzynastego usterek w Megastrukturze jest więcej.', 'Safeguard je łapie. Ty też możesz spróbować.'],
+    zero: ['Mówią, że pod najniższym piętrem jest jeszcze jedno, piętro zero.', 'Prowadzi tam tylko korytarz Budowniczych, a ich drzwi otwierają się nocą.']
   };
-  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', dynia: 'halloween', psikus: 'halloween', nowyrok: 'sylwester', fajerwerki: 'sylwester', 'ping-pong': 'pingpong', ping_pong: 'pingpong', prima: 'pingpong', aprilis: 'pingpong', 'piątek': 'piatek', trzynasty: 'piatek', usterka: 'piatek', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
+  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', dynia: 'halloween', psikus: 'halloween', nowyrok: 'sylwester', fajerwerki: 'sylwester', 'ping-pong': 'pingpong', ping_pong: 'pingpong', prima: 'pingpong', aprilis: 'pingpong', 'piątek': 'piatek', trzynasty: 'piatek', usterka: 'piatek', 'piętro': 'zero', pietro: 'zero', drzwi: 'zero', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
   var LORE_FIND = 5;
   var LORE_STORE = 'safeguard-lore';
 
@@ -342,13 +361,64 @@
         var name = document.querySelector('.account-name');
         row('konto', name ? name.textContent.trim() : 'niezalogowane', name ? null : 'dim');
         row('poziom Safeguard', lv || 'NIEZNANY', lv ? null : 'bad');
-        row('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
-        row('klasyfikacja', 'NIELEGALNY MIESZKANIEC', 'bad');
+        if (hasGene()) {
+          row('gen terminala sieciowego', 'WYKRYTO', 'ok');
+          row('klasyfikacja', 'UPRAWNIONY UŻYTKOWNIK NETSFERY', 'ok');
+        } else {
+          row('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
+          row('klasyfikacja', 'NIELEGALNY MIESZKANIEC', 'bad');
+        }
       },
 
       skan: function () {
+        if (hasGene()) {
+          row('gen terminala sieciowego', 'WYKRYTO', 'ok');
+          say('Sekwencja przyjęta wcześniej. Safeguard pamięta.', 'dim');
+          return;
+        }
         row('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
         say('Powtarzanie skanu nie wytworzy genu.', 'dim');
+      },
+
+      // The Net Terminal Gene (inc/megastructure.php): without a sequence the
+      // fragments this browser has; with one, megastructure.php says whether
+      // it is the gene, the one time the Safeguard lets anyone in
+      gen: function (arg, sequence) {
+        if (!window.SanakanSafeguard) {
+          say('Rejestr Safeguarda nie odpowiada.', 'bad');
+          return;
+        }
+        if (!sequence) {
+          var kept = SanakanSafeguard.fragments();
+          [1, 2, 3, 4].forEach(function (n) {
+            row('fragment ' + n + '/4', kept[n] || '????', kept[n] ? 'ok' : 'dim');
+          });
+          say('Złożoną sekwencję podaj tak: gen XXXX-XXXX-XXXX-XXXX', 'dim');
+          return;
+        }
+        say('weryfikacja sekwencji…', 'dim');
+        SanakanSafeguard.mega({ gene: sequence }).then(function (answer) {
+          if (!answer || !answer.ok) {
+            row('sekwencja', 'ODRZUCONA', 'bad');
+            row('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
+            return;
+          }
+          var steps = [
+            ['sekwencja', 'PRZYJĘTA', 'ok'],
+            ['gen terminala sieciowego', 'WYKRYTO', 'ok'],
+            ['klasyfikacja', 'UPRAWNIONY UŻYTKOWNIK NETSFERY', 'ok'],
+            ['dostęp do Netsfery', 'PRZYZNANY', 'ok']
+          ];
+          steps.forEach(function (step, i) {
+            setTimeout(function () {
+              row(step[0], step[1], step[2]);
+              if (i === steps.length - 1) {
+                say('Safeguard opuszcza broń. Pierwszy raz od tysięcy lat ktoś ma prawo tu być.');
+                SanakanSafeguard.found('gene');
+              }
+            }, (i + 1) * STEP);
+          });
+        });
       },
 
       'idź': function (where) {
@@ -413,7 +483,7 @@
     var aliases = {
       help: 'pomoc', '?': 'pomoc', scan: 'skan', netsphere: 'skan', idz: 'idź', cd: 'idź', go: 'idź',
       polecenie: 'man', date: 'czas', time: 'czas', wyczysc: 'wyczyść', clear: 'wyczyść', cls: 'wyczyść',
-      exit: 'zamknij', quit: 'zamknij', q: 'zamknij', register: 'rejestr'
+      exit: 'zamknij', quit: 'zamknij', q: 'zamknij', register: 'rejestr', gene: 'gen', sekwencja: 'gen'
     };
 
     function run(line) {
@@ -432,7 +502,7 @@
         readLore(entry);
       }
       else if (commands[aliases[name] || name])
-        commands[aliases[name] || name](arg);
+        commands[aliases[name] || name](arg, words.slice(1).join(''));
       else
         say('Nieznane polecenie: ' + name + '. Wpisz pomoc.', 'bad');
     }

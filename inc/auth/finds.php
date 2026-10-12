@@ -22,6 +22,11 @@
         'morse'     => ['Sygnał zwrotny', 'Słowo wystukane Morse\'em na motcie strony głównej i odpowiedź Safeguarda.', 'Motto na górze strony głównej nie tylko nadaje. Wołanie o pomoc to dobry początek.'],
         'idle'      => ['Czuwanie', 'Strona główna zasnęła w bezruchu, a Sanakan czuwała dalej.', 'Zostaw stronę główną na dłużej w spokoju.'],
         'regen'     => ['Regeneracja', 'Trzy strzały z Emitera pod rząd rozłupały logo, a Sanakan się zregenerowała.', 'Jeden strzał z Emitera to za mało, żeby zranić Safeguarda.'],
+        'builders'  => ['Godzina Budowniczych', 'Drzwi Budowniczych otwarte nocą tam, gdzie nie prowadzi żaden adres. Za nimi pierwszy fragment genu.', 'Budowniczowie mają swoją godzinę, nocą, i swoje drzwi, tam gdzie nie ma drogi. Otwierają je tylko na kilka minut.'],
+        'floor0'    => ['Piętro zero', 'Korytarz za drzwiami Budowniczych przebyty do końca. Tam drugi fragment genu i labirynt.', 'Za drzwiami Budowniczych zaczyna się korytarz. Idź tam, skąd ciągnie.'],
+        'maze'      => ['Labirynt piętra zero', 'Labirynt w ciemności przebyty do terminala, a jego słowo podane Safeguardowi. Trzeci fragment genu.', 'Na piętrze zero jest coś więcej niż ściany. Ciemność da się przejść.'],
+        'paper'     => ['Ślad na papierze', 'Ostatni fragment genu, który Safeguard zostawia tylko na wydruku.', 'Nie wszystko, co Safeguard zostawia, widać na ekranie.'],
+        'gene'      => ['Gen terminala sieciowego', 'Cztery fragmenty sekwencji złożone i przyjęte przez terminal. Dostęp do Netsfery przyznany.', 'Gen rozpadł się na cztery fragmenty: u Budowniczych, na piętrze zero, u samego Safeguarda i na papierze. Złożone podaj terminalowi poleceniem gen.'],
         'killy'     => ['Spotkanie z Killym', 'Killy przeszedł przez stronę i dał się zatrzymać. Nic nie powiedział.', 'Czasem ktoś przechodzi dołem strony. Im więcej sekretów w rejestrze, tym częściej. Potem potrzeba refleksu.']
     ];
 

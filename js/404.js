@@ -113,4 +113,175 @@ document.getElementById('lost').textContent = path;
   document.getElementById('mega').hidden = false;
 
   if (window.SanakanSafeguard) SanakanSafeguard.found('lost');
+
+  // ---- The way to the Net Terminal Gene (inc/megastructure.php) ----
+  // The server says whether this address is more than a dead end: at the
+  // Builders' hour a door opens on any of them, an address of their corridor
+  // feels a draught from the next one, and its end is floor zero.
+  if (!window.SanakanSafeguard) return;
+  var sg = SanakanSafeguard;
+  var mega = document.getElementById('mega');
+
+  function line(cls, text) {
+    var p = document.createElement('p');
+    p.className = cls;
+    p.textContent = text;
+    mega.appendChild(p);
+    return p;
+  }
+
+  function code(text) {
+    var c = document.createElement('code');
+    c.textContent = text;
+    return c;
+  }
+
+  // Floor zero: a maze in the dark, the visitor at its way in on the left and
+  // a terminal (T) deep inside. The arrows or WASD take a step, a swipe runs
+  // on to the next turn; nothing on the page says so. Only what is near
+  // shows, what was seen stays dim. At the terminal the walk, without its
+  // steps back, goes to megastructure.php, which checks it and gives a word
+  // for the Safeguard in the console.
+  var SIGHT = 3;   // characters around the visitor that show
+  var STEPS = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] };
+  var BACK = { U: 'D', D: 'U', L: 'R', R: 'L' };
+  var KEYS = { arrowup: 'U', arrowdown: 'D', arrowleft: 'L', arrowright: 'R', w: 'U', s: 'D', a: 'L', d: 'R' };
+
+  function floorZero(zero) {
+    document.getElementById('mega-where').textContent = 'Piętro 0 · sektor 0-0';
+    document.getElementById('mega-terminal').textContent = 'w głębi labiryntu';
+    document.getElementById('mega-people').textContent = 'nigdy';
+    document.getElementById('mega-note').textContent = 'Dalej nie ma już pięter. Gdzieś w ciemności świeci terminal.';
+    var got = line('mega-secret', 'Fragment sekwencji 2/4: ');
+    got.appendChild(code(zero.fragment));
+    sg.fragment(2, zero.fragment);
+    sg.found('floor0');
+
+    var rows = zero.maze.rows;
+    var end = zero.maze.end;
+    var x = zero.maze.start[0], y = zero.maze.start[1];
+    var path = [];
+    var seen = {};
+    var done = false;
+    var map = document.getElementById('mega-map');
+    map.classList.add('mega-maze');
+
+    function open(cx, cy) {
+      return (rows[cy] || '')[cx] === ' ';
+    }
+
+    function draw() {
+      for (var dy = -SIGHT; dy <= SIGHT; dy++)
+        for (var dx = -SIGHT; dx <= SIGHT; dx++) seen[(x + dx) + ',' + (y + dy)] = true;
+      var html = '';
+      rows.forEach(function (row, ry) {
+        var dim = false;
+        for (var rx = 0; rx < row.length; rx++) {
+          var near = Math.abs(rx - x) <= SIGHT && Math.abs(ry - y) <= SIGHT;
+          var shade = !near && seen[rx + ',' + ry];
+          if (shade !== dim) {
+            html += shade ? '<span class="mega-dim">' : '</span>';
+            dim = shade;
+          }
+          if (rx === x && ry === y) html += '<b class="mega-you">@</b>';
+          else if (rx === end[0] && ry === end[1]) html += '<b class="mega-end">T</b>';
+          else html += near || shade ? row[rx] : ' ';
+        }
+        if (dim) html += '</span>';
+        if (ry < rows.length - 1) html += '\n';
+      });
+      map.innerHTML = html;
+    }
+
+    function move(dir) {
+      if (done || !open(x + STEPS[dir][0], y + STEPS[dir][1])) return false;
+      x += STEPS[dir][0];
+      y += STEPS[dir][1];
+      if (path.length && path[path.length - 1] === BACK[dir]) path.pop();
+      else path.push(dir);
+      draw();
+      if (x === end[0] && y === end[1]) reach();
+      return true;
+    }
+
+    // on along a corridor, until it turns, splits or ends
+    function run(dir) {
+      if (!move(dir)) return;
+      var sides = dir === 'U' || dir === 'D' ? ['L', 'R'] : ['U', 'D'];
+      while (!done && !sides.some(function (s) { return open(x + STEPS[s][0], y + STEPS[s][1]); }) && move(dir)) {
+        // each step drawn by move()
+      }
+    }
+
+    function reach() {
+      done = true;
+      sg.mega({ walk: path.join('') }).then(function (answer) {
+        if (!answer || !answer.word) {
+          // no answer: one step away and back asks again
+          done = false;
+          return;
+        }
+        var word = line('mega-secret', 'Terminal piętra zero. Na ekranie jedno słowo dla Safeguarda: ');
+        word.appendChild(code(answer.word));
+      });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      var dir = KEYS[(e.key || '').toLowerCase()];
+      var t = e.target;
+      if (!dir || done || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.body.classList.contains('ns-open') || document.body.classList.contains('pl-open')) return;
+      e.preventDefault();
+      move(dir);
+    });
+
+    var touch = null;
+    map.addEventListener('touchstart', function (e) {
+      touch = e.touches.length === 1 ? [e.touches[0].clientX, e.touches[0].clientY] : null;
+    }, { passive: true });
+    map.addEventListener('touchend', function (e) {
+      if (!touch || !e.changedTouches.length) return;
+      var dx = e.changedTouches[0].clientX - touch[0], dy = e.changedTouches[0].clientY - touch[1];
+      touch = null;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+      run(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U'));
+    });
+
+    draw();
+  }
+
+  function door() {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mega-door hud-corners';
+    button.textContent = '▯ Uchylone drzwi Budowniczych';
+    mega.appendChild(button);
+    button.addEventListener('click', function () {
+      button.disabled = true;
+      sg.mega({ door: 1 }).then(function (answer) {
+        if (!answer || !answer.fragment) {
+          button.textContent = 'Drzwi się zamknęły. Budowniczowie wrócili do pracy.';
+          return;
+        }
+        button.remove();
+        var got = line('mega-secret', 'Za drzwiami Budowniczych, fragment sekwencji 1/4: ');
+        got.appendChild(code(answer.fragment));
+        var way = line('mega-secret', 'Korytarz prowadzi dalej: ');
+        way.appendChild(code(answer.corridor));
+        sg.fragment(1, answer.fragment);
+        sg.found('builders');
+      });
+    });
+  }
+
+  sg.mega({ at: path }).then(function (answer) {
+    if (!answer) return;
+    if (answer.zero) floorZero(answer.zero);
+    if (answer.draught) {
+      var draught = line('mega-secret', 'Czuć przeciąg. Ciągnie od: ');
+      draught.appendChild(code(answer.draught));
+    }
+    if (answer.door) door();
+  });
 })();

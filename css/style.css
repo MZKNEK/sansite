@@ -1449,6 +1449,21 @@ textarea.field {
     background: #e86262;
 }
 
+/* the scan of a browser that has the Net Terminal Gene (js/netsphere.js) */
+.ns-bar.pass i {
+    background: #5fd38d;
+}
+
+.ns-overlay.granted .ns-verdict {
+    color: #5fd38d;
+    text-shadow: 0 0 10px rgba(95, 211, 141, 0.6);
+    animation: ns-in 0.2s ease-out;
+}
+
+.ns-overlay.granted .ns-note {
+    color: rgba(196, 240, 214, 0.85);
+}
+
 .ns-verdict {
     margin: 16px 0 4px;
     font-size: 20px;
@@ -2540,6 +2555,37 @@ body.idle .logo-eye {
 @keyframes sg-killy-charge {
     50% {
         opacity: 0.35;
+    }
+}
+
+/* The Net Terminal Gene's last fragment (js/safeguard.js): a line on top of
+   a printed page only, black on the white of the paper */
+.sg-paper {
+    display: none;
+}
+
+/* in points and a plain bold face, which stay sharp in a print preview's
+   small scale, where the site's thin fonts break up */
+@media print {
+    .sg-paper {
+        display: block;
+        margin: 0 0 14pt;
+        padding: 8pt 12pt;
+        border: 2pt solid #000;
+        background: #fff;
+        font: 700 11pt/1.4 Arial, Helvetica, sans-serif;
+        letter-spacing: 0;
+        color: #000;
+        text-shadow: none;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .sg-paper b {
+        display: block;
+        margin-top: 4pt;
+        font: 700 20pt/1.2 "Courier New", Courier, monospace;
+        letter-spacing: 0.1em;
     }
 }
 

@@ -18,6 +18,12 @@
     define('API_VIEWERS', []);
     define('BOT_APP_KEY', 'preview');
     define('BOT_API_BASE', getenv('SANAKAN_PREVIEW_API') ?: 'http://127.0.0.1:8766');
+    // the Net Terminal Gene's own, made up like the rest: the way to it in the
+    // preview is not the site's
+    define('SAFEGUARD_SECRET', 'preview');
+    // the cookie "safeguard-time" ("03:02") pretends the hour for megastructure.php,
+    // so the Builders' door can be seen in the day; never on the site
+    define('SAFEGUARD_PRETEND_TIME', true);
 
     // The other Sanakan sites the status checks answer as up without asking
     // them (the preview checks itself as sanakan.pl, and the croppers are on it

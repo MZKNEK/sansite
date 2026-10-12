@@ -115,3 +115,11 @@
     // Defaults to 1 GiB, one encoder at a time; old inactive copies are cleaned
     // by maintenance. Keep inc/data on the same filesystem as i/.
     // const GALLERY_STAGING_MAX_BYTES = 1073741824;
+
+    // Optional: the secret of the Net Terminal Gene, the hardest easter egg
+    // (inc/megastructure.php). Its fragments, the addresses of its corridor and
+    // its words all come from it, so they are in no file of the repository;
+    // without it the gene cannot be found. Any long random text, e.g. the
+    // output of: php -r "echo bin2hex(random_bytes(32));"
+    // Changing it later moves the whole way to the gene (finds made stay).
+    // const SAFEGUARD_SECRET = '';

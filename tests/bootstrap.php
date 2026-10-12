@@ -68,6 +68,7 @@
     require_once __DIR__ . '/../inc/gallery.php';
     require_once __DIR__ . '/../inc/bot.php';
     require_once __DIR__ . '/../inc/verdiff.php';
+    require_once __DIR__ . '/../inc/megastructure.php';
     require_once __DIR__ . '/../inc/markdown.php';
     require_once __DIR__ . '/../inc/status-card.php';
     require_once __DIR__ . '/../inc/diag.php';

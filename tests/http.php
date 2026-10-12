@@ -101,6 +101,7 @@
         ['/privacy/', [200]],
         ['/status.php', [200]],
         ['/palette.php', [200]],
+        ['/megastructure.php', [200]],
         ['/offline.html', [200]],
         ['/sw.js', [200]],
         ['/account.php?finds', [200], 'Cache-Control: no-store, private'],

@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="/css/style.css?v=cc012401d5" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=7eb53c9ad4" type="text/css" rel="stylesheet" />
   <link href="/css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="/css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
@@ -119,6 +119,67 @@
       color: rgba(240, 196, 194, 0.8);
     }
 
+    /* the way to the Net Terminal Gene (js/404.js): a draught, the Builders'
+       door, what was behind it */
+    .not-found .mega-secret {
+      margin: 12px 0 0;
+      color: #4fd1c5;
+      overflow-wrap: anywhere;
+    }
+
+    .not-found .mega-secret code {
+      font: 13px "JetBrains Mono", Consolas, monospace;
+      color: #fff;
+      text-shadow: 0 0 6px rgba(79, 209, 197, 0.8);
+      user-select: all;
+    }
+
+    /* floor zero's maze: dark but near the visitor, what was seen dim, the
+       terminal glowing far off; a swipe on it walks, so it does not scroll */
+    .not-found .mega-maze {
+      touch-action: none;
+    }
+
+    .not-found .mega-dim {
+      color: rgba(var(--accent-light-rgb), 0.2);
+    }
+
+    .not-found .mega-end {
+      font-weight: 700;
+      color: #4fd1c5;
+      text-shadow: 0 0 8px rgba(79, 209, 197, 0.9);
+    }
+
+    .not-found .mega-door {
+      margin: 14px 0 0;
+      padding: 8px 16px;
+      border: 0;
+      --corner: rgba(232, 211, 106, 0.9);
+      --fill: rgba(232, 211, 106, 0.06);
+      font: 12px "Sanakan Mono", monospace;
+      letter-spacing: 0.12em;
+      color: #e8d36a;
+      cursor: pointer;
+      animation: mega-door 2.4s ease-in-out infinite;
+    }
+
+    .not-found .mega-door:disabled {
+      cursor: default;
+      animation: none;
+    }
+
+    @keyframes mega-door {
+      50% {
+        box-shadow: 0 0 14px rgba(232, 211, 106, 0.35);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .not-found .mega-door {
+        animation: none;
+      }
+    }
+
   </style>
   <script src="/js/hud.js?v=2894733f39"></script>
 </head>
@@ -155,9 +216,9 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="/state/">Status</a><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
   <script src="/js/year.js?v=27252b35ac"></script>
   <script src="/js/account.js?v=ff288d9afb"></script>
-  <script src="/js/safeguard.js?v=15328d41c4"></script>
-  <script src="/js/404.js?v=c39e7b4556"></script>
-  <script src="/js/netsphere.js?v=f4094fa9db"></script>
+  <script src="/js/safeguard.js?v=ff1f3fd585"></script>
+  <script src="/js/404.js?v=a216b4f11c"></script>
+  <script src="/js/netsphere.js?v=eb5782e454"></script>
   <script src="/js/palette.js?v=15434ca4d0"></script>
 </body>
 
