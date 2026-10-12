@@ -18,7 +18,9 @@
     {
         $path = (string)$path;
 
-        return preg_match('~^/(?![/\\\\])[^\r\n]*$~', $path) ? $path : siteRoot();
+        // no control characters at all: a browser drops a tab or a newline
+        // from a URL, so "/<tab>/evil.com" would go to //evil.com
+        return preg_match('~^/(?![/\\\\])[^\x00-\x1F\x7F]*$~', $path) ? $path : siteRoot();
     }
 
     // The logged-in account for the top right corner: its avatar ringed in the

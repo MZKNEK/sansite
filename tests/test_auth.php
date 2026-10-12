@@ -18,6 +18,8 @@
         assertSame('/', localPath(''));
         assertSame('/', localPath('/\\evil'), 'a leading backslash');
         assertSame('/a\\b', localPath('/a\\b'), 'a backslash inside is fine');
+        assertSame('/', localPath("/\t/evil.example"), 'a tab, which a browser drops into //evil.example');
+        assertSame('/', localPath("/\x0B/evil.example"), 'any control character');
         if ($saved === null)
             unset($_SERVER['SCRIPT_NAME']);
         else

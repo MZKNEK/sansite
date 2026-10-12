@@ -198,6 +198,10 @@
                 // only the folder the page is in (an account with a folder of its
                 // own: that folder), so the check does not walk the whole gallery
                 $dir = resolvePath($base, $_POST['dir'] ?? '', true);
+                // and never outside it for that account, or it would learn of
+                // files in folders it may not see (the private one, others')
+                if ($dir && !galleryIsAdmin() && !inFolder($dir[1], $own))
+                    $dir = null;
                 $from = $dir ? $dir[1] : (galleryIsAdmin() ? '' : ownFolder($base));
                 reply(true, '', 200, ['matches' => findDuplicates($base, (int)($_POST['size'] ?? -1), $hash, $from)]);
 

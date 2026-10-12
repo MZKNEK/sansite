@@ -38,7 +38,7 @@
     // the versions on the line of the version history picture
     const OG_VERSION_NODES = 6;
 
-    $page = $_GET['p'] ?? 'home';
+    $page = is_string($_GET['p'] ?? null) ? $_GET['p'] : 'home';
     // the names the pages had before they moved to state/versions/ and
     // cmd/changes/, still in the previews Discord keeps
     $page = ['wersje' => 'versions', 'zmiany' => 'changes'][$page] ?? $page;
