@@ -114,8 +114,7 @@
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
-        if (!isVideo($name))
-            stripMetadata($dir[0] . '/' . $target);
+        $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
         clearstatcache();
         if ($own && ($why = accountQuotaError($base, $owner, 0, 0, filesize($dir[0] . '/' . $target), true)) !== null) {
             @unlink($dir[0] . '/' . $target);
