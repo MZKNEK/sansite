@@ -50,7 +50,7 @@
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=81af35586f" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=04ad9b04f6"></script>
+  <script src="../js/hud.js?v=48b256d26f"></script>
 </head>
 
 <body>
@@ -126,7 +126,7 @@
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=1f284a3102" />
   <link rel="stylesheet" type="text/css" href="../css/skins.css?v=81af35586f" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
-  <script src="../js/hud.js?v=04ad9b04f6"></script>
+  <script src="../js/hud.js?v=48b256d26f"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />

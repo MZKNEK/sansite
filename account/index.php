@@ -471,8 +471,8 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/hud.js?v=04ad9b04f6"></script>
-  <script src="../js/skins.js?v=6efb698d8b"></script>
+  <script src="../js/hud.js?v=48b256d26f"></script>
+  <script src="../js/skins.js?v=a5f482b4bc"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=a78c0e3f4b"></script>

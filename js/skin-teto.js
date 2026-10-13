@@ -46,12 +46,13 @@
 
   function activate() {
     // a skin that speaks Japanese (Teto, Miku) is already the April look: the
-    // click only takes the find. Any other skin, or none, gives way to the
-    // April one for the visit, and a reload brings the account's own back.
+    // click only takes the find. Any other skin, or none — even one the
+    // account keeps silent (skinwords off) — gives way to the April one for
+    // the visit, its words on, and a reload brings the account's own back.
     var japanese = SanakanSkins.language() === 'ja';
     heading.replaceChildren(document.createTextNode(SanakanSkinJa.spell(japanese)));
     if (!japanese) {
-      SanakanSkins.show('teto');
+      SanakanSkins.show('teto', true);
 
       function returnButton(text, label) {
         var button = document.createElement('button');

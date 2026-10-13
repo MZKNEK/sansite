@@ -82,7 +82,7 @@
   <link href="../../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../../css/skins.css?v=81af35586f" type="text/css" rel="stylesheet" />
   <link href="../style.css?v=6547ae0534" type="text/css" rel="stylesheet" />
-  <script src="../../js/hud.js?v=04ad9b04f6"></script>
+  <script src="../../js/hud.js?v=48b256d26f"></script>
 </head>
 
 <body class="cmd-page">

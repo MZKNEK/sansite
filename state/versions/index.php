@@ -114,7 +114,7 @@
 <?php if ($around['newer']): ?>
   <link rel="next" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" />
 <?php endif; ?>
-  <script src="../../js/hud.js?v=04ad9b04f6"></script>
+  <script src="../../js/hud.js?v=48b256d26f"></script>
   <script src="../../js/versions.js?v=9f931adf42" defer></script>
 </head>
 

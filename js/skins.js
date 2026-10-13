@@ -72,8 +72,10 @@ window.SanakanSkins = (function () {
 
   // puts a skin on the page: the colours (css/skins.css) and the logo always,
   // the words of the skin when it speaks (its language, title, own pieces and
-  // translator). Without words it only recolours and swaps the logo.
-  function wear(skin) {
+  // translator). Without words it only recolours and swaps the logo, unless
+  // $force asks for them anyway (the glitched letter of April, js/skin-teto.js:
+  // that visit wants the words of the skin the account keeps off).
+  function wear(skin, force) {
     applied = skin.id;
     appliedLang = '';
     root.setAttribute('data-skin', skin.id);
@@ -82,7 +84,7 @@ window.SanakanSkins = (function () {
       logo.src = skin.logo.src;
       logo.alt = skin.logo.alt;
     }
-    if (!speaking) return;
+    if (!speaking && !force) return;
     if (skin.lang) {
       appliedLang = skin.lang;
       root.lang = skin.lang;
@@ -101,9 +103,12 @@ window.SanakanSkins = (function () {
   }
 
   // the skins a script asks to wear itself, e.g. April's letter for the visit
-  // (js/skin-teto.js); the pick in the profile is the cookie's own way
-  function show(id) {
-    if (defs[id] && applied !== id) wear(defs[id]);
+  // (js/skin-teto.js); the pick in the profile is the cookie's own way. With
+  // $force it wears the skin even when it is already on, its words included:
+  // the letter turns the words of a skin the account keeps off back on for the
+  // visit.
+  function show(id, force) {
+    if (defs[id] && (applied !== id || force)) wear(defs[id], force);
   }
 
   // the profile's picker: the colours come on the page as they are picked; the

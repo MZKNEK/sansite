@@ -137,7 +137,7 @@
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=3b796277b4" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=04ad9b04f6"></script>
+  <script src="../js/hud.js?v=48b256d26f"></script>
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">

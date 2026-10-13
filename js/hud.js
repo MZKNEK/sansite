@@ -58,9 +58,10 @@
 
   // The browser's bar (theme-color, on Android and in an installed app) in the
   // colour of the HUD's accent, read from the CSS, so it follows the picked
-  // colour, the preview in the profile and the HUD js/home.js puts on later.
-  // The tag written in the page stays the site's purple for the link previews,
-  // which read the HTML and run no script.
+  // colour, the preview in the profile, the worn skin (data-skin, js/skins.js)
+  // and the HUD js/home.js puts on later. The tag written in the page stays
+  // the site's purple for the link previews, which read the HTML and run no
+  // script.
   function paintBar() {
     var rgb = getComputedStyle(root).getPropertyValue('--accent-rgb').trim();
     if (!rgb) return;
@@ -74,5 +75,5 @@
   }
 
   paintBar();
-  new MutationObserver(paintBar).observe(root, { attributes: true, attributeFilter: ['class', 'data-hud'] });
+  new MutationObserver(paintBar).observe(root, { attributes: true, attributeFilter: ['class', 'data-hud', 'data-skin'] });
 })();

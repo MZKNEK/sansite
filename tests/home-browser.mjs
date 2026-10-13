@@ -508,9 +508,53 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('h1').textContent(), 'サナカン');
     assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/teto\.webp$/);
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '217, 75, 88');
+    assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), 'rgb(217, 75, 88)',
+      'the browser bar follows the skin (js/hud.js)');
     assert.equal(await page.locator('.home-language-reset').count(), 2, 'a way back, as for a visitor without a skin');
     await Promise.all([page.waitForNavigation(), page.locator('h1 .home-language-reset').click()]);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo', "the reload brings the account's own skin back");
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
+  }, '900000000000000002');
+
+  // The same with a skin that speaks Japanese but is kept silent (skinwords
+  // off): it is not yet the April look, and the click turns its words back on
+  // for the visit — the skin already worn included.
+  await visit('2026-04-01', async page => {
+    // the account picks Teto and turns its words off, as its profile does
+    await page.goto(`${base}/account/`);
+    await page.locator('select[name=skin]').selectOption('teto');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.locator('input[name=skinwords]').uncheck();
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'teto');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'the words are kept off');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakanン', 'the Polish name with the glitch');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false, 'nothing translates the page yet');
+    await page.getByRole('button', { name: 'Zbadaj zakłócony znak' }).click();
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ja', 'the click speaks its words again');
+    assert.equal(await page.locator('h1').textContent(), 'サナカン');
+    assert.equal(await page.locator('.home-language-reset').count(), 2, 'a way back, as for a visitor without a skin');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), true, 'the translator is on for the visit');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '217, 75, 88');
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('safeguard'))?.sent?.aprilfools, null, { timeout: 10000 });
+  }, '900000000000000002');
+
+  // Logging out takes the look's cookies along in the same answer (logout(),
+  // forgetHudCookies() in inc/auth/session.php): the static page the form comes
+  // back to is drawn without the account's skin, not only the one after it.
+  await visit('2026-07-15', async page => {
+    // a skin on the account, so the cookie is there to be taken along
+    await page.goto(`${base}/account/`);
+    await page.locator('select[name=skin]').selectOption('teto');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    await page.locator('.account-menu').waitFor();
+    await page.waitForFunction(() => document.documentElement.getAttribute('data-skin') === 'teto');
+    await page.locator('.account-toggle').click();
+    await Promise.all([page.waitForNavigation(), page.locator('.account-out').click()]);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), null, 'the skin went with the logout');
+    assert.equal(await page.evaluate(() => document.cookie.includes('skin=')), false, 'and its cookie with it');
+    await page.locator('#home-account .home-login').waitFor();
   }, '900000000000000002');
 }
