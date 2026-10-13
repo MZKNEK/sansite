@@ -29,6 +29,22 @@
         }
     });
 
+    // which CI has, so a call left unguarded passes the tests and fails only
+    // on the server, as the key of the Netsphere's archive did (mb_str_split)
+    test('the site calls mbstring only where it checks it is there', function () {
+        $root = dirname(__DIR__);
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            $path = str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1));
+            if ($file->getExtension() !== 'php' || preg_match('~^(?:tests|tools|node_modules|apps|\.)~', $path))
+                continue;
+            $code = file_get_contents($file->getPathname());
+            preg_match_all('/\b(mb_\w+)\s*\(/', $code, $calls);
+            foreach (array_unique($calls[1]) as $call)
+                assertTrue(strpos($code, "function_exists('$call')") !== false, "$path: $call without function_exists");
+        }
+    });
+
     test('plural follows the Polish rules', function () {
         assertSame('plik', plural(1, 'plik', 'pliki', 'plików'));
         assertSame('pliki', plural(2, 'plik', 'pliki', 'plików'));

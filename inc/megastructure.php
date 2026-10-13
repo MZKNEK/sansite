@@ -358,7 +358,8 @@
             [$name, $what] = SAFEGUARD_FINDS[$key];
             $spots = [];
             foreach (preg_split('/\s+/u', trim($what)) as $w => $word)
-                foreach (mb_str_split($word) as $l => $char)
+                // by characters without mbstring, which the server may lack (inc/text.php)
+                foreach (preg_split('//u', $word, -1, PREG_SPLIT_NO_EMPTY) as $l => $char)
                     if (preg_match('/^[A-Za-z]$/', $char))
                         $spots[] = [$w + 1, $l + 1, strtoupper($char)];
             [$word, $letter, $char] = $spots[megaPick($secret, 'key-spot', $i, count($spots))];
