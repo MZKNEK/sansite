@@ -293,6 +293,13 @@
         return cutText($path === '' ? (string)$uri : $path, 100);
     }
 
+    // the failure the Safeguard's terminal stages (megastructure.php?awaria),
+    // a 500 that is no error of the site
+    function diagStagedFailure($uri)
+    {
+        return preg_match('~^/megastructure\.php\?(?:[^#]*&)?awaria(?:[=&#]|$)~', (string)$uri) === 1;
+    }
+
     // a path no visitor of this site asks for: secrets, other software, a PHP
     // file the site does not have
     function diagProbePath($path)
@@ -383,7 +390,7 @@
             $stats['n']++;
             $stats['php'] += (int)$php;
             $stats['s4'] += (int)($status >= 400 && $status < 500);
-            $stats['s5'] += (int)($status >= 500);
+            $stats['s5'] += (int)($status >= 500 && !diagStagedFailure($r['u'] ?? ''));
             $stats['rt'] = max($stats['rt'], (int)round(1000 * (float)($r['rt'] ?? 0)));
             $paths[$path] = ($paths[$path] ?? 0) + 1;
 

@@ -27,8 +27,31 @@
 
     // the configuration and the data are never served (nginx blocks inc/ too)
     if (strpos($path, '/inc/') === 0) {
-        http_response_code(404);
+        http_response_code(403);
+        include $root . '/403.html';
         return true;
+    }
+
+    // a page that fails halfway, by an exception or by a fatal error of PHP
+    // (memory run out), with display_errors off as on the site
+    if ($path === '/__exception' || $path === '/__fatal') {
+        require $root . '/inc/auth.php';
+        ini_set('display_errors', '0');
+        ini_set('log_errors', '0');
+        installDataErrorHandler();
+        ob_start();
+        echo 'half a page';
+        if ($path === '/__exception')
+            throw new RuntimeException('the test of the error page');
+        ini_set('memory_limit', '16M');
+        str_repeat('x', 64 << 20);
+        return true;
+    }
+
+    // short links to commands, as nginx gives them to cmd/index.php (decoded)
+    if (preg_match('~^/cmd/(?!(?:changes|zmiany)(?:/|$))([^/.]+)/?$~', $path, $match)) {
+        $_GET['go'] = rawurldecode($match[1]);
+        $path = '/cmd/';
     }
 
     // a folder gets its index file

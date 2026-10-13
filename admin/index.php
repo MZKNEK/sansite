@@ -89,10 +89,17 @@
         }, $ops)]);
     }
 
+    // without a login: the site's 401 page, whose login comes back to this
+    // very address (the panel's link is never shared, so a 401 costs no
+    // preview on Discord, unlike the gallery's or the API's)
+    if (!$allowed && authConfigured() && $user === null) {
+        sendErrorPage(401);
+        exit;
+    }
+
     $flash = takeFlash();
-    // the login page itself is a 200, as Discord shows no link preview for a 401
     if (!$allowed)
-        http_response_code(!authConfigured() ? 503 : ($user ? 403 : 200));
+        http_response_code(!authConfigured() ? 503 : 403);
 
     // ?konto=ID shows the profile of an account instead (inc/panel-account.php),
     // ?szukaj=... what the search found (inc/panel-search.php)
@@ -167,13 +174,9 @@
 <?php if (!authConfigured()): ?>
       <h2>Panel jest wyłączony</h2>
       <p>Logowanie nie jest jeszcze skonfigurowane na serwerze.</p>
-<?php elseif ($user): ?>
+<?php else: ?>
       <h2>Brak dostępu</h2>
       <p>Konto <?=e($user['name'])?> nie ma dostępu do panelu. Wyloguj się, jeśli chcesz użyć innego konta.</p>
-<?php else: ?>
-      <h2>Panel administratora</h2>
-      <p>Zaloguj się kontem Discord, które ma dostęp do panelu.</p>
-      <a class="admin-btn primary" href="?login">Zaloguj przez Discord</a>
 <?php endif; ?>
     </section>
 <?php elseif ($profileId !== null): ?>
@@ -210,8 +213,8 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=604cb68bc6"></script>
-  <script src="../js/safeguard.js?v=03d034f330"></script>
+  <script src="../js/netsphere.js?v=30394db9d9"></script>
+  <script src="../js/safeguard.js?v=21a0e1257a"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

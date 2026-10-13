@@ -423,14 +423,15 @@
     // made, so it checks what it can before it gives their proof (?witness=):
     //   - a seasonal find, its day (Polish time, give or take MEGA_DAY_SLACK
     //     hours for the browsers of other time zones);
-    //   - the idle home page, the Emitter held and the logo broken, the time
-    //     they took, from a ticket the browser got when they began (?ticket=);
+    //   - the idle home page, the Emitter held, the logo broken, a wait at a
+    //     closed door and what the failure page hides, the time they took, from a ticket the browser
+    //     got when they began (?ticket=);
     //   - Killy, the server's own roll: a ticket only in one slot of
     //     MEGA_KILLY_SLOT seconds in MEGA_KILLY_CHANCE, the same for everyone;
     //   - the password of the X-Safeguard header, which comes from the secret.
     // The others (the scan, the console, the Konami code, the lore, the
-    // network lost, the Morse code, the 404) are as easy to make as to fake;
-    // their proof only puts the server's time on them.
+    // network lost, the Morse code, the error pages) are as easy to make as to
+    // fake; their proof only puts the server's time on them.
 
     // the seconds a ticket of a find has to be old before it counts, and the
     // most it may be
@@ -440,13 +441,17 @@
         'gbe' => ['gbe', 2, 120],
         // three shots in a row, each held 3 seconds, and the logo growing back
         'regen' => ['gbe', 10, 300],
-        'killy' => ['killy', 0, 300]
+        'killy' => ['killy', 0, 300],
+        // left standing at a door nobody may pass, three minutes
+        'denied' => ['denied', 170, 86400],
+        // fifteen fed, a few seconds each at the least
+        'snake' => ['snake', 12, 3600]
     ];
     const MEGA_KILLY_SLOT = 20;
     const MEGA_KILLY_CHANCE = 5;
     const MEGA_DAY_SLACK = 14;
     // the finds the server gives a proof of when asked
-    const MEGA_PLAIN_FINDS = ['netsphere', 'lost', 'console', 'silicon', 'lore', 'offline', 'morse'];
+    const MEGA_PLAIN_FINDS = ['netsphere', 'lost', 'console', 'silicon', 'lore', 'offline', 'morse', 'unknown'];
 
     // the password of the X-Safeguard header, "toha-" and four characters of the secret
     function megaHeaderWord($secret)
@@ -506,12 +511,13 @@
     }
 
     // A ticket of when something began: idle, gbe (an Emitter's shot held,
-    // whose first of a row is the regen's too) or killy, which only the slots
-    // Killy walks in give (always in the preview). Null when there is none.
+    // whose first of a row is the regen's too), denied (the wait at a closed
+    // door), snake (what the failure page hides) or killy, which only the slots Killy walks in give (always in the
+    // preview). Null when there is none.
     function megaTicket($secret, $kind, $now, $preview = false)
     {
         $time = $now->getTimestamp();
-        if (!in_array($kind, ['idle', 'gbe', 'killy'], true) || ($kind === 'killy' && !$preview && !megaKillyWalks($secret, $time)))
+        if (!in_array($kind, ['idle', 'gbe', 'killy', 'denied', 'snake'], true) || ($kind === 'killy' && !$preview && !megaKillyWalks($secret, $time)))
             return null;
 
         return megaProof($secret, 'ticket:' . $kind, $time);

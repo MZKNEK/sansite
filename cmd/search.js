@@ -118,6 +118,26 @@
   // hide it, and the jump is made again once the toolbar height is known, so it
   // does not end up under it. A name that is no command's id may be an alias;
   // anything else goes into the search.
+  // A name not on the page may be one of the moderator and debug commands,
+  // which only some accounts see: once, the short link /cmd/<name> asks the
+  // server (cmd/index.php), which answers with a login or a refusal, or sends
+  // back here, and then the name goes into the search.
+  var ASKED = 'sanakan-cmd-asked';
+
+  function askServer(name) {
+    if (document.querySelector('.module.private') || !/^[^\/.]+$/.test(name)) return false;
+    try {
+      var asked = JSON.parse(sessionStorage.getItem(ASKED));
+      sessionStorage.removeItem(ASKED);
+      if (asked && asked.name === name && Date.now() - asked.time < 10000) return false;
+      sessionStorage.setItem(ASKED, JSON.stringify({ name: name, time: Date.now() }));
+    } catch (err) {
+      return false;  // nothing to remember the question by: the search
+    }
+    location.replace('./' + encodeURIComponent(name));
+    return true;
+  }
+
   function showLinked() {
     if (location.hash.length < 2) return;
     var name;
@@ -129,6 +149,7 @@
 
     var target = document.getElementById(name) || document.getElementById(name.toLowerCase()) || byAlias(name);
     if (!target) {
+      if (askServer(name)) return;
       input.value = name.replace(/-/g, ' ');
       filter();
       return;

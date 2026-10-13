@@ -133,17 +133,60 @@
         return !$defaults || count($group['values']) === 4;
     }
 
-    // Installed by HTTP entry points, never by merely loading a module.
+    // Installed by HTTP entry points, never by merely loading a module. An
+    // uncaught exception, or a fatal error of PHP (a missing function, memory
+    // run out), answers with the site's 500 page to a browser opening a page
+    // and with JSON to a script; what the page had written so far is dropped,
+    // unless it has already gone out. With display_errors on (the preview, the
+    // tests) PHP's own message of a fatal error stays, for whoever is working
+    // on the site.
     function installDataErrorHandler()
     {
+        static $installed = false;
+        if ($installed)
+            return;
+        $installed = true;
+
         set_exception_handler(function ($error) {
             error_log((string)$error);
-            http_response_code($error instanceof DataStoreException ? 503 : 500);
-            header('Cache-Control: no-store');
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => false, 'message' => $error instanceof DataStoreException
-                ? $error->getMessage() : 'Nie udało się wykonać operacji.'], JSON_UNESCAPED_UNICODE);
+            sendFailure($error instanceof DataStoreException ? 503 : 500, $error instanceof DataStoreException
+                ? $error->getMessage() : 'Nie udało się wykonać operacji.');
         });
+        register_shutdown_function(function () {
+            $error = error_get_last();
+            if ($error === null || !($error['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR))
+                || !in_array(strtolower((string)ini_get('display_errors')), ['', '0', 'off', 'stderr'], true))
+                return;
+            sendFailure(500, 'Nie udało się wykonać operacji.');
+        });
+    }
+
+    function sendFailure($status, $message)
+    {
+        if (headers_sent())
+            return;
+        while (ob_get_level() > 0)
+            if (!@ob_end_clean())
+                break;
+        http_response_code($status);
+        header('Cache-Control: no-store');
+        if (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') !== false) {
+            header('Content-Type: text/html; charset=utf-8');
+            readfile(dirname(__DIR__) . '/500.html');
+            return;
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'message' => $message], JSON_UNESCAPED_UNICODE);
+    }
+
+    // the site's own 401, 403 or 404 page, for an address a browser opens
+    // itself (the gallery's, the panel's)
+    function sendErrorPage($status)
+    {
+        http_response_code($status);
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store');
+        readfile(dirname(__DIR__) . '/' . $status . '.html');
     }
 
     // Where the site keeps its data. A test (or an unusual install) can point it

@@ -1,6 +1,23 @@
 <?php
     require __DIR__ . '/../inc/bot.php';
+    installDataErrorHandler();
     require __DIR__ . '/../inc/meta.php';
+
+    // A short link to a command, /cmd/daily (server/nginx/sanakan.conf), opens
+    // it on this page, /cmd/#daily. One of the moderator and debug commands a
+    // visitor may not see asks for a login (the 401 page, which comes back to
+    // the link) or, for an account without the rights, says no (403).
+    if (isset($_GET['go']) && is_string($_GET['go'])) {
+        $user = siteUser();
+        siteRoles();
+        header('Cache-Control: private, no-store');
+        if (commandIsPrivate($_GET['go']) && ($user === null || !canSeePrivateCommandsId($user['id']))) {
+            sendErrorPage($user === null && authConfigured() ? 401 : 403);
+            exit;
+        }
+        header('Location: ' . siteRoot() . 'cmd/#' . rawurlencode($_GET['go']), true, 302);
+        exit;
+    }
 
     $state = botState();
     $data = botCommands();

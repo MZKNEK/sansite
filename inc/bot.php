@@ -910,6 +910,29 @@
         return $modules;
     }
 
+    // Whether the name of a link to a command (/cmd/<name>) is one of the
+    // moderator and debug commands, by its address on /cmd/ (commandAnchor(),
+    // the public ones first, as the page has them) or by an alias, as
+    // cmd/search.js finds it; a name a public command has too is public
+    function commandIsPrivate($name)
+    {
+        $wanted = lower(str_replace('-', ' ', $name));
+        $used = [];
+        foreach ([[(botCommands() ?? [])['modules'] ?? [], false], [botPrivateModules(), true]] as [$modules, $private])
+            foreach ($modules as $module)
+                foreach ($module['subModules'] ?? [] as $submodule) {
+                    $prefix = trim((string)($submodule['prefix'] ?? ''));
+                    foreach ($submodule['commands'] ?? [] as $command) {
+                        $id = commandAnchor($prefix, (string)($command['name'] ?? ''), $used);
+                        if ($id === $name || $id === lower($name)
+                            || in_array($wanted, array_map('lower', array_map('strval', $command['aliases'] ?? [])), true))
+                            return $private;
+                    }
+                }
+
+        return false;
+    }
+
     // the last health report of the bot, or null (no api/health, or not answered)
     function botHealth()
     {

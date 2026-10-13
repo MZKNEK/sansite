@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#9b59b6" />
+  <title>Wymagane logowanie &middot; Sanakan</title>
+  <!-- the gallery and the panel show this page for an address that needs a login, so every link starts at the root -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=7eb53c9ad4" type="text/css" rel="stylesheet" />
+  <link href="/css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
+  <link href="/css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
+  <style>
+    /* the Safeguard's terminal of BLAME!, as on the 404 page, asking a
+       visitor it does not know yet to be identified by the Netsphere */
+    .unknown h2 {
+      font: 16px "Sanakan Mono", monospace;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #e8d36a;
+      text-shadow: 0 0 10px rgba(232, 211, 106, 0.5);
+    }
+
+    .unknown .lock-icon {
+      stroke: #e8d36a;
+      filter: drop-shadow(0 0 6px rgba(232, 211, 106, 0.5));
+    }
+
+    .unknown > p {
+      font: 13px/1.7 "Sanakan Mono", monospace;
+      letter-spacing: 0.04em;
+      color: rgba(220, 221, 222, 0.75);
+    }
+
+    .unknown .asked::before {
+      content: "> adres: ";
+      color: rgba(220, 221, 222, 0.45);
+    }
+
+    .unknown .asked {
+      display: block;
+      margin: -8px 0 22px;
+      font: 13px "JetBrains Mono", Consolas, monospace;
+      color: rgba(182, 112, 211, 0.75);
+      overflow-wrap: anywhere;
+    }
+
+    .unknown .scan {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: center;
+      gap: 2px 12px;
+      margin: 0 0 22px;
+      font: 12px "Sanakan Mono", monospace;
+      letter-spacing: 0.08em;
+      text-align: left;
+      color: rgba(220, 221, 222, 0.6);
+    }
+
+    .unknown .scan dd {
+      margin: 0;
+      color: #e8d36a;
+    }
+  </style>
+  <script src="/js/hud.js?v=2894733f39"></script>
+</head>
+
+<body>
+  <main class="content">
+    <header class="ex-header">
+      <div class="ex-top">
+        <a class="back hud-corners" href="/" title="Strona główna">&larr; Sanakan</a>
+        <div data-account-slot hidden></div>
+      </div>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="hud-title">401</h1>
+    </header>
+
+    <section class="locked hud-corners unknown">
+      <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
+      <h2>Identyfikacja wymagana</h2>
+      <p>Safeguard nie wie, kim jesteś. Zanim wpuści cię dalej, Netsfera musi cię rozpoznać: zaloguj się kontem Discord, a wrócisz prosto pod ten adres.</p>
+      <code class="asked" id="asked"></code>
+      <dl class="scan">
+        <dt>tożsamość</dt>
+        <dd>nieznana</dd>
+        <dt>decyzja Safeguarda</dt>
+        <dd>wstrzymana</dd>
+      </dl>
+      <p><a class="admin-btn primary" id="login" href="/account.php?login">Zaloguj przez Discord</a></p>
+    </section>
+  </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="/state/">Status</a><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
+  <script src="/js/year.js?v=27252b35ac"></script>
+  <script src="/js/account.js?v=ff288d9afb"></script>
+  <script src="/js/safeguard.js?v=21a0e1257a"></script>
+  <script src="/js/401.js?v=265933340a"></script>
+  <script src="/js/netsphere.js?v=30394db9d9"></script>
+  <script src="/js/palette.js?v=15434ca4d0"></script>
+</body>
+
+</html>

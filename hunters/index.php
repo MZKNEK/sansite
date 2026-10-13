@@ -8,6 +8,7 @@
     // listed last, without a place; the panel's admins can open its profile
     // there from its name.
     require __DIR__ . '/../inc/auth.php';
+    installDataErrorHandler();
     require __DIR__ . '/../inc/meta.php';
 
     date_default_timezone_set('Europe/Warsaw');
@@ -162,8 +163,8 @@
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=604cb68bc6"></script>
-  <script src="../js/safeguard.js?v=03d034f330"></script>
+  <script src="../js/netsphere.js?v=30394db9d9"></script>
+  <script src="../js/safeguard.js?v=21a0e1257a"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
   <script src="../js/hunters.js?v=15d089f4d3"></script>
 </body>

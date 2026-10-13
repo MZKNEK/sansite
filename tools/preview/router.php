@@ -22,22 +22,25 @@
                 header($name . ': ' . str_replace('$sanakan_app_eval', strpos($path, '/uskalpel/') === 0 ? " 'unsafe-eval'" : '', $value));
     }
 
-    function previewNotFound($root)
+    // the site's 404 or 403 page, as nginx shows them
+    function previewError($root, $status)
     {
-        http_response_code(404);
+        http_response_code($status);
         header('Content-Type: text/html; charset=utf-8');
-        readfile($root . '/404.html');
+        readfile($root . '/' . $status . '.html');
         return true;
     }
 
     $app = preg_match('~^/u?skalpel/~', $path) === 1;
     previewHeaders($root . '/server/nginx/' . ($app ? 'sanakan-app-headers.conf' : 'sanakan-headers.conf'), $path);
 
-    // never served: the configuration and the data, the dot files (.preview,
-    // .git), the folders of the accounts by their IDs, the sources of the apps
-    if (strpos($path, '/inc/') === 0 || preg_match('~/\.(?!well-known/)~', $path)
-        || strpos($path, '/i/users/') === 0 || preg_match('~^/(apps|tools|tests|server)/~', $path))
-        return previewNotFound($root);
+    // never served: the configuration and the data and the dot files (.preview,
+    // .git), refused as nginx does; the folders of the accounts by their IDs
+    // and the sources of the apps, missing as on the site
+    if (strpos($path, '/inc/') === 0 || preg_match('~/\.(?!well-known/)~', $path))
+        return previewError($root, 403);
+    if (strpos($path, '/i/users/') === 0 || preg_match('~^/(apps|tools|tests|server)/~', $path))
+        return previewError($root, 404);
 
     // The made-up login: the list of the accounts, or a session as one of them,
     // as Discord would have given it, and back to the page that asked
@@ -85,7 +88,7 @@
         $pwRoot = realpath(SITE_DATA_DIR . '/pw');
         $pwFile = $pwRoot === false ? false : realpath($pwRoot . '/' . substr($path, 4));
         if ($pwFile === false || strpos(str_replace('\\', '/', $pwFile), str_replace('\\', '/', $pwRoot) . '/') !== 0 || !is_file($pwFile))
-            return previewNotFound($root);
+            return previewError($root, 404);
         $file = $pwFile;
         $types = ['png' => 'image/png', 'webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'json' => 'application/json'];
         header('Content-Type: ' . ($types[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? 'application/octet-stream'));
@@ -94,10 +97,11 @@
         return true;
     }
 
-    // short links to commands: /cmd/daily goes to /cmd/#daily
+    // short links to commands: /cmd/daily goes to cmd/index.php, which sends
+    // on to /cmd/#daily or asks for a login
     if (preg_match('~^/cmd/(?!(?:changes|zmiany)(?:/|$))([^/.]+)/?$~', $path, $match)) {
-        header('Location: /cmd/#' . $match[1], true, 302);
-        return true;
+        $_GET['go'] = $match[1];
+        $path = '/cmd/';
     }
 
     // what nginx gives to the gallery: the links of the accounts' folders, the
@@ -126,7 +130,7 @@
     }
 
     if (!is_file($file))
-        return previewNotFound($root);
+        return previewError($root, 404);
 
     if (substr($file, -4) !== '.php') {
         $types = ['html' => 'text/html; charset=utf-8', 'css' => 'text/css', 'js' => 'text/javascript', 'mjs' => 'text/javascript',

@@ -99,7 +99,9 @@
     if (isset($_GET['zip'])) {
         $zipDir = resolvePath($base, $_GET['p'] ?? '', true);
         if (!$zipDir || !galleryCanSee($base, $zipDir[1])) {
-            http_response_code($zipDir || !galleryCanView() ? 403 : 404);
+            $status = $zipDir || !galleryCanView() ? 403 : 404;
+            // without a login: the page with one, which comes back here
+            sendErrorPage($status === 403 && authConfigured() && siteUser() === null ? 401 : $status);
             exit;
         }
         sendZip(galleryZipRoots($base, [$zipDir]), ($zipDir[1] === '' ? 'galeria' : displayName($zipDir[1])) . '.zip', folderUrl($zipDir[1]));
@@ -761,8 +763,8 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=604cb68bc6"></script>
-  <script src="../js/safeguard.js?v=03d034f330"></script>
+  <script src="../js/netsphere.js?v=30394db9d9"></script>
+  <script src="../js/safeguard.js?v=21a0e1257a"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($manage && !$showTrash): ?>
   <script src="../js/explorer-admin.js?v=5c3e1c0087"></script>

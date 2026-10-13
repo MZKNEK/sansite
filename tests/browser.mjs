@@ -15,7 +15,7 @@ for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts']) {
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['account.php', 'favicon.svg', '404.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['account.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
 const port = 41000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
 const php = process.env.PHP || 'php';
@@ -44,6 +44,10 @@ try {
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  // the panel without a login: the site's 401 page
+  const anonymous = await context.request.get(`${base}/admin/?konto=900000000000000004`, { headers: { Accept: 'text/html' } });
+  assert.equal(anonymous.status(), 401, 'panel without a login');
+  assert.match(await anonymous.text(), /Identyfikacja wymagana/, 'the 401 page');
   let login = await (await context.request.get(`${base}/__login?id=900000000000000001`)).json();
   await page.goto(`${base}/admin/`);
   assert.equal(await page.locator('form[data-action="gallery-limit-defaults"]').count(), 1, 'global quota form renders');

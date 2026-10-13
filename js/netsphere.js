@@ -214,7 +214,7 @@
     cibo: ['Cibo, naukowczyni. Szuka genu terminala sieciowego razem z Killym.', 'Poza kontrolą Safeguarda.'],
     sanakan: ['Sanakan: Safeguard poziomu 9 w ludzkiej postaci.', 'Ten bot nosi jej imię. Jest mniej groźny.'],
     sudo: ['Safeguard nie zna słowa sudo.', 'Bez genu terminala sieciowego uprawnień nie da się podnieść.'],
-    rm: ['Megastruktury nie da się usunąć.', 'Budowniczowie wciąż budują.'],
+    rm: ['Megastruktury nie da się usunąć.', 'Nikt jeszcze nie spróbował z całą siłą, od samego korzenia.'],
     budowniczy: ['Budowniczowie: maszyny, które bez końca rozbudowują Megastrukturę.', 'Nikt już nie umie wydać im rozkazu, żeby przestali.'],
     administracja: ['Administracja Netsfery straciła kontrolę nad Safeguardem i Budowniczymi,', 'gdy ludzie stracili gen terminala sieciowego.'],
     silikon: ['Formy krzemowe: wróg ludzi i Safeguarda. Też szukają genu.', 'Podobno wpuszcza je do sieci stary kod z 1986 roku.'],
@@ -304,6 +304,20 @@
     function go(target) {
       shut();
       location.href = /^https?:/.test(target) ? target : ROOT + target;
+    }
+
+    // The Megastructure removed from its root: its machinery fails one part
+    // after another, and the failure page (megastructure.php?awaria, the
+    // site's 500 page) is what is left, with what it hides (js/500.js)
+    function removeAll() {
+      var parts = ['/inc', '/js', '/css', '/i', '/cmd', '/state'];
+      parts.forEach(function (part, i) {
+        setTimeout(function () { row('usuwanie ' + part, 'BŁĄD', 'bad'); }, (i + 1) * 260);
+      });
+      setTimeout(function () {
+        say('Maszyneria Megastruktury przestaje odpowiadać.', 'bad');
+      }, (parts.length + 1) * 260);
+      setTimeout(function () { go('megastructure.php?awaria'); }, (parts.length + 1) * 260 + 1100);
     }
 
     function places() {
@@ -559,6 +573,8 @@
       var arg = (words[1] || '').toLowerCase();
       if (name === 'ls')
         places();
+      else if (name === 'rm' && /^-(?:rf|fr)$/i.test(words[1] || '') && /^\/\*?$/.test(words[2] || ''))
+        removeAll();
       else if (LORE[LORE_ALIASES[name] || name]) {
         var entry = LORE_ALIASES[name] || name;
         LORE[entry].forEach(function (text) { say(text); });

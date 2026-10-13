@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#9b59b6" />
+  <title>Brak dostępu &middot; Sanakan</title>
+  <!-- nginx shows this page for any address it refuses, so every link starts at the root -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=7eb53c9ad4" type="text/css" rel="stylesheet" />
+  <link href="/css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
+  <link href="/css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
+  <style>
+    /* the Safeguard's terminal of BLAME!, as on the 404 page, refusing a
+       visitor without the Net Terminal Gene (the X-Safeguard header says the
+       same: gen-terminala-sieciowego=brak) */
+    .denied h2 {
+      font: 16px "Sanakan Mono", monospace;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #e86262;
+      text-shadow: 0 0 10px rgba(232, 98, 98, 0.5);
+    }
+
+    .denied .lock-icon {
+      stroke: #e86262;
+      filter: drop-shadow(0 0 6px rgba(232, 98, 98, 0.5));
+    }
+
+    .denied > p {
+      font: 13px/1.7 "Sanakan Mono", monospace;
+      letter-spacing: 0.04em;
+      color: rgba(220, 221, 222, 0.75);
+    }
+
+    .denied .refused::before {
+      content: "> adres: ";
+      color: rgba(220, 221, 222, 0.45);
+    }
+
+    .denied .refused {
+      display: block;
+      margin: -8px 0 22px;
+      font: 13px "JetBrains Mono", Consolas, monospace;
+      color: rgba(182, 112, 211, 0.75);
+      overflow-wrap: anywhere;
+    }
+
+    .denied .scan {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: center;
+      gap: 2px 12px;
+      margin: 0 0 22px;
+      font: 12px "Sanakan Mono", monospace;
+      letter-spacing: 0.08em;
+      text-align: left;
+      color: rgba(220, 221, 222, 0.6);
+    }
+
+    .denied .scan dd {
+      margin: 0;
+      color: #e86262;
+    }
+
+    /* a browser with the gene (js/403.js): recognised, in the colour of the
+       network, and still not let in */
+    .denied .scan dd.gene {
+      color: #4fd1c5;
+      text-shadow: 0 0 6px rgba(79, 209, 197, 0.6);
+    }
+
+    /* the Safeguard's patience (js/403.js): a red line aimed from beyond the
+       edge of the screen, then the shot along it */
+    .sg-laser {
+      position: fixed;
+      z-index: 50;
+      height: 2px;
+      margin-top: -1px;
+      transform-origin: 0 50%;
+      background: #ff5a5a;
+      box-shadow: 0 0 6px 1px rgba(255, 90, 90, 0.8);
+      pointer-events: none;
+      animation: sg-aim 1.6s steps(1, end) forwards;
+    }
+
+    @keyframes sg-aim {
+      0%, 20%, 40%, 60% { opacity: 0.9; }
+      10%, 30%, 50% { opacity: 0.25; }
+      100% { opacity: 1; }
+    }
+
+    .sg-laser.fire {
+      background: #fff;
+      box-shadow: 0 0 8px 3px rgba(255, 255, 255, 0.9), 0 0 24px 8px rgba(232, 98, 98, 0.9);
+      animation: sg-fire 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+    }
+
+    @keyframes sg-fire {
+      0% { height: 2px; opacity: 1; }
+      12% { height: 18px; margin-top: -9px; background: #fff; }
+      45% { height: 8px; margin-top: -4px; background: #ffb4b4; opacity: 0.85; }
+      100% { height: 1px; margin-top: -0.5px; opacity: 0; }
+    }
+
+    .sg-laser-dot {
+      position: fixed;
+      z-index: 51;
+      width: 10px;
+      height: 10px;
+      margin: -5px 0 0 -5px;
+      border-radius: 50%;
+      background: #ff5a5a;
+      box-shadow: 0 0 10px 3px rgba(255, 90, 90, 0.9);
+      pointer-events: none;
+    }
+
+    body.sg-hit::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 49;
+      background: rgba(255, 220, 220, 0.5);
+      pointer-events: none;
+      animation: sg-flash 0.6s ease-out forwards;
+    }
+
+    @keyframes sg-flash {
+      to { opacity: 0; }
+    }
+
+    body.sg-hit .denied {
+      animation: sg-shake 0.45s linear;
+    }
+
+    @keyframes sg-shake {
+      20% { transform: translate(-6px, 3px); }
+      40% { transform: translate(5px, -4px); }
+      60% { transform: translate(-4px, -2px); }
+      80% { transform: translate(3px, 3px); }
+    }
+
+    .denied .lock-icon.scorched {
+      stroke: #6b2a2a;
+      filter: drop-shadow(0 0 10px rgba(255, 140, 60, 0.9));
+      transition: filter 4s ease-out;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body.sg-hit .denied,
+      body.sg-hit::after {
+        animation: none;
+      }
+
+      body.sg-hit::after {
+        display: none;
+      }
+    }
+  </style>
+  <script src="/js/hud.js?v=2894733f39"></script>
+</head>
+
+<body>
+  <main class="content">
+    <header class="ex-header">
+      <div class="ex-top">
+        <a class="back hud-corners" href="/" title="Strona główna">&larr; Sanakan</a>
+        <div data-account-slot hidden></div>
+      </div>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="hud-title">403</h1>
+    </header>
+
+    <section class="locked hud-corners denied">
+      <svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /><path d="M10 14l4 4M14 14l-4 4" /></svg>
+      <h2>Dostęp wzbroniony</h2>
+      <p>Ten adres prowadzi do maszynerii Megastruktury, zamkniętej dla mieszkańców. Safeguard wpuszcza tu tylko tych, których rozpoznaje Netsfera, a reszcie zamyka drzwi przed nosem.</p>
+      <code class="refused" id="refused"></code>
+      <dl class="scan">
+        <dt>gen terminala sieciowego</dt>
+        <dd id="gene">brak</dd>
+        <dt>decyzja Safeguarda</dt>
+        <dd>odmowa</dd>
+      </dl>
+      <p>Jeśli to twoja galeria albo panel, zaloguj się na konto, które ma do nich dostęp. W przeciwnym razie lepiej stąd odejść, zanim Safeguard zacznie się zastanawiać, co tu robisz.</p>
+      <p><a class="admin-btn primary" href="/">Wróć na stronę główną</a></p>
+    </section>
+  </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="/state/">Status</a><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
+  <script src="/js/year.js?v=27252b35ac"></script>
+  <script src="/js/account.js?v=ff288d9afb"></script>
+  <script src="/js/safeguard.js?v=21a0e1257a"></script>
+  <script src="/js/403.js?v=aab33c58c8"></script>
+  <script src="/js/netsphere.js?v=30394db9d9"></script>
+  <script src="/js/palette.js?v=15434ca4d0"></script>
+</body>
+
+</html>

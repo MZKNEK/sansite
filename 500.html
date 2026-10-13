@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#9b59b6" />
+  <title>Awaria serwera &middot; Sanakan</title>
+  <!-- nginx shows this page when PHP fails or does not answer (and PHP when a page of it fails), so
+       every link starts at the root; the scripts that ask PHP (the account menu, the Safeguard) do
+       without an answer -->
+  <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=7eb53c9ad4" type="text/css" rel="stylesheet" />
+  <link href="/css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
+  <link href="/css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
+  <style>
+    /* the Safeguard's terminal of BLAME!, as on the 404 page, reporting a
+       failure of the Megastructure's own machinery */
+    .failure h2 {
+      font: 16px "Sanakan Mono", monospace;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #f0a35e;
+      text-shadow: 0 0 10px rgba(240, 163, 94, 0.5);
+    }
+
+    .failure .lock-icon {
+      stroke: #f0a35e;
+      filter: drop-shadow(0 0 6px rgba(240, 163, 94, 0.5));
+    }
+
+    .failure > p {
+      font: 13px/1.7 "Sanakan Mono", monospace;
+      letter-spacing: 0.04em;
+      color: rgba(220, 221, 222, 0.75);
+    }
+
+    .failure .scan {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: center;
+      gap: 2px 12px;
+      margin: 0 0 22px;
+      font: 12px "Sanakan Mono", monospace;
+      letter-spacing: 0.08em;
+      text-align: left;
+      color: rgba(220, 221, 222, 0.6);
+    }
+
+    .failure .scan dd {
+      margin: 0;
+      color: #f0a35e;
+    }
+
+    /* the warning sign, which hides something (js/500.js) */
+    .failure .failure-mark {
+      display: inline-block;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: default;
+    }
+
+    .failure .failure-mark:focus-visible {
+      outline: 1px dashed rgba(240, 163, 94, 0.7);
+      outline-offset: 4px;
+    }
+
+    .failure .failure-mark .lock-icon {
+      display: block;
+    }
+
+    /* what crawls in the failed machinery: a grid of the machinery's own
+       colours, the creature in the failure's amber, its food red */
+    .failure .snake {
+      margin: 6px 0 0;
+    }
+
+    .failure .snake canvas {
+      display: block;
+      margin: 0 auto 10px;
+      max-width: 100%;
+      border: 1px solid rgba(240, 163, 94, 0.35);
+      background: rgba(8, 9, 9, 0.7);
+      touch-action: none;
+    }
+
+    .failure .snake-score {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin: 0 0 6px;
+      font: 12px "Sanakan Mono", monospace;
+      letter-spacing: 0.08em;
+      color: rgba(220, 221, 222, 0.6);
+    }
+
+    .failure .snake-score b {
+      font-weight: 400;
+      color: #f0a35e;
+    }
+
+    .failure .snake-note {
+      margin: 0;
+      font: 11px/1.6 "Sanakan Mono", monospace;
+      letter-spacing: 0.04em;
+      color: rgba(220, 221, 222, 0.45);
+    }
+  </style>
+  <script src="/js/hud.js?v=2894733f39"></script>
+</head>
+
+<body>
+  <main class="content">
+    <header class="ex-header">
+      <div class="ex-top">
+        <a class="back hud-corners" href="/" title="Strona główna">&larr; Sanakan</a>
+        <div data-account-slot hidden></div>
+      </div>
+      <div class="tag" aria-hidden="true">SAFEGUARD &middot; LV.9<span class="cursor">_</span></div>
+      <h1 class="hud-title">500</h1>
+    </header>
+
+    <section class="locked hud-corners failure">
+      <button type="button" class="failure-mark" id="failure-mark" aria-label="Ostrzeżenie"><svg class="lock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4M12 17h.01" /></svg></button>
+      <h2>Awaria Megastruktury</h2>
+      <p>Coś w maszynerii serwera przestało działać i ta strona nie mogła powstać. To nie twoja wina: Safeguard już to zanotował, a Budowniczowie zwykle łatają takie dziury szybko.</p>
+      <dl class="scan">
+        <dt>maszyneria</dt>
+        <dd>nie odpowiada</dd>
+        <dt>zgłoszenie</dt>
+        <dd>w dzienniku Safeguarda</dd>
+      </dl>
+      <p><a class="admin-btn primary" href="">Spróbuj ponownie</a></p>
+    </section>
+  </main>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="/state/">Status</a><i aria-hidden="true">&middot;</i><a href="/privacy/">Prywatność</a></footer>
+  <script src="/js/year.js?v=27252b35ac"></script>
+  <script src="/js/account.js?v=ff288d9afb"></script>
+  <script src="/js/safeguard.js?v=21a0e1257a"></script>
+  <script src="/js/500.js?v=21bfc1467b"></script>
+  <script src="/js/netsphere.js?v=30394db9d9"></script>
+  <script src="/js/palette.js?v=15434ca4d0"></script>
+</body>
+
+</html>

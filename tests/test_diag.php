@@ -33,6 +33,14 @@
         assertSame(0, diagUpstreamMs(''));
     });
 
+    test('diagStagedFailure knows only the failure the terminal stages', function () {
+        assertTrue(diagStagedFailure('/megastructure.php?awaria'));
+        assertTrue(diagStagedFailure('/megastructure.php?x=1&awaria='));
+        assertFalse(diagStagedFailure('/megastructure.php?witness=failure'));
+        assertFalse(diagStagedFailure('/megastructure.php?awariax'));
+        assertFalse(diagStagedFailure('/state/?awaria'));
+    });
+
     test('diagPath cuts the query off', function () {
         assertSame('/i/', diagPath('/i/?p=x'));
         assertSame('/wp-login.php', diagPath('/wp-login.php?a=1'));

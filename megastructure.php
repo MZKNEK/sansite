@@ -7,6 +7,13 @@
     require __DIR__ . '/inc/auth.php';
     require __DIR__ . '/inc/megastructure.php';
 
+    // where the Safeguard's terminal leads once told to remove the
+    // Megastructure (js/netsphere.js): the site's 500 page, as if it had worked
+    if (isset($_GET['awaria'])) {
+        sendErrorPage(500);
+        exit;
+    }
+
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
     header('X-Robots-Tag: noindex');

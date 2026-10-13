@@ -101,6 +101,23 @@
         assertSame('ban', $modules[0]['subModules'][0]['commands'][0]['name']);
     });
 
+    test('commandIsPrivate finds a moderator command by its address or an alias', function () {
+        file_put_contents(botFile('commands.json'), json_encode(['modules' => [['name' => 'Pub', 'subModules' => [['prefix' => 'p', 'commands' => [
+            ['name' => 'daily', 'aliases' => ['codziennie']],
+        ]]]]]]));
+        file_put_contents(botFile('commands-private.json'), json_encode(['modules' => [['name' => 'Mod', 'subModules' => [['prefix' => 'p', 'commands' => [
+            ['name' => 'daily', 'description' => 'public too'],
+            ['name' => 'Ban', 'aliases' => ['wyrzuć na zawsze']],
+        ]]]]]]));
+
+        assertTrue(commandIsPrivate('p-ban'));
+        assertTrue(commandIsPrivate('P-Ban'), 'another spelling');
+        assertTrue(commandIsPrivate('wyrzuć-na-zawsze'), 'an alias');
+        assertFalse(commandIsPrivate('p-daily'), 'public, also in the private list');
+        assertFalse(commandIsPrivate('codziennie'), 'a public alias');
+        assertFalse(commandIsPrivate('nic'));
+    });
+
     test('botHealth, botCachedState and the heartbeat', function () {
         file_put_contents(botFile('health.json'), json_encode(['status' => 'ok']));
         assertSame('ok', botHealth()['status']);

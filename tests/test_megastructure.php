@@ -331,6 +331,16 @@
         assertSame(false, $witness('gbe', $idle, $noon->modify('+3 minutes')), 'a ticket of another kind');
         assertSame(false, $witness('idle', null, $noon->modify('+3 minutes')));
         assertSame(['none' => true], megastructureAnswer('a', ['ticket' => 'gene'], $noon));
+
+        // the wait at a closed door (the 403 page) and the feeding in the failure (the 500 page)
+        $door = $ticket('denied', $noon);
+        assertSame(false, $witness('denied', $door, $noon->modify('+60 seconds')), 'too soon');
+        assertSame(true, $witness('denied', $door, $noon->modify('+3 minutes')));
+        assertSame(false, $witness('denied', $idle, $noon->modify('+3 minutes')), 'a ticket of another kind');
+        $snake = $ticket('snake', $noon);
+        assertSame(false, $witness('snake', $snake, $noon->modify('+5 seconds')), 'too soon');
+        assertSame(true, $witness('snake', $snake, $noon->modify('+30 seconds')));
+        assertSame(false, $witness('snake', $snake, $noon->modify('+2 hours')), 'too old');
     });
 
     test('Killy walks in one slot in MEGA_KILLY_CHANCE, the same for everyone', function () {

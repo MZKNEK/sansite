@@ -35,10 +35,7 @@
     {
         $file = resolvePath($base, $rel, false);
         if (!$file || !inPrivateDir($file[1]) || !galleryCanSee($base, $file[1])) {
-            http_response_code(404);
-            header('Content-Type: text/html; charset=utf-8');
-            header('Cache-Control: no-store');
-            readfile(str_replace('\\', '/', dirname(__DIR__, 2)) . '/404.html');
+            sendErrorPage(404);
             return;
         }
 

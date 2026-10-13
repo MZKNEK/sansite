@@ -18,10 +18,10 @@
         return @rmdir($path);
     }
 
-    // one GET: [status, body, header lines]
-    function get($url)
+    // one GET: [status, body, header lines]; $accept as a browser or a script sends it
+    function get($url, $accept = '*/*')
     {
-        $fp = @fopen($url, 'r', false, stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => true]]));
+        $fp = @fopen($url, 'r', false, stream_context_create(['http' => ['timeout' => 10, 'ignore_errors' => true, 'header' => 'Accept: ' . $accept]]));
         if ($fp === false)
             return [0, '', []];
         $body = stream_get_contents($fp);
@@ -56,6 +56,9 @@
     $root = str_replace('\\', '/', dirname(__DIR__));
     $data = sys_get_temp_dir() . '/sanakan-smoke-' . getmypid() . '-' . bin2hex(random_bytes(3));
     mkdir($data, 0700, true);
+    // the moderator and debug commands, as the bot check keeps them (inc/bot.php)
+    file_put_contents($data . '/bot-commands-private.json', json_encode(['modules' => [['name' => 'Mod', 'subModules' => [['prefix' => 'm',
+        'commands' => [['name' => 'ban', 'description' => 'mod', 'aliases' => ['ban'], 'attributes' => [], 'example' => '']]]]]]]));
 
     // two different ports, so the site and its canned API never clash
     $apiPort = random_int(20000, 30000);
@@ -98,6 +101,9 @@
     $pages = [
         ['/', [200]],
         ['/404.html', [200]],
+        ['/403.html', [200]],
+        ['/401.html', [200]],
+        ['/500.html', [200]],
         ['/privacy/', [200]],
         ['/status.php', [200]],
         ['/palette.php', [200]],
@@ -114,6 +120,12 @@
         ['/cmd/', [200]],
         ['/cmd/changes/', [200]],
         ['/cmd/zmiany/', [200], 'Location: ../changes/'],
+        // a short link to a command: on to the page, or for a moderator one a
+        // login, here (no Discord login set up) a refusal
+        ['/cmd/daily', [200], 'Location: /cmd/#daily'],
+        ['/cmd/nic-takiego', [200], 'Location: /cmd/#nic-takiego'],
+        ['/cmd/m-ban', [403]],
+        ['/cmd/ban', [403]],
         ['/skalpel/', [200]],
         ['/uskalpel/', [200]],
         ['/og.php?p=cmd', [200, 302]],
@@ -129,7 +141,9 @@
         ['/account/', [200, 503]],
         ['/admin/', [200, 503]],
         ['/api/', [200, 503]],
-        ['/inc/data/access.json', [404]],
+        ['/inc/data/access.json', [403]],
+        // the failure the Safeguard's terminal stages: the 500 page
+        ['/megastructure.php?awaria', [500]],
     ];
 
     $failures = 0;
@@ -145,6 +159,24 @@
             echo 'ok   ', $path, ' (', $status, ")\n";
         }
     }
+
+    // a page that fails, by an exception or by a fatal error of PHP: a browser
+    // gets the site's 500 page instead of what the page had written so far, a
+    // script the JSON it reads (tests/smoke-router.php makes them fail)
+    foreach (['/__exception', '/__fatal'] as $path)
+        foreach (['text/html,application/xhtml+xml,*/*;q=0.8' => 'Awaria Megastruktury', '*/*' => '"ok":false'] as $accept => $expected) {
+            [$status, $body] = get($base . $path, $accept);
+            if ($status !== 500 || strpos($body, $expected) === false || strpos($body, 'half a page') !== false) {
+                $failures++;
+                echo 'FAIL ', $path, ' (Accept: ', $accept, ') -> ', $status, "
+", substr($body, 0, 300), "
+
+";
+            } else {
+                echo 'ok   ', $path, ' (Accept: ', $accept, ', ', $status, ")
+";
+            }
+        }
 
     $stop();
     rmtree($data);
