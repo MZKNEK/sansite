@@ -107,6 +107,45 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('h1').textContent(), 'サナカン');
     assert.equal(await page.locator('.kana').textContent(), 'SANAKAN');
     assert.equal(await page.locator('.kana').getAttribute('lang'), 'en');
+    const literals = ['x$&', 'x$$', 'x$`', "x$'", '__proto__', 'constructor'];
+    for (const literal of literals)
+      assert.equal(await page.evaluate(text => SanakanHomeLanguage.text(text), literal), literal,
+        'translation preserves literal replacement tokens and object-property names');
+    const unsafeText = '<img src=x onerror="window.__localeInjected = true"> x$&';
+    await page.evaluate(text => {
+      window.__localeInjected = false;
+      const box = document.createElement('div');
+      box.id = 'locale-security-probe';
+      const message = document.createElement('span');
+      message.textContent = 'Zalogowano jako ' + text + '.';
+      const status = document.createElement('span');
+      status.title = 'Zaraz wracam: bot działa, ale ' + text + ' (kliknij, żeby zobaczyć dostępność)';
+      const csrf = document.createElement('input');
+      csrf.type = 'hidden';
+      csrf.value = text;
+      const link = document.createElement('a');
+      link.setAttribute('href', '/account/?probe=' + encodeURIComponent(text));
+      box.append(message, status, csrf, link);
+      document.body.appendChild(box);
+    }, unsafeText);
+    await page.waitForFunction(text => document.querySelector('#locale-security-probe span').textContent
+      === text + 'としてログインしました。', unsafeText);
+    const probe = await page.evaluate(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const box = document.getElementById('locale-security-probe');
+      const status = box.querySelectorAll('span')[1].title;
+      return { text: box.firstElementChild.textContent, status, stable: SanakanHomeLanguage.text(status) === status,
+        images: box.querySelectorAll('img').length, executed: window.__localeInjected,
+        value: box.querySelector('input').value, href: box.querySelector('a').getAttribute('href') };
+    });
+    assert.equal(probe.text, unsafeText + 'としてログインしました。');
+    assert.ok(probe.status.includes(unsafeText));
+    assert.equal(probe.stable, true, 'observed attributes settle after translation');
+    assert.equal(probe.images, 0, 'HTML-shaped text never creates elements');
+    assert.equal(probe.executed, false, 'HTML-shaped text never executes');
+    assert.equal(probe.value, unsafeText, 'translation does not modify form values');
+    assert.equal(probe.href, '/account/?probe=' + encodeURIComponent(unsafeText), 'translation does not modify destinations');
+    await page.locator('#locale-security-probe').evaluate(node => node.remove());
     assert.equal(await page.locator('#motto .sr-only').textContent(), '重そうだけど、飛べる');
     assert.ok(await page.locator('#motto .dot, #motto .dash').count() > 0, 'the Japanese motto still sends Morse');
     assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01コマンド');

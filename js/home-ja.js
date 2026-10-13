@@ -119,8 +119,9 @@
     var value = text.trim();
     var statusHint = ' (kliknij, żeby zobaczyć dostępność)';
     if (value.endsWith(statusHint)) {
-      return text.replace(value, translate(value.slice(0, -statusHint.length))
-        + ' ' + WORDS[statusHint.trim()]);
+      return text.replace(value, function () {
+        return translate(value.slice(0, -statusHint.length)) + ' ' + WORDS[statusHint.trim()];
+      });
     }
     var result = Object.prototype.hasOwnProperty.call(WORDS, value) ? WORDS[value] : undefined;
     if (result === undefined) {
@@ -151,7 +152,9 @@
         .replace(/ · rejestr w profilu$/, ' · プロフィールに記録')
         .replace(/ · zapisane w tej przeglądarce, po zalogowaniu trafi do profilu$/, ' · このブラウザーに保存しました。ログイン後にプロフィールへ同期します');
     }
-    return text.replace(value, result);
+    // A replacement string interprets $&, $` and $' in server-supplied text.
+    // Keep them literal, or the DOM observer can keep expanding the same node.
+    return text.replace(value, function () { return result; });
   }
 
   var ATTRIBUTES = ['title', 'aria-label', 'alt', 'placeholder'];
