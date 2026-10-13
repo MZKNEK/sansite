@@ -117,7 +117,7 @@
     // const GALLERY_STAGING_MAX_BYTES = 1073741824;
 
     // Optional: the secret of the Net Terminal Gene, the hardest easter egg
-    // (inc/megastructure.php). Its fragments, the addresses of its corridor and
+    // (inc/megastructure.php). Its fragments, the floors of its stairs and
     // its words all come from it, so they are in no file of the repository;
     // without it the gene cannot be found. Any long random text, e.g. the
     // output of: php -r "echo bin2hex(random_bytes(32));"

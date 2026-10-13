@@ -271,6 +271,8 @@ window.SanakanSafeguard = (function () {
         found('maze', answer.proof);
         paper();
         console.log('%cSłowo rozpoznane. Fragment sekwencji 3/4: ' + answer.fragment + '\nOstatni fragment Safeguard zostawia tylko na papierze.', 'font: 12px monospace; line-height: 1.6; color: #4fd1c5;');
+      } else if (answer && answer.stranger) {
+        console.log('%cSafeguard nie rozmawia z obcymi. Zaloguj się.', 'font: 12px monospace; color: #e86262;');
       } else {
         console.log('%cSafeguard nie zna tego słowa.', 'font: 12px monospace; color: #e86262;');
       }

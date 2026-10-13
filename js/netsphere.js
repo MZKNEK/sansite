@@ -292,6 +292,15 @@
       add(p);
     }
 
+    // the way to the gene is an account's (inc/megastructure.php): without
+    // one, megastructure.php answers only that it does not know who asks
+    function stranger(answer) {
+      if (!answer || !answer.stranger) return false;
+      row('tożsamość', 'NIEZNANA', 'bad');
+      say('Safeguard nie rozmawia z obcymi. Zaloguj się.', 'dim');
+      return true;
+    }
+
     function ask(url) {
       var opts = { cache: 'no-store' };
       if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
@@ -417,6 +426,7 @@
         }
         say('weryfikacja sekwencji…', 'dim');
         SanakanSafeguard.mega({ gene: sequence }).then(function (answer) {
+          if (stranger(answer)) return;
           if (!answer || !answer.ok) {
             row('sekwencja', 'ODRZUCONA', 'bad');
             row('gen terminala sieciowego', 'NIE WYKRYTO', 'bad');
@@ -530,6 +540,7 @@
         if (sequence) {
           say('łączenie z Netsferą…', 'dim');
           SanakanSafeguard.mega({ enter: sequence }).then(function (answer) {
+            if (stranger(answer)) return;
             if (!answer || !answer.archive) {
               row('dostęp do Netsfery', 'ODMOWA', 'bad');
               return;
@@ -542,6 +553,7 @@
         }
         say('weryfikacja zapisu…', 'dim');
         SanakanSafeguard.mega({ record: line }).then(function (answer) {
+          if (stranger(answer)) return;
           if (!answer || !answer.ok) {
             row('zapis', 'NIEROZPOZNANY', 'bad');
             return;

@@ -5,10 +5,14 @@
     //   1. the Builders' door: on the 404 page, only from 3:00 to 3:07 at night
     //      or from 15:00 to 15:07 in the afternoon, for whoever cannot stay up
     //      (Polish time, the server's clock), a door opens; behind it, the first
-    //      fragment and the first address of a corridor (a find, "builders");
-    //   2. floor zero: each address of the corridor, a 404 page, feels a draught
-    //      from the next one; the last is floor zero, with the second fragment
-    //      (a find, "floor0") and a maze;
+    //      fragment and the Builders' stairs going down (a find, "builders");
+    //   2. floor zero: the stairs are floors, /pietro/<n>, each a 404 page,
+    //      and on a flight of them a draught comes from its shaft, from above
+    //      or below, the stronger the nearer; the number in the address is
+    //      changed until the shaft is found, which drops to the next flight,
+    //      and the last one's to floor zero, with the second fragment (a find,
+    //      "floor0") and a maze. Every account has its own flights
+    //      (megaFlights());
     //   3. the maze walked to its terminal, deep in it: a word to say to the
     //      Safeguard in the browser's console, and safeguard('<that word>')
     //      there the third fragment (a find, "maze");
@@ -19,9 +23,11 @@
     // give the gene, the one time the Safeguard lets anyone in (a find, "gene").
     //
     // The repository is public, so nothing of it is written in the code: the
-    // fragments, the addresses, the maze and the word all come from
+    // fragments, the floors, the maze and the word all come from
     // SAFEGUARD_SECRET in inc/config.php, and only megastructure.php gives them
-    // out, each where it belongs. Without the secret there is no gene to find.
+    // out, each where it belongs. Without the secret there is no gene to find,
+    // and without an account no way to it: the stairs are an account's own,
+    // so a floor passed on leads nobody else anywhere.
     //
     // A find is noted in the browser (js/safeguard.js), where anyone could note
     // any of them from the console, so every find of the register is the
@@ -32,13 +38,20 @@
     // given whole either: a walk in it shows only what is near its end.
 
     const GENE_FRAGMENTS = 4;
-    // the corridor's addresses before floor zero
-    const MEGA_ROUTE_STEPS = 5;
     // the Builders' hours, Polish time: from each HOUR:00 for MINUTES minutes
     const BUILDERS_HOURS = [3, 15];
     const BUILDERS_MINUTES = 7;
-    // the first part of the corridor's addresses, as the places of the Megastructure
-    const MEGA_ROUTE_WORDS = ['szyb', 'korytarz', 'sektor', 'poziom', 'wezel', 'przejscie', 'kanal', 'tunel'];
+    // The stairs: MEGA_FLIGHTS flights of MEGA_FLIGHT_SPAN floors each, the
+    // k-th somewhere in the k-th band of MEGA_FLIGHT_BAND floors from
+    // MEGA_FLIGHT_FIRST on, so they never meet and each goes deeper; the
+    // floors as the 404 page has them for any address (js/404.js)
+    const MEGA_FLIGHTS = 3;
+    const MEGA_FLIGHT_SPAN = 6000;
+    const MEGA_FLIGHT_BAND = 3000000;
+    const MEGA_FLIGHT_FIRST = 1000;
+    // how strong the draught is, 0 to 6: one more for each of these floors
+    // the shaft is nearer than
+    const MEGA_DRAUGHT = [2000, 600, 200, 60, 20, 6];
     // floor zero's maze, in cells; drawn twice as many characters plus one
     const MEGA_MAZE_W = 25;
     const MEGA_MAZE_H = 9;
@@ -82,16 +95,50 @@
         return implode('-', $fragments);
     }
 
-    // the corridor: MEGA_ROUTE_STEPS addresses, then floor zero, the last
-    function megaRoute($secret)
+    // An account's flights of the stairs, [['from' => its first floor,
+    // 'start' => the floor it is come down to, 'shaft' => the floor of its
+    // shaft]...]: its own, from the secret and its ID, the same every time.
+    // The start is at least a third of the flight away from the shaft.
+    function megaFlights($secret, $id)
     {
-        $route = [];
-        for ($i = 0; $i <= MEGA_ROUTE_STEPS; $i++) {
-            $hash = megaHash($secret, 'route:' . $i);
-            $route[] = '/' . MEGA_ROUTE_WORDS[hexdec(substr($hash, 0, 2)) % count(MEGA_ROUTE_WORDS)] . '/' . substr($hash, 2, 6);
+        $flights = [];
+        $third = intdiv(MEGA_FLIGHT_SPAN, 3);
+        for ($k = 0; $k < MEGA_FLIGHTS; $k++) {
+            $label = 'flight:' . $id . ':' . $k;
+            $from = MEGA_FLIGHT_FIRST + $k * MEGA_FLIGHT_BAND + megaPick($secret, $label, 0, MEGA_FLIGHT_BAND - MEGA_FLIGHT_SPAN);
+            $shaft = megaPick($secret, $label, 1, MEGA_FLIGHT_SPAN);
+            $start = ($shaft + $third + megaPick($secret, $label, 2, $third)) % MEGA_FLIGHT_SPAN;
+            $flights[] = ['from' => $from, 'start' => $from + $start, 'shaft' => $from + $shaft];
         }
 
-        return $route;
+        return $flights;
+    }
+
+    // the address of a floor of the stairs
+    function megaFloorPath($floor)
+    {
+        return '/pietro/' . $floor;
+    }
+
+    // the floor of an address of the stairs, "/pietro/<n>", or null; the 404
+    // page shows it as −n, so a minus typed with it is fine
+    function megaFloor($path)
+    {
+        return preg_match('~^/pietro/(?:-|−)?(\d{1,9})$~uD', megaPath($path), $m) ? (int)$m[1] : null;
+    }
+
+    // the draught on a floor of a flight: ['from' => 'below' (a deeper floor,
+    // a greater number) or 'above', 'strength' => 0 to 6, the nearer the shaft
+    // the stronger]
+    function megaDraught($floor, $shaft)
+    {
+        $far = abs($shaft - $floor);
+        $strength = 0;
+        foreach (MEGA_DRAUGHT as $near)
+            if ($far < $near)
+                $strength++;
+
+        return ['from' => $shaft > $floor ? 'below' : 'above', 'strength' => $strength];
     }
 
     // what the Safeguard answers to in the console: five small letters
@@ -419,14 +466,14 @@
     }
 
     // ---- The way to the gene, in its order -------------------------------------------
-    // Each step of the way is open to whoever knows its answer, the corridor's
-    // last address, the console's word, the sequence, so an account notes one
-    // only after those before it (megaChainFinds()), and one made sooner after
-    // them than anyone could flags it (safeguardCheat()): key => [the finds
-    // before it, the least seconds after the last of them].
+    // Each step of the way is open to whoever knows its answer, the console's
+    // word, the sequence, so an account notes one only after those before it
+    // (megaChainFinds()), and one made sooner after them than anyone could
+    // flags it (safeguardCheat()): key => [the finds before it, the least
+    // seconds after the last of them].
     const MEGA_CHAIN = [
-        // five addresses of the corridor, each a page of its own
-        'floor0' => [['builders'], 10],
+        // three flights of the stairs, each shaft found floor by floor, a page each
+        'floor0' => [['builders'], 30],
         // the maze walked to its terminal, then its word in the console or a page printed
         'maze' => [['floor0'], 20],
         'paper' => [['floor0'], 20],
@@ -761,10 +808,11 @@
     }
 
     // The answer of megastructure.php to one question of its query:
-    //   at=<address>  the 404 page: whether the door is open, the draught of a
-    //                 corridor's address, floor zero (with what is seen from
-    //                 the maze's way in), the archive
-    //   door          the door opened: the first fragment and the corridor
+    //   at=<address>  the 404 page: whether the door is open, on a floor of
+    //                 the account's stairs the draught, or its shaft, the
+    //                 next flight's floor, or floor zero (with what is seen
+    //                 from the maze's way in), the archive
+    //   door          the door opened: the first fragment and the stairs' first floor
     //   walk=<moves>  a walk in the maze, with zero=<the proof of floor zero>:
     //                 what is seen where it ends, and the word for the console
     //                 when that is the terminal
@@ -780,31 +828,46 @@
     //                 once (megaSpendTicket())
     // Each answer that makes a find carries its proof (megaProof()). Anything
     // else, or no secret, is an empty answer; only text counts in the query.
-    // $id is the account asking, '' for none.
+    // $id is the account asking, '' for none: the way to the gene is an
+    // account's, so without one the 404 page only learns whether the door is
+    // open, and the rest of the way answers ['stranger' => true].
     function megastructureAnswer($secret, array $query, $now, $preview = false, $id = '')
     {
         if ((string)$secret === '')
             return [];
         $query = array_filter($query, 'is_string');
+        $id = (string)$id;
         $proof = function ($key) use ($secret, $now) {
             return megaProof($secret, $key, $now->getTimestamp());
         };
+        $way = ['door', 'walk', 'ask', 'paper', 'gene', 'enter', 'record'];
+        if ($id === '' && array_intersect_key($query, array_flip($way)) && !isset($query['at']))
+            return ['stranger' => true];
 
         if (isset($query['at'])) {
-            $path = megaPath($query['at']);
-            $route = megaRoute($secret);
-            $step = array_search($path, $route, true);
             $answer = ['door' => buildersHour($now)];
-            if ($step !== false && $step < MEGA_ROUTE_STEPS)
-                $answer['draught'] = $route[$step + 1];
-            elseif ($step === MEGA_ROUTE_STEPS) {
-                $maze = megaMaze($secret);
-                $answer['zero'] = [
-                    'fragment' => geneFragment($secret, 2),
-                    'maze' => ['width' => strlen($maze['rows'][0]), 'height' => count($maze['rows']), 'start' => $maze['start'], 'sight' => megaSight($secret, $maze['start'])],
-                    'proof' => $proof('floor0')
-                ];
-            } elseif ($path === megaArchivePath($secret)) {
+            if ($id === '')
+                return $answer;
+            $path = megaPath($query['at']);
+            $floor = megaFloor($path);
+            $flights = $floor === null ? [] : megaFlights($secret, $id);
+            foreach ($flights as $k => $flight) {
+                if ($floor < $flight['from'] || $floor >= $flight['from'] + MEGA_FLIGHT_SPAN)
+                    continue;
+                if ($floor !== $flight['shaft'])
+                    $answer['draught'] = megaDraught($floor, $flight['shaft']);
+                elseif ($k < MEGA_FLIGHTS - 1)
+                    $answer['shaft'] = megaFloorPath($flights[$k + 1]['start']);
+                else {
+                    $maze = megaMaze($secret);
+                    $answer['zero'] = [
+                        'fragment' => geneFragment($secret, 2),
+                        'maze' => ['width' => strlen($maze['rows'][0]), 'height' => count($maze['rows']), 'start' => $maze['start'], 'sight' => megaSight($secret, $maze['start'])],
+                        'proof' => $proof('floor0')
+                    ];
+                }
+            }
+            if ($path === megaArchivePath($secret)) {
                 $key = megaKey($secret);
                 $answer['archive'] = ['record' => megaCipher(megaRecord($secret), $key['letters']), 'key' => $key['places']];
             }
@@ -824,7 +887,7 @@
 
         if (isset($query['door']))
             return buildersHour($now)
-                ? ['fragment' => geneFragment($secret, 1), 'corridor' => megaRoute($secret)[0], 'proof' => $proof('builders')]
+                ? ['fragment' => geneFragment($secret, 1), 'stairs' => megaFloorPath(megaFlights($secret, $id)[0]['start']), 'proof' => $proof('builders')]
                 : ['closed' => true];
 
         if (isset($query['walk'])) {

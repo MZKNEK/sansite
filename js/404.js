@@ -105,6 +105,9 @@ document.getElementById('lost').textContent = path;
   });
 
   var floor = 1000 + pick(9000000);
+  // an address of a floor, /pietro/<n> (a minus with it or not), is on that floor
+  var stairs = path.match(/^\/pietro\/[-−]?(\d{1,9})\/?$/i);
+  if (stairs) floor = parseInt(stairs[1], 10);
   var sector = (0x100 + pick(0xf00)).toString(16).toUpperCase() + '-' + (0x10 + pick(0xf0)).toString(16).toUpperCase();
   document.getElementById('mega-where').textContent = 'Piętro −' + number(floor) + ' · sektor ' + sector;
   document.getElementById('mega-terminal').textContent = number(200 + pick(9800)) + ' km';
@@ -116,8 +119,11 @@ document.getElementById('lost').textContent = path;
 
   // ---- The way to the Net Terminal Gene (inc/megastructure.php) ----
   // The server says whether this address is more than a dead end: at the
-  // Builders' hour a door opens on any of them, an address of their corridor
-  // feels a draught from the next one, and its end is floor zero.
+  // Builders' hour a door opens on any of them, though only to an account;
+  // behind it stairs going down, floors /pietro/<n> of the account's own,
+  // where a flight feels a draught from its shaft, from above or below and
+  // the stronger the nearer, which the number in the address is changed to
+  // find; a shaft drops to the next flight, the last to floor zero.
   if (!window.SanakanSafeguard) return;
   var sg = SanakanSafeguard;
   var mega = document.getElementById('mega');
@@ -134,6 +140,28 @@ document.getElementById('lost').textContent = path;
     var c = document.createElement('code');
     c.textContent = text;
     return c;
+  }
+
+  // an address to go to, shown as one
+  function link(address) {
+    var a = document.createElement('a');
+    a.href = address;
+    a.appendChild(code(address));
+    return a;
+  }
+
+  // the draught's strength (0 to 6, MEGA_DRAUGHT) and where it comes from
+  var STRENGTHS = ['ledwo wyczuwalny', 'słaby', 'wyraźny', 'silny', 'bardzo silny', 'wyje w szczelinach', 'szarpie ubraniem, szyb jest tuż obok'];
+  var FROM = { below: 'z dołu', above: 'z góry' };
+
+  // a door that will not open, for whoever the Safeguard does not know
+  function stranger(el) {
+    el.textContent = 'Budowniczowie nie wpuszczają obcych. Safeguard musi cię znać: ';
+    var a = document.createElement('a');
+    a.href = '/account.php?login&back=' + encodeURIComponent(location.pathname);
+    a.textContent = 'zaloguj się';
+    el.appendChild(a);
+    el.appendChild(document.createTextNode('.'));
   }
 
   // Floor zero: a maze in the dark, the visitor at its way in on the left and
@@ -301,6 +329,11 @@ document.getElementById('lost').textContent = path;
     button.addEventListener('click', function () {
       button.disabled = true;
       sg.mega({ door: 1 }).then(function (answer) {
+        if (answer && answer.stranger) {
+          button.remove();
+          stranger(line('mega-secret', ''));
+          return;
+        }
         if (!answer || !answer.fragment) {
           button.textContent = 'Drzwi się zamknęły. Budowniczowie wrócili do pracy.';
           return;
@@ -308,8 +341,8 @@ document.getElementById('lost').textContent = path;
         button.remove();
         var got = line('mega-secret', 'Za drzwiami Budowniczych, fragment sekwencji 1/4: ');
         got.appendChild(code(answer.fragment));
-        var way = line('mega-secret', 'Korytarz prowadzi dalej: ');
-        way.appendChild(code(answer.corridor));
+        var way = line('mega-secret', 'Za nimi schody w dół, do piętra ');
+        way.appendChild(link(answer.stairs));
         sg.fragment(1, answer.fragment);
         sg.found('builders', answer.proof);
       });
@@ -361,8 +394,12 @@ document.getElementById('lost').textContent = path;
     }
     if (answer.zero) floorZero(answer.zero);
     if (answer.draught) {
-      var draught = line('mega-secret', 'Czuć przeciąg. Ciągnie od: ');
-      draught.appendChild(code(answer.draught));
+      var from = FROM[answer.draught.from], strength = STRENGTHS[answer.draught.strength];
+      if (from && strength) line('mega-secret', 'Schody Budowniczych. Przeciąg ' + from + ': ' + strength + '.');
+    }
+    if (answer.shaft) {
+      var shaft = line('mega-secret', 'Szyb Budowniczych. Opada w ciemność, do piętra ');
+      shaft.appendChild(link(answer.shaft));
     }
     if (answer.door) door();
   });
