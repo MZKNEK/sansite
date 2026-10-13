@@ -200,10 +200,39 @@
       user-select: all;
     }
 
+    /* the key's letters, numbered: where on top, the riddle under it */
     .not-found .mega-key {
-      margin: 6px 0 0;
-      padding: 0 0 0 18px;
-      color: var(--text);
+      margin: 8px 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: letter;
+    }
+
+    .not-found .mega-key > li {
+      position: relative;
+      margin: 0 0 8px;
+      padding: 0 0 0 30px;
+      counter-increment: letter;
+    }
+
+    .not-found .mega-key > li::before {
+      content: counter(letter, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: rgba(79, 209, 197, 0.55);
+    }
+
+    .not-found .mega-key-where {
+      display: block;
+      color: #4fd1c5;
+      text-shadow: 0 0 6px rgba(79, 209, 197, 0.4);
+    }
+
+    .not-found .mega-key-riddle {
+      display: block;
+      font-style: italic;
+      color: rgba(220, 221, 222, 0.6);
     }
 
     .not-found .mega-end {
@@ -279,7 +308,7 @@
   <script src="/js/year.js?v=27252b35ac"></script>
   <script src="/js/account.js?v=ff288d9afb"></script>
   <script src="/js/safeguard.js?v=1174a79fde"></script>
-  <script src="/js/404.js?v=d8dcf2842d"></script>
+  <script src="/js/404.js?v=cf17815329"></script>
   <script src="/js/netsphere.js?v=3716e0908c"></script>
   <script src="/js/palette.js?v=15434ca4d0"></script>
 </body>

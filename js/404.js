@@ -376,16 +376,23 @@ document.getElementById('lost').textContent = path;
     cipher.textContent = data.record;
     record('Ostatni zapis Administracji, zaszyfrowany:', cipher);
     record('Szyfr przesuwa każdą literę zapisu o literę klucza pod nią, A o zero, B o jeden. Klucz biegnie dalej tylko po literach.');
-    var key = document.createElement('ul');
+    var key = document.createElement('ol');
     key.className = 'mega-key';
     // a riddle of the find instead of its name, the word and the letter as a
-    // sector and a level
+    // sector and a level, each letter on lines of its own
     data.key.forEach(function (place) {
       var li = document.createElement('li');
-      li.textContent = place[0] + ' · sektor ' + place[1] + ' · poziom ' + place[2];
+      var where = document.createElement('span');
+      where.className = 'mega-key-where';
+      where.textContent = 'sektor ' + place[1] + ' · poziom ' + place[2];
+      var riddle = document.createElement('span');
+      riddle.className = 'mega-key-riddle';
+      riddle.textContent = place[0];
+      li.appendChild(where);
+      li.appendChild(riddle);
       key.appendChild(li);
     });
-    record('Klucz rozproszono w rejestrze Safeguarda, w tym, co mówi o znaleziskach. Każda litera ma swój sektor i poziom:', key);
+    record('Klucz rozproszono w rejestrze Safeguarda, w tym, co mówi o znaleziskach:', key);
     record('Kto odczyta zapis, niech poda go terminalowi Netsfery.');
     box.appendChild(records);
   }
