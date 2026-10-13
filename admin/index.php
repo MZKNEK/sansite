@@ -214,7 +214,7 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=3716e0908c"></script>
-  <script src="../js/safeguard.js?v=1174a79fde"></script>
+  <script src="../js/safeguard.js?v=66d6049453"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

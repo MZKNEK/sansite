@@ -425,7 +425,7 @@
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=3716e0908c"></script>
-  <script src="../js/safeguard.js?v=1174a79fde"></script>
+  <script src="../js/safeguard.js?v=66d6049453"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 

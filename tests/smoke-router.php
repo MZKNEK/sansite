@@ -25,6 +25,25 @@
 
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
+    // Isolated register endpoints for the security regressions in http.php.
+    // The router is never deployed, and these accounts have no external API.
+    if (in_array($path, ['/__mega', '/__mega-account', '/__mega-login'], true)) {
+        define('DISCORD_CLIENT_ID', 'smoke');
+        define('DISCORD_CLIENT_SECRET', 'smoke');
+        define('DISCORD_REDIRECT_URI', '/__mega-login');
+        define('SAFEGUARD_SECRET', 'smoke-register-secret');
+        if ($path === '/__mega-login') {
+            require $root . '/inc/auth.php';
+            siteSession();
+            $_SESSION['gallery_user'] = ['id' => '900000000000000011', 'name' => 'Smoke', 'avatar' => ''];
+            $_SESSION['login_time'] = time();
+            echo 'ok';
+            return true;
+        }
+        require $root . ($path === '/__mega-account' ? '/account.php' : '/megastructure.php');
+        return true;
+    }
+
     // the configuration and the data are never served (nginx blocks inc/ too)
     if (strpos($path, '/inc/') === 0) {
         http_response_code(403);

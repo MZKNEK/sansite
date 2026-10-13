@@ -21,6 +21,35 @@
     header('X-Robots-Tag: noindex');
     sendSafeguardHeader();
 
+    // Anonymous players need CSRF protection too. Only a player asking to
+    // make a change starts a session; ordinary reads remain session-free.
+    if (isset($_GET['csrf'])) {
+        echo json_encode(['csrf' => siteCsrf()]);
+        exit;
+    }
+    // Match the dispatcher's input filtering before choosing the guards;
+    // array-valued decoy parameters must not bypass ticket throttling.
+    $query = array_filter($_POST + $_GET, 'is_string');
+    $changes = isset($query['snake']) || (isset($query['witness']) && is_string($query['witness']) && isset(MEGA_TICKETS[$query['witness']]));
+    if ($changes && ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        http_response_code(405);
+        header('Allow: POST');
+        echo json_encode(['error' => 'method']);
+        exit;
+    }
+    if ($changes && (!isset($_POST['csrf']) || !is_string($_POST['csrf']) || !checkCsrf())) {
+        http_response_code(403);
+        echo json_encode(['error' => 'csrf']);
+        exit;
+    }
+    if (isset($query['ticket']) && !isset($query['snake']) && !isset($query['witness'])
+        && !megaTicketAllowed($_SERVER['REMOTE_ADDR'] ?? '', time())) {
+        http_response_code(429);
+        header('Retry-After: ' . MEGA_TICKET_RATE_SECONDS);
+        echo json_encode(['error' => 'rate']);
+        exit;
+    }
+
     $secret = safeguardSecret();
     $now = new DateTimeImmutable('now');
     // the preview also skips the waits and the days of the finds the server
@@ -34,4 +63,4 @@
     // a game of the snake comes as a POST, as its way may be long (js/500.js);
     // the account asking keeps its best game
     $user = siteUser();
-    echo json_encode(megastructureAnswer($secret, $_POST + $_GET, $now, $preview, $user['id'] ?? ''), JSON_UNESCAPED_UNICODE);
+    echo json_encode(megastructureAnswer($secret, $query, $now, $preview, $user['id'] ?? ''), JSON_UNESCAPED_UNICODE);

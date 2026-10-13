@@ -45,7 +45,7 @@
             exit;
         }
         $proofs = json_decode((string)($_POST['proofs'] ?? ''), true);
-        [$found, $rejected] = megaProvenFinds(safeguardSecret(), json_decode((string)($_POST['found'] ?? ''), true), $proofs, time());
+        [$found, $rejected] = megaProvenFinds(safeguardSecret(), json_decode((string)($_POST['found'] ?? ''), true), $proofs, time(), $user['id']);
         // a proof another account sent first gives this one nothing
         $claimed = $found ? megaClaimProofs($user['id'], $found, $proofs, time()) : [[], []];
         if ($claimed === null) {

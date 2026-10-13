@@ -78,8 +78,9 @@ window.SanakanSafeguard = (function () {
   // ---- The register ---------------------------------------------------------
 
   // what this browser knows: its finds, key => unix time, which of them the
-  // account already has (sent), and their proofs (key => proof); localStorage
-  // may be off, then nothing stays
+  // account already has (sent), their first proofs (key => proof), and later
+  // proofs waiting in case the first is rejected (retryProofs, key => array).
+  // localStorage may be off, then nothing stays
   function load() {
     var state = null;
     try {
@@ -91,6 +92,7 @@ window.SanakanSafeguard = (function () {
     if (!state.finds || typeof state.finds !== 'object') state.finds = {};
     if (!state.sent || typeof state.sent !== 'object') state.sent = {};
     if (!state.proofs || typeof state.proofs !== 'object') state.proofs = {};
+    if (!state.retryProofs || typeof state.retryProofs !== 'object') state.retryProofs = {};
     return state;
   }
 
@@ -149,8 +151,17 @@ window.SanakanSafeguard = (function () {
     var state = load();
     var fresh = !state.finds[key];
     if (fresh) state.finds[key] = Math.floor(Date.now() / 1000);
-    if (proof && !state.proofs[key]) state.proofs[key] = String(proof);
-    if (fresh || proof) save(state);
+    proof = String(proof);
+    if (!state.proofs[key]) state.proofs[key] = proof;
+    else if (!state.sent[key] && state.proofs[key] !== proof) {
+      // Keep the earliest proof: a later one could put the steps after it out
+      // of order. A newly collected proof may still replace an old invalid one.
+      var retries = state.retryProofs[key];
+      if (!Array.isArray(retries)) retries = [];
+      if (retries.indexOf(proof) < 0) retries.push(proof);
+      state.retryProofs[key] = retries;
+    }
+    save(state);
     if (fresh) toast(key, state);
     if (!state.sent[key]) sync();
   }
@@ -180,6 +191,7 @@ window.SanakanSafeguard = (function () {
       Object.keys(finds || {}).forEach(function (key) {
         if (!NAMES[key]) return;
         state.sent[key] = 1;
+        delete state.retryProofs[key];
         if (!state.finds[key] || finds[key] < state.finds[key]) state.finds[key] = finds[key];
       });
     }
@@ -195,6 +207,7 @@ window.SanakanSafeguard = (function () {
           delete state.sent[key];
           delete state.finds[key];
           delete state.proofs[key];
+          delete state.retryProofs[key];
         });
         take(state, me.finds);
         var send = {};
@@ -216,10 +229,35 @@ window.SanakanSafeguard = (function () {
           .then(function (answer) {
             if (!answer || !answer.finds) return;
             var state = load();
-            // a find without its proof, or with one another account sent first, was never one
-            (answer.rejected || []).forEach(function (key) {
+            // Register order puts prerequisites before their following steps.
+            var rejected = Object.keys(NAMES).filter(function (key) {
+              return (answer.rejected || []).indexOf(key) >= 0
+                && Object.prototype.hasOwnProperty.call(send, key) && !state.sent[key] && !answer.finds[key];
+            });
+            // Try one replacement at a time: a following step's original proof
+            // may still be valid once an earlier prerequisite has been recovered.
+            var retry = rejected.some(function (key) {
+              // Another tab may have replaced the proof after this request.
+              // Its rejection says nothing about that replacement.
+              if (state.proofs[key] !== proofs[key]) {
+                return !!state.proofs[key];
+              }
+              var retries = state.retryProofs[key];
+              if (!Array.isArray(retries) || !retries.length) return false;
+              state.proofs[key] = retries.shift();
+              if (!retries.length) delete state.retryProofs[key];
+              state.finds[key] = Math.floor(Date.now() / 1000);
+              return true;
+            });
+            if (retry) {
+              // A valid following step may have been rejected only because its
+              // prerequisite used an old proof. Keep it until replacements run out.
+              again = true;
+            } else rejected.forEach(function (key) {
+              if (state.proofs[key] !== proofs[key]) return;
               delete state.finds[key];
               delete state.proofs[key];
+              delete state.retryProofs[key];
             });
             take(state, answer.finds);
             save(state);
@@ -285,15 +323,53 @@ window.SanakanSafeguard = (function () {
   // megastructure.php's answer to a question, or null without one: the way to
   // the gene is kept on the server, as the repository is public; what is too
   // long for an address (a game of the snake) goes in post, as a POST
+  var megaCsrfPending = null;
+
   function mega(query, post) {
-    var opts = { cache: 'no-store', credentials: 'same-origin' };
-    if (post) {
-      opts.method = 'POST';
-      opts.body = new URLSearchParams(post);
+    query = query || {};
+    function request(params, body) {
+      var opts = { cache: 'no-store', credentials: 'same-origin' };
+      if (body) {
+        opts.method = 'POST';
+        opts.body = body;
+      }
+      if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
+      return fetch(ROOT + 'megastructure.php?' + new URLSearchParams(params), opts)
+        .then(function (res) {
+          if (res.ok) return res.json();
+          var err = new Error('Megastructure request failed');
+          err.status = res.status;
+          throw err;
+        });
     }
-    if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
-    return fetch(ROOT + 'megastructure.php?' + new URLSearchParams(query), opts)
-      .then(function (res) { return res.ok ? res.json() : null; })
+    // Games and ticket redemption write server state, even without a login.
+    // Obtain a fresh token so a login or logout in another tab is safe too.
+    var changes = post || query.snake != null || (query.witness != null && query.ticket != null);
+    function token() {
+      if (!megaCsrfPending) {
+        megaCsrfPending = request({ csrf: 1 }).then(function (auth) {
+          megaCsrfPending = null;
+          return auth;
+        }, function (err) {
+          megaCsrfPending = null;
+          throw err;
+        });
+      }
+      return megaCsrfPending;
+    }
+    function send(retry) {
+      return token().then(function (auth) {
+        if (!auth || !auth.csrf) throw new Error('Missing CSRF token');
+        var body = new URLSearchParams(post || query);
+        body.set('csrf', auth.csrf);
+        return request(post ? query : {}, body);
+      }).catch(function (err) {
+        if (!retry || (err.status && err.status < 500 && err.status !== 403)) throw err;
+        return send(false); // safe: the server returns the original ticket proof
+      });
+    }
+    var answer = changes ? send(true) : request(query);
+    return answer
       .catch(function () { return null; });
   }
 

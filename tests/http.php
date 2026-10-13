@@ -178,6 +178,8 @@
             }
         }
 
+    require __DIR__ . '/megastructure-http.php';
+
     $stop();
     rmtree($data);
 

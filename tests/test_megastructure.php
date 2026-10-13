@@ -9,10 +9,10 @@
 
     // an answer with its proof replaced by whether it is the server's, of the
     // find $key at $time (every proof has a nonce of its own, megaProof())
-    function proven($answer, $key, $time, $secret = 'a')
+    function proven($answer, $key, $time, $secret = 'a', $id = '111')
     {
         if (isset($answer['proof']))
-            $answer['proof'] = megaProofTime($secret, $key, $answer['proof']) === $time;
+            $answer['proof'] = megaProofTime($secret, $key, $answer['proof'], $id) === $time;
 
         return $answer;
     }
@@ -111,7 +111,7 @@
         assertSame(geneFragment('a', 2), $zero['zero']['fragment']);
         $maze = megaMaze('a');
         assertSame(['width' => 2 * MEGA_MAZE_W + 1, 'height' => 2 * MEGA_MAZE_H + 1, 'start' => $maze['start'], 'sight' => megaSight('a', $maze['start'])], $zero['zero']['maze'], 'only what is seen from the way in');
-        assertSame($noon->getTimestamp(), megaProofTime('a', 'floor0', $zero['zero']['proof']));
+        assertSame($noon->getTimestamp(), megaProofTime('a', 'floor0', $zero['zero']['proof'], '111'));
     });
 
     test('the draught grows stronger the nearer the shaft', function () {
@@ -191,8 +191,9 @@
         assertSame([], megastructureAnswer('a', ['walk' => ['R'], 'zero' => $zero], $noon, false, '111'), 'only text counts');
         // only from floor zero
         assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk], $noon, false, '111'), 'without its proof');
-        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => megaProof('a', 'builders', $noon->getTimestamp())], $noon, false, '111'), 'the proof of another find');
-        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => megaProof('b', 'floor0', $noon->getTimestamp())], $noon, false, '111'), 'of another secret');
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => megaProof('a', 'builders', $noon->getTimestamp(), null, '111')], $noon, false, '111'), 'the proof of another find');
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => megaProof('b', 'floor0', $noon->getTimestamp(), null, '111')], $noon, false, '111'), 'of another secret');
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => $zero], $noon, false, '222'), 'another account cannot use the proof');
         assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => $zero], $noon->modify('-1 minute'), false, '111'), 'from the future');
         assertSame(false, megaWalk('a', ''));
         assertTrue(megaWalk('b', megaSolve(megaMaze('b'))), 'every secret its own maze, each walkable');
@@ -313,22 +314,25 @@
         $noon = megaAt(12, 0);
         $time = $noon->getTimestamp();
         $proof = megastructureAnswer('a', ['gene' => geneSequence('a')], $noon, false, '111')['proof'];
-        assertSame($time, megaProofTime('a', 'gene', $proof));
-        assertSame(null, megaProofTime('a', 'admin', $proof), 'a proof is of one find');
-        assertSame(null, megaProofTime('b', 'gene', $proof), 'and of one secret');
-        assertSame(null, megaProofTime('', 'gene', $proof), 'without a secret nothing is proven');
-        assertSame(null, megaProofTime('a', 'gene', ($time - 3600) . substr($proof, strlen((string)$time))), 'its time cannot be moved');
+        assertSame($time, megaProofTime('a', 'gene', $proof, '111'));
+        assertSame(null, megaProofTime('a', 'gene', $proof, '222'), 'a proof belongs to its issuing account');
+        assertSame(null, megaProofTime('a', 'gene', $proof), 'an account is required');
+        assertSame(null, megaProofTime('a', 'admin', $proof, '111'), 'a proof is of one find');
+        assertSame(null, megaProofTime('b', 'gene', $proof, '111'), 'and of one secret');
+        assertSame(null, megaProofTime('', 'gene', $proof, '111'), 'without a secret nothing is proven');
+        assertSame(null, megaProofTime('a', 'gene', ($time - 3600) . substr($proof, strlen((string)$time)), '111'), 'its time cannot be moved');
         foreach ([null, '', 'x', 123, ['a'], $time . '.' . str_repeat('0', 32), $time . '.' . str_repeat('0', 16) . '.' . str_repeat('0', 32)] as $wrong)
-            assertSame(null, megaProofTime('a', 'gene', $wrong));
+            assertSame(null, megaProofTime('a', 'gene', $wrong, '111'));
         // every proof its own, so two visitors in the same second never share one
         $again = megastructureAnswer('a', ['gene' => geneSequence('a')], $noon, false, '111')['proof'];
         assertTrue($again !== $proof);
-        assertSame($time, megaProofTime('a', 'gene', $again));
+        assertSame($time, megaProofTime('a', 'gene', $again, '111'));
         $nonce = explode('.', $proof)[1];
-        assertSame(null, megaProofTime('a', 'gene', $time . '.' . strrev($nonce) . '.' . explode('.', $proof)[2]), 'nor its nonce changed');
-        // the proofs given before the nonces still count
-        assertSame($time, megaProofTime('a', 'gene', megaProof('a', 'gene', $time, '')));
-        assertSame(1, preg_match('/^\d+\.[0-9a-f]{32}$/', megaProof('a', 'gene', $time, '')));
+        assertSame(null, megaProofTime('a', 'gene', $time . '.' . strrev($nonce) . '.' . explode('.', $proof)[2], '111'), 'nor its nonce changed');
+        // Legacy anonymous finds still count; unscoped account proofs do not.
+        assertSame($time, megaProofTime('a', 'lost', megaProof('a', 'lost', $time, '')));
+        $legacy = $time . '.' . substr(megaHash('a', 'proof:gene:' . $time), 0, 32);
+        assertSame(null, megaProofTime('a', 'gene', $legacy, '111'));
     });
 
     test('account.php takes a find only with the proof the server gave, at its time', function () {
@@ -336,10 +340,10 @@
         $now = $then + 60;
         // what the console trick sends: finds without a proof
         $found = ['builders' => 1, 'floor0' => 1, 'gene' => 1, 'gbe' => 5];
-        assertSame([[], ['builders', 'floor0', 'gene', 'gbe']], megaProvenFinds('a', $found, null, $now));
-        assertSame([[], ['builders', 'floor0', 'gene', 'gbe']], megaProvenFinds('a', $found, ['builders' => megaProof('b', 'builders', $then), 'gene' => megaProof('a', 'floor0', $then)], $now));
+        assertSame([[], ['builders', 'floor0', 'gene', 'gbe']], megaProvenFinds('a', $found, null, $now, '111'));
+        assertSame([[], ['builders', 'floor0', 'gene', 'gbe']], megaProvenFinds('a', $found, ['builders' => megaProof('b', 'builders', $then, null, '111'), 'gene' => megaProof('a', 'floor0', $then, null, '111')], $now, '111'));
         assertSame([['builders' => $then, 'gbe' => $then - 5], ['floor0', 'gene']],
-            megaProvenFinds('a', $found, ['builders' => megaProof('a', 'builders', $then), 'gbe' => megaProof('a', 'gbe', $then - 5)], $now), 'the time of the proof, not the one of the browser');
+            megaProvenFinds('a', $found, ['builders' => megaProof('a', 'builders', $then, null, '111'), 'gbe' => megaProof('a', 'gbe', $then - 5)], $now, '111'), 'the time of the proof, not the one of the browser');
         assertSame([[], ['gbe']], megaProvenFinds('a', ['gbe' => 1], ['gbe' => megaProof('a', 'gbe', $now + 60)], $now), 'not from the future');
         assertSame([[], ['gbe']], megaProvenFinds('a', ['gbe' => 1], ['gbe' => megaProof('a', 'gbe', $now - (SAFEGUARD_FIND_DAYS + 1) * 86400)], $now), 'nor too old');
         assertSame([[], []], megaProvenFinds('a', 'not an array', [], $now));
@@ -454,18 +458,20 @@
         assertSame(false, $witness('snake', $ticket('snake', $noon), $noon->modify('+30 seconds')), 'the snake only by a game played again');
     });
 
-    test('a ticket gives its find once, so passed on it gives nobody another', function () {
+    test('a ticket recovers the same proof, so passed on it gives nobody another claim', function () {
         $noon = megaAt(12, 0);
         $idle = megastructureAnswer('a', ['ticket' => 'idle'], $noon)['ticket'];
         $witness = function ($key, $at) use ($idle) {
             return megastructureAnswer('a', ['witness' => $key, 'ticket' => $idle], $at);
         };
-        assertTrue(isset($witness('idle', $noon->modify('+3 minutes'))['proof']));
-        assertSame(['denied' => true], $witness('idle', $noon->modify('+4 minutes')), 'the same ticket again');
+        $first = $witness('idle', $noon->modify('+3 minutes'));
+        assertTrue(isset($first['proof']));
+        assertSame($first, $witness('idle', $noon->modify('+4 minutes')), 'recover exactly the first proof');
         $gbe = megastructureAnswer('a', ['ticket' => 'gbe'], $noon)['ticket'];
         assertTrue(isset(megastructureAnswer('a', ['witness' => 'gbe', 'ticket' => $gbe], $noon->modify('+3 seconds'))['proof']));
-        assertTrue(isset(megastructureAnswer('a', ['witness' => 'regen', 'ticket' => $gbe], $noon->modify('+13 seconds'))['proof']), 'the first shot of a row is the regen\'s too');
-        assertSame(['denied' => true], megastructureAnswer('a', ['witness' => 'regen', 'ticket' => $gbe], $noon->modify('+14 seconds')));
+        $regen = megastructureAnswer('a', ['witness' => 'regen', 'ticket' => $gbe], $noon->modify('+13 seconds'));
+        assertTrue(isset($regen['proof']), 'the first shot of a row is the regen\'s too');
+        assertSame($regen, megastructureAnswer('a', ['witness' => 'regen', 'ticket' => $gbe], $noon->modify('+14 seconds')));
 
         // forgotten once too old to count anyway
         megaSpendTicket('idle', 'x', $noon->getTimestamp() + 2 * SNAKE_LIFE, $noon->getTimestamp() + 2 * SNAKE_LIFE);
@@ -578,11 +584,12 @@
         // sooner than its ticks: a game made up and sent at once
         assertSame(['denied' => true], $play($way, 1));
         assertSame(['denied' => true], $play($way, (int)floor($game['ms'] * 0.9 / 1000) - 1), 'a tenth faster than its ticks');
-        assertSame(['eaten' => SNAKE_FED, 'proof' => true, 'best' => SNAKE_FED], proven($play($way, $took, '111'), 'snake', $time + $took));
-        assertSame(['eaten' => SNAKE_FED, 'best' => SNAKE_FED], $play($way, $took + 5, '111'), 'its find once');
-        assertSame(['eaten' => SNAKE_FED, 'best' => 0], $play($way, $took + 5, '222'), 'passed on, it scores for nobody else');
+        $first = $play($way, $took, '111');
+        assertSame(['eaten' => SNAKE_FED, 'proof' => true, 'best' => SNAKE_FED], proven($first, 'snake', $time + $took));
+        assertSame($first, $play($way, $took + 5, '111'), 'a lost reply can recover the same proof');
+        assertSame(['eaten' => SNAKE_FED, 'proof' => $first['proof'], 'best' => 0], $play($way, $took + 5, '222'), 'passed on, it scores for nobody else');
         assertSame(SNAKE_FED, snakeBest('111'));
-        assertSame(['eaten' => SNAKE_FED], $play($way, $took + 5), 'without an account no best');
+        assertSame(['eaten' => SNAKE_FED, 'proof' => $first['proof']], $play($way, $took + 5), 'without an account no best');
 
         // a smaller game of another ticket does not lower the best
         $other = megastructureAnswer('a', ['ticket' => 'snake'], $noon)['ticket'];

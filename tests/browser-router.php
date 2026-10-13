@@ -9,6 +9,7 @@
     define('PANEL_ADMINS', ['900000000000000001']);
     define('GALLERY_ADMINS', ['900000000000000001', '900000000000000003']);
     define('BOT_APP_KEY', '');
+    define('SAFEGUARD_SECRET', 'browser-register-secret');
     $GLOBALS['SANAKAN_HTTP'] = function () { return [false, 503]; };
     require $root . '/inc/gallery.php';
     installDataErrorHandler();

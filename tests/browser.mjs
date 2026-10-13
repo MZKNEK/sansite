@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
+import { testSafeguardSync } from './safeguard-browser.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
@@ -15,7 +16,7 @@ for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts']) {
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['account.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['account.php', 'megastructure.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
 const port = 41000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
 const php = process.env.PHP || 'php';
@@ -48,6 +49,43 @@ try {
   const anonymous = await context.request.get(`${base}/admin/?konto=900000000000000004`, { headers: { Accept: 'text/html' } });
   assert.equal(anonymous.status(), 401, 'panel without a login');
   assert.match(await anonymous.text(), /Identyfikacja wymagana/, 'the 401 page');
+  // Exercise the shipped client: concurrent anonymous redemptions share the
+  // first CSRF session, and a reply lost after the write can be retried safely.
+  const registerContext = await browser.newContext();
+  try {
+    await registerContext.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
+    const registerPage = await registerContext.newPage();
+    registerPage.on('pageerror', error => errors.push(error.message));
+    await registerPage.goto(`${base}/500.html`);
+    const ticket = await registerPage.evaluate(() => SanakanSafeguard.ticket('gbe'));
+    assert.ok(ticket);
+    await registerPage.waitForTimeout(2200);
+    let csrfRequests = 0;
+    registerPage.on('request', request => {
+      if (new URL(request.url()).searchParams.has('csrf')) csrfRequests++;
+    });
+    const replies = await registerPage.evaluate(ticket => Promise.all([
+      SanakanSafeguard.mega({ witness: 'gbe', ticket }),
+      SanakanSafeguard.mega({ witness: 'gbe', ticket })
+    ]), ticket);
+    assert.ok(replies[0]?.proof);
+    assert.deepEqual(replies[1], replies[0]);
+    assert.equal(csrfRequests, 1, 'concurrent changes share the initial anonymous session');
+    let loseReply = true;
+    await registerPage.route('**/megastructure.php*', async route => {
+      if (loseReply && route.request().method() === 'POST') {
+        loseReply = false;
+        await route.fetch();
+        await route.abort('failed');
+      } else await route.continue();
+    });
+    const recovered = await registerPage.evaluate(ticket => SanakanSafeguard.mega({ witness: 'gbe', ticket }), ticket);
+    assert.deepEqual(recovered, replies[0], 'the client recovers the proof after losing a successful reply');
+    assert.equal(loseReply, false, 'the test interrupted the real POST response');
+  } finally {
+    await registerContext.close();
+  }
+  await testSafeguardSync({ browser, base, site, php, errors });
   let login = await (await context.request.get(`${base}/__login?id=900000000000000001`)).json();
   await page.goto(`${base}/admin/`);
   assert.equal(await page.locator('form[data-action="gallery-limit-defaults"]').count(), 1, 'global quota form renders');
@@ -168,7 +206,7 @@ try {
   assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
-  console.log('Browser OK: quotas, own move, CSRF, authorization, profile, private sharing, public token confinement, rename collisions.');
+  console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');
 } catch (error) {
   console.error(log.split('\n').filter(line => /Warning|Fatal|Deprecated|Error|sanakan:/.test(line)).join('\n'));
   throw error;

@@ -415,25 +415,37 @@
     // proof, at its time, so none comes earlier than the server gave it (the
     // ranking puts who got there first ahead, and the Safeguard's check of
     // finds made at once, safeguardCheat(), counts on these times). A proof
-    // counts for one account only (megaClaimProofs()).
+    // counts for one account only (megaClaimProofs()); the account's steps
+    // also sign its ID, so even a fresh proof cannot be donated.
 
-    // the proof of a find at a time; a new nonce without one, and '' the proofs
-    // given before the nonces, "<time>.<signature>", which still count
-    function megaProof($secret, $key, $time, $nonce = null)
+    // The account's steps cannot be donated before their first claim. Other
+    // finds can still be collected without a login and claimed afterwards.
+    function megaAccountFind($key)
     {
+        return $key === 'builders' || isset(MEGA_CHAIN[$key]);
+    }
+
+    // Stored finds stay valid. Unclaimed old proofs of the account's steps
+    // must be obtained again: their original owner was never recorded.
+    function megaProof($secret, $key, $time, $nonce = null, $id = '')
+    {
+        if (megaAccountFind($key) && (string)$id === '')
+            return '';
         $nonce = $nonce ?? bin2hex(random_bytes(8));
         $signed = 'proof:' . $key . ':' . $time . ($nonce === '' ? '' : ':' . $nonce);
+        if (megaAccountFind($key))
+            $signed = 'account:' . (string)$id . ':' . $signed;
 
         return $time . '.' . ($nonce === '' ? '' : $nonce . '.') . substr(megaHash($secret, $signed), 0, 32);
     }
 
     // the time of a find's proof, or null when the server did not give it
-    function megaProofTime($secret, $key, $proof)
+    function megaProofTime($secret, $key, $proof, $id = '')
     {
         if ((string)$secret === '' || !is_string($proof) || !preg_match('/^(\d{1,12})\.(?:([0-9a-f]{16})\.)?[0-9a-f]{32}$/D', $proof, $m))
             return null;
 
-        return hash_equals(megaProof($secret, $key, (int)$m[1], $m[2] ?? ''), $proof) ? (int)$m[1] : null;
+        return hash_equals(megaProof($secret, $key, (int)$m[1], $m[2] ?? '', $id), $proof) ? (int)$m[1] : null;
     }
 
     // The finds of a browser, key => time, as account.php notes them, with
@@ -441,7 +453,7 @@
     // signed the same way, but is none), with a right proof, at its time, and
     // not older than SAFEGUARD_FIND_DAYS. Returns [the finds, the keys left
     // out], so the browser can forget those.
-    function megaProvenFinds($secret, $found, $proofs, $now)
+    function megaProvenFinds($secret, $found, $proofs, $now, $id = '')
     {
         if (!is_array($found))
             return [[], []];
@@ -450,7 +462,7 @@
         $left = [];
         foreach (array_keys($found) as $key) {
             $key = (string)$key;
-            $time = isset(SAFEGUARD_FINDS[$key]) || isset(SAFEGUARD_SEASONAL[$key]) ? megaProofTime($secret, $key, $proofs[$key] ?? null) : null;
+            $time = isset(SAFEGUARD_FINDS[$key]) || isset(SAFEGUARD_SEASONAL[$key]) ? megaProofTime($secret, $key, $proofs[$key] ?? null, $id) : null;
             if ($time === null || $time > $now || $time < $now - SAFEGUARD_FIND_DAYS * 86400)
                 $left[] = $key;
             else
@@ -460,8 +472,9 @@
         return [$finds, $left];
     }
 
-    // A proof counts for the first account that sends it, so one passed on
-    // gives nobody else the find: inc/data/proofs.json keeps proof => [ID,
+    // An anonymous proof counts for the first account that sends it; account
+    // proofs have already been checked for that account by megaProvenFinds().
+    // inc/data/proofs.json keeps proof => [ID,
     // time] while the proof is young enough to count. A find the account
     // already has from no later is not claimed again, so the browser sending
     // it once more adds nothing to the file. $finds are those of
@@ -643,28 +656,92 @@
         return megaProof($secret, 'ticket:' . $kind, $time);
     }
 
+    const MEGA_TICKETS_MAX = 10000;
+    const MEGA_TICKET_RATE = 60;
+    const MEGA_TICKET_RATE_SECONDS = 60;
+    const MEGA_TICKET_RATE_KEYS = 2048;
+
+    // Only ticket issuance is limited, so an already issued ticket and a
+    // retry can still finish. REMOTE_ADDR is set by nginx's trusted real-IP
+    // configuration, never taken from a header supplied by the visitor.
+    function megaTicketAllowed($ip, $now)
+    {
+        $address = @inet_pton((string)$ip);
+        if ($address !== false && strlen($address) === 16)
+            $address = substr($address, 0, 8); // one IPv6 /64, as the account log
+        $key = hash('sha256', $address === false ? (string)$ip : $address);
+        $saved = updateData('ticket-rate', function (&$all) use ($key, $now) {
+            foreach ($all as $name => $entry)
+                if (!is_array($entry) || ($entry[0] ?? 0) <= $now - MEGA_TICKET_RATE_SECONDS)
+                    unset($all[$name]);
+            $entry = $all[$key] ?? null;
+            if ($entry === null && count($all) >= MEGA_TICKET_RATE_KEYS)
+                return false;
+            if ($entry !== null && $entry[1] >= MEGA_TICKET_RATE)
+                return false;
+            $all[$key] = [$entry[0] ?? $now, ($entry[1] ?? 0) + 1];
+
+            return true;
+        }, $allowed);
+
+        return $saved && $allowed === true;
+    }
+
+    function megaPruneTickets(&$all, $now)
+    {
+        foreach ($all as $name => $entry) {
+            $use = explode(':', $name, 2)[0];
+            $life = MEGA_TICKETS[$use][2] ?? SNAKE_LIFE;
+            if (!is_array($entry) || (int)($entry[0] ?? 0) < $now - $life)
+                unset($all[$name]);
+        }
+    }
+
     // A ticket is good for one use, $use (a find, or "score"), so one passed
     // on gives nobody else anything: inc/data/tickets.json keeps "<use>:<ticket>"
     // => [the ticket's time, ID] while a ticket that old could count. $id is
     // the account using it, '' for none; only that account may use it again.
-    // False when it was used already, or the file could not be saved.
+    // False for another owner; storage failures are reported to the caller.
     function megaSpendTicket($use, $ticket, $since, $now, $id = '')
     {
         $id = (string)$id;
-        $oldest = $now - max(SNAKE_LIFE, max(array_column(MEGA_TICKETS, 2)));
-        $saved = updateData('tickets', function (&$all) use ($use, $ticket, $since, $id, $oldest) {
-            foreach ($all as $name => $entry)
-                if (!is_array($entry) || (int)($entry[0] ?? 0) < $oldest)
-                    unset($all[$name]);
+        $saved = updateData('tickets', function (&$all) use ($use, $ticket, $since, $id, $now) {
+            megaPruneTickets($all, $now);
             $name = $use . ':' . $ticket;
             if (isset($all[$name]))
                 return $id !== '' && (string)($all[$name][1] ?? '') === $id;
+            if (count($all) >= MEGA_TICKETS_MAX)
+                throw new DataStoreException('capacity', 'tickets');
             $all[$name] = [$since, $id];
 
             return true;
         }, $spent);
 
-        return $saved && $spent === true;
+        if (!$saved)
+            throw new DataStoreException('write', 'tickets');
+        return $spent === true;
+    }
+
+    // Persist the proof in the same transaction that spends its ticket.
+    // Retries return this exact proof, so they never create another claim.
+    function megaTicketProof($secret, $use, $ticket, $since, $now)
+    {
+        $saved = updateData('tickets', function (&$all) use ($secret, $use, $ticket, $since, $now) {
+            megaPruneTickets($all, $now);
+            $name = $use . ':' . $ticket;
+            if (isset($all[$name]))
+                return $all[$name][2] ?? null; // a legacy spent ticket stays spent
+            if (count($all) >= MEGA_TICKETS_MAX)
+                throw new DataStoreException('capacity', 'tickets');
+            $proof = megaProof($secret, $use, $now);
+            $all[$name] = [$since, '', $proof];
+
+            return $proof;
+        }, $proof);
+
+        if (!$saved)
+            throw new DataStoreException('write', 'tickets');
+        return $proof;
     }
 
     // ---- The snake of the failure page -----------------------------------------------
@@ -811,8 +888,8 @@
     }
 
     // What megastructure.php answers to a game of the snake ($query: 'snake',
-    // its way, and 'ticket'): ['eaten'], with the find's proof the first time
-    // a game of the ticket is fed SNAKE_FED times, and for an account ($id)
+    // its way, and 'ticket'): ['eaten'], with the ticket's saved proof once
+    // a game is fed SNAKE_FED times, including retries, and for an account ($id)
     // its 'best'; ['denied' => true] for a game the server does not believe.
     function snakeAnswer($secret, array $query, $now, $preview = false, $id = '')
     {
@@ -825,11 +902,15 @@
             return ['denied' => true];
 
         $answer = ['eaten' => $game['eaten']];
-        if ($game['eaten'] >= SNAKE_FED && megaSpendTicket('snake', $ticket, $since, $time))
-            $answer['proof'] = megaProof($secret, 'snake', $time);
+        if ($game['eaten'] >= SNAKE_FED) {
+            $proof = megaTicketProof($secret, 'snake', $ticket, $since, $time);
+            if ($proof !== null)
+                $answer['proof'] = $proof;
+        }
         if ((string)$id !== '') {
-            if ($game['eaten'] > 0 && megaSpendTicket('score', $ticket, $since, $time, $id))
-                noteSnakeGame($id, $game['eaten'], $time);
+            if ($game['eaten'] > 0 && megaSpendTicket('score', $ticket, $since, $time, $id)
+                && !noteSnakeGame($id, $game['eaten'], $time))
+                throw new DataStoreException('write', 'snake');
             $answer['best'] = snakeBest($id);
         }
 
@@ -854,7 +935,7 @@
     //   ticket=<kind> when something began (megaTicket()), for the snake with
     //                 the account's best game
     //   witness=<key> a find made in the browser (megaWitness()), a ticket's
-    //                 once (megaSpendTicket())
+    //                 one proof, including retries (megaTicketProof())
     // Each answer that makes a find carries its proof (megaProof()). Anything
     // else, or no secret, is an empty answer; only text counts in the query.
     // $id is the account asking, '' for none: the way to the gene is an
@@ -866,8 +947,8 @@
             return [];
         $query = array_filter($query, 'is_string');
         $id = (string)$id;
-        $proof = function ($key) use ($secret, $now) {
-            return megaProof($secret, $key, $now->getTimestamp());
+        $proof = function ($key) use ($secret, $now, $id) {
+            return megaProof($secret, $key, $now->getTimestamp(), null, $id);
         };
         $way = ['door', 'walk', 'ask', 'paper', 'gene', 'enter', 'record'];
         if ($id === '' && array_intersect_key($query, array_flip($way)) && !isset($query['at']))
@@ -921,7 +1002,7 @@
 
         if (isset($query['walk'])) {
             // only from floor zero, whose proof the walk carries
-            $zero = megaProofTime($secret, 'floor0', $query['zero'] ?? null);
+            $zero = megaProofTime($secret, 'floor0', $query['zero'] ?? null, $id);
             if ($zero === null || $zero > $now->getTimestamp() || $zero < $now->getTimestamp() - SAFEGUARD_FIND_DAYS * 86400)
                 return ['denied' => true];
             $at = megaWalkTo($secret, $query['walk']);
@@ -956,10 +1037,9 @@
         if (isset($query['witness'])) {
             $key = $query['witness'];
             $witnessed = megaWitness($secret, $query, $now, $preview);
-            // a ticket gives its find once
-            if ($witnessed !== null && isset(MEGA_TICKETS[$key])
-                && !megaSpendTicket($key, $query['ticket'], megaProofTime($secret, 'ticket:' . MEGA_TICKETS[$key][0], $query['ticket']), $now->getTimestamp()))
-                $witnessed = null;
+            // A ticket gives one proof, recovered unchanged on a retry.
+            if ($witnessed !== null && isset(MEGA_TICKETS[$key]))
+                $witnessed = megaTicketProof($secret, $key, $query['ticket'], megaProofTime($secret, 'ticket:' . MEGA_TICKETS[$key][0], $query['ticket']), $now->getTimestamp());
 
             return $witnessed !== null ? ['proof' => $witnessed] : ['denied' => true];
         }
