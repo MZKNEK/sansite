@@ -100,7 +100,7 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=604cb68bc6"></script>
-  <script src="../js/safeguard.js?v=25e52849b5"></script>
+  <script src="../js/safeguard.js?v=03d034f330"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 
@@ -225,7 +225,7 @@
 <script src="./init.js?v=9e46400eb6"></script>
 <script src="../js/to-top.js?v=6ce6e2481f"></script>
 <script src="../js/netsphere.js?v=604cb68bc6"></script>
-<script src="../js/safeguard.js?v=25e52849b5"></script>
+<script src="../js/safeguard.js?v=03d034f330"></script>
 <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>

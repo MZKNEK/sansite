@@ -650,7 +650,9 @@ window.SanakanSafeguard = (function () {
     if (load().finds.halloween)
       notice('Forma krzemowa · zneutralizowana', 'Kolejna', 'Wpis w rejestrze już jest. Safeguard poluje dalej.', null);
     else
-      witness('halloween');
+      witness('halloween').then(function (noted) {
+        if (!noted) notice('Forma krzemowa · zneutralizowana', 'Safeguard nie odebrał sygnału', 'Złap następną, wpis jeszcze czeka.', null);
+      });
   }
 
   function halloween() {
@@ -881,7 +883,9 @@ window.SanakanSafeguard = (function () {
       if (load().finds.friday13)
         notice('Usterka · namierzona', 'Kolejna', 'Wpis w rejestrze już jest. Safeguard dalej łata Megastrukturę.', null);
       else
-        witness('friday13');
+        witness('friday13').then(function (noted) {
+          if (!noted) notice('Usterka · namierzona', 'Safeguard nie odebrał sygnału', 'Namierz następną, wpis jeszcze czeka.', null);
+        });
     }, true);
     (function next(wait) {
       setTimeout(function () {
@@ -968,6 +972,10 @@ window.SanakanSafeguard = (function () {
       // no storage: the eggs of this visit only
     }
     var page = location.pathname.replace(/index\.(?:php|html)$/, '');
+    // the eggs of five pages and still no find (the server did not answer,
+    // or the account did not take it): the Safeguard is asked again, as no
+    // egg may be left to try with
+    if (got.pages.length >= EGG_PAGES && !load().finds.easter) witness('easter');
     if (document.querySelector('.not-found'))
       page = '404';
     else if (page.indexOf(ROOT) !== 0 || EGG_PLACES.indexOf(page.slice(ROOT.length)) < 0)
@@ -1014,8 +1022,10 @@ window.SanakanSafeguard = (function () {
           // counted for this visit only
         }
         var count = got.pages.length;
-        if (count === EGG_PAGES) witness('easter');
-        else if (count < EGG_PAGES) notice('Pisanka z Megastruktury', count + ' z ' + EGG_PAGES, 'Następna czeka na innej stronie.', null);
+        if (count < EGG_PAGES) notice('Pisanka z Megastruktury', count + ' z ' + EGG_PAGES, 'Następna czeka na innej stronie.', null);
+        else if (!load().finds.easter) witness('easter').then(function (noted) {
+          if (!noted) notice('Pisanka z Megastruktury', 'Safeguard nie odebrał sygnału', 'Spróbuje jeszcze raz na następnej stronie.', null);
+        });
         else notice('Pisanka z Megastruktury', count + ' zebranych', 'Wpis w rejestrze już jest. Safeguard docenia zapał.', null);
       });
     }, 1200);

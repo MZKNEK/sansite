@@ -230,10 +230,23 @@ function homeSay(wrap, text, ms) {
   });
 })();
 
+// whether this browser has a find of the Safeguard's register, with its proof
+// or still on its way to the account
+function homeHasFind(key) {
+  return !!(window.SanakanSafeguard && SanakanSafeguard.finds()[key]);
+}
+
+// asks the server to witness a find; the answer is whether it is noted
+function homeWitness(key) {
+  return window.SanakanSafeguard ? SanakanSafeguard.witness(key) : Promise.resolve(false);
+}
+
 // Christmas: Sanakan wears a Santa hat. A click knocks it off, and the
 // Safeguard makes clear what it thinks of the holidays; the first time it is
-// a seasonal find of the Safeguard's register. Knocked off, it stays off for
-// the rest of those holidays (localStorage "safeguard-hat": their year).
+// a seasonal find of the Safeguard's register. Knocked off with the find
+// noted, it stays off for the rest of those holidays (localStorage
+// "safeguard-hat": their year); when the server did not witness it, the hat
+// is back on for another try.
 (function () {
   if (!homeHoliday('xmas')) return;
   var day = homeToday();
@@ -241,7 +254,7 @@ function homeSay(wrap, text, ms) {
   var holidays = String(day.month === 1 ? day.year - 1 : day.year);
   var STORE = 'safeguard-hat';
   try {
-    if (localStorage.getItem(STORE) === holidays) return;
+    if (localStorage.getItem(STORE) === holidays && homeHasFind('xmas')) return;
   } catch (err) {
     // no storage: the hat is back on every visit
   }
@@ -261,26 +274,38 @@ function homeSay(wrap, text, ms) {
   hat.addEventListener('click', function () {
     hat.disabled = true;
     hat.classList.add('off');
-    try {
-      localStorage.setItem(STORE, holidays);
-    } catch (err) {
-      // the same
-    }
     var say = document.createElement('p');
     say.className = 'santa-say';
     say.setAttribute('role', 'status');
     say.textContent = 'Safeguard nie obchodzi świąt. Ale dziękuje za pamięć.';
     wrap.appendChild(say);
-    if (window.SanakanSafeguard) SanakanSafeguard.witness('xmas');
-    setTimeout(function () { say.remove(); }, 4500);
+    homeWitness('xmas').then(function (noted) {
+      if (noted) {
+        try {
+          localStorage.setItem(STORE, holidays);
+        } catch (err) {
+          // the same
+        }
+        setTimeout(function () { say.remove(); }, 4500);
+        return;
+      }
+      say.textContent = 'Safeguard nie odebrał sygnału. Czapka wraca, spróbuj jeszcze raz.';
+      setTimeout(function () {
+        say.remove();
+        hat.classList.remove('off');
+        hat.disabled = false;
+      }, 3500);
+    });
   });
 })();
 
 // The bot's birthday, 13 October (it first ran on 13 October 2017): a cake
 // with candles in the shape of the digits of its age stands by Sanakan. A click blows them
 // out, glyphs burst out of it and the Safeguard notes the day; the first time
-// it is a seasonal find of the Safeguard's register. Blown out, the candles
-// stay out for the rest of the day (localStorage "safeguard-cake": the year).
+// it is a seasonal find of the Safeguard's register. Blown out with the find
+// noted, the candles stay out for the rest of the day (localStorage
+// "safeguard-cake": the year); when the server did not witness it, they light
+// again for another try.
 (function () {
   if (!homeHoliday('birthday')) return;
   var BORN = 2017;
@@ -290,7 +315,7 @@ function homeSay(wrap, text, ms) {
   var year = String(day.year);
   var blown = false;
   try {
-    blown = localStorage.getItem(STORE) === year;
+    blown = localStorage.getItem(STORE) === year && homeHasFind('birthday');
   } catch (err) {
     // no storage: the candles burn again on every visit
   }
@@ -364,19 +389,31 @@ function homeSay(wrap, text, ms) {
     // a wisp of smoke rises from each digit only now, not on a later visit
     cake.classList.add('blown', 'blowing');
     cake.setAttribute('aria-label', cake.title + ', świeczki zdmuchnięte');
-    try {
-      localStorage.setItem(STORE, year);
-    } catch (err) {
-      // the same
-    }
     burst();
     var say = document.createElement('p');
     say.className = 'santa-say';
     say.setAttribute('role', 'status');
-    say.textContent = 'Sanakan kończy dziś ' + age(years) + '. Safeguard nie świętuje, ale odnotował.';
+    say.textContent = 'Sanakan kończy dziś ' + age(years) + '.';
     wrap.appendChild(say);
-    if (window.SanakanSafeguard) SanakanSafeguard.witness('birthday');
-    setTimeout(function () { say.remove(); }, 5000);
+    homeWitness('birthday').then(function (noted) {
+      if (noted) {
+        try {
+          localStorage.setItem(STORE, year);
+        } catch (err) {
+          // the same
+        }
+        say.textContent = 'Sanakan kończy dziś ' + age(years) + '. Safeguard nie świętuje, ale odnotował.';
+        setTimeout(function () { say.remove(); }, 5000);
+        return;
+      }
+      say.textContent = 'Safeguard nie odebrał sygnału. Świeczki płoną dalej, spróbuj jeszcze raz.';
+      setTimeout(function () {
+        say.remove();
+        cake.classList.remove('blown', 'blowing');
+        cake.setAttribute('aria-label', cake.title + ': zdmuchnij świeczki');
+        cake.disabled = false;
+      }, 3500);
+    });
   });
 })();
 

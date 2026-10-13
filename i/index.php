@@ -762,7 +762,7 @@
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=604cb68bc6"></script>
-  <script src="../js/safeguard.js?v=25e52849b5"></script>
+  <script src="../js/safeguard.js?v=03d034f330"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 <?php if ($manage && !$showTrash): ?>
   <script src="../js/explorer-admin.js?v=5c3e1c0087"></script>
