@@ -312,7 +312,9 @@
     // is given as a place in what the register says of the finds on the way to
     // the gene, which whoever got this far has; the record, deciphered and
     // given to the terminal, is a find of its own ("admin"), shown as ??? to
-    // everyone else.
+    // everyone else. The record and its key are an account's own, like the
+    // stairs, so a record passed on deciphers nothing for anybody else; the
+    // gene and the archive's address stay the same for all.
 
     // the words of the last record, without Polish letters, so the cipher
     // runs over A to Z alone
@@ -336,25 +338,25 @@
         return '/netsfera/' . substr(megaHash($secret, 'archive'), 0, 8);
     }
 
-    // the last record of the Administration, deciphered: four words
-    function megaRecord($secret)
+    // the last record of the Administration for an account, deciphered: four words
+    function megaRecord($secret, $id)
     {
         $words = [];
         for ($i = 0; $i < MEGA_RECORD_LENGTH; $i++)
-            $words[] = MEGA_RECORD_WORDS[megaPick($secret, 'record', $i, count(MEGA_RECORD_WORDS))];
+            $words[] = MEGA_RECORD_WORDS[megaPick($secret, 'record:' . $id, $i, count(MEGA_RECORD_WORDS))];
 
         return implode(' ', $words);
     }
 
-    // The key: ['letters' => "QWERTY", 'places' => [[name of the find, word, letter], ...]],
+    // An account's key: ['letters' => "QWERTY", 'places' => [[name of the find, word, letter], ...]],
     // each letter the given letter (from 1) of the given word (from 1) of what
     // the register says of that find once found, always one of A to Z.
-    function megaKey($secret)
+    function megaKey($secret, $id)
     {
         $letters = '';
         $places = [];
         for ($i = 0; $i < MEGA_KEY_LENGTH; $i++) {
-            $key = MEGA_KEY_FINDS[megaPick($secret, 'key-find', $i, count(MEGA_KEY_FINDS))];
+            $key = MEGA_KEY_FINDS[megaPick($secret, 'key-find:' . $id, $i, count(MEGA_KEY_FINDS))];
             [$name, $what] = SAFEGUARD_FINDS[$key];
             $spots = [];
             foreach (preg_split('/\s+/u', trim($what)) as $w => $word)
@@ -362,7 +364,7 @@
                 foreach (preg_split('//u', $word, -1, PREG_SPLIT_NO_EMPTY) as $l => $char)
                     if (preg_match('/^[A-Za-z]$/', $char))
                         $spots[] = [$w + 1, $l + 1, strtoupper($char)];
-            [$word, $letter, $char] = $spots[megaPick($secret, 'key-spot', $i, count($spots))];
+            [$word, $letter, $char] = $spots[megaPick($secret, 'key-spot:' . $id, $i, count($spots))];
             $letters .= $char;
             $places[] = [$name, $word, $letter];
         }
@@ -886,8 +888,8 @@
                 }
             }
             if ($path === megaArchivePath($secret)) {
-                $key = megaKey($secret);
-                $answer['archive'] = ['record' => megaCipher(megaRecord($secret), $key['letters']), 'key' => $key['places']];
+                $key = megaKey($secret, $id);
+                $answer['archive'] = ['record' => megaCipher(megaRecord($secret, $id), $key['letters']), 'key' => $key['places']];
             }
 
             return $answer;
@@ -899,7 +901,7 @@
                 : ['denied' => true];
 
         if (isset($query['record']))
-            return hash_equals(megaRecord($secret), megaWords($query['record']))
+            return hash_equals(megaRecord($secret, $id), megaWords($query['record']))
                 ? ['ok' => true, 'proof' => $proof('admin')]
                 : ['ok' => false];
 

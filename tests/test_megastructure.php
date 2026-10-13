@@ -71,7 +71,7 @@
         foreach ([$flights[0]['start'], $flights[0]['shaft'], $flights[MEGA_FLIGHTS - 1]['shaft']] as $floor)
             assertSame(['door' => false], megastructureAnswer('a', ['at' => megaFloorPath($floor)], megaAt(12, 0)), 'a floor of someone\'s stairs');
         assertSame(['door' => false], megastructureAnswer('a', ['at' => megaArchivePath('a')], megaAt(12, 0)), 'the archive');
-        foreach ([['walk' => 'R'], ['ask' => megaConsoleWord('a')], ['paper' => megaConsoleWord('a')], ['gene' => geneSequence('a')], ['enter' => geneSequence('a')], ['record' => megaRecord('a')]] as $query)
+        foreach ([['walk' => 'R'], ['ask' => megaConsoleWord('a')], ['paper' => megaConsoleWord('a')], ['gene' => geneSequence('a')], ['enter' => geneSequence('a')], ['record' => megaRecord('a', '111')]] as $query)
             assertSame(['stranger' => true], megastructureAnswer('a', $query, megaAt(12, 0)), key($query));
         assertTrue(isset(megastructureAnswer('a', ['witness' => 'lost'], megaAt(12, 0))['proof']), 'the other finds still count without one');
     });
@@ -270,7 +270,7 @@
         }
         assertTrue((bool)preg_match('/^[A-Z]+$/', $key), 'only A to Z: ' . $key);
         $record = megaDecipher($archive['record'], $key);
-        assertSame(megaRecord('a'), $record);
+        assertSame(megaRecord('a', '111'), $record);
         assertTrue($archive['record'] !== $record, 'it is ciphered');
         $right = ['ok' => true, 'proof' => true];
         assertSame($right, proven(megastructureAnswer('a', ['record' => strtolower($record)], $noon, false, '111'), 'admin', $noon->getTimestamp()));
@@ -279,13 +279,30 @@
         assertSame(['ok' => false], megastructureAnswer('a', ['record' => ''], $noon, false, '111'));
     });
 
+    test('the archive\'s record and key are an account\'s own, the gene everyone\'s', function () {
+        $noon = megaAt(12, 0);
+        $archive = function ($id) use ($noon) {
+            return megastructureAnswer('a', ['at' => megaArchivePath('a')], $noon, false, $id)['archive'];
+        };
+        assertTrue(megaRecord('a', '111') !== megaRecord('a', '222'));
+        assertTrue(megaKey('a', '111') !== megaKey('a', '222'));
+        assertTrue($archive('111') !== $archive('222'));
+        assertSame($archive('111'), $archive('111'), 'the same every time');
+        // a record passed on deciphers nothing for another account
+        assertSame(['ok' => false], megastructureAnswer('a', ['record' => megaRecord('a', '222')], $noon, false, '111'));
+        assertTrue(megastructureAnswer('a', ['record' => megaRecord('a', '222')], $noon, false, '222')['ok']);
+        // while the gene and the way into the archive are the same for all
+        foreach (['111', '222'] as $id)
+            assertSame(['archive' => megaArchivePath('a')], megastructureAnswer('a', ['enter' => geneSequence('a')], $noon, false, $id));
+    });
+
     test('the archive\'s key comes only from the finds on the way to the gene', function () {
         $allowed = array_map(function ($key) { return SAFEGUARD_FINDS[$key][0]; }, MEGA_KEY_FINDS);
         foreach (['a', 'b', 'c', 'preview'] as $secret)
-            foreach (megaKey($secret)['places'] as [$name])
+            foreach (megaKey($secret, '111')['places'] as [$name])
                 assertTrue(in_array($name, $allowed, true), $name);
         assertSame([], megastructureAnswer('', ['enter' => geneSequence('a')], megaAt(12, 0)));
-        assertSame([], megastructureAnswer('', ['record' => megaRecord('a')], megaAt(12, 0)));
+        assertSame([], megastructureAnswer('', ['record' => megaRecord('a', '111')], megaAt(12, 0)));
     });
 
     test('a find of the way to the gene counts only with the proof the server gave', function () {
