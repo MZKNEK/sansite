@@ -32,7 +32,7 @@
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=fe589881ad" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -65,7 +65,7 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=30394db9d9"></script>
-  <script src="../js/safeguard.js?v=21a0e1257a"></script>
+  <script src="../js/safeguard.js?v=4fec32a41e"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
 </body>
 

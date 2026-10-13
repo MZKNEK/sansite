@@ -6,6 +6,8 @@
     // inc/config.php; without it every answer is empty.
     require __DIR__ . '/inc/auth.php';
     require __DIR__ . '/inc/megastructure.php';
+    // it keeps the tickets used and the snake's games (inc/data)
+    installDataErrorHandler();
 
     // where the Safeguard's terminal leads once told to remove the
     // Megastructure (js/netsphere.js): the site's 500 page, as if it had worked
@@ -29,4 +31,7 @@
     if ($preview
         && preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', (string)($_COOKIE['safeguard-time'] ?? ''), $time))
         $now = new DateTimeImmutable('today ' . $time[1] . ':' . $time[2], new DateTimeZone('Europe/Warsaw'));
-    echo json_encode(megastructureAnswer($secret, $_GET, $now, $preview), JSON_UNESCAPED_UNICODE);
+    // a game of the snake comes as a POST, as its way may be long (js/500.js);
+    // the account asking keeps its best game
+    $user = siteUser();
+    echo json_encode(megastructureAnswer($secret, $_POST + $_GET, $now, $preview, $user['id'] ?? ''), JSON_UNESCAPED_UNICODE);

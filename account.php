@@ -16,9 +16,11 @@
     // time) notes them, with the account's name and avatar for the ranking of
     // the hunters (/lowcy/), and answers with all the account's finds. Those of
     // the way to the gene need the proofs megastructure.php gave with them
-    // (proofs, as JSON, key => proof); the ones without are left out and
-    // listed as rejected, for the browser to forget. New finds that could not
-    // have been made (safeguardCheat()) flag the account's finds as cheated.
+    // (proofs, as JSON, key => proof); the ones without, and the steps of the
+    // way to the gene the account has not come to yet (megaChainFinds()), are
+    // left out and listed as rejected, for the browser to forget. New finds
+    // that could not have been made (safeguardCheat()) flag the account's
+    // finds as cheated.
     // It sends the password of the X-Safeguard header too, a find of the
     // register (sendSafeguardHeader()), as every static page asks here.
     require __DIR__ . '/inc/auth.php';
@@ -52,8 +54,10 @@
             exit;
         }
         [$found, $taken] = $claimed;
-        $rejected = array_merge($rejected, $taken);
         $before = safeguardFinds($user['id']);
+        // a step of the way to the gene only after those before it
+        [$found, $skipped] = megaChainFinds($found, $before);
+        $rejected = array_merge($rejected, $taken, $skipped);
         $finds = addSafeguardFinds($user['id'], $found, time());
         $cheat = $finds ? safeguardCheat($finds, array_keys(array_diff_key($finds, $before))) : null;
         if ($cheat !== null && safeguardFlag($user['id']) === null && setSafeguardFlag($user['id'], $cheat))

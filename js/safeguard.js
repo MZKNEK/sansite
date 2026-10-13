@@ -281,9 +281,14 @@ window.SanakanSafeguard = (function () {
   // ---- The Net Terminal Gene ------------------------------------------------------
 
   // megastructure.php's answer to a question, or null without one: the way to
-  // the gene is kept on the server, as the repository is public
-  function mega(query) {
+  // the gene is kept on the server, as the repository is public; what is too
+  // long for an address (a game of the snake) goes in post, as a POST
+  function mega(query, post) {
     var opts = { cache: 'no-store', credentials: 'same-origin' };
+    if (post) {
+      opts.method = 'POST';
+      opts.body = new URLSearchParams(post);
+    }
     if (window.AbortSignal && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
     return fetch(ROOT + 'megastructure.php?' + new URLSearchParams(query), opts)
       .then(function (res) { return res.ok ? res.json() : null; })
@@ -1080,7 +1085,7 @@ window.SanakanSafeguard = (function () {
   // today() the day of the year (maybe a pretended one), holiday(key) whether
   // it is that one's (holidays() above), and fireworks(rockets, from) the New
   // Year's, from a point {x, y} of the window or from its bottom; mega(query)
-  // asks megastructure.php, fragment(n, value) keeps a fragment of the gene
+  // asks megastructure.php (post for a POST), fragment(n, value) keeps a fragment of the gene
   // and fragments() gives those kept
   return {
     found: found,

@@ -418,14 +418,59 @@
         return $saved ? $result : null;
     }
 
+    // ---- The way to the gene, in its order -------------------------------------------
+    // Each step of the way is open to whoever knows its answer, the corridor's
+    // last address, the console's word, the sequence, so an account notes one
+    // only after those before it (megaChainFinds()), and one made sooner after
+    // them than anyone could flags it (safeguardCheat()): key => [the finds
+    // before it, the least seconds after the last of them].
+    const MEGA_CHAIN = [
+        // five addresses of the corridor, each a page of its own
+        'floor0' => [['builders'], 10],
+        // the maze walked to its terminal, then its word in the console or a page printed
+        'maze' => [['floor0'], 20],
+        'paper' => [['floor0'], 20],
+        // the four fragments typed to the terminal
+        'gene' => [['builders', 'floor0', 'maze', 'paper'], 5],
+        // the record deciphered with the letters the register gives
+        'admin' => [['gene'], 30]
+    ];
+
+    // The finds of the way to the gene an account may note, of $finds, key =>
+    // time (megaClaimProofs()): each only once the account has those before it
+    // ($had, its finds so far) or notes them with it, from no later. Returns
+    // [the finds, the keys left out].
+    function megaChainFinds($finds, $had)
+    {
+        $left = [];
+        // in the order of the way, so a step left out leaves out those after it
+        foreach (MEGA_CHAIN as $key => [$before]) {
+            if (!isset($finds[$key]))
+                continue;
+            foreach ($before as $need) {
+                $at = min($finds[$need] ?? PHP_INT_MAX, $had[$need] ?? PHP_INT_MAX);
+                if ($at > $finds[$key]) {
+                    unset($finds[$key]);
+                    $left[] = $key;
+                    break;
+                }
+            }
+        }
+
+        return [$finds, $left];
+    }
+
     // ---- What the server witnesses -------------------------------------------------
     // Most finds happen in the browser alone, where the server cannot see them
     // made, so it checks what it can before it gives their proof (?witness=):
     //   - a seasonal find, its day (Polish time, give or take MEGA_DAY_SLACK
     //     hours for the browsers of other time zones);
-    //   - the idle home page, the Emitter held, the logo broken, a wait at a
-    //     closed door and what the failure page hides, the time they took, from a ticket the browser
-    //     got when they began (?ticket=);
+    //   - the idle home page, the Emitter held, the logo broken and a wait at
+    //     a closed door, the time they took, from a ticket the browser got
+    //     when they began (?ticket=), each ticket good for one find only
+    //     (megaSpendTicket());
+    //   - what the failure page hides, the snake, the server plays again
+    //     (snakeReplay());
     //   - Killy, the server's own roll: a ticket only in one slot of
     //     MEGA_KILLY_SLOT seconds in MEGA_KILLY_CHANCE, the same for everyone;
     //   - the password of the X-Safeguard header, which comes from the secret.
@@ -443,9 +488,7 @@
         'regen' => ['gbe', 10, 300],
         'killy' => ['killy', 0, 300],
         // left standing at a door nobody may pass, three minutes
-        'denied' => ['denied', 170, 86400],
-        // fifteen fed, a few seconds each at the least
-        'snake' => ['snake', 12, 3600]
+        'denied' => ['denied', 170, 86400]
     ];
     const MEGA_KILLY_SLOT = 20;
     const MEGA_KILLY_CHANCE = 5;
@@ -512,7 +555,8 @@
 
     // A ticket of when something began: idle, gbe (an Emitter's shot held,
     // whose first of a row is the regen's too), denied (the wait at a closed
-    // door), snake (what the failure page hides) or killy, which only the slots Killy walks in give (always in the
+    // door), snake (a game of the failure page, whose food its nonce places)
+    // or killy, which only the slots Killy walks in give (always in the
     // preview). Null when there is none.
     function megaTicket($secret, $kind, $now, $preview = false)
     {
@@ -523,23 +567,221 @@
         return megaProof($secret, 'ticket:' . $kind, $time);
     }
 
+    // A ticket is good for one use, $use (a find, or "score"), so one passed
+    // on gives nobody else anything: inc/data/tickets.json keeps "<use>:<ticket>"
+    // => [the ticket's time, ID] while a ticket that old could count. $id is
+    // the account using it, '' for none; only that account may use it again.
+    // False when it was used already, or the file could not be saved.
+    function megaSpendTicket($use, $ticket, $since, $now, $id = '')
+    {
+        $id = (string)$id;
+        $oldest = $now - max(SNAKE_LIFE, max(array_column(MEGA_TICKETS, 2)));
+        $saved = updateData('tickets', function (&$all) use ($use, $ticket, $since, $id, $oldest) {
+            foreach ($all as $name => $entry)
+                if (!is_array($entry) || (int)($entry[0] ?? 0) < $oldest)
+                    unset($all[$name]);
+            $name = $use . ':' . $ticket;
+            if (isset($all[$name]))
+                return $id !== '' && (string)($all[$name][1] ?? '') === $id;
+            $all[$name] = [$since, $id];
+
+            return true;
+        }, $spent);
+
+        return $saved && $spent === true;
+    }
+
+    // ---- The snake of the failure page -----------------------------------------------
+    // The snake of the 500 page (js/500.js) is played in the browser, so the
+    // server plays the game again before it believes it: its food falls where
+    // the nonce of the game's ticket says, by the same xorshift as the page's,
+    // the page sends the way the snake went, tick by tick, and the server
+    // counts what it ate, and that the game took no less time than its ticks.
+    // A score typed in, or a game made up and sent at once, gives nothing; a
+    // program playing it in real time still would, which no server can tell
+    // from a hand. The best game of an account is kept in inc/data/snake.json,
+    // ID => ['best', 'time'].
+    const SNAKE_COLS = 20;
+    const SNAKE_ROWS = 16;
+    // fed so many times, the snake is a find of the register
+    const SNAKE_FED = 15;
+    // a tick's milliseconds: START_MS, FASTER_MS less for each eaten, FASTEST_MS at the least
+    const SNAKE_START_MS = 140;
+    const SNAKE_FASTER_MS = 3;
+    const SNAKE_FASTEST_MS = 70;
+    const SNAKE_TICKS_MAX = 20000;
+    // the most a game's ticket may be old, pauses and all
+    const SNAKE_LIFE = 86400;
+
+    // the seed of a game's food, from the nonce of its ticket; null without one
+    function snakeSeed($ticket)
+    {
+        if (!is_string($ticket) || !preg_match('/^\d{1,12}\.([0-9a-f]{16})\.[0-9a-f]{32}$/D', $ticket, $m))
+            return null;
+
+        return hexdec(substr($m[1], 0, 8)) ?: 1;
+    }
+
+    // the next number of a xorshift, 0 to 2^32 - 1, as next() in js/500.js
+    function snakeNext(&$x)
+    {
+        $x ^= ($x << 13) & 0xFFFFFFFF;
+        $x ^= $x >> 17;
+        $x ^= ($x << 5) & 0xFFFFFFFF;
+
+        return $x;
+    }
+
+    // where the food falls: a free cell, counted column by column, as place() in js/500.js
+    function snakePlace($taken, &$rng)
+    {
+        $free = [];
+        for ($x = 0; $x < SNAKE_COLS; $x++)
+            for ($y = 0; $y < SNAKE_ROWS; $y++)
+                if (!isset($taken[$x . ',' . $y]))
+                    $free[] = [$x, $y];
+
+        return $free[snakeNext($rng) % count($free)];
+    }
+
+    // A game played again from its seed and its way, "R12D3…" (each direction
+    // with the ticks it went so): ['eaten', 'ms' => the least time its ticks
+    // take, 'over' => whether it has ended, 'food' => [x, y] where it lies
+    // now], or null for a way the page could
+    // not have sent (malformed, too long, a turn straight back, a tick after
+    // the end).
+    function snakeReplay($seed, $moves)
+    {
+        $moves = (string)$moves;
+        if ($seed === null || strlen($moves) > SNAKE_TICKS_MAX || !preg_match('/^(?:[UDLR][1-9]\d{0,4})+$/D', $moves))
+            return null;
+        preg_match_all('/([UDLR])(\d+)/', $moves, $runs, PREG_SET_ORDER);
+
+        $steps = ['U' => [0, -1], 'D' => [0, 1], 'L' => [-1, 0], 'R' => [1, 0]];
+        $y = intdiv(SNAKE_ROWS, 2);
+        $snake = [[6, $y], [5, $y], [4, $y]];
+        $taken = ['6,' . $y => true, '5,' . $y => true, '4,' . $y => true];
+        $rng = $seed;
+        $food = snakePlace($taken, $rng);
+        $dir = [1, 0];
+        $eaten = 0;
+        $ms = 0;
+        $ticks = 0;
+        $over = false;
+        foreach ($runs as [, $way, $count]) {
+            $next = $steps[$way];
+            if ($next[0] === -$dir[0] && $next[1] === -$dir[1])
+                return null;
+            $dir = $next;
+            for ($i = 0; $i < (int)$count; $i++) {
+                if ($over || ++$ticks > SNAKE_TICKS_MAX)
+                    return null;
+                if ($ticks > 1)
+                    $ms += max(SNAKE_FASTEST_MS, SNAKE_START_MS - $eaten * SNAKE_FASTER_MS);
+                $head = [$snake[0][0] + $dir[0], $snake[0][1] + $dir[1]];
+                $grows = $head === $food;
+                if (!$grows)
+                    unset($taken[implode(',', array_pop($snake))]);
+                if ($head[0] < 0 || $head[1] < 0 || $head[0] >= SNAKE_COLS || $head[1] >= SNAKE_ROWS || isset($taken[implode(',', $head)])) {
+                    $over = true;
+                    continue;
+                }
+                array_unshift($snake, $head);
+                $taken[implode(',', $head)] = true;
+                if ($grows) {
+                    $eaten++;
+                    if (count($snake) === SNAKE_COLS * SNAKE_ROWS)
+                        $over = true;
+                    else
+                        $food = snakePlace($taken, $rng);
+                }
+            }
+        }
+
+        return ['eaten' => $eaten, 'ms' => $ms, 'over' => $over, 'food' => $food];
+    }
+
+    // the best game of an account, how many it ate, 0 without one
+    function snakeBest($id)
+    {
+        $entry = readData('snake')[(string)$id] ?? null;
+
+        return is_array($entry) ? (int)($entry['best'] ?? 0) : 0;
+    }
+
+    // the best games of SNAKE_FED and more, ID => how many it ate, which the
+    // ranking of the hunters shows by who found the snake (hunters/)
+    function snakeRecords()
+    {
+        $records = [];
+        foreach (readData('snake') as $id => $entry)
+            if (is_array($entry) && (int)($entry['best'] ?? 0) >= SNAKE_FED)
+                $records[(string)$id] = (int)$entry['best'];
+
+        return $records;
+    }
+
+    // keeps a game of an account when it is its best; false when it could not be saved
+    function noteSnakeGame($id, $eaten, $now)
+    {
+        if ($eaten <= snakeBest($id))
+            return true;
+
+        return updateData('snake', function (&$all) use ($id, $eaten, $now) {
+            $id = (string)$id;
+            if (!is_array($all[$id] ?? null) || $eaten > (int)($all[$id]['best'] ?? 0))
+                $all[$id] = ['best' => $eaten, 'time' => $now];
+        });
+    }
+
+    // What megastructure.php answers to a game of the snake ($query: 'snake',
+    // its way, and 'ticket'): ['eaten'], with the find's proof the first time
+    // a game of the ticket is fed SNAKE_FED times, and for an account ($id)
+    // its 'best'; ['denied' => true] for a game the server does not believe.
+    function snakeAnswer($secret, array $query, $now, $preview = false, $id = '')
+    {
+        $time = $now->getTimestamp();
+        $ticket = $query['ticket'] ?? null;
+        $since = megaProofTime($secret, 'ticket:snake', $ticket);
+        $game = $since !== null && $since <= $time && $time - $since <= SNAKE_LIFE ? snakeReplay(snakeSeed($ticket), $query['snake']) : null;
+        // played no faster than its ticks, give or take the second the ticket's time is cut to
+        if ($game === null || (!$preview && ($time - $since + 1) * 1000 < $game['ms'] * 0.95))
+            return ['denied' => true];
+
+        $answer = ['eaten' => $game['eaten']];
+        if ($game['eaten'] >= SNAKE_FED && megaSpendTicket('snake', $ticket, $since, $time))
+            $answer['proof'] = megaProof($secret, 'snake', $time);
+        if ((string)$id !== '') {
+            if ($game['eaten'] > 0 && megaSpendTicket('score', $ticket, $since, $time, $id))
+                noteSnakeGame($id, $game['eaten'], $time);
+            $answer['best'] = snakeBest($id);
+        }
+
+        return $answer;
+    }
+
     // The answer of megastructure.php to one question of its query:
     //   at=<address>  the 404 page: whether the door is open, the draught of a
     //                 corridor's address, floor zero (with what is seen from
     //                 the maze's way in), the archive
     //   door          the door opened: the first fragment and the corridor
-    //   walk=<moves>  a walk in the maze: what is seen where it ends, and the
-    //                 word for the console when that is the terminal
+    //   walk=<moves>  a walk in the maze, with zero=<the proof of floor zero>:
+    //                 what is seen where it ends, and the word for the console
+    //                 when that is the terminal
     //   ask=<word>    a word said in the console: the third fragment
     //   paper=<word>  the same word, from a page about to be printed: the fourth
     //   gene=<code>   the sequence given to the terminal: right or not
     //   enter=<code>  the gene given to enter the Netsphere: the archive's address
     //   record=<text> the archive's last record, deciphered: right or not
-    //   ticket=<kind> when something began (megaTicket())
-    //   witness=<key> a find made in the browser (megaWitness())
+    //   snake=<way>   a game of the snake, with its ticket (snakeAnswer())
+    //   ticket=<kind> when something began (megaTicket()), for the snake with
+    //                 the account's best game
+    //   witness=<key> a find made in the browser (megaWitness()), a ticket's
+    //                 once (megaSpendTicket())
     // Each answer that makes a find carries its proof (megaProof()). Anything
     // else, or no secret, is an empty answer; only text counts in the query.
-    function megastructureAnswer($secret, array $query, $now, $preview = false)
+    // $id is the account asking, '' for none.
+    function megastructureAnswer($secret, array $query, $now, $preview = false, $id = '')
     {
         if ((string)$secret === '')
             return [];
@@ -586,6 +828,10 @@
                 : ['closed' => true];
 
         if (isset($query['walk'])) {
+            // only from floor zero, whose proof the walk carries
+            $zero = megaProofTime($secret, 'floor0', $query['zero'] ?? null);
+            if ($zero === null || $zero > $now->getTimestamp() || $zero < $now->getTimestamp() - SAFEGUARD_FIND_DAYS * 86400)
+                return ['denied' => true];
             $at = megaWalkTo($secret, $query['walk']);
             if ($at === null)
                 return ['reached' => false];
@@ -611,17 +857,27 @@
                 ? ['ok' => true, 'proof' => $proof('gene')]
                 : ['ok' => false];
 
-        // before ticket=, which a witness may carry
+        // before ticket=, which a game and a witness carry
+        if (isset($query['snake']))
+            return snakeAnswer($secret, $query, $now, $preview, $id);
+
         if (isset($query['witness'])) {
+            $key = $query['witness'];
             $witnessed = megaWitness($secret, $query, $now, $preview);
+            // a ticket gives its find once
+            if ($witnessed !== null && isset(MEGA_TICKETS[$key])
+                && !megaSpendTicket($key, $query['ticket'], megaProofTime($secret, 'ticket:' . MEGA_TICKETS[$key][0], $query['ticket']), $now->getTimestamp()))
+                $witnessed = null;
 
             return $witnessed !== null ? ['proof' => $witnessed] : ['denied' => true];
         }
 
         if (isset($query['ticket'])) {
             $ticket = megaTicket($secret, $query['ticket'], $now, $preview);
+            if ($ticket === null)
+                return ['none' => true];
 
-            return $ticket !== null ? ['ticket' => $ticket] : ['none' => true];
+            return $query['ticket'] === 'snake' && (string)$id !== '' ? ['ticket' => $ticket, 'best' => snakeBest($id)] : ['ticket' => $ticket];
         }
 
         return [];

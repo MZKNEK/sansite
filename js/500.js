@@ -3,27 +3,32 @@
 // remove the Megastructure (js/netsphere.js).
 
 // The warning sign hides something older than the Safeguard, crawling in the
-// failed machinery: a snake. Fed FED times it is a find of the register,
-// which the server gives only so long after a ticket of when the feeding
-// began (megaWitness() in inc/megastructure.php).
+// failed machinery: a snake. Fed FED times it is a find of the register. The
+// server believes a game only once it has played it again (snakeAnswer() in
+// inc/megastructure.php): each game gets a ticket, whose nonce places the
+// food, and its way, tick by tick, goes to the server, which gives the find
+// and keeps the best game of an account. A game begun before its ticket came
+// is played all the same, without the server.
 (function () {
   var COLS = 20;
   var ROWS = 16;
   var FED = 15;
   var START_MS = 140;
   var FASTEST_MS = 70;
-  var BEST = 'safeguard-snake';
+  var BEST = 'safeguard-snake';  // the best game without an account, in this browser
   var mark = document.getElementById('failure-mark');
   var box = document.querySelector('.failure');
   if (!mark || !box) return;
   var sg = window.SanakanSafeguard;
 
-  var ticket = null;
+  var game = null;        // this game: its ticket, the numbers placing its food, its way
+  var serverBest = null;  // the account's best game, as the server keeps it
   var opened = null;  // the page's own content while the game is open
   var canvas, ctx, cell, scoreEl, bestEl, noteEl;
   var snake, dir, next, food, eaten, timer, state;  // state: ready, run, pause, over
 
   function best() {
+    if (serverBest !== null) return serverBest;
     try {
       return parseInt(localStorage.getItem(BEST), 10) || 0;
     } catch (err) {
@@ -32,6 +37,7 @@
   }
 
   function keepBest(n) {
+    if (serverBest !== null) return;  // the server keeps it
     try {
       if (n > best()) localStorage.setItem(BEST, String(n));
     } catch (err) {
@@ -79,8 +85,52 @@
     canvas.addEventListener('touchend', onTouchEnd);
     canvas.addEventListener('click', function () { if (state !== 'run') toggle(); });
 
-    if (sg && !sg.finds().snake && !ticket)
-      sg.ticket('snake').then(function (got) { ticket = got; });
+  }
+
+  function setServerBest(n) {
+    serverBest = n;
+    if (bestEl) bestEl.textContent = String(Math.max(n, state === 'over' ? 0 : eaten));
+  }
+
+  // a xorshift from a seed, the same as snakeNext() in inc/megastructure.php
+  function xorshift(seed) {
+    var x = seed >>> 0 || 1;
+    return function () {
+      x ^= x << 13;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      x >>>= 0;
+      return x;
+    };
+  }
+
+  // a new game asks for its ticket; once it comes, while the game waits to
+  // begin, its nonce places the food (snakeSeed())
+  function newGame() {
+    var g = { ticket: null, next: null, way: [] };
+    game = g;
+    if (!sg) return;
+    sg.mega({ ticket: 'snake' }).then(function (answer) {
+      if (!answer || !answer.ticket || game !== g || !opened) return;
+      if (typeof answer.best === 'number') setServerBest(answer.best);
+      if (state !== 'ready') return;
+      g.ticket = answer.ticket;
+      g.next = xorshift(parseInt((answer.ticket.split('.')[1] || '').slice(0, 8), 16));
+      place();
+      draw();
+    });
+  }
+
+  // the game so far to the server, "R12D3…", which plays it again: the find
+  // once fed FED times, and the account's best game
+  function send(g) {
+    if (!sg || !g.ticket) return;
+    var way = g.way.map(function (run) { return run[0] + run[1]; }).join('');
+    sg.mega({}, { snake: way, ticket: g.ticket }).then(function (answer) {
+      if (!answer) return;
+      if (answer.proof) sg.found('snake', answer.proof);
+      if (typeof answer.best === 'number') setServerBest(answer.best);
+    });
   }
 
   function shut() {
@@ -114,6 +164,7 @@
     dir = next = { x: 1, y: 0 };
     eaten = 0;
     scoreEl.textContent = '0';
+    newGame();
     place();
     state = 'ready';
     note('Spacja albo dotknięcie zaczyna. Strzałki, WASD albo przesunięcie palcem kierują. Esc wraca.');
@@ -129,7 +180,7 @@
     for (var x = 0; x < COLS; x++)
       for (var y = 0; y < ROWS; y++)
         if (!snake.some(function (s) { return s.x === x && s.y === y; })) free.push({ x: x, y: y });
-    food = free[Math.floor(Math.random() * free.length)];
+    food = free[game.next ? game.next() % free.length : Math.floor(Math.random() * free.length)];
   }
 
   function toggle() {
@@ -143,9 +194,17 @@
       note('Pauza. Spacja wznawia.');
       return;
     }
+    // a game goes on a tick later, never sooner than its ticks (snakeReplay())
+    var resumed = state === 'pause';
     state = 'run';
     note('');
-    tick();
+    if (resumed) timer = setTimeout(tick, speed());
+    else tick();
+  }
+
+  // a tick's milliseconds, shorter the more it ate (SNAKE_START_MS and the rest)
+  function speed() {
+    return Math.max(FASTEST_MS, START_MS - eaten * 3);
   }
 
   function turn(x, y) {
@@ -158,6 +217,10 @@
   function tick() {
     if (state !== 'run') return;
     dir = next;
+    var way = dir.x === 1 ? 'R' : dir.x === -1 ? 'L' : dir.y === 1 ? 'D' : 'U';
+    var last = game.way[game.way.length - 1];
+    if (last && last[0] === way) last[1]++;
+    else game.way.push([way, 1]);
     var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
     var grows = head.x === food.x && head.y === food.y;
     var body = grows ? snake : snake.slice(0, -1);
@@ -171,7 +234,7 @@
       eaten++;
       scoreEl.textContent = String(eaten);
       if (eaten > best()) bestEl.textContent = String(eaten);
-      if (eaten === FED && sg && ticket) sg.witness('snake', { ticket: ticket });
+      if (eaten === FED && sg && !sg.finds().snake) send(game);
       if (snake.length === COLS * ROWS) {
         over(true);
         return;
@@ -181,15 +244,17 @@
       snake.pop();
     }
     draw();
-    timer = setTimeout(tick, Math.max(FASTEST_MS, START_MS - eaten * 3));
+    timer = setTimeout(tick, speed());
   }
 
   function over(won) {
     state = 'over';
     keepBest(eaten);
     bestEl.textContent = String(best());
+    if (eaten) send(game);
     draw(true);
-    note(won ? 'Maszyneria cała pożarta. Safeguard nie ma słów.' : 'Maszyneria pożarła węża. Spacja albo dotknięcie zaczyna od nowa.');
+    note((won ? 'Maszyneria cała pożarta. Safeguard nie ma słów.' : 'Maszyneria pożarła węża. Spacja albo dotknięcie zaczyna od nowa.')
+      + (serverBest !== null && !game.ticket ? ' Safeguard nie widział tej gry, więc jej nie zapisał.' : ''));
   }
 
   function draw(dead) {

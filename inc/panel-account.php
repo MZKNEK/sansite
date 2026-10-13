@@ -361,7 +361,7 @@
       </section>
       <section class="card wide" id="rejestr">
         <h2><i>09</i>Rejestr Safeguarda<span class="card-sum"><?=count(array_intersect_key($p['finds'], SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></span></h2>
-        <p class="hint">Sekrety strony, które konto odkryło, z <a href="../hunters/">rankingu łowców</a>. Cofnięty wpis znika też z przeglądarki konta przy jego następnym wejściu. Safeguard sam flaguje konto, gdy Godzina Budowniczych przyjdzie poza ich godziną albo więcej niż <?=SAFEGUARD_BURST?> wpisy w ciągu kilku sekund; oflagowane jest w rankingu na końcu, bez miejsca.</p>
+        <p class="hint">Sekrety strony, które konto odkryło, z <a href="../hunters/">rankingu łowców</a>. Cofnięty wpis znika też z przeglądarki konta przy jego następnym wejściu. Safeguard sam flaguje konto, gdy Godzina Budowniczych przyjdzie poza ich godziną, więcej niż <?=SAFEGUARD_BURST?> wpisy w ciągu kilku sekund, <?=SAFEGUARD_RUSH?> w ciągu <?=intdiv(SAFEGUARD_RUSH_SECONDS, 60)?> minut albo krok drogi do genu szybciej, niż da się go przejść; oflagowane jest w rankingu na końcu, bez miejsca.</p>
 <?php if ($p['flag']): ?>
         <p class="profile-flag"><b class="warn">Wpisy oflagowane jako oszukane</b> <?=e(date('j.m.Y H:i', (int)($p['flag']['time'] ?? 0)))?>, <?=!empty($p['flag']['by']) ? e(accountLabel($p['flag']['by'], $p['logins'])) : 'Safeguard'?>: <?=e($p['flag']['reason'] ?? '')?>
           <button type="button" class="admin-btn small" data-action="finds-unflag" data-id="<?=e($id)?>">Zdejmij flagę</button>

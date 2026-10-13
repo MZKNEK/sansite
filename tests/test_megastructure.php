@@ -103,17 +103,26 @@
         $noon = megaAt(12, 0);
         $maze = megaMaze('a');
         $walk = megaSolve($maze);
+        $zero = megastructureAnswer('a', ['at' => megaRoute('a')[MEGA_ROUTE_STEPS]], $noon)['zero']['proof'];
+        $go = function ($moves) use ($noon, $zero) {
+            return megastructureAnswer('a', ['walk' => $moves, 'zero' => $zero], $noon);
+        };
         $there = ['sight' => megaSight('a', $maze['end']), 'word' => megaConsoleWord('a')];
-        assertSame($there, megastructureAnswer('a', ['walk' => strtolower($walk)], $noon));
-        assertSame($there, megastructureAnswer('a', ['walk' => 'RL' . $walk], $noon), 'steps back are fine');
-        $short = megastructureAnswer('a', ['walk' => substr($walk, 0, -1)], $noon);
+        assertSame($there, $go(strtolower($walk)));
+        assertSame($there, $go('RL' . $walk), 'steps back are fine');
+        $short = $go(substr($walk, 0, -1));
         assertTrue(!isset($short['word']) && isset($short['sight']['end']), 'short of the terminal: it is seen, no word');
-        assertSame(['reached' => false], megastructureAnswer('a', ['walk' => 'L' . $walk], $noon), 'out of the maze');
-        assertSame(['reached' => false], megastructureAnswer('a', ['walk' => 'R' . str_repeat('U', 2 * MEGA_MAZE_H) . $walk], $noon), 'through a wall');
-        assertSame(['reached' => false], megastructureAnswer('a', ['walk' => str_repeat('RL', MEGA_WALK_MAX) . $walk], $noon), 'too long');
-        assertSame(['sight' => megaSight('a', $maze['start'])], megastructureAnswer('a', ['walk' => ''], $noon), 'no step: the way in');
-        assertSame(['reached' => false], megastructureAnswer('a', ['walk' => 'X'], $noon));
-        assertSame([], megastructureAnswer('a', ['walk' => ['R']], $noon), 'only text counts');
+        assertSame(['reached' => false], $go('L' . $walk), 'out of the maze');
+        assertSame(['reached' => false], $go('R' . str_repeat('U', 2 * MEGA_MAZE_H) . $walk), 'through a wall');
+        assertSame(['reached' => false], $go(str_repeat('RL', MEGA_WALK_MAX) . $walk), 'too long');
+        assertSame(['sight' => megaSight('a', $maze['start'])], $go(''), 'no step: the way in');
+        assertSame(['reached' => false], $go('X'));
+        assertSame([], megastructureAnswer('a', ['walk' => ['R'], 'zero' => $zero], $noon), 'only text counts');
+        // only from floor zero
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk], $noon), 'without its proof');
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => megaProof('a', 'builders', $noon->getTimestamp())], $noon), 'the proof of another find');
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => megaProof('b', 'floor0', $noon->getTimestamp())], $noon), 'of another secret');
+        assertSame(['denied' => true], megastructureAnswer('a', ['walk' => $walk, 'zero' => $zero], $noon->modify('-1 minute')), 'from the future');
         assertSame(false, megaWalk('a', ''));
         assertTrue(megaWalk('b', megaSolve(megaMaze('b'))), 'every secret its own maze, each walkable');
     });
@@ -279,6 +288,19 @@
         assertSame([$earlier, []], megaClaimProofs('111', $earlier, ['console' => megaProof('a', 'console', $now - 120)], $now), 'an earlier one still counts');
     });
 
+    test('a step of the way to the gene counts only after those before it', function () {
+        $t = 1760000000;
+        $way = ['builders' => $t, 'floor0' => $t + 60, 'maze' => $t + 600, 'paper' => $t + 700, 'gene' => $t + 800, 'admin' => $t + 2000];
+        assertSame([$way, []], megaChainFinds($way, []), 'all of it in its order');
+        assertSame([['gene' => $t + 800], []], megaChainFinds(['gene' => $t + 800], array_diff_key($way, ['gene' => 1, 'admin' => 1])), 'the steps before it the account has');
+        assertSame([['gbe' => $t], ['floor0', 'maze', 'paper', 'gene', 'admin']], megaChainFinds(['gbe' => $t] + array_diff_key($way, ['builders' => 1]), []), 'without the door, nothing after it');
+        assertSame([['builders' => $t, 'floor0' => $t + 60, 'maze' => $t + 600], ['gene']], megaChainFinds(['builders' => $t, 'floor0' => $t + 60, 'maze' => $t + 600, 'gene' => $t + 800], []), 'the gene without the paper');
+        assertSame([['builders' => $t + 100], ['floor0']], megaChainFinds(['builders' => $t + 100, 'floor0' => $t + 60], []), 'nor before the step before it');
+        assertSame([['floor0' => $t + 60], []], megaChainFinds(['floor0' => $t + 60], ['builders' => $t, 'gbe' => 1]), 'the account had the step before');
+        assertSame([['floor0' => $t + 60, 'builders' => $t + 100], []], megaChainFinds(['floor0' => $t + 60, 'builders' => $t + 100], ['builders' => $t]), 'an earlier one the account had counts');
+        assertSame([[], ['admin']], megaChainFinds(['admin' => $t], []), 'the record known from someone else');
+    });
+
     test('a ticket is no find, though signed the same way', function () {
         $now = time();
         $ticket = megaProof('a', 'ticket:idle', $now);
@@ -319,10 +341,10 @@
         };
         $idle = $ticket('idle', $noon);
         assertSame(false, $witness('idle', $idle, $noon->modify('+60 seconds')), 'too soon');
-        assertSame(true, $witness('idle', $idle, $noon->modify('+3 minutes')));
-        assertSame(true, $witness('idle', $idle, $noon->modify('+5 seconds'), true), 'the preview waits less');
         assertSame(false, $witness('idle', $idle, $noon->modify('+2 days')), 'too old');
         assertSame(false, $witness('idle', $idle, $noon->modify('-10 seconds')), 'from the future');
+        assertSame(true, $witness('idle', $idle, $noon->modify('+3 minutes')));
+        assertSame(true, $witness('idle', $ticket('idle', $noon), $noon->modify('+5 seconds'), true), 'the preview waits less');
         $gbe = $ticket('gbe', $noon);
         assertSame(false, $witness('gbe', $gbe, $noon));
         assertSame(true, $witness('gbe', $gbe, $noon->modify('+3 seconds')));
@@ -336,11 +358,128 @@
         $door = $ticket('denied', $noon);
         assertSame(false, $witness('denied', $door, $noon->modify('+60 seconds')), 'too soon');
         assertSame(true, $witness('denied', $door, $noon->modify('+3 minutes')));
-        assertSame(false, $witness('denied', $idle, $noon->modify('+3 minutes')), 'a ticket of another kind');
-        $snake = $ticket('snake', $noon);
-        assertSame(false, $witness('snake', $snake, $noon->modify('+5 seconds')), 'too soon');
-        assertSame(true, $witness('snake', $snake, $noon->modify('+30 seconds')));
-        assertSame(false, $witness('snake', $snake, $noon->modify('+2 hours')), 'too old');
+        assertSame(false, $witness('denied', $ticket('idle', $noon), $noon->modify('+3 minutes')), 'a ticket of another kind');
+        assertSame(false, $witness('snake', $ticket('snake', $noon), $noon->modify('+30 seconds')), 'the snake only by a game played again');
+    });
+
+    test('a ticket gives its find once, so passed on it gives nobody another', function () {
+        $noon = megaAt(12, 0);
+        $idle = megastructureAnswer('a', ['ticket' => 'idle'], $noon)['ticket'];
+        $witness = function ($key, $at) use ($idle) {
+            return megastructureAnswer('a', ['witness' => $key, 'ticket' => $idle], $at);
+        };
+        assertTrue(isset($witness('idle', $noon->modify('+3 minutes'))['proof']));
+        assertSame(['denied' => true], $witness('idle', $noon->modify('+4 minutes')), 'the same ticket again');
+        $gbe = megastructureAnswer('a', ['ticket' => 'gbe'], $noon)['ticket'];
+        assertTrue(isset(megastructureAnswer('a', ['witness' => 'gbe', 'ticket' => $gbe], $noon->modify('+3 seconds'))['proof']));
+        assertTrue(isset(megastructureAnswer('a', ['witness' => 'regen', 'ticket' => $gbe], $noon->modify('+13 seconds'))['proof']), 'the first shot of a row is the regen\'s too');
+        assertSame(['denied' => true], megastructureAnswer('a', ['witness' => 'regen', 'ticket' => $gbe], $noon->modify('+14 seconds')));
+
+        // forgotten once too old to count anyway
+        megaSpendTicket('idle', 'x', $noon->getTimestamp() + 2 * SNAKE_LIFE, $noon->getTimestamp() + 2 * SNAKE_LIFE);
+        assertSame(['idle:x'], array_keys(readData('tickets')));
+        // only the account that used it may use it again
+        assertSame(true, megaSpendTicket('score', 'y', 1, 2, '111'));
+        assertSame(true, megaSpendTicket('score', 'y', 1, 2, '111'));
+        assertSame(false, megaSpendTicket('score', 'y', 1, 2, '222'));
+        assertSame(false, megaSpendTicket('idle', 'x', 1, 2), 'nor without an account');
+    });
+
+    // a game of the snake played by a program, tick by tick the way nearest
+    // the food that does not end it, until fed so many times: "R12D3…"
+    function snakePlay($ticket, $fed)
+    {
+        $seed = snakeSeed($ticket);
+        $steps = ['U' => [0, -1], 'D' => [0, 1], 'L' => [-1, 0], 'R' => [1, 0]];
+        $back = ['U' => 'D', 'D' => 'U', 'L' => 'R', 'R' => 'L'];
+        $encode = function ($runs) {
+            return implode('', array_map(function ($run) { return $run[0] . $run[1]; }, $runs));
+        };
+        $head = [6, intdiv(SNAKE_ROWS, 2)];
+        $last = 'R';
+        $runs = [];
+        // the food before the first tick, placed as the game places it
+        $rng = $seed;
+        $food = snakePlace(['6,' . $head[1] => true, '5,' . $head[1] => true, '4,' . $head[1] => true], $rng);
+        for ($tick = 0; $tick < 3000; $tick++) {
+            $choices = [];
+            foreach ($steps as $dir => [$dx, $dy])
+                if ($dir !== $back[$last])
+                    $choices[$dir] = abs($head[0] + $dx - $food[0]) + abs($head[1] + $dy - $food[1]);
+            asort($choices);
+            $taken = null;
+            foreach (array_keys($choices) as $dir) {
+                $try = $runs;
+                if ($try && $try[count($try) - 1][0] === $dir)
+                    $try[count($try) - 1][1]++;
+                else
+                    $try[] = [$dir, 1];
+                $game = snakeReplay($seed, $encode($try));
+                if ($game !== null && !$game['over']) {
+                    $taken = $dir;
+                    $runs = $try;
+                    break;
+                }
+            }
+            if ($taken === null)
+                return null;
+            $last = $taken;
+            $head = [$head[0] + $steps[$taken][0], $head[1] + $steps[$taken][1]];
+            $food = $game['food'];
+            if ($game['eaten'] >= $fed)
+                return $encode($runs);
+        }
+
+        return null;
+    }
+
+    test('the snake is played again by the server, which gives the find only for a game it believes', function () {
+        $noon = megaAt(12, 0);
+        $time = $noon->getTimestamp();
+        // the same xorshift as js/500.js (worked out there for these seeds)
+        foreach ([[1, [270369, 67634689, 2647435461]], [0xdeadbeef, [1199382711, 2384302402, 3129746520]], [0xffffffff, [253983, 4228382207, 1958451267]]] as [$seed, $numbers]) {
+            $x = $seed;
+            assertSame($numbers, [snakeNext($x), snakeNext($x), snakeNext($x)]);
+        }
+        $js = file_get_contents(dirname(__DIR__) . '/js/500.js');
+        assertSame(1, preg_match('/x \^= x << 13;\s+x \^= x >>> 17;\s+x \^= x << 5;\s+x >>>= 0;/', $js), 'the page runs the same');
+
+        $ticket = megastructureAnswer('a', ['ticket' => 'snake'], $noon)['ticket'];
+        $way = snakePlay($ticket, SNAKE_FED);
+        assertTrue($way !== null, 'the program fed it');
+        $game = snakeReplay(snakeSeed($ticket), $way);
+        assertSame(SNAKE_FED, $game['eaten']);
+        $play = function ($way, $after, $id = '', $ticketOf = null) use ($noon, $ticket) {
+            return megastructureAnswer('a', ['snake' => $way, 'ticket' => $ticketOf ?? $ticket], $noon->modify(($after < 0 ? '' : '+') . $after . ' seconds'), false, $id);
+        };
+        $took = (int)ceil($game['ms'] / 1000);
+        // sooner than its ticks: a game made up and sent at once
+        assertSame(['denied' => true], $play($way, 1));
+        assertSame(['denied' => true], $play($way, (int)floor($game['ms'] * 0.9 / 1000) - 1), 'a tenth faster than its ticks');
+        assertSame(['eaten' => SNAKE_FED, 'proof' => true, 'best' => SNAKE_FED], proven($play($way, $took, '111'), 'snake', $time + $took));
+        assertSame(['eaten' => SNAKE_FED, 'best' => SNAKE_FED], $play($way, $took + 5, '111'), 'its find once');
+        assertSame(['eaten' => SNAKE_FED, 'best' => 0], $play($way, $took + 5, '222'), 'passed on, it scores for nobody else');
+        assertSame(SNAKE_FED, snakeBest('111'));
+        assertSame(['eaten' => SNAKE_FED], $play($way, $took + 5), 'without an account no best');
+
+        // a smaller game of another ticket does not lower the best
+        $other = megastructureAnswer('a', ['ticket' => 'snake'], $noon)['ticket'];
+        $small = snakePlay($other, 3);
+        assertSame(3, megastructureAnswer('a', ['snake' => $small, 'ticket' => $other], $noon->modify('+1 hour'), false, '111')['eaten']);
+        assertSame(SNAKE_FED, snakeBest('111'));
+        assertSame(SNAKE_FED, megastructureAnswer('a', ['ticket' => 'snake'], $noon, false, '111')['best'], 'a game\'s ticket says the account\'s best');
+        assertTrue(!isset(megastructureAnswer('a', ['ticket' => 'snake'], $noon)['best']), 'without an account none');
+
+        // what the page could not have sent
+        foreach (['', 'R0', 'X5', 'R', 'R3L1', 'R14U1', '15', 'R1 ', str_repeat('R1D1', 3000)] as $wrong)
+            assertSame(['denied' => true], $play($wrong, 3600), $wrong);
+        assertSame(['none' => true], megastructureAnswer('a', ['snake' => ['R3'], 'ticket' => $ticket], $noon), 'only text counts');
+        assertTrue(snakeReplay(snakeSeed($ticket), 'R14')['over'], 'into the wall');
+        assertSame(['denied' => true], $play($way, 3600, '', megastructureAnswer('a', ['ticket' => 'idle'], $noon)['ticket']), 'a ticket of another kind');
+        assertSame(['denied' => true], $play($way, 3600, '', megaProof('b', 'ticket:snake', $time)), 'of another secret');
+        assertSame(['denied' => true], $play($way, SNAKE_LIFE + 1), 'too old');
+        assertSame(['denied' => true], $play($way, -5), 'from the future');
+        assertSame(null, snakeSeed($time . '.' . str_repeat('0', 32)), 'a ticket without a nonce places nothing');
     });
 
     test('Killy walks in one slot in MEGA_KILLY_CHANCE, the same for everyone', function () {

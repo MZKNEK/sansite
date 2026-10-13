@@ -141,8 +141,9 @@ document.getElementById('lost').textContent = path;
   // on to the next turn; nothing on the page says so. Only what is near
   // shows, what was seen stays dim. The page never has the whole maze: after
   // each step the walk so far, without its steps back, goes to
-  // megastructure.php, which checks it and answers with what is seen where
-  // it ends, and at the terminal with a word for the Safeguard in the console.
+  // megastructure.php with the proof of floor zero, which checks it and
+  // answers with what is seen where it ends, and at the terminal with a word
+  // for the Safeguard in the console.
   var SIGHT = 3;   // characters around the visitor that show (MEGA_SIGHT)
   var STEPS = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] };
   var BACK = { U: 'D', D: 'U', L: 'R', R: 'L' };
@@ -210,7 +211,7 @@ document.getElementById('lost').textContent = path;
         return;
       }
       asking = true;
-      sg.mega({ walk: path.join('') }).then(function (answer) {
+      sg.mega({ walk: path.join(''), zero: zero.proof }).then(function (answer) {
         asking = false;
         if (answer && answer.sight) {
           learn(answer.sight);

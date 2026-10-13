@@ -1149,6 +1149,23 @@ a.version-row:hover .version-name {
     color: var(--text);
 }
 
+/* an admin or a flagged account: when it made the find, without a place */
+.secret-hunters li.unplaced .hunter-name {
+    opacity: 0.6;
+}
+
+/* the snake's best game, by the name of who found it */
+.secrets .secret-hunters li.with-record,
+.secret-hunters li.with-record {
+    grid-template-columns: 22px 20px minmax(0, 1fr) auto auto;
+}
+
+.secret-record {
+    font: 11px "JetBrains Mono", Consolas, monospace;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
 .secret-hunters .hunter-name {
     overflow: hidden;
     text-overflow: ellipsis;

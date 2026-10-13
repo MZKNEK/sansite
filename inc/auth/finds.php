@@ -187,12 +187,16 @@
     // one were noted at once, which nobody does by hand
     const SAFEGUARD_BURST = 3;
     const SAFEGUARD_BURST_SECONDS = 5;
+    // nor SAFEGUARD_RUSH finds within SAFEGUARD_RUSH_SECONDS, each on a page
+    // and a way of its own
+    const SAFEGUARD_RUSH = 5;
+    const SAFEGUARD_RUSH_SECONDS = 120;
 
     // Why the finds an account just made are a cheat, or null: $finds all its
     // finds now (safeguardFinds()), $new the keys it just made. Only the new
     // ones are checked, so a flag an admin took off stays off for the finds
-    // that admin saw. The Builders' hour comes from inc/megastructure.php,
-    // which account.php loads.
+    // that admin saw. The Builders' hour and the way to the gene in its order
+    // (MEGA_CHAIN) come from inc/megastructure.php, which account.php loads.
     function safeguardCheat($finds, $new)
     {
         if (in_array('builders', $new, true) && isset($finds['builders'])
@@ -209,6 +213,30 @@
             }));
             if ($near > SAFEGUARD_BURST)
                 return $near . ' ' . plural($near, 'wpis', 'wpisy', 'wpisów') . ' zdobyte w ciągu kilku sekund.';
+        }
+        // any SAFEGUARD_RUSH_SECONDS with a new find in them
+        foreach ($new as $key) {
+            if (!isset($finds[$key]))
+                continue;
+            foreach ($finds as $from) {
+                if ($from > $finds[$key] || $from < $finds[$key] - SAFEGUARD_RUSH_SECONDS)
+                    continue;
+                $near = count(array_filter($finds, function ($time) use ($from) {
+                    return $time >= $from && $time <= $from + SAFEGUARD_RUSH_SECONDS;
+                }));
+                if ($near >= SAFEGUARD_RUSH)
+                    return $near . ' ' . plural($near, 'wpis', 'wpisy', 'wpisów') . ' zdobyte w ciągu ' . intdiv(SAFEGUARD_RUSH_SECONDS, 60) . ' minut.';
+            }
+        }
+        // a step of the way to the gene sooner after the last before it than it can be made
+        foreach ($new as $key) {
+            if (!isset($finds[$key], MEGA_CHAIN[$key]))
+                continue;
+            [$before, $least] = MEGA_CHAIN[$key];
+            $last = max(array_map(function ($need) use ($finds) { return $finds[$need] ?? PHP_INT_MIN; }, $before));
+            $after = $finds[$key] - $last;
+            if ($last !== PHP_INT_MIN && $after >= 0 && $after < $least)
+                return 'Wpis „' . SAFEGUARD_FINDS[$key][0] . '” zdobyty ' . $after . ' s po poprzednim kroku drogi do genu.';
         }
 
         return null;
@@ -328,29 +356,33 @@
 
     // Every find of the register and the seasonal ones, key => ['hunters' =>
     // how many of the ranking made it, 'first' => the row of the one who made
-    // it first, or null, 'time' => when, 'all' => [['row', 'time'], ...] of
-    // everyone who made it, the first first]; the admins and the flagged
-    // accounts are left out of all.
+    // it first, or null, 'time' => when, 'all' => [['row', 'time', 'place'],
+    // ...] of everyone in the ranking who made it, the first first]. The
+    // admins and the flagged accounts are in all too, so it shows when they
+    // made it, but without a place (null), and they are neither counted nor
+    // the first.
     function safeguardFindStats($ranking)
     {
         $stats = [];
         foreach (array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL) as $key)
             $stats[$key] = ['hunters' => 0, 'first' => null, 'time' => null, 'all' => []];
-        foreach ($ranking as $row) {
-            if ($row['admin'] || $row['cheat'] !== null)
-                continue;
+        foreach ($ranking as $row)
             foreach ($row['finds'] as $key => $time)
-                $stats[$key]['all'][] = ['row' => $row, 'time' => $time];
-        }
+                $stats[$key]['all'][] = ['row' => $row, 'time' => $time, 'place' => null];
         foreach ($stats as &$stat) {
             usort($stat['all'], function ($a, $b) {
                 return [$a['time'], $a['row']['id']] <=> [$b['time'], $b['row']['id']];
             });
-            $stat['hunters'] = count($stat['all']);
-            if ($stat['all']) {
-                $stat['first'] = $stat['all'][0]['row'];
-                $stat['time'] = $stat['all'][0]['time'];
+            foreach ($stat['all'] as &$got) {
+                if ($got['row']['admin'] || $got['row']['cheat'] !== null)
+                    continue;
+                $got['place'] = ++$stat['hunters'];
+                if ($stat['first'] === null) {
+                    $stat['first'] = $got['row'];
+                    $stat['time'] = $got['time'];
+                }
             }
+            unset($got);
         }
         unset($stat);
 

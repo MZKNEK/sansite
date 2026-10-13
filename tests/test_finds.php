@@ -82,6 +82,8 @@
         $stats = safeguardFindStats($rows);
         assertSame(2, $stats['gbe']['hunters'], 'the admin is not counted');
         assertSame('222', $stats['gbe']['first']['id'], 'nor the first to find it');
+        assertSame([['999', null], ['222', 1], ['111', 2]], array_map(function ($got) { return [$got['row']['id'], $got['place']]; }, $stats['gbe']['all']), 'listed, without a place');
+        assertSame(['999'], array_map(function ($got) { return $got['row']['id']; }, $stats['console']['all']));
         assertSame(10, $stats['gbe']['time']);
         assertSame(0, $stats['console']['hunters']);
         assertSame(null, $stats['console']['first']);
@@ -96,8 +98,9 @@
             '333' => ['gbe' => 30]
         ]);
         $stats = safeguardFindStats(safeguardRanking());
-        assertSame(['222', '333', '111'], array_map(function ($got) { return $got['row']['id']; }, $stats['gbe']['all']), 'without the admin');
-        assertSame([10, 30, 50], array_column($stats['gbe']['all'], 'time'));
+        assertSame(['999', '222', '333', '111'], array_map(function ($got) { return $got['row']['id']; }, $stats['gbe']['all']), 'the admin too');
+        assertSame([1, 10, 30, 50], array_column($stats['gbe']['all'], 'time'));
+        assertSame([null, 1, 2, 3], array_column($stats['gbe']['all'], 'place'));
         assertSame(3, $stats['gbe']['hunters']);
         assertSame([], $stats['console']['all']);
     });
@@ -178,6 +181,35 @@
         assertSame(null, safeguardCheat($burst, []), 'nothing new, nothing to check');
     });
 
+    test('safeguardCheat catches five finds in two minutes, each on a way of its own', function () {
+        $now = 1760000000;
+        $rush = ['lost' => $now, 'unknown' => $now + 25, 'console' => $now + 50, 'lore' => $now + 75, 'morse' => $now + 100];
+        assertSame('5 wpisów zdobyte w ciągu 2 minut.', safeguardCheat($rush, ['morse']));
+        assertSame('5 wpisów zdobyte w ciągu 2 minut.', safeguardCheat($rush, ['lost']), 'the first of them too');
+        assertSame(null, safeguardCheat(array_slice($rush, 0, 4), ['lore']), 'four is still fine');
+        $slower = ['lost' => $now, 'unknown' => $now + 31, 'console' => $now + 62, 'lore' => $now + 93, 'morse' => $now + 124];
+        assertSame(null, safeguardCheat($slower, ['morse']), 'five in more than two minutes');
+        assertSame(null, safeguardCheat($rush + ['gbe' => $now + 1000], ['gbe']), 'only around what was just made');
+    });
+
+    test('safeguardCheat catches a step of the way to the gene made sooner than it can be', function () {
+        $door = (new DateTimeImmutable('2026-10-12 03:01:00', new DateTimeZone('Europe/Warsaw')))->getTimestamp();
+        $way = ['builders' => $door, 'floor0' => $door + 60, 'maze' => $door + 600, 'paper' => $door + 700, 'gene' => $door + 800, 'admin' => $door + 2000];
+        foreach (array_keys($way) as $key)
+            assertSame(null, safeguardCheat($way, [$key]), $key);
+        assertSame('Wpis „Piętro zero” zdobyty 3 s po poprzednim kroku drogi do genu.', safeguardCheat(['floor0' => $door + 3] + $way, ['floor0']));
+        assertSame('Wpis „Labirynt piętra zero” zdobyty 5 s po poprzednim kroku drogi do genu.', safeguardCheat(['maze' => $way['floor0'] + 5] + $way, ['maze']));
+        assertTrue(strpos((string)safeguardCheat(['gene' => $way['paper'] + 1] + $way, ['gene']), 'Wpis „Gen terminala sieciowego” zdobyty 1 s') === 0, 'from the last fragment');
+        assertTrue(strpos((string)safeguardCheat(['admin' => $way['gene'] + 10] + $way, ['admin']), 'Wpis „Administrator Netsfery” zdobyty 10 s') === 0);
+        assertSame(null, safeguardCheat(['floor0' => $door + 3] + $way, ['gbe']), 'only what was just made is checked');
+    });
+
+    test('the ranking shows the snake\'s best games of SNAKE_FED and more', function () {
+        clearData();
+        writeData('snake', ['111' => ['best' => 40, 'time' => 1], '222' => ['best' => SNAKE_FED - 1, 'time' => 1], '333' => ['best' => SNAKE_FED, 'time' => 1], '444' => 'broken']);
+        assertSame(['111' => 40, '333' => SNAKE_FED], snakeRecords());
+    });
+
     test('setSafeguardFlag flags an account: last in the ranking, without a place, out of the first finds', function () {
         clearData();
         writeData('finds', [
@@ -197,6 +229,7 @@
         $stats = safeguardFindStats($rows);
         assertSame('333', $stats['gbe']['first']['id']);
         assertSame(0, $stats['console']['hunters']);
+        assertSame([['222', null]], array_map(function ($got) { return [$got['row']['id'], $got['place']]; }, $stats['console']['all']), 'the flagged one listed, without a place');
 
         noteHunter(['id' => '222', 'name' => 'Oszust 2', 'avatar' => 'a.png']);
         assertTrue(safeguardFlag('222') !== null, 'a new name keeps the flag');

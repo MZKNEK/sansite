@@ -6,10 +6,12 @@
     // found it (the profile has the hints); an account leaves the ranking in
     // its profile. An account flagged for cheating (inc/auth/finds.php) is
     // listed last, without a place; the panel's admins can open its profile
-    // there from its name.
+    // there from its name. Who found the snake has the best game by the name,
+    // when it fed it SNAKE_FED times or more (snakeRecords()).
     require __DIR__ . '/../inc/auth.php';
     installDataErrorHandler();
     require __DIR__ . '/../inc/meta.php';
+    require __DIR__ . '/../inc/megastructure.php';
 
     date_default_timezone_set('Europe/Warsaw');
 
@@ -20,6 +22,7 @@
         noteHunter($user);
     $ranking = safeguardRanking();
     $stats = safeguardFindStats($ranking);
+    $snakeRecords = snakeRecords();
     $seeAll = $user !== null && realPanelAdminId($user['id']);
     $hidden = $user !== null && $mine && hunterHidden($user['id']);
     $total = count(SAFEGUARD_FINDS);
@@ -67,7 +70,7 @@
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=fe589881ad" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
   <script src="../js/hud.js?v=2894733f39"></script>
 </head>
 
@@ -131,7 +134,7 @@
 
     <section class="card state-card">
       <h2><i>02</i>Sekrety</h2>
-      <p class="hunters-hint">Ilu łowców odkryło każdy sekret i kto był pierwszy; kliknięty sekret pokazuje wszystkich, którzy go zdobyli, i kiedy. Nazwę sekretu widzi tylko ten, kto go znalazł<?=$user === null ? ', po zalogowaniu' : ''?>; wskazówki są w <a href="../account/#rejestr">rejestrze w profilu</a>.</p>
+      <p class="hunters-hint">Ilu łowców odkryło każdy sekret i kto był pierwszy; kliknięty sekret pokazuje wszystkich, którzy go zdobyli, i kiedy, także konta bez miejsca w rankingu. Nazwę sekretu widzi tylko ten, kto go znalazł<?=$user === null ? ', po zalogowaniu' : ''?>; wskazówki są w <a href="../account/#rejestr">rejestrze w profilu</a>.</p>
       <ol class="secrets">
 <?php foreach ([SAFEGUARD_FINDS, SAFEGUARD_SEASONAL] as $list => $finds): ?>
 <?php foreach ($finds as $key => [$name]): $stat = $stats[$key]; $known = $seeAll || isset($mine[$key]); $when = $list ? safeguardHolidayWhen(safeguardHolidayIn($key, new DateTimeImmutable('now'))) : ''; ?>
@@ -148,8 +151,8 @@
 <?php if ($stat['all']): ?>
             </summary>
             <ol class="secret-hunters">
-<?php foreach ($stat['all'] as $i => $got): ?>
-              <li><span class="secret-place"><?=hunterPlace($i + 1)?></span><?php if ($got['row']['avatar'] !== ''): ?><img class="secret-avatar" src="<?=e($got['row']['avatar'])?>" alt="" width="20" height="20" loading="lazy" /><?php else: ?><span class="secret-avatar" aria-hidden="true"></span><?php endif; ?><?=hunterName($got['row'])?><time datetime="<?=e(date('c', $got['time']))?>"><?=e(date('j.m.Y H:i', $got['time']))?></time></li>
+<?php foreach ($stat['all'] as $got): $record = $key === 'snake' ? $snakeRecords[$got['row']['id']] ?? null : null; $classes = trim(($got['place'] === null ? 'unplaced' : '') . ($record !== null ? ' with-record' : '')); ?>
+              <li<?=$classes !== '' ? ' class="' . $classes . '"' : ''?>><span class="secret-place"><?=$got['place'] !== null ? hunterPlace($got['place']) : '&mdash;'?></span><?php if ($got['row']['avatar'] !== ''): ?><img class="secret-avatar" src="<?=e($got['row']['avatar'])?>" alt="" width="20" height="20" loading="lazy" /><?php else: ?><span class="secret-avatar" aria-hidden="true"></span><?php endif; ?><?=hunterName($got['row'])?><?php if ($record !== null): ?><span class="secret-record" title="Najlepsza gra: tyle usterek zjedzonych">rekord <?=$record?></span><?php endif; ?><time datetime="<?=e(date('c', $got['time']))?>"><?=e(date('j.m.Y H:i', $got['time']))?></time></li>
 <?php endforeach; ?>
             </ol>
           </details>
@@ -164,7 +167,7 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
   <script src="../js/account.js?v=ff288d9afb"></script>
   <script src="../js/netsphere.js?v=30394db9d9"></script>
-  <script src="../js/safeguard.js?v=21a0e1257a"></script>
+  <script src="../js/safeguard.js?v=4fec32a41e"></script>
   <script src="../js/palette.js?v=15434ca4d0"></script>
   <script src="../js/hunters.js?v=15d089f4d3"></script>
 </body>
