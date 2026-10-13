@@ -130,13 +130,14 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=15da9afea9" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=d488cb9070" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=81af35586f" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=45903195cd" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=2894733f39"></script>
+  <link href="../css/admin.css?v=3b796277b4" type="text/css" rel="stylesheet" />
+  <script src="../js/hud.js?v=04ad9b04f6"></script>
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">

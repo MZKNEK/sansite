@@ -2055,6 +2055,27 @@ a.who-name:hover {
     margin-top: 10px;
 }
 
+/* the skin of the home page, under the HUD's own fields (js/skins.js): the
+   words' switch on a line of its own and the save under it, like the HUD's
+   switch and its save (the save keeps its room when the picked skin speaks no
+   words and the switch is not there at all) */
+.skin-form {
+    margin-top: 14px;
+}
+
+.skin-form .admin-btn {
+    margin-top: 16px;
+}
+
+.skin-form .skin-words {
+    display: flex;
+    margin-top: 14px;
+}
+
+.skin-form .skin-words + .admin-btn {
+    margin-top: 10px;
+}
+
 /* leaving the ranking of the hunters, under the register of the profile */
 .ranking-form .admin-check {
     display: flex;

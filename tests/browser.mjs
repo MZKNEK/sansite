@@ -17,7 +17,10 @@ for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts']) {
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['index.html', 'logo.webp', 'teto.webp', 'status.php', 'account.php', 'megastructure.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['index.html', 'logo.webp', 'status.php', 'account.php', 'megastructure.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+// the logos of the skins, in the folder the site keeps them (skins/)
+mkdirSync(path.join(site, 'skins'));
+cpSync(path.join(root, 'skins'), path.join(site, 'skins'), { recursive: true });
 const port = 41000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
 const php = process.env.PHP || 'php';

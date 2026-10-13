@@ -1,10 +1,11 @@
-// The HUD colour chosen in the profile (/account/), kept in cookies so the
-// static pages (the home page, the privacy notice, the 404), which get the
-// account from account.php only later, can apply it before the first paint.
-// A page that knows the account sets data-hud itself (hudHtmlAttributes() in
-// inc/auth.php) and is left alone, but still gets the browser's bar coloured
-// (below). Loaded in the head, without defer, so the colour is on the page
-// before anything is drawn.
+// The look chosen in the profile (/account/), kept in cookies so the pages
+// that get the account from account.php only later can apply it before the
+// first paint: the colour of the HUD and the skin of the home page
+// (css/skins.css, js/skins.js), whose colours go over the whole site, its logo
+// and words staying on the home page. A page that knows the account sets them
+// itself (hudHtmlAttributes() in inc/auth.php) and is left alone, but still
+// gets the browser's bar coloured (below). Loaded in the head, without defer,
+// so the colour is on the page before anything is drawn.
 (function () {
   var root = document.documentElement;
 
@@ -20,6 +21,12 @@
       var role = cookie('hudrole');
       if (role) root.classList.add('role-' + role);
     }
+  }
+
+  // the skin the account picked, as account.php keeps it in the cookie
+  if (!root.hasAttribute('data-skin')) {
+    var skin = cookie('skin');
+    if (/^[a-z][a-z0-9-]*$/.test(skin)) root.setAttribute('data-skin', skin);
   }
 
   // the variant in the profile: preview it on the page itself as it is picked

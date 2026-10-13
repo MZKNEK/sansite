@@ -45,11 +45,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=15da9afea9" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=d488cb9070" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=81af35586f" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=2894733f39"></script>
+  <script src="../js/hud.js?v=04ad9b04f6"></script>
 </head>
 
 <body>
@@ -120,11 +121,12 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=15da9afea9" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=d488cb9070" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=1f284a3102" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=81af35586f" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
-  <script src="../js/hud.js?v=2894733f39"></script>
+  <script src="../js/hud.js?v=04ad9b04f6"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />

@@ -96,16 +96,17 @@
     header('Cache-Control: no-store, private');
 
     $user = siteUser();
-    // the HUD colour chosen in the profile also goes into cookies, so the static
-    // pages (the home page, the privacy notice, the 404) can apply it before
-    // the first paint, not only once this answer is back (js/hud.js); a
-    // session that ended without logging out (expired, or ended in the panel)
-    // takes them along too
+    // the HUD colour and the skin chosen in the profile also go into cookies,
+    // so the static pages (the home page, the privacy notice, the 404) can
+    // apply them before the first paint, not only once this answer is back
+    // (js/hud.js, js/skins.js); a session that ended without logging out
+    // (expired, or ended in the panel) takes them along too
     if ($user !== null) {
         $badge = roleBadge(siteRoles());
         setcookie('hud', hudMode($user['id']), time() + 31536000, '/');
         setcookie('hudrole', hudColorKey($user['id'], $badge), time() + 31536000, '/');
         sendSnowCookie($user['id']);
+        sendSkinCookie($user['id']);
     } else {
         forgetHudCookies();
     }
@@ -118,5 +119,7 @@
         'csrf' => siteCsrf(),
         'hud' => hudMode($user['id']),
         'role' => hudColorKey($user['id'], $badge),
+        'skin' => skinPref($user['id']),
+        'skinwords' => skinWords($user['id']),
         'flash' => takeFlash()
     ], JSON_UNESCAPED_UNICODE);

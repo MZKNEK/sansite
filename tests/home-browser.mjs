@@ -1,28 +1,33 @@
 // Exercise the real Morse input, register synchronization and home-only locale.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 export async function testHome({ browser, base, site, php, errors }) {
   // The browser can pretend April while PHP's clock stays on the real day.
   // Use a server-signed fixture for this one seasonal witness; synchronization
-  // and proof verification still go through the real PHP endpoints.
-  const generated = spawnSync(php, ['-r', `
-    define('SITE_DATA_DIR', $argv[1] . '/inc/data');
-    require $argv[1] . '/inc/auth.php';
-    require $argv[1] . '/inc/megastructure.php';
-    setHud('900000000000000002', 'full', 'dev');
-    echo megaProof('browser-register-secret', 'aprilfools', time());
-  `, site], { encoding: 'utf8', windowsHide: true });
-  assert.equal(generated.status, 0, generated.stderr);
-  const aprilProof = generated.stdout;
+  // and proof verification still go through the real PHP endpoints. It is made
+  // anew for every call: a proof belongs to the first account that sends it,
+  // and more than one visit earns the find here.
+  function aprilProof() {
+    const generated = spawnSync(php, ['-r', `
+      define('SITE_DATA_DIR', $argv[1] . '/inc/data');
+      require $argv[1] . '/inc/auth.php';
+      require $argv[1] . '/inc/megastructure.php';
+      setHud('900000000000000002', 'full', 'dev');
+      echo megaProof('browser-register-secret', 'aprilfools', time());
+    `, site], { encoding: 'utf8', windowsHide: true });
+    assert.equal(generated.status, 0, generated.stderr);
+    return generated.stdout;
+  }
 
   async function visit(date, run, loggedIn = false, options = {}) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 850 }, ...options });
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
-      if (loggedIn) await context.request.get(`${base}/__login?id=900000000000000002`);
+      // true = the ordinary User; an id = that account (the owner is ...0001)
+      if (loggedIn) await context.request.get(`${base}/__login?id=${loggedIn === true ? '900000000000000002' : loggedIn}`);
       const page = await context.newPage();
       page.on('pageerror', error => errors.push(error.message));
       await page.addInitScript(date => localStorage.setItem('safeguard-date', date), date);
@@ -32,7 +37,7 @@ export async function testHome({ browser, base, site, php, errors }) {
       await page.route('**/megastructure.php*', route => {
         if (new URL(route.request().url()).searchParams.get('witness') === 'aprilfools') {
           aprilRequests.push(route.request().url());
-          return route.fulfill({ json: { proof: aprilProof } });
+          return route.fulfill({ json: { proof: aprilProof() } });
         }
         return route.continue();
       });
@@ -220,4 +225,292 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01Polecenia');
     assert.equal(await page.locator('.april-letter').count(), 0, 'the glitch is absent outside April 1');
   });
+
+  // ---- The skin (inc/auth/skins.php, js/skins.js): the profile offers the
+  // April look as a skin, unlocked by the find, worn on any day of the year
+  // (and by the site's owner without it); the letter itself stays a visit's
+  // own, as before.
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    assert.equal(await page.evaluate(() => !!SanakanSafeguard.finds().aprilfools), false, 'the owner has no find');
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    assert.equal(await select.inputValue(), '', 'nothing picked yet');
+    assert.equal(await select.locator('optgroup').count(), 5, 'the picker groups the skins by their find');
+    assert.equal(await select.locator('optgroup[label="Prima aprilis"] option').count(), 2);
+    assert.equal(await select.locator('optgroup[label="Nowy rok"] option').count(), 2);
+    assert.equal(await page.locator('.skin-form button[type=submit]').evaluate(node => node.classList.contains('primary')), true,
+      'the save button looks like the one of the HUD');
+    for (const key of ['teto', 'miku'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the owner has every skin: ' + key);
+    assert.ok((await select.locator('option[value=miku]').textContent()).includes('turkusowa zieleń'),
+      'and sees what Miku is without finding it');
+    await select.selectOption('miku');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.ok((await page.locator('#toast').textContent()).includes('Miku'), 'the profile says so');
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'miku', 'and wears its colours at once');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '57, 197, 187');
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'miku');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ja', 'the words come with the skin');
+    assert.equal(await page.locator('h1').textContent(), 'サナカン');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /miku\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.locator('.home-language-reset').count(), 0, 'nothing to return from: the profile is the way');
+    assert.equal(await page.locator('.april-letter').count(), 0, 'July has no glitch to click');
+    assert.equal(await page.evaluate(() => !!SanakanSafeguard.finds().aprilfools), false, 'the owner keeps the find unearned');
+  }, '900000000000000001');
+
+  // With the skin worn, the name of 1 April is Japanese at once: the glitch
+  // only waits on its last kana, and the click is for the find alone.
+  await visit('2026-04-01', async (page, context) => {
+    await context.addCookies([{ name: 'skin', value: 'miku', url: `${base}/` }]);
+    await page.reload();
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'miku');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ja', 'the skin is worn without a click');
+    assert.equal(await page.locator('h1').textContent(), 'サナカンn', 'the name is Japanese, only its last kana glitching');
+    assert.equal(await page.locator('.april-letter-original').textContent(), 'ン');
+    assert.equal(await page.locator('.april-letter-kana').textContent(), 'n');
+    await page.getByRole('button', { name: 'Zbadaj zakłócony znak' }).click();
+    assert.equal(await page.locator('h1').textContent(), 'サナカン', 'nothing left to switch: the click is for the find');
+    assert.equal(await page.locator('.home-language-reset').count(), 0, "the account's own skin has no way back here");
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('safeguard'))?.sent?.aprilfools);
+    assert.ok(JSON.parse(readFileSync(path.join(site, 'inc/data/finds.json'), 'utf8'))['900000000000000001'].aprilfools,
+      'the owner earned the seasonal find too');
+  }, '900000000000000001');
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    assert.equal(await select.locator('option[value=teto]').evaluate(node => !node.disabled), true, 'the earned find unlocked the skin');
+    await select.selectOption('teto');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'teto');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ja', 'July wears the April look');
+    assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01コマンド', 'the skin speaks its words');
+    // the colours go over the whole site (css/skins.css), the words stay home
+    await page.goto(`${base}/404.html`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'teto', 'other pages wear the skin too');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '217, 75, 88');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'the words stay on the home page');
+    // the words can be kept off: the colours and the logo stay, the page speaks Polish
+    await page.goto(`${base}/account/`);
+    await page.locator('input[name=skinwords]').uncheck();
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'teto', 'the colours stay without the words');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /teto\.webp$/);
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'without the words the page speaks Polish');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01Polecenia');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false, 'nothing translates the page');
+    await page.goto(`${base}/account/`);
+    await select.selectOption('');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.ok((await page.locator('#toast').textContent()).includes('Wyłączono skin'));
+    assert.equal(await page.locator('html').getAttribute('data-skin'), null);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'taking the skin off restores the page');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /logo\.webp$/);
+    await page.goto(`${base}/404.html`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), null, 'and the whole site with it');
+    assert.ok(JSON.parse(readFileSync(path.join(site, 'inc/data/finds.json'), 'utf8'))['900000000000000002'].aprilfools,
+      'the find stays on the account');
+  }, '900000000000000002');
+
+  await visit('2026-07-15', async (page, context) => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    assert.equal(await select.locator('option[value=teto]').evaluate(node => node.disabled), true, 'locked without the find');
+    assert.ok((await select.locator('option[value=teto]').textContent()).includes('Zagubiony w tłumaczeniu'),
+      'and says what unlocks it');
+    assert.equal(await select.locator('option[value=tao]').evaluate(node => node.disabled), true, 'Hu Tao is locked too');
+    assert.ok((await select.locator('option[value=tao]').textContent()).includes('Noc form krzemowych'),
+      'its find being the one of Halloween');
+    assert.equal(await select.locator('option[value=march7]').evaluate(node => node.disabled), true, 'March 7th is locked too');
+    assert.ok((await select.locator('option[value=march7]').textContent()).includes('Święta w Megastrukturze'),
+      'her find being the one of Christmas');
+    assert.equal(await select.locator('option[value=reisen]').evaluate(node => node.disabled), true, 'Reisen is locked too');
+    assert.ok((await select.locator('option[value=reisen]').textContent()).includes('Pisanki z Megastruktury'),
+      'her find being the one of Easter');
+    assert.equal(await select.locator('option[value=furi]').evaluate(node => node.disabled), true, 'Furina is locked too');
+    assert.ok((await select.locator('option[value=furi]').textContent()).includes('Nowy cykl'),
+      'her find being the one of the New Year');
+    // a form sent by hand cannot talk the server into a locked skin
+    const me = await (await context.request.get(`${base}/account.php?finds`)).json();
+    const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'teto' } });
+    assert.ok((await refused.text()).includes('Ten skin jest jeszcze zablokowany'), 'the server refuses the locked skin');
+    await page.goto(`${base}/account/`);
+    assert.equal(await select.inputValue(), '');
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), null, 'the page stays as it was');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
+  }, '900000000000000004');
+
+  // ---- Hu Tao and Rin, the skins of the Halloween find: colours and logo
+  // alone (no words at all, whatever the translation switch says).
+
+  const findsFile = path.join(site, 'inc/data/finds.json');
+  const withHalloween = JSON.parse(readFileSync(findsFile, 'utf8'));
+  withHalloween['900000000000000002'] = { ...(withHalloween['900000000000000002'] || {}), halloween: Math.floor(Date.now() / 1000) };
+  writeFileSync(findsFile, JSON.stringify(withHalloween));
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const key of ['tao', 'rin'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the Halloween find unlocked ' + key);
+    await select.selectOption('tao');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.equal(await page.locator('.skin-form input[name=skinwords]').count(), 0, 'a skin with no words offers no switch');
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'tao');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /tao\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '226, 98, 47');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01Polecenia');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+    await page.goto(`${base}/account/`);
+    await select.selectOption('rin');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'rin');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /rin\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '240, 194, 50');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+  }, '900000000000000002');
+
+  // ---- March 7th and Padoru, the skins of the Christmas find: colours and
+  // logo alone as well.
+
+  const withXmas = JSON.parse(readFileSync(findsFile, 'utf8'));
+  withXmas['900000000000000002'] = { ...(withXmas['900000000000000002'] || {}), xmas: Math.floor(Date.now() / 1000) };
+  writeFileSync(findsFile, JSON.stringify(withXmas));
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const key of ['march7', 'padoru'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the Christmas find unlocked ' + key);
+    await select.selectOption('march7');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'march7');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /march7\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '229, 115, 155');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    await page.goto(`${base}/account/`);
+    await select.selectOption('padoru');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'padoru');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /padoru\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '223, 169, 63');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+  }, '900000000000000002');
+
+  // ---- Reisen and Pekora, the skins of the Easter find: colours and logo
+  // alone as well.
+
+  const withEaster = JSON.parse(readFileSync(findsFile, 'utf8'));
+  withEaster['900000000000000002'] = { ...(withEaster['900000000000000002'] || {}), easter: Math.floor(Date.now() / 1000) };
+  writeFileSync(findsFile, JSON.stringify(withEaster));
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const key of ['reisen', 'peko'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the Easter find unlocked ' + key);
+    await select.selectOption('reisen');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'reisen');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/reisen\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '178, 133, 222');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    await page.goto(`${base}/account/`);
+    await select.selectOption('peko');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'peko');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/peko\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '108, 159, 224');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+  }, '900000000000000002');
+
+  // ---- Furina and Albedo, the skins of the New Year's find: colours and logo
+  // alone as well.
+
+  const withNewYear = JSON.parse(readFileSync(findsFile, 'utf8'));
+  withNewYear['900000000000000002'] = { ...(withNewYear['900000000000000002'] || {}), newyear: Math.floor(Date.now() / 1000) };
+  writeFileSync(findsFile, JSON.stringify(withNewYear));
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const key of ['furi', 'albedo'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the New Year find unlocked ' + key);
+    await select.selectOption('furi');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'furi');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/furi\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '79, 111, 229');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    await page.goto(`${base}/account/`);
+    await select.selectOption('albedo');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/albedo\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '224, 192, 96');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+  }, '900000000000000002');
+
+  // On 1 April the glitched letter turns the page into the April look even when
+  // the account wears a skin of its own: that visit only, back with a reload.
+  await visit('2026-04-01', async (page, context) => {
+    await context.addCookies([{ name: 'skin', value: 'albedo', url: `${base}/` }]);
+    await page.reload();
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo');
+    assert.equal(await page.locator('.april-letter-original').textContent(), 'n', 'the glitch is the way in');
+    await page.getByRole('button', { name: 'Zbadaj zakłócony znak' }).click();
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'teto', 'the click turns the April skin on');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ja');
+    assert.equal(await page.locator('h1').textContent(), 'サナカン');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/teto\.webp$/);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '217, 75, 88');
+    assert.equal(await page.locator('.home-language-reset').count(), 2, 'a way back, as for a visitor without a skin');
+    await Promise.all([page.waitForNavigation(), page.locator('h1 .home-language-reset').click()]);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo', "the reload brings the account's own skin back");
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
+  }, '900000000000000002');
 }

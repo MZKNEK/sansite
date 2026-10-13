@@ -123,8 +123,9 @@
     }
 
     // the attributes for <html> that put the chosen HUD and its colour on the
-    // page; nothing when the visitor is not logged in. data-hud-own keeps the
-    // account's own role, so the profile can put it back for "Kolor mojej roli".
+    // page, and the skin it wears (inc/auth/skins.php); nothing when the visitor
+    // is not logged in. data-hud-own keeps the account's own role, so the
+    // profile can put it back for "Kolor mojej roli".
     function hudHtmlAttributes($user)
     {
         if ($user === null)
@@ -133,7 +134,8 @@
         $badge = roleBadge(siteRoles());
         $key = hudColorKey($user['id'], $badge);
         $html = ' data-hud="' . htmlspecialchars(hudMode($user['id']), ENT_QUOTES, 'UTF-8') . '"'
-            . ' data-hud-own="' . htmlspecialchars((string)($badge['key'] ?? ''), ENT_QUOTES, 'UTF-8') . '"';
+            . ' data-hud-own="' . htmlspecialchars((string)($badge['key'] ?? ''), ENT_QUOTES, 'UTF-8') . '"'
+            . skinHtmlAttribute($user['id']);
         if ($key !== '')
             $html .= ' class="role-' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '"';
 

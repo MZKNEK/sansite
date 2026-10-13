@@ -1,29 +1,14 @@
-// On April Fools' Day the last letter of the home page's name glitches into
-// Japanese. Only activating that letter changes the language and earns a find.
-// Shared scripts still supply their usual content; translate it as it arrives.
-// No language preference is saved, so following a link returns to Polish.
-(function () {
-  if (!document.body.classList.contains('home') || !window.SanakanSafeguard
-      || !SanakanSafeguard.holiday('aprilfools')) return;
-
+// The Japanese words of the home page (the fonts come with the language,
+// css/style.css): what the skins Teto and Miku speak (js/skin-teto.js,
+// js/skin-miku.js), kept here so both say the same things. A skin brings its
+// colours and its logo (css/skins.css, js/skins.js); this module brings the
+// words and the small pieces that go with them: the motto in Morse, the
+// subtitle under the name, the title, description and locale of the page, and
+// the name itself, Japanese at once when the skin is worn.
+window.SanakanSkinJa = (function () {
   var heading = document.querySelector('h1.hud-title');
-  var name = heading.textContent;
-  var letter = document.createElement('button');
-  letter.type = 'button';
-  letter.className = 'april-letter';
-  letter.setAttribute('aria-label', 'Zbadaj zakłócony znak');
-  var original = document.createElement('span');
-  original.className = 'april-letter-original';
-  original.textContent = name.slice(-1);
-  original.setAttribute('aria-hidden', 'true');
-  var kana = document.createElement('span');
-  kana.className = 'april-letter-kana';
-  kana.textContent = 'ン';
-  kana.setAttribute('aria-hidden', 'true');
-  letter.append(original, kana);
-  heading.setAttribute('aria-label', name);
-  heading.replaceChildren(document.createTextNode(name.slice(0, -1)), letter);
-  letter.addEventListener('click', activate, { once: true });
+  // the name as the page wrote it, before any words of a skin are worn
+  var name = heading ? heading.textContent : '';
 
   var WORDS = {
     'Sanakan': 'サナカン',
@@ -157,70 +142,45 @@
     return text.replace(value, function () { return result; });
   }
 
-  var ATTRIBUTES = ['title', 'aria-label', 'alt', 'placeholder'];
-  function localize(node) {
-    // User names, typed commands and script sources are never translated.
-    var parent = node.nodeType === 1 ? node : node.parentElement;
-    if (!parent || parent.closest('script, style, textarea, .account-name, .ns-cmd')) return;
-    if (node.nodeType === 3) {
-      var text = translate(node.data);
-      if (text !== node.data) node.data = text;
-    } else if (node.nodeType === 1) {
-      ATTRIBUTES.forEach(function (attr) {
-        if (!node.hasAttribute(attr)) return;
-        var value = node.getAttribute(attr);
-        var text = translate(value);
-        if (text !== value) node.setAttribute(attr, text);
-      });
-      Array.prototype.forEach.call(node.childNodes, localize);
-    }
+  // the name, Japanese or as the page wrote it (the second for someone who must
+  // put the plain name back, js/skin-teto.js on 1 April)
+  function spell(japanese) {
+    return japanese ? translate(name) : name;
   }
 
-  function activate() {
-    heading.replaceChildren(document.createTextNode(name));
-    heading.removeAttribute('aria-label');
-    window.SanakanHomeLanguage = { text: translate };
-    document.documentElement.lang = 'ja';
-    document.documentElement.classList.add('home-japanese');
-    document.title = 'サナカン';
-    var logo = document.querySelector('img.logo');
-    logo.src = './teto.webp';
-    logo.alt = 'テト';
+  // The name in the heading, with the glitched letter of April written around
+  // it when there is one (node): Japanese at once while the skin is worn, the
+  // glitch only waiting on its last kana for the find alone (js/skin-teto.js).
+  function writeName(japanese, node) {
+    var shown = spell(japanese);
+    var letter = node || heading.querySelector('.april-letter');
+    heading.setAttribute('aria-label', shown);
+    if (!letter) {
+      heading.replaceChildren(document.createTextNode(shown));
+
+      return;
+    }
+    letter.querySelector('.april-letter-original').textContent = shown.slice(-1);
+    letter.querySelector('.april-letter-kana').textContent = japanese ? name.slice(-1) : 'ン';
+    heading.replaceChildren(document.createTextNode(shown.slice(0, -1)), letter);
+  }
+
+  // the rest of the Japanese home: the words of the motto in Morse, the
+  // subtitle under the name, and the title, description and locale the page
+  // shows and shares
+  function decorate() {
+    document.getElementById('motto').dataset.morse = 'OMOI KEDO TOBERU';
     var subtitle = document.querySelector('.kana');
     subtitle.removeAttribute('aria-hidden');
     subtitle.textContent = 'SANAKAN';
     subtitle.lang = 'en';
-    document.getElementById('motto').dataset.morse = 'OMOI KEDO TOBERU';
     document.querySelectorAll('meta[name="description"], meta[property="og:description"]').forEach(function (meta) {
       meta.content = 'Discordボット：コマンド、ウィキ、ワイフ、スカルペル、リアルタイムの稼働状況。';
     });
     document.querySelector('meta[property="og:title"]').content = 'サナカン';
     document.querySelector('meta[property="og:locale"]').content = 'ja_JP';
-
-    localize(document.body);
-    // Reloading restores the original language, logo and the account's HUD
-    // without saving a language choice or changing its recorded discoveries.
-    function returnButton(text, label) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'home-language-reset';
-      button.textContent = text;
-      button.setAttribute('aria-label', label);
-      button.title = label;
-      button.addEventListener('click', function () { location.reload(); });
-      return button;
-    }
-    heading.replaceChildren(returnButton(heading.textContent, '通常表示に戻る'));
-    heading.setAttribute('aria-label', translate(name));
-    subtitle.replaceChildren(returnButton('SANAKAN', 'Return to normal appearance'));
-    new MutationObserver(function (changes) {
-      changes.forEach(function (change) {
-        if (change.type === 'childList') change.addedNodes.forEach(localize);
-        else localize(change.target);
-      });
-    }).observe(document.body, { childList: true, subtree: true, characterData: true,
-      attributes: true, attributeFilter: ATTRIBUTES });
-    document.dispatchEvent(new CustomEvent('sanakan:home-language'));
-    SanakanSafeguard.witness('aprilfools');
+    writeName(true);
   }
+
+  return { translate: translate, spell: spell, writeName: writeName, decorate: decorate };
 })();

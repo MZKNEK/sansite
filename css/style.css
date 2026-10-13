@@ -593,21 +593,8 @@ body.gbe-shot main.hero {
     opacity: 0.7;
 }
 
-/* The home page's Japanese April Fools' edition uses system Japanese fonts. */
-html.home-japanese[lang="ja"] {
-    --accent: #d94b58;
-    --accent-light: #ff8891;
-    --accent-dark: #892b38;
-    --accent-rgb: 217, 75, 88;
-    --accent-light-rgb: 255, 136, 145;
-    --accent-dark-rgb: 137, 43, 56;
-    --hud-rgb: 217, 75, 88;
-    --hud-light-rgb: 255, 136, 145;
-    --bg-dark: #120809;
-    --bg-mid: #29181d;
-    --text: #f0dfe1;
-}
-
+/* The Teto skin's words are Japanese (js/skin-teto.js): system Japanese fonts,
+   and the heading a little tighter for them. */
 html[lang="ja"] body.home {
     font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
 }
@@ -617,22 +604,6 @@ html[lang="ja"] .home .hud-title {
     font-family: inherit;
     letter-spacing: 0.22em;
     padding-left: 0.22em;
-}
-
-html.home-japanese .home .logo-slice,
-html.home-japanese .home .logo-shard {
-    background-image: url("../teto.webp");
-}
-
-html.home-japanese[lang="ja"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #ffacb4;
-    --fill: rgba(92, 22, 32, 0.9);
-    color: #ffd1d6;
-}
-
-html.home-japanese[lang="ja"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #892b38;
-    color: #fff;
 }
 
 .home-language-reset {
