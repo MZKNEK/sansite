@@ -456,8 +456,32 @@
         assertSame(false, megaSpendTicket('idle', 'x', 1, 2), 'nor without an account');
     });
 
+    // the free cells reachable from a head, not counting those of the body
+    function snakeRoom($head, $body)
+    {
+        $taken = [];
+        foreach ($body as $cell)
+            $taken[$cell[0] . ',' . $cell[1]] = true;
+        $seen = [];
+        $todo = [$head];
+        while ($todo) {
+            [$x, $y] = array_pop($todo);
+            foreach ([[1, 0], [-1, 0], [0, 1], [0, -1]] as [$dx, $dy]) {
+                $key = ($x + $dx) . ',' . ($y + $dy);
+                if ($x + $dx < 0 || $y + $dy < 0 || $x + $dx >= SNAKE_COLS || $y + $dy >= SNAKE_ROWS || isset($taken[$key]) || isset($seen[$key]))
+                    continue;
+                $seen[$key] = true;
+                $todo[] = [$x + $dx, $y + $dy];
+            }
+        }
+
+        return count($seen);
+    }
+
     // a game of the snake played by a program, tick by tick the way nearest
-    // the food that does not end it, until fed so many times: "R12D3…"
+    // the food that does not end it, until fed so many times: "R12D3…"; a way
+    // into a pocket of its own body too small for it comes only after the
+    // others, or the snake shuts itself in (one game in about fifteen did)
     function snakePlay($ticket, $fed)
     {
         $seed = snakeSeed($ticket);
@@ -467,6 +491,7 @@
             return implode('', array_map(function ($run) { return $run[0] . $run[1]; }, $runs));
         };
         $head = [6, intdiv(SNAKE_ROWS, 2)];
+        $body = [$head, [5, $head[1]], [4, $head[1]]];
         $last = 'R';
         $runs = [];
         // the food before the first tick, placed as the game places it
@@ -475,8 +500,12 @@
         for ($tick = 0; $tick < 3000; $tick++) {
             $choices = [];
             foreach ($steps as $dir => [$dx, $dy])
-                if ($dir !== $back[$last])
-                    $choices[$dir] = abs($head[0] + $dx - $food[0]) + abs($head[1] + $dy - $food[1]);
+                if ($dir !== $back[$last]) {
+                    $next = [$head[0] + $dx, $head[1] + $dy];
+                    $moved = array_merge([$next], $next === $food ? $body : array_slice($body, 0, -1));
+                    $cramped = snakeRoom($next, $moved) < count($moved);
+                    $choices[$dir] = ($cramped ? 1000 : 0) + abs($next[0] - $food[0]) + abs($next[1] - $food[1]);
+                }
             asort($choices);
             $taken = null;
             foreach (array_keys($choices) as $dir) {
@@ -496,6 +525,7 @@
                 return null;
             $last = $taken;
             $head = [$head[0] + $steps[$taken][0], $head[1] + $steps[$taken][1]];
+            $body = array_merge([$head], $head === $food ? $body : array_slice($body, 0, -1));
             $food = $game['food'];
             if ($game['eaten'] >= $fed)
                 return $encode($runs);
