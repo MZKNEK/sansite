@@ -7,6 +7,10 @@
   var ROOT = new URL('../', document.currentScript.src).pathname;
   var LIMIT = 40;
   var MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  // The April Fools' home page supplies its own language; other pages use Polish.
+  function text(value) {
+    return window.SanakanHomeLanguage ? SanakanHomeLanguage.text(value) : value;
+  }
 
   // [name, path from the site's root or a full address, words it is also found by]
   var PAGES = [
@@ -51,17 +55,17 @@
     return {
       kind: kind, title: title, href: href, sub: sub || '',
       t: t, names: names, tags: tags,
-      words: wordsOf([norm(KINDS[kind]), t, norm(sub || '')].concat(names, tags).join(' '))
+      words: wordsOf([norm(text(KINDS[kind])), t, norm(sub || '')].concat(names, tags).join(' '))
     };
   }
 
   function pages() {
     var list = PAGES.map(function (page) {
-      return item('page', page[0], /^https?:/.test(page[1]) ? page[1] : ROOT + page[1], '', [], page[2].split(' '));
+      return item('page', text(page[0]), /^https?:/.test(page[1]) ? page[1] : ROOT + page[1], '', [page[0]], page[2].split(' '));
     });
     // the panel only for the accounts whose menu has it (accountMenuHtml() in inc/auth.php)
     if (document.querySelector('.account-drop a[href$="admin/"]'))
-      list.splice(7, 0, item('page', 'Panel administratora', ROOT + 'admin/', '', [], ['admin', 'panel']));
+      list.splice(7, 0, item('page', text('Panel administratora'), ROOT + 'admin/', '', ['Panel administratora'], ['admin', 'panel']));
     return list;
   }
 
@@ -236,7 +240,7 @@
         var a = el('a');
         a.href = entry.href;
         a.tabIndex = -1;
-        a.append(el('span', 'pl-kind pl-' + entry.kind, KINDS[entry.kind]), titled(entry, query));
+        a.append(el('span', 'pl-kind pl-' + entry.kind, text(KINDS[entry.kind])), titled(entry, query));
         if (entry.sub) a.appendChild(el('small', null, entry.sub));
         a.addEventListener('mousemove', function () { if (active !== i) mark(i); });
         a.addEventListener('click', function (e) {

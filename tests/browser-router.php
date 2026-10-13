@@ -42,7 +42,7 @@
     // just as in server/nginx/sanakan.conf; keep REQUEST_URI unchanged.
     if (preg_match('~^/i/(?:u/[0-9a-f]{16}/|private/)~', $path))
         $file = $root . '/i/index.php';
-    if (is_dir($file)) $file = rtrim($file, '/') . '/index.php';
+    if (is_dir($file)) $file = rtrim($file, '/') . (is_file($file . '/index.php') ? '/index.php' : '/index.html');
     if (!is_file($file)) { http_response_code(404); return true; }
     if (!str_ends_with($file, '.php')) return false;
     $_SERVER['SCRIPT_FILENAME'] = $file;

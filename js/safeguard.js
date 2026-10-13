@@ -18,7 +18,7 @@
 // five of them a seasonal find; on a Friday the 13th the titles glitch, one
 // caught a seasonal find too. Those are apart from the count. js/home.js adds
 // the mottos of the holidays, Sanakan's Christmas hat, the New Year's rocket,
-// the ping pong of 1 April and the cake of the bot's birthday, 13 October,
+// the Japanese home page of 1 April and the cake of the bot's birthday, 13 October,
 // each another seasonal find.
 window.SanakanSafeguard = (function () {
   // the site's root, from this script's own address (js/safeguard.js)
@@ -35,6 +35,7 @@ window.SanakanSafeguard = (function () {
     lore: 'Kronikarz',
     offline: 'Odcięty od sieci',
     morse: 'Sygnał zwrotny',
+    pingpong: 'Ping pong z Safeguardem',
     idle: 'Czuwanie',
     regen: 'Regeneracja',
     unknown: 'Tożsamość nieznana',
@@ -55,7 +56,7 @@ window.SanakanSafeguard = (function () {
     xmas: 'Święta w Megastrukturze',
     newyear: 'Nowy cykl',
     easter: 'Pisanki z Megastruktury',
-    aprilfools: 'Punkt z Safeguardem',
+    aprilfools: 'Zagubiony w tłumaczeniu',
     birthday: 'Sto lat',
     halloween: 'Noc form krzemowych',
     friday13: 'Piątek trzynastego'

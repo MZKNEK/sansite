@@ -45,7 +45,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=7eb53c9ad4" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=15da9afea9" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
@@ -100,9 +100,9 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=3716e0908c"></script>
-  <script src="../js/safeguard.js?v=66d6049453"></script>
-  <script src="../js/palette.js?v=15434ca4d0"></script>
+  <script src="../js/netsphere.js?v=a98676efe2"></script>
+  <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
+  <script src="../js/palette.js?v=f09ec8cf36"></script>
 </body>
 
 </html>
@@ -120,7 +120,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=7eb53c9ad4" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=15da9afea9" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=1f284a3102" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
@@ -225,9 +225,9 @@
 <script src="../js/account.js?v=ff288d9afb"></script>
 <script src="./init.js?v=9e46400eb6"></script>
 <script src="../js/to-top.js?v=6ce6e2481f"></script>
-<script src="../js/netsphere.js?v=3716e0908c"></script>
-<script src="../js/safeguard.js?v=66d6049453"></script>
-<script src="../js/palette.js?v=15434ca4d0"></script>
+<script src="../js/netsphere.js?v=a98676efe2"></script>
+<script src="../js/safeguard.js?v=a78c0e3f4b"></script>
+<script src="../js/palette.js?v=f09ec8cf36"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

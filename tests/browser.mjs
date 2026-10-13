@@ -7,6 +7,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { testSafeguardSync } from './safeguard-browser.mjs';
+import { testHome } from './home-browser.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
@@ -16,7 +17,7 @@ for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts']) {
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['account.php', 'megastructure.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['index.html', 'logo.webp', 'teto.webp', 'status.php', 'account.php', 'megastructure.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
 const port = 41000 + Math.floor(Math.random() * 10000);
 const base = `http://127.0.0.1:${port}`;
 const php = process.env.PHP || 'php';
@@ -204,6 +205,7 @@ try {
   writeFileSync(path.join(renameDir, 'case-only.png'), 'CASE ONLY');
   assert.equal((await rename('case-only.png', 'Case-Only.png')).status(), 200, 'a case-only rename without a collision still works');
   assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
+  await testHome({ browser, base, site, php, errors });
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
   console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');

@@ -225,7 +225,7 @@
     urodziny: ['Sanakan uruchomiono 13 października 2017 roku.', 'Safeguard nie liczy lat. W ten dzień na stronie głównej i tak stoi tort.'],
     halloween: ['31 października formy krzemowe wychodzą na krawędzie strony.', 'Safeguard odnotowuje każdą złapaną. Cukierków nie rozdaje.'],
     sylwester: ['Megastruktura nie zna lat, tylko cykle Budowniczych.', 'W Sylwestra Safeguard i tak zostawia przy logo rakietę.'],
-    pingpong: ['1 kwietnia Safeguard zaprasza do ping ponga.', 'Seta jeszcze nikt z nim nie wygrał. Punkt czasem się zdarza.'],
+    pingpong: ['Safeguard odpowiada na PING. Odeślij mu odpowiedź Morse\'em na stronie głównej.', 'Do pięciu punktów. Safeguard przyjmuje wyzwania przez cały rok.'],
     piatek: ['W piątek trzynastego usterek w Megastrukturze jest więcej.', 'Safeguard je łapie. Ty też możesz spróbować.'],
     zero: ['Mówią, że pod najniższym piętrem jest jeszcze jedno, piętro zero.', 'Prowadzi tam tylko korytarz Budowniczych, a ich drzwi otwierają się o trzeciej.']
   };

@@ -529,6 +529,61 @@ body.gbe-shot main.hero {
     text-shadow: 0 0 18px rgba(var(--hud-rgb), 0.7);
 }
 
+/* The April secret lives in the final letter, keeping the heading's spacing. */
+.april-letter {
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.april-letter-original {
+    animation: april-letter-original 5.6s steps(1) infinite;
+}
+
+.april-letter-kana {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    color: var(--accent-light);
+    letter-spacing: 0;
+    animation: april-letter-kana 5.6s steps(1) infinite;
+}
+
+.april-letter:focus-visible {
+    outline: 1px dashed var(--accent-light);
+    outline-offset: 4px;
+}
+
+@keyframes april-letter-original {
+    0%, 84%, 94%, 100% { opacity: 1; }
+    85%, 90% { opacity: 0.15; }
+    87%, 92% { opacity: 0.6; }
+}
+
+@keyframes april-letter-kana {
+    0%, 84%, 94%, 100% { opacity: 0; transform: none; }
+    85%, 90% { opacity: 1; transform: translate(2px, -1px); }
+    87%, 92% { opacity: 0.65; transform: translate(-2px, 1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .april-letter-original,
+    .april-letter-kana { animation: none; }
+
+    .april-letter-original { opacity: 0.6; }
+    .april-letter-kana { opacity: 0.45; }
+}
+
 .kana {
     margin: 8px 0 0;
     padding-left: 0.6em;
@@ -536,6 +591,80 @@ body.gbe-shot main.hero {
     letter-spacing: 0.6em;
     color: var(--accent);
     opacity: 0.7;
+}
+
+/* The home page's Japanese April Fools' edition uses system Japanese fonts. */
+html.home-japanese[lang="ja"] {
+    --accent: #d94b58;
+    --accent-light: #ff8891;
+    --accent-dark: #892b38;
+    --accent-rgb: 217, 75, 88;
+    --accent-light-rgb: 255, 136, 145;
+    --accent-dark-rgb: 137, 43, 56;
+    --hud-rgb: 217, 75, 88;
+    --hud-light-rgb: 255, 136, 145;
+    --bg-dark: #120809;
+    --bg-mid: #29181d;
+    --text: #f0dfe1;
+}
+
+html[lang="ja"] body.home {
+    font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+}
+
+html[lang="ja"] .home .hud-title {
+    color: #ffe7ea;
+    font-family: inherit;
+    letter-spacing: 0.22em;
+    padding-left: 0.22em;
+}
+
+html.home-japanese .home .logo-slice,
+html.home-japanese .home .logo-shard {
+    background-image: url("../teto.webp");
+}
+
+html.home-japanese[lang="ja"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #ffacb4;
+    --fill: rgba(92, 22, 32, 0.9);
+    color: #ffd1d6;
+}
+
+html.home-japanese[lang="ja"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #892b38;
+    color: #fff;
+}
+
+.home-language-reset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.home-language-reset:focus-visible {
+    outline: 1px dashed var(--accent-light);
+    outline-offset: 4px;
+}
+
+html[lang="ja"] .home .links a,
+html[lang="ja"] .home .site-foot,
+html[lang="ja"] .home .home-login,
+html[lang="ja"] .home .tag {
+    letter-spacing: 0.08em;
+}
+
+/* The alternate label is longer than the main one, which sets its width. */
+html[lang="ja"] .home .links .below a.swap-alt {
+    padding-inline: 0.75em;
+    white-space: nowrap;
 }
 
 /* the motto in Morse code, barely visible at the very top of the page, in
@@ -2261,8 +2390,7 @@ body.idle .logo-eye {
 
 /* New Year (js/home.js): a rocket by the logo's left edge, where the cake
    stands on the birthday; a click sends it up, and it comes back */
-.ny-rocket,
-.pp-paddle {
+.ny-rocket {
     position: absolute;
     left: -4%;
     bottom: -4%;
@@ -2277,21 +2405,18 @@ body.idle .logo-eye {
     -webkit-tap-highlight-color: transparent;
 }
 
-.ny-rocket svg,
-.pp-paddle svg {
+.ny-rocket svg {
     display: block;
     width: 100%;
     overflow: visible;
     filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
 }
 
-.ny-rocket:hover:not(:disabled),
-.pp-paddle:hover {
+.ny-rocket:hover:not(:disabled) {
     transform: rotate(-8deg) scale(1.06);
 }
 
-.ny-rocket:focus-visible,
-.pp-paddle:focus-visible {
+.ny-rocket:focus-visible {
     outline: 1px solid var(--accent-light);
 }
 
@@ -2343,26 +2468,7 @@ body.idle .logo-eye {
     text-shadow: 0 0 6px currentColor;
 }
 
-/* 1 April (js/home.js): a ping pong paddle by the logo, and the game against
-   the Safeguard it opens */
-.pp-paddle {
-    width: 17%;
-}
-
-.pp-paddle .blade {
-    fill: #3a2148;
-    stroke: #e86262;
-    stroke-width: 3;
-}
-
-.pp-paddle .handle {
-    fill: #8a6a4a;
-}
-
-.pp-paddle .ball {
-    fill: #fff;
-}
-
+/* The secret ping pong game opened by PONG in Morse (js/home.js). */
 .pp-overlay {
     position: fixed;
     inset: 0;
@@ -2694,8 +2800,7 @@ body.idle .logo-eye {
     .birthday-cake,
     .birthday-cake .flame,
     .ny-rocket,
-    .ny-rocket.launched,
-    .pp-paddle {
+    .ny-rocket.launched {
         transition: none;
     }
 

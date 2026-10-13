@@ -20,6 +20,7 @@
         'lore'      => ['Kronikarz', 'Pięć wpisów z archiwum Megastruktury, przeczytanych w terminalu Safeguarda.', 'Terminal zna więcej imion, niż wypisuje jego pomoc.'],
         'offline'   => ['Odcięty od sieci', 'Zerwane połączenie z siecią i powrót do niej.', 'Odetnij się od sieci i spróbuj wrócić.'],
         'morse'     => ['Sygnał zwrotny', 'Słowo wystukane Morse\'em na motcie strony głównej i odpowiedź Safeguarda.', 'Motto na górze strony głównej nie tylko nadaje. Wołanie o pomoc to dobry początek.'],
+        'pingpong'  => ['Ping pong z Safeguardem', 'Gra w ping ponga odblokowana słowem PONG wystukanym Morse\'em na stronie głównej.', 'Safeguard odpowiada na PING. Odeślij mu odpowiedź tym samym kanałem.'],
         'idle'      => ['Czuwanie', 'Strona główna zasnęła w bezruchu, a Sanakan czuwała dalej.', 'Zostaw stronę główną na dłużej w spokoju.'],
         'regen'     => ['Regeneracja', 'Trzy strzały z Emitera pod rząd rozłupały logo, a Sanakan się zregenerowała.', 'Jeden strzał z Emitera to za mało, żeby zranić Safeguarda.'],
         'unknown'   => ['Tożsamość nieznana', 'Drzwi, przy których Safeguard zażądał identyfikacji, zanim cokolwiek pokazał.', 'Niektóre drzwi pytają, kim jesteś, zanim cokolwiek pokażą.'],
@@ -42,7 +43,7 @@
         'xmas'       => ['Święta w Megastrukturze', 'Czapka Mikołaja strącona z głowy Sanakan. Safeguard nie obchodzi świąt.', 'Wraca co roku od 20 grudnia do Trzech Króli.'],
         'newyear'    => ['Nowy cykl', 'Fajerwerki z glifów odpalone na Sylwestra.', 'Wraca co roku 31 grudnia i 1 stycznia.'],
         'easter'     => ['Pisanki z Megastruktury', 'Pięć pisanek rozbitych na pięciu stronach w czasie Wielkanocy.', 'Wraca co roku od Niedzieli Palmowej do Poniedziałku Wielkanocnego.'],
-        'aprilfools' => ['Punkt z Safeguardem', 'Piłka przepuszczona przez Safeguarda w ping pongu na prima aprilis.', 'Wraca co roku 1 kwietnia. Safeguard zaprasza wtedy do gry.'],
+        'aprilfools' => ['Zagubiony w tłumaczeniu', 'Zakłócona litera w nazwie strony kliknięta na prima aprilis. Strona główna przemówiła po japońsku.', 'Wraca co roku 1 kwietnia. Przyjrzyj się ostatniej literze nazwy na stronie głównej.'],
         'birthday'   => ['Sto lat', 'Świeczki na torcie zdmuchnięte w urodziny bota.', 'Wraca co roku 13 października, w urodziny bota.'],
         'halloween'  => ['Noc form krzemowych', 'Forma krzemowa złapana na krawędzi strony w Halloween.', 'Wraca co roku 31 października.'],
         'friday13'   => ['Piątek trzynastego', 'Usterka złapana na stronie w piątek trzynastego.', 'Wraca w każdy piątek trzynastego.']

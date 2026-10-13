@@ -1,6 +1,6 @@
 // The home page: the motto in Morse code (which also listens to Morse, and
 // says something else at the holidays), the bot status dot, Sanakan's
-// Christmas hat, the New Year's rocket, the ping pong of 1 April, the cake of
+// Christmas hat, the New Year's rocket, the secret ping pong, the cake of
 // the bot's birthday, the page falling asleep when left alone and the Discord
 // account in the top right corner. Kept out of index.html, so the security
 // policy can allow only the site's own script files (server/nginx).
@@ -17,6 +17,10 @@ function homeToday() {
 // "aprilfools", "birthday", "halloween", "friday13"
 function homeHoliday(key) {
   return window.SanakanSafeguard ? SanakanSafeguard.holiday(key) : false;
+}
+
+function homeText(text) {
+  return window.SanakanHomeLanguage ? SanakanHomeLanguage.text(text) : text;
 }
 
 // a note over the logo that goes away by itself
@@ -54,11 +58,9 @@ function homeSay(wrap, text, ms) {
   var FAST = 45;      // ms, the unit of the Safeguard's answer
   var START = 1200;   // ms, after the entrance animation
   var PAUSE = 21;     // units of silence before the signal repeats
-  // in this order: the New Year's eve and day are in the middle of Christmas,
-  // and 1 April may be at Easter
+  // the New Year's eve and day are in the middle of Christmas
   var HOLIDAYS = [
     ['newyear', 'Szczęśliwego Nowego Roku'],
-    ['aprilfools', 'Zagrajmy w ping ponga'],
     ['xmas', 'Wesołych świąt'],
     ['easter', 'Smacznego jajka'],
     ['birthday', 'Sto lat'],
@@ -74,6 +76,7 @@ function homeSay(wrap, text, ms) {
     NETSFERA: 'Odmowa dostępu',
     NETSPHERE: 'Odmowa dostępu',
     PING: 'Pong',
+    PONG: 'Ping',
     HEJ: 'Hej, mieszkańcze'
   };
   var AGAIN = 'Powtórz';
@@ -83,10 +86,11 @@ function homeSay(wrap, text, ms) {
   var DOT = 200, LETTER = 600, END = 1600;
 
   var motto = document.getElementById('motto');
-  var text = motto.textContent.trim();
+  // The Japanese motto uses romanized Japanese for international Morse.
+  var text = motto.dataset.morse || motto.textContent.trim();
   var special = null;
   HOLIDAYS.some(function (holiday) {
-    if (homeHoliday(holiday[0])) special = holiday[1];
+    if (!window.SanakanHomeLanguage && homeHoliday(holiday[0])) special = holiday[1];
     return special;
   });
   if (special) {
@@ -128,7 +132,7 @@ function homeSay(wrap, text, ms) {
     var cycle = (t + PAUSE) * unit;
     motto.style.setProperty('--cycle', cycle + 'ms');
     motto.classList.remove('decoded');
-    motto.replaceChildren(signal, el('span', 'sr-only', message));
+    motto.replaceChildren(signal, el('span', 'sr-only', homeText(message)));
     return cycle;
   }
 
@@ -141,6 +145,14 @@ function homeSay(wrap, text, ms) {
   var down = 0;       // when the key went down
   var timer = null;
   var busy = false;   // while the answer goes out
+
+  // The April letter can switch the language after Morse input has started.
+  // Keep an unfinished message or reply, then use the new motto next time.
+  document.addEventListener('sanakan:home-language', function () {
+    text = motto.dataset.morse || text;
+    motto.title = homeText(text);
+    if (!busy && !down && !letters.length && !symbols) send(text, 0, UNIT);
+  });
 
   // what was keyed, lit for good, as it comes
   function echo() {
@@ -188,10 +200,12 @@ function homeSay(wrap, text, ms) {
     busy = true;
     var sent = 300 + send(answer, 300, FAST) - PAUSE * FAST;
     if (REPLIES[heard] && window.SanakanSafeguard) SanakanSafeguard.witness('morse');
+    if (heard === 'PONG') document.dispatchEvent(new CustomEvent('sanakan:pong'));
 
     setTimeout(function () {
       motto.classList.add('decoded');
-      motto.replaceChildren(el('span', null, 'odebrano: ' + heard + ' · odpowiedź: ' + answer.toUpperCase()));
+      motto.replaceChildren(el('span', null, homeText('odebrano:') + ' ' + heard
+        + ' · ' + homeText('odpowiedź:') + ' ' + homeText(answer).toUpperCase()));
     }, sent);
 
     setTimeout(function () {
@@ -453,14 +467,12 @@ function homeWitness(key) {
   });
 })();
 
-// 1 April: the motto asks for a game of ping pong, and a paddle by Sanakan
-// opens one against the Safeguard. The player's paddle on the left follows
+// PONG keyed on the motto opens a game against the Safeguard on any day,
+// and unlocking it is a permanent find. The player's paddle on the left follows
 // the mouse or a finger, or the arrow keys (W and S too); the Safeguard's on
 // the right follows the ball, but only so fast, so a steep ball off the edge
-// of a paddle gets past it. To five; the first point won against it is a
-// seasonal find of the Safeguard's register.
+// of a paddle gets past it. To five.
 (function () {
-  if (!homeHoliday('aprilfools')) return;
   var W = 480, H = 270;     // the table, in its own pixels
   var PAD = 46, PW = 6;     // a paddle's length and width
   var EDGE = 14;            // from a paddle to its end of the table
@@ -471,32 +483,25 @@ function homeWitness(key) {
   var GUARD = 225;          // px a second the Safeguard's paddle moves at most
   var WIN = 5;
 
-  var wrap = document.querySelector('.logo-wrap');
-  var paddle = document.createElement('button');
-  paddle.type = 'button';
-  paddle.className = 'pp-paddle';
-  paddle.title = 'Ping pong z Safeguardem';
-  paddle.setAttribute('aria-label', 'Zagraj w ping ponga z Safeguardem');
-  paddle.innerHTML = '<svg viewBox="0 0 60 90" aria-hidden="true">'
-    + '<circle class="blade" cx="30" cy="30" r="26" />'
-    + '<path class="handle" d="M25 54h10v30a5 5 0 0 1-10 0Z" />'
-    + '<circle class="ball" cx="52" cy="66" r="6" /></svg>';
-  wrap.appendChild(paddle);
-  paddle.addEventListener('click', open);
+  var active = null;
+  document.addEventListener('sanakan:pong', open);
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
     if (cls) node.className = cls;
-    if (text != null) node.textContent = text;
+    if (text != null) node.textContent = homeText(text);
     return node;
   }
 
   function open() {
+    if (active) return;
+    var before = document.activeElement;
     var overlay = el('div', 'pp-overlay');
+    active = overlay;
     var box = el('div', 'pp-box hud-corners');
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
-    box.setAttribute('aria-label', 'Ping pong z Safeguardem');
+    box.setAttribute('aria-label', homeText('Ping pong z Safeguardem'));
     box.tabIndex = -1;
     var head = el('div', 'pp-head');
     var close = el('button', 'pp-close', '×');
@@ -518,6 +523,7 @@ function homeWitness(key) {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     box.focus();
+    homeWitness('pingpong');
 
     var ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
@@ -550,7 +556,7 @@ function homeWitness(key) {
     }
 
     function showScore() {
-      score.textContent = 'Ty ' + points[0] + ' : ' + points[1] + ' Safeguard';
+      score.textContent = homeText('Ty') + ' ' + points[0] + ' : ' + points[1] + ' ' + homeText('Safeguard');
     }
 
     // off a paddle: the farther from its middle, the steeper
@@ -566,7 +572,6 @@ function homeWitness(key) {
       points[who]++;
       showScore();
       if (who === 0) {
-        if (window.SanakanSafeguard) SanakanSafeguard.witness('aprilfools');
         note.textContent = 'Safeguard przepuścił piłkę. To się nie powtórzy.';
       } else {
         note.textContent = 'Punkt dla Safeguarda.';
@@ -635,10 +640,12 @@ function homeWitness(key) {
     }
 
     function shut() {
+      if (active !== overlay) return;
       cancelAnimationFrame(frame);
       clearTimeout(serving);
       overlay.remove();
-      paddle.focus();
+      active = null;
+      if (before && before.focus) before.focus();
     }
 
     // the paddle where the pointer is, over the table
@@ -658,6 +665,11 @@ function homeWitness(key) {
       var k = e.key.toLowerCase();
       if (k === 'escape') {
         if (down) shut();
+        return;
+      }
+      if (k === 'tab') {
+        e.preventDefault();
+        if (down) (document.activeElement === close && !again.hidden ? again : close).focus();
         return;
       }
       if (k === 'arrowup' || k === 'w') keys.up = down;
@@ -746,12 +758,12 @@ function homeWitness(key) {
     .then(function (data) {
       if (!data || !labels[data.status]) throw new Error('unknown status');
 
-      var label = labels[data.status]
+      var label = homeText(labels[data.status]
         .replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'))
-        .replace(' {down}', data.down ? ' ' + data.down : '');
-      if (data.status === 'idle' && data.issues) label = 'Zaraz wracam: bot działa, ale ' + data.issues;
+        .replace(' {down}', data.down ? ' ' + data.down : ''));
+      if (data.status === 'idle' && data.issues) label = homeText('Zaraz wracam: bot działa, ale ' + data.issues);
       dot.className = 'bot-status ' + data.status;
-      dot.title = label + ' (kliknij, żeby zobaczyć dostępność)';
+      dot.title = label + homeText(' (kliknij, żeby zobaczyć dostępność)');
       dot.setAttribute('aria-label', label);
     })
     // without an answer nothing is known about the bot, so no dot at all

@@ -429,6 +429,18 @@
         assertSame(['proof' => true], proven($witness(['witness' => 'header', 'word' => strtoupper(megaHeaderWord('a'))]), 'header', $time));
     });
 
+    test('ping pong is permanent and the Japanese home page is witnessed only around 1 April', function () {
+        $april = new DateTimeImmutable('2026-04-01 12:00', new DateTimeZone('Europe/Warsaw'));
+        foreach ([$april, $april->modify('+1 day'), $april->modify('+3 months')] as $day) {
+            $answer = megastructureAnswer('a', ['witness' => 'pingpong'], $day);
+            assertSame(['proof' => true], proven($answer, 'pingpong', $day->getTimestamp()));
+        }
+        assertTrue(isset(megastructureAnswer('a', ['witness' => 'aprilfools'], $april)['proof']));
+        assertSame(['denied' => true], megastructureAnswer('a', ['witness' => 'aprilfools'], $april->modify('+3 days')));
+        assertTrue(isset(SAFEGUARD_FINDS['pingpong']));
+        assertTrue(!isset(SAFEGUARD_SEASONAL['pingpong']));
+    });
+
     test('the idle page and the Emitter need the time they take since their ticket', function () {
         $noon = megaAt(12, 0);
         $ticket = function ($kind, $at) { return megastructureAnswer('a', ['ticket' => $kind], $at)['ticket'] ?? null; };

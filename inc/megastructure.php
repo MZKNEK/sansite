@@ -583,7 +583,7 @@
     const MEGA_KILLY_CHANCE = 5;
     const MEGA_DAY_SLACK = 14;
     // the finds the server gives a proof of when asked
-    const MEGA_PLAIN_FINDS = ['netsphere', 'lost', 'console', 'silicon', 'lore', 'offline', 'morse', 'unknown'];
+    const MEGA_PLAIN_FINDS = ['netsphere', 'lost', 'console', 'silicon', 'lore', 'offline', 'morse', 'pingpong', 'unknown'];
 
     // the password of the X-Safeguard header, "toha-" and four characters of the secret
     function megaHeaderWord($secret)

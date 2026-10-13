@@ -156,7 +156,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=7eb53c9ad4" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=15da9afea9" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
@@ -424,9 +424,9 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/hud.js?v=2894733f39"></script>
   <script src="../js/account.js?v=ff288d9afb"></script>
-  <script src="../js/netsphere.js?v=3716e0908c"></script>
-  <script src="../js/safeguard.js?v=66d6049453"></script>
-  <script src="../js/palette.js?v=15434ca4d0"></script>
+  <script src="../js/netsphere.js?v=a98676efe2"></script>
+  <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
+  <script src="../js/palette.js?v=f09ec8cf36"></script>
 </body>
 
 </html>
