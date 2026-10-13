@@ -258,14 +258,13 @@
         $noon = megaAt(12, 0);
         $archive = megastructureAnswer('a', ['at' => megaArchivePath('a')], $noon, false, '111')['archive'];
         assertSame(MEGA_KEY_LENGTH, count($archive['key']));
-        // the key read as a hunter would, from what the register says
-        $names = [];
-        foreach (SAFEGUARD_FINDS as $key => [$name, $what])
-            $names[$name] = $what;
+        // the key read as a hunter would, from what the register says of the
+        // find each riddle means
+        $finds = array_flip(MEGA_KEY_FINDS);
         $key = '';
-        foreach ($archive['key'] as [$name, $word, $letter]) {
-            assertTrue(isset($names[$name]), 'a find of the register: ' . $name);
-            $words = preg_split('/\s+/u', trim($names[$name]));
+        foreach ($archive['key'] as [$riddle, $word, $letter]) {
+            assertTrue(isset($finds[$riddle]), 'a riddle of a find: ' . $riddle);
+            $words = preg_split('/\s+/u', trim(SAFEGUARD_FINDS[$finds[$riddle]][1]));
             $key .= strtoupper(mb_str_split($words[$word - 1])[$letter - 1]);
         }
         assertTrue((bool)preg_match('/^[A-Z]+$/', $key), 'only A to Z: ' . $key);
@@ -296,11 +295,16 @@
             assertSame(['archive' => megaArchivePath('a')], megastructureAnswer('a', ['enter' => geneSequence('a')], $noon, false, $id));
     });
 
-    test('the archive\'s key comes only from the finds on the way to the gene', function () {
-        $allowed = array_map(function ($key) { return SAFEGUARD_FINDS[$key][0]; }, MEGA_KEY_FINDS);
+    test('the archive\'s key comes only from the finds on the way to the gene, which it never names', function () {
+        foreach (array_keys(MEGA_KEY_FINDS) as $key)
+            assertTrue(isset(SAFEGUARD_FINDS[$key]), $key);
+        $names = array_map(function ($find) { return $find[0]; }, SAFEGUARD_FINDS);
         foreach (['a', 'b', 'c', 'preview'] as $secret)
-            foreach (megaKey($secret, '111')['places'] as [$name])
-                assertTrue(in_array($name, $allowed, true), $name);
+            foreach (megaKey($secret, '111')['places'] as [$riddle]) {
+                assertTrue(in_array($riddle, MEGA_KEY_FINDS, true), $riddle);
+                foreach ($names as $name)
+                    assertTrue(stripos($riddle, $name) === false, 'it names ' . $name);
+            }
         assertSame([], megastructureAnswer('', ['enter' => geneSequence('a')], megaAt(12, 0)));
         assertSame([], megastructureAnswer('', ['record' => megaRecord('a', '111')], megaAt(12, 0)));
     });

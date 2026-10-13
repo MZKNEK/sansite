@@ -327,8 +327,16 @@
         'OKO', 'DLON', 'KREW', 'GEN'
     ];
     // the finds the key's letters are taken from: every one of them is on the
-    // way to the gene, so whoever opened the archive has them all
-    const MEGA_KEY_FINDS = ['builders', 'floor0', 'maze', 'paper', 'gene'];
+    // way to the gene, so whoever opened the archive has them all; the archive
+    // names none of them, only says this of it, for the hunter to tell which
+    // entry of the register is meant
+    const MEGA_KEY_FINDS = [
+        'builders' => 'Tam, gdzie drzwi otwierają się tylko o swojej godzinie',
+        'floor0'   => 'Tam, gdzie kończą się schody i nie ma już pięter',
+        'maze'     => 'Tam, gdzie w ciemności czekało jedno słowo',
+        'paper'    => 'Tam, gdzie zostaje to, czego nie widać na ekranie',
+        'gene'     => 'Tam, gdzie cztery części stały się jednym'
+    ];
     const MEGA_KEY_LENGTH = 6;
     const MEGA_RECORD_LENGTH = 4;
 
@@ -348,16 +356,17 @@
         return implode(' ', $words);
     }
 
-    // An account's key: ['letters' => "QWERTY", 'places' => [[name of the find, word, letter], ...]],
+    // An account's key: ['letters' => "QWERTY", 'places' => [[the riddle of the find, word, letter], ...]],
     // each letter the given letter (from 1) of the given word (from 1) of what
     // the register says of that find once found, always one of A to Z.
     function megaKey($secret, $id)
     {
         $letters = '';
         $places = [];
+        $finds = array_keys(MEGA_KEY_FINDS);
         for ($i = 0; $i < MEGA_KEY_LENGTH; $i++) {
-            $key = MEGA_KEY_FINDS[megaPick($secret, 'key-find:' . $id, $i, count(MEGA_KEY_FINDS))];
-            [$name, $what] = SAFEGUARD_FINDS[$key];
+            $key = $finds[megaPick($secret, 'key-find:' . $id, $i, count($finds))];
+            $what = SAFEGUARD_FINDS[$key][1];
             $spots = [];
             foreach (preg_split('/\s+/u', trim($what)) as $w => $word)
                 // by characters without mbstring, which the server may lack (inc/text.php)
@@ -366,7 +375,7 @@
                         $spots[] = [$w + 1, $l + 1, strtoupper($char)];
             [$word, $letter, $char] = $spots[megaPick($secret, 'key-spot:' . $id, $i, count($spots))];
             $letters .= $char;
-            $places[] = [$name, $word, $letter];
+            $places[] = [MEGA_KEY_FINDS[$key], $word, $letter];
         }
 
         return ['letters' => $letters, 'places' => $places];

@@ -378,12 +378,14 @@ document.getElementById('lost').textContent = path;
     record('Szyfr przesuwa każdą literę zapisu o literę klucza pod nią, A o zero, B o jeden. Klucz biegnie dalej tylko po literach.');
     var key = document.createElement('ul');
     key.className = 'mega-key';
+    // a riddle of the find instead of its name, the word and the letter as a
+    // sector and a level
     data.key.forEach(function (place) {
       var li = document.createElement('li');
-      li.textContent = place[0] + ' · słowo ' + place[1] + ' · litera ' + place[2];
+      li.textContent = place[0] + ' · sektor ' + place[1] + ' · poziom ' + place[2];
       key.appendChild(li);
     });
-    record('Klucz rozproszono w rejestrze Safeguarda, w opisach wpisów:', key);
+    record('Klucz rozproszono w rejestrze Safeguarda, w tym, co mówi o znaleziskach. Każda litera ma swój sektor i poziom:', key);
     record('Kto odczyta zapis, niech poda go terminalowi Netsfery.');
     box.appendChild(records);
   }
