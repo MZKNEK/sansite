@@ -180,7 +180,7 @@
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=3b796277b4" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=81af35586f" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=0b438d700a" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">

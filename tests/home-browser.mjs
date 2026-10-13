@@ -237,9 +237,11 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     assert.equal(await select.inputValue(), '', 'nothing picked yet');
-    assert.equal(await select.locator('optgroup').count(), 5, 'the picker groups the skins by their find');
+    assert.equal(await select.locator('optgroup').count(), 7, 'the picker groups the skins by their find');
     assert.equal(await select.locator('optgroup[label="Prima aprilis"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Nowy rok"] option').count(), 2);
+    assert.equal(await select.locator('optgroup[label="Piątek trzynastego"] option').count(), 2);
+    assert.equal(await select.locator('optgroup[label="Urodziny"] option').count(), 2);
     assert.equal(await page.locator('.skin-form button[type=submit]').evaluate(node => node.classList.contains('primary')), true,
       'the save button looks like the one of the HUD');
     for (const key of ['teto', 'miku'])
@@ -341,6 +343,18 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await select.locator('option[value=furi]').evaluate(node => node.disabled), true, 'Furina is locked too');
     assert.ok((await select.locator('option[value=furi]').textContent()).includes('Nowy cykl'),
       'her find being the one of the New Year');
+    assert.equal(await select.locator('option[value=sadako]').evaluate(node => node.disabled), true, 'Sadako is locked too');
+    assert.ok((await select.locator('option[value=sadako]').textContent()).includes('Piątek trzynastego'),
+      'her find being the one of Friday the 13th');
+    assert.equal(await select.locator('option[value=lain]').evaluate(node => node.disabled), true, 'Lain is locked too');
+    assert.ok((await select.locator('option[value=lain]').textContent()).includes('Piątek trzynastego'),
+      'her find being the same');
+    assert.equal(await select.locator('option[value=cibo]').evaluate(node => node.disabled), true, 'Cibo is locked too');
+    assert.ok((await select.locator('option[value=cibo]').textContent()).includes('Sto lat'),
+      'her find being the one of the birthday');
+    assert.equal(await select.locator('option[value=killy]').evaluate(node => node.disabled), true, 'Killy is locked too');
+    assert.ok((await select.locator('option[value=killy]').textContent()).includes('Sto lat'),
+      'his find being the same');
     // a form sent by hand cannot talk the server into a locked skin
     const me = await (await context.request.get(`${base}/account.php?finds`)).json();
     const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'teto' } });
@@ -493,6 +507,81 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '224, 192, 96');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+  }, '900000000000000002');
+
+  // ---- Cibo and Killy, the skins of the birthday find: colours and logo
+  // alone as well.
+
+  const withBirthday = JSON.parse(readFileSync(findsFile, 'utf8'));
+  withBirthday['900000000000000002'] = { ...(withBirthday['900000000000000002'] || {}), birthday: Math.floor(Date.now() / 1000) };
+  writeFileSync(findsFile, JSON.stringify(withBirthday));
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const key of ['cibo', 'killy'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the birthday find unlocked ' + key);
+    await select.selectOption('cibo');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'cibo');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/cibo\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '194, 200, 217');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    await page.goto(`${base}/account/`);
+    await select.selectOption('killy');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'killy');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/killy\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '102, 121, 155');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+  }, '900000000000000002');
+
+  // ---- Sadako and Lain, the skins of Friday the 13th's find: colours and logo
+  // alone as well.
+
+  const withFriday13 = JSON.parse(readFileSync(findsFile, 'utf8'));
+  withFriday13['900000000000000002'] = { ...(withFriday13['900000000000000002'] || {}), friday13: Math.floor(Date.now() / 1000) };
+  writeFileSync(findsFile, JSON.stringify(withFriday13));
+
+  await visit('2026-07-15', async page => {
+    await page.locator('.account-menu').waitFor();
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const key of ['sadako', 'lain'])
+      assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
+        'the Friday the 13th find unlocked ' + key);
+    await select.selectOption('sadako');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'sadako');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/sadako\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '139, 147, 189');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    await page.goto(`${base}/account/`);
+    await select.selectOption('lain');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/`);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'lain');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/lain\.webp$/);
+    await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '167, 153, 164');
+    assert.equal(await page.locator('h1').textContent(), 'Sanakan');
+    assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
+    // back to the New Year's pick, which the April tests below read as the
+    // account's own skin
+    await page.goto(`${base}/account/`);
+    await select.selectOption('albedo');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
   }, '900000000000000002');
 
   // On 1 April the glitched letter turns the page into the April look even when

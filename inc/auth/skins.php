@@ -72,6 +72,30 @@
             'find' => 'newyear',
             'words' => false,
             'what' => 'złoto Albedo na fioletowym tle i jej logo, bez napisów'
+        ],
+        'sadako' => [
+            'name' => 'Sadako',
+            'find' => 'friday13',
+            'words' => false,
+            'what' => 'widmowy błękit studni i logo Sadako, bez napisów'
+        ],
+        'lain' => [
+            'name' => 'Lain',
+            'find' => 'friday13',
+            'words' => false,
+            'what' => 'śliwkowy fiolet i szaroróż Lain, jej logo, bez napisów'
+        ],
+        'cibo' => [
+            'name' => 'Cibo',
+            'find' => 'birthday',
+            'words' => false,
+            'what' => 'granat i lawendowa biel Cibo, jej logo, bez napisów'
+        ],
+        'killy' => [
+            'name' => 'Killy',
+            'find' => 'birthday',
+            'words' => false,
+            'what' => 'stalowy błękit i czerń Killy\'ego, jego logo, bez napisów'
         ]
     ];
 
@@ -83,7 +107,9 @@
         'halloween' => 'Halloween',
         'xmas' => 'Święta',
         'easter' => 'Wielkanoc',
-        'newyear' => 'Nowy rok'
+        'newyear' => 'Nowy rok',
+        'friday13' => 'Piątek trzynastego',
+        'birthday' => 'Urodziny'
     ];
 
     // whether the skin speaks words on the home page (js/skin-<id>.js): the

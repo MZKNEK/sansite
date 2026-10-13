@@ -133,7 +133,7 @@
   <link href="../css/style.css?v=d488cb9070" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=81af35586f" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=0b438d700a" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=3b796277b4" type="text/css" rel="stylesheet" />

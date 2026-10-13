@@ -84,6 +84,10 @@
         assertTrue(skinSpeaks('miku'));
         assertFalse(skinSpeaks('tao'), 'Hu Tao brings none');
         assertFalse(skinSpeaks('albedo'));
+        assertFalse(skinSpeaks('sadako'), 'Sadako brings none');
+        assertFalse(skinSpeaks('lain'));
+        assertFalse(skinSpeaks('cibo'), 'Cibo brings none');
+        assertFalse(skinSpeaks('killy'));
         assertFalse(skinSpeaks(''), 'the default speaks nothing');
         assertFalse(skinSpeaks('rainbow'), 'and an unknown skin neither');
     });

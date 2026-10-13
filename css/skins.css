@@ -326,3 +326,131 @@ html[data-skin="albedo"] .home .link-swap:not(.below) a.swap-alt:hover {
     --fill: #97742a;
     color: #fff;
 }
+
+/* Sadako: the cold blue of the well and the logo of the Friday the 13th's find
+   (js/skin-sadako.js). No words: the page keeps its own. */
+html[data-skin="sadako"] {
+    --accent: #8b93bd;
+    --accent-light: #c2c7e2;
+    --accent-dark: #4b5180;
+    --accent-rgb: 139, 147, 189;
+    --accent-light-rgb: 194, 199, 226;
+    --accent-dark-rgb: 75, 81, 128;
+    --hud-rgb: 139, 147, 189;
+    --hud-light-rgb: 194, 199, 226;
+    --bg-dark: #0a0a10;
+    --bg-mid: #191a26;
+    --text: #e2e3ec;
+}
+
+html[data-skin="sadako"] .home .logo-slice,
+html[data-skin="sadako"] .home .logo-shard {
+    background-image: url("../skins/sadako.webp");
+}
+
+html[data-skin="sadako"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #c6cbe6;
+    --fill: rgba(30, 33, 56, 0.9);
+    color: #dde0f0;
+}
+
+html[data-skin="sadako"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #4b5180;
+    color: #fff;
+}
+
+/* Lain: the plum of the Wired and the muted mauve of the picture itself
+   (js/skin-lain.js). No words either. */
+html[data-skin="lain"] {
+    --accent: #a799a4;
+    --accent-light: #c9bdc6;
+    --accent-dark: #7b6b77;
+    --accent-rgb: 167, 153, 164;
+    --accent-light-rgb: 201, 189, 198;
+    --accent-dark-rgb: 123, 107, 119;
+    --hud-rgb: 167, 153, 164;
+    --hud-light-rgb: 201, 189, 198;
+    --bg-dark: #19141b;
+    --bg-mid: #2b223d;
+    --text: #ece6eb;
+}
+
+html[data-skin="lain"] .home .logo-slice,
+html[data-skin="lain"] .home .logo-shard {
+    background-image: url("../skins/lain.webp");
+}
+
+html[data-skin="lain"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #cdc1ca;
+    --fill: rgba(43, 34, 61, 0.9);
+    color: #e6dfe5;
+}
+
+html[data-skin="lain"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #7b6b77;
+    color: #fff;
+}
+
+/* Cibo: the navy of the Megastructure and the lavender white of her hair, of
+   the birthday find (js/skin-cibo.js). No words: the page keeps its own. */
+html[data-skin="cibo"] {
+    --accent: #c2c8d9;
+    --accent-light: #e2e6f0;
+    --accent-dark: #5d6a90;
+    --accent-rgb: 194, 200, 217;
+    --accent-light-rgb: 226, 230, 240;
+    --accent-dark-rgb: 93, 106, 144;
+    --hud-rgb: 194, 200, 217;
+    --hud-light-rgb: 226, 230, 240;
+    --bg-dark: #0f1016;
+    --bg-mid: #1c2034;
+    --text: #e8ebf3;
+}
+
+html[data-skin="cibo"] .home .logo-slice,
+html[data-skin="cibo"] .home .logo-shard {
+    background-image: url("../skins/cibo.webp");
+}
+
+html[data-skin="cibo"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #cdd3e4;
+    --fill: rgba(28, 32, 52, 0.9);
+    color: #e6e9f3;
+}
+
+html[data-skin="cibo"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #5d6a90;
+    color: #fff;
+}
+
+/* Killy: the steel blue of his own and the black he wears, the same find
+   (js/skin-killy.js). No words either. */
+html[data-skin="killy"] {
+    --accent: #66799b;
+    --accent-light: #b9b8bd;
+    --accent-dark: #3c4552;
+    --accent-rgb: 102, 121, 155;
+    --accent-light-rgb: 185, 184, 189;
+    --accent-dark-rgb: 60, 69, 82;
+    --hud-rgb: 102, 121, 155;
+    --hud-light-rgb: 185, 184, 189;
+    --bg-dark: #0d0f12;
+    --bg-mid: #252d38;
+    --text: #e1e2e5;
+}
+
+html[data-skin="killy"] .home .logo-slice,
+html[data-skin="killy"] .home .logo-shard {
+    background-image: url("../skins/killy.webp");
+}
+
+html[data-skin="killy"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #c3c5cb;
+    --fill: rgba(37, 45, 56, 0.9);
+    color: #dfe0e4;
+}
+
+html[data-skin="killy"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #3c4552;
+    color: #fff;
+}
