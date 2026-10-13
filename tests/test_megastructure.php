@@ -29,14 +29,17 @@
         assertTrue(megaMaze('a')['rows'] !== megaMaze('b')['rows'], 'another secret, another maze');
     });
 
-    test('every account\'s flights lie in their own bands, each start a third of a flight from its shaft', function () {
+    test('every account\'s flights lie in their own bands, each lower, each start a third of a flight from its shaft', function () {
+        assertSame(MEGA_FLIGHT_FIRST + (MEGA_FLIGHTS - 1) * MEGA_FLIGHT_BAND, megaBandFloor(0), 'the first flight the highest');
+        assertSame(MEGA_FLIGHT_FIRST, megaBandFloor(MEGA_FLIGHTS - 1), 'the last one the lowest, above floor zero');
         foreach (['a', 'b', 'preview'] as $secret)
             foreach (['111', '222', '987654321098765432'] as $id) {
                 $flights = megaFlights($secret, $id);
                 assertSame(MEGA_FLIGHTS, count($flights));
                 foreach ($flights as $k => $flight) {
-                    $band = MEGA_FLIGHT_FIRST + $k * MEGA_FLIGHT_BAND;
+                    $band = megaBandFloor($k);
                     assertTrue($flight['from'] >= $band && $flight['from'] + MEGA_FLIGHT_SPAN <= $band + MEGA_FLIGHT_BAND, 'in its band');
+                    assertSame($k, megaFlightOf($flight['shaft']));
                     foreach (['start', 'shaft'] as $floor)
                         assertTrue($flight[$floor] >= $flight['from'] && $flight[$floor] < $flight['from'] + MEGA_FLIGHT_SPAN, $floor . ' on the flight');
                     assertTrue(abs($flight['start'] - $flight['shaft']) >= intdiv(MEGA_FLIGHT_SPAN, 3), 'not near the shaft');
@@ -81,19 +84,29 @@
         $flights = megaFlights('a', '111');
         foreach ($flights as $k => $flight) {
             $draught = $at($flight['start'])['draught'];
-            assertSame($flight['shaft'] > $flight['start'] ? 'below' : 'above', $draught['from'], 'from where the shaft is');
-            assertTrue($draught['strength'] <= 1, 'weak at the start: ' . $draught['strength']);
-            assertSame(['door' => false, 'draught' => ['from' => 'below', 'strength' => 6]], $at($flight['shaft'] - 1), 'next to it');
-            assertSame(['door' => false, 'draught' => ['from' => 'above', 'strength' => 5]], $at($flight['shaft'] + 10));
-            if ($k < MEGA_FLIGHTS - 1)
+            assertSame($flight['shaft'] < $flight['start'] ? 'below' : 'above', $draught['from'], 'from where the shaft is');
+            assertSame(1, $draught['strength'], 'weak at the start');
+            assertSame(['door' => false, 'draught' => ['from' => 'above', 'strength' => 7]], $at($flight['shaft'] - 1), 'next to it');
+            assertSame(['door' => false, 'draught' => ['from' => 'below', 'strength' => 6]], $at($flight['shaft'] + 10));
+            if ($k < MEGA_FLIGHTS - 1) {
                 assertSame(['door' => false, 'shaft' => megaFloorPath($flights[$k + 1]['start'])], $at($flight['shaft']));
+                assertTrue($flights[$k + 1]['start'] < $flight['shaft'], 'down to the next');
+            }
         }
         $last = $flights[MEGA_FLIGHTS - 1]['shaft'];
-        assertSame($at($flights[0]['start']), $at('/PIETRO/−' . $flights[0]['start'] . '/'), 'as the 404 page shows it, the minus too');
-        assertSame($at($flights[0]['start']), $at('/pietro/-' . $flights[0]['start']));
-        assertSame(['door' => false], $at($flights[0]['from'] - 1), 'off the flight');
+        assertSame($at($flights[0]['start']), $at('/PIETRO/' . $flights[0]['start'] . '/'), 'as the 404 page may show it');
+        assertSame(['door' => false], $at('/pietro/-' . $flights[0]['start']), 'no floor below zero');
+        // off the flight, anywhere in its band, the way back is still felt
+        $top = MEGA_FLIGHT_FIRST + MEGA_FLIGHTS * MEGA_FLIGHT_BAND;
+        $band = megaBandFloor(0);
+        assertSame(['door' => false, 'draught' => megaDraught($top - 1, $flights[0]['shaft'])], $at($top - 1), 'the top of the first band');
+        assertSame(['door' => false, 'draught' => megaDraught($band, $flights[0]['shaft'])], $at($band), 'its bottom');
+        assertSame(['door' => false, 'draught' => megaDraught($band - 1, $flights[1]['shaft'])], $at($band - 1), 'the next band, the next flight');
+        assertSame(['door' => false, 'draught' => megaDraught(MEGA_FLIGHT_FIRST, $last)], $at(MEGA_FLIGHT_FIRST), 'the bottom of the last band');
+        assertSame(['door' => false], $at(MEGA_FLIGHT_FIRST - 1), 'below the stairs');
+        assertSame(['door' => false], $at($top), 'above them');
         assertSame(['door' => false], $at('/pietro/' . $flights[0]['start'] . 'x'));
-        assertSame(['door' => false], $at($last, '222'), 'another account\'s shaft is no shaft');
+        assertSame(['door' => false, 'draught' => megaDraught($last, megaFlights('a', '222')[MEGA_FLIGHTS - 1]['shaft'])], $at($last, '222'), 'another account\'s shaft is no shaft, only its own draught');
         $zero = $at($last);
         assertSame(geneFragment('a', 2), $zero['zero']['fragment']);
         $maze = megaMaze('a');
@@ -102,13 +115,17 @@
     });
 
     test('the draught grows stronger the nearer the shaft', function () {
-        assertSame(['from' => 'below', 'strength' => 0], megaDraught(1000, 5000));
-        assertSame(['from' => 'above', 'strength' => 1], megaDraught(5000, 4000));
-        assertSame(['from' => 'below', 'strength' => 2], megaDraught(4500, 5000));
-        assertSame(['from' => 'below', 'strength' => 3], megaDraught(4900, 5000));
-        assertSame(['from' => 'above', 'strength' => 4], megaDraught(5030, 5000));
-        assertSame(['from' => 'above', 'strength' => 5], megaDraught(5019, 5000));
-        assertSame(['from' => 'above', 'strength' => 6], megaDraught(5005, 5000));
+        // from above: the shaft has a greater number; from below, a smaller one
+        assertSame(['from' => 'above', 'strength' => 0], megaDraught(1000, 25000));
+        assertSame(['from' => 'above', 'strength' => 1], megaDraught(1000, 5000));
+        assertSame(['from' => 'below', 'strength' => 2], megaDraught(5000, 4000));
+        assertSame(['from' => 'above', 'strength' => 3], megaDraught(4500, 5000));
+        assertSame(['from' => 'above', 'strength' => 4], megaDraught(4900, 5000));
+        assertSame(['from' => 'below', 'strength' => 5], megaDraught(5030, 5000));
+        assertSame(['from' => 'below', 'strength' => 6], megaDraught(5019, 5000));
+        assertSame(['from' => 'below', 'strength' => 7], megaDraught(5005, 5000));
+        assertSame(null, megaFlightOf(MEGA_FLIGHT_FIRST - 1));
+        assertSame(MEGA_FLIGHTS - 1, megaFlightOf(MEGA_FLIGHT_FIRST));
         assertSame(null, megaFloor('/pietro/'));
         assertSame(null, megaFloor('/pietro/1234567890'));
         assertSame(42, megaFloor('/Pietro/42/'));

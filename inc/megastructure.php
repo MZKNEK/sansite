@@ -7,8 +7,8 @@
     //      (Polish time, the server's clock), a door opens; behind it, the first
     //      fragment and the Builders' stairs going down (a find, "builders");
     //   2. floor zero: the stairs are floors, /pietro/<n>, each a 404 page,
-    //      and on a flight of them a draught comes from its shaft, from above
-    //      or below, the stronger the nearer; the number in the address is
+    //      and around a flight of them a draught comes from its shaft, from
+    //      above or below, the stronger the nearer; the number in the address is
     //      changed until the shaft is found, which drops to the next flight,
     //      and the last one's to floor zero, with the second fragment (a find,
     //      "floor0") and a maze. Every account has its own flights
@@ -41,17 +41,20 @@
     // the Builders' hours, Polish time: from each HOUR:00 for MINUTES minutes
     const BUILDERS_HOURS = [3, 15];
     const BUILDERS_MINUTES = 7;
-    // The stairs: MEGA_FLIGHTS flights of MEGA_FLIGHT_SPAN floors each, the
-    // k-th somewhere in the k-th band of MEGA_FLIGHT_BAND floors from
-    // MEGA_FLIGHT_FIRST on, so they never meet and each goes deeper; the
-    // floors as the 404 page has them for any address (js/404.js)
+    // The stairs: MEGA_FLIGHTS flights of MEGA_FLIGHT_SPAN floors each, each
+    // somewhere in a band of MEGA_FLIGHT_BAND floors of its own from
+    // MEGA_FLIGHT_FIRST up, the first in the highest band, so they never meet
+    // and each goes lower, down towards floor zero; the floors as the 404
+    // page has them for any address (js/404.js). The draught of a flight's
+    // shaft is felt in all of its band, so a visitor gone off the flight
+    // still finds the way back.
     const MEGA_FLIGHTS = 3;
     const MEGA_FLIGHT_SPAN = 6000;
     const MEGA_FLIGHT_BAND = 3000000;
     const MEGA_FLIGHT_FIRST = 1000;
-    // how strong the draught is, 0 to 6: one more for each of these floors
+    // how strong the draught is, 0 to 7: one more for each of these floors
     // the shaft is nearer than
-    const MEGA_DRAUGHT = [2000, 600, 200, 60, 20, 6];
+    const MEGA_DRAUGHT = [20000, 2000, 600, 200, 60, 20, 6];
     // floor zero's maze, in cells; drawn twice as many characters plus one
     const MEGA_MAZE_W = 25;
     const MEGA_MAZE_H = 9;
@@ -105,7 +108,7 @@
         $third = intdiv(MEGA_FLIGHT_SPAN, 3);
         for ($k = 0; $k < MEGA_FLIGHTS; $k++) {
             $label = 'flight:' . $id . ':' . $k;
-            $from = MEGA_FLIGHT_FIRST + $k * MEGA_FLIGHT_BAND + megaPick($secret, $label, 0, MEGA_FLIGHT_BAND - MEGA_FLIGHT_SPAN);
+            $from = megaBandFloor($k) + megaPick($secret, $label, 0, MEGA_FLIGHT_BAND - MEGA_FLIGHT_SPAN);
             $shaft = megaPick($secret, $label, 1, MEGA_FLIGHT_SPAN);
             $start = ($shaft + $third + megaPick($secret, $label, 2, $third)) % MEGA_FLIGHT_SPAN;
             $flights[] = ['from' => $from, 'start' => $from + $start, 'shaft' => $from + $shaft];
@@ -114,22 +117,36 @@
         return $flights;
     }
 
+    // the lowest floor of the band of flight k (from 0, the first)
+    function megaBandFloor($k)
+    {
+        return MEGA_FLIGHT_FIRST + (MEGA_FLIGHTS - 1 - $k) * MEGA_FLIGHT_BAND;
+    }
+
+    // the flight whose band a floor is in, or null when none
+    function megaFlightOf($floor)
+    {
+        if ($floor < MEGA_FLIGHT_FIRST || $floor >= MEGA_FLIGHT_FIRST + MEGA_FLIGHTS * MEGA_FLIGHT_BAND)
+            return null;
+
+        return MEGA_FLIGHTS - 1 - intdiv($floor - MEGA_FLIGHT_FIRST, MEGA_FLIGHT_BAND);
+    }
+
     // the address of a floor of the stairs
     function megaFloorPath($floor)
     {
         return '/pietro/' . $floor;
     }
 
-    // the floor of an address of the stairs, "/pietro/<n>", or null; the 404
-    // page shows it as −n, so a minus typed with it is fine
+    // the floor of an address of the stairs, "/pietro/<n>", or null
     function megaFloor($path)
     {
-        return preg_match('~^/pietro/(?:-|−)?(\d{1,9})$~uD', megaPath($path), $m) ? (int)$m[1] : null;
+        return preg_match('~^/pietro/(\d{1,9})$~D', megaPath($path), $m) ? (int)$m[1] : null;
     }
 
-    // the draught on a floor of a flight: ['from' => 'below' (a deeper floor,
-    // a greater number) or 'above', 'strength' => 0 to 6, the nearer the shaft
-    // the stronger]
+    // the draught on a floor of a flight's band: ['from' => 'below' (a lower
+    // floor, a smaller number) or 'above', 'strength' => 0 to 7, the nearer
+    // the shaft the stronger]
     function megaDraught($floor, $shaft)
     {
         $far = abs($shaft - $floor);
@@ -138,7 +155,7 @@
             if ($far < $near)
                 $strength++;
 
-        return ['from' => $shaft > $floor ? 'below' : 'above', 'strength' => $strength];
+        return ['from' => $shaft < $floor ? 'below' : 'above', 'strength' => $strength];
     }
 
     // what the Safeguard answers to in the console: five small letters
@@ -850,10 +867,10 @@
                 return $answer;
             $path = megaPath($query['at']);
             $floor = megaFloor($path);
-            $flights = $floor === null ? [] : megaFlights($secret, $id);
-            foreach ($flights as $k => $flight) {
-                if ($floor < $flight['from'] || $floor >= $flight['from'] + MEGA_FLIGHT_SPAN)
-                    continue;
+            $k = $floor === null ? null : megaFlightOf($floor);
+            if ($k !== null) {
+                $flights = megaFlights($secret, $id);
+                $flight = $flights[$k];
                 if ($floor !== $flight['shaft'])
                     $answer['draught'] = megaDraught($floor, $flight['shaft']);
                 elseif ($k < MEGA_FLIGHTS - 1)

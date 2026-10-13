@@ -105,11 +105,12 @@ document.getElementById('lost').textContent = path;
   });
 
   var floor = 1000 + pick(9000000);
-  // an address of a floor, /pietro/<n> (a minus with it or not), is on that floor
-  var stairs = path.match(/^\/pietro\/[-−]?(\d{1,9})\/?$/i);
+  // an address of a floor, /pietro/<n>, is on that floor; floor zero is the
+  // bottom of the Megastructure, so the higher the number the higher the floor
+  var stairs = path.match(/^\/pietro\/(\d{1,9})\/?$/i);
   if (stairs) floor = parseInt(stairs[1], 10);
   var sector = (0x100 + pick(0xf00)).toString(16).toUpperCase() + '-' + (0x10 + pick(0xf0)).toString(16).toUpperCase();
-  document.getElementById('mega-where').textContent = 'Piętro −' + number(floor) + ' · sektor ' + sector;
+  document.getElementById('mega-where').textContent = 'Piętro ' + number(floor) + ' · sektor ' + sector;
   document.getElementById('mega-terminal').textContent = number(200 + pick(9800)) + ' km';
   document.getElementById('mega-people').textContent = number(300 + pick(4700)) + ' lat temu';
   document.getElementById('mega-note').textContent = NOTES[pick(NOTES.length)];
@@ -121,7 +122,7 @@ document.getElementById('lost').textContent = path;
   // The server says whether this address is more than a dead end: at the
   // Builders' hour a door opens on any of them, though only to an account;
   // behind it stairs going down, floors /pietro/<n> of the account's own,
-  // where a flight feels a draught from its shaft, from above or below and
+  // where around a flight a draught comes from its shaft, from above or below and
   // the stronger the nearer, which the number in the address is changed to
   // find; a shaft drops to the next flight, the last to floor zero.
   if (!window.SanakanSafeguard) return;
@@ -150,8 +151,8 @@ document.getElementById('lost').textContent = path;
     return a;
   }
 
-  // the draught's strength (0 to 6, MEGA_DRAUGHT) and where it comes from
-  var STRENGTHS = ['ledwo wyczuwalny', 'słaby', 'wyraźny', 'silny', 'bardzo silny', 'wyje w szczelinach', 'szarpie ubraniem, szyb jest tuż obok'];
+  // the draught's strength (0 to 7, MEGA_DRAUGHT) and where it comes from
+  var STRENGTHS = ['prawie go nie czuć, do schodów daleko', 'ledwo wyczuwalny','słaby', 'wyraźny', 'silny', 'bardzo silny', 'wyje w szczelinach', 'szarpie ubraniem, szyb jest tuż obok'];
   var FROM = { below: 'z dołu', above: 'z góry' };
 
   // a door that will not open, for whoever the Safeguard does not know
@@ -343,6 +344,7 @@ document.getElementById('lost').textContent = path;
         got.appendChild(code(answer.fragment));
         var way = line('mega-secret', 'Za nimi schody w dół, do piętra ');
         way.appendChild(link(answer.stairs));
+        way.appendChild(document.createTextNode('. Każde piętro ma tu swój adres.'));
         sg.fragment(1, answer.fragment);
         sg.found('builders', answer.proof);
       });
@@ -401,6 +403,7 @@ document.getElementById('lost').textContent = path;
       var shaft = line('mega-secret', 'Szyb Budowniczych. Opada w ciemność, do piętra ');
       shaft.appendChild(link(answer.shaft));
     }
-    if (answer.door) door();
+    // already behind the door: none on the stairs or floor zero
+    if (answer.door && !answer.draught && !answer.shaft && !answer.zero) door();
   });
 })();
