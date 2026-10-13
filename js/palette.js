@@ -176,6 +176,11 @@
   }
 
   var open = null;
+  var refresh = null;
+  document.addEventListener('sanakan:home-language', function () {
+    items = pages().concat(extra);
+    if (refresh) refresh();
+  });
 
   function show() {
     if (open || document.body.classList.contains('ns-open')) return;
@@ -274,6 +279,7 @@
       overlay.remove();
       document.body.classList.remove('pl-open');
       open = null;
+      refresh = null;
       if (back !== false && before && before.focus) before.focus();
     }
 
@@ -301,6 +307,7 @@
     });
     document.addEventListener('keydown', key, true);
     open = shut;
+    refresh = render;
 
     render();
     input.focus();

@@ -1,29 +1,8 @@
-// Teto, the skin of the Japanese home page of 1 April (inc/auth/skins.php): the
-// reds and the logo of the weakened Safeguard, and the glitched letter it is
-// found by. Its words are the Japanese ones it shares with Miku (js/skin-ja.js).
-// The skin is the account's to wear from its profile (/account/), its colours
-// go over the whole site (css/skins.css), its logo and words stay on the home
-// page; the letter switches the April skin on for the visit, as the language
-// once did, and gives the seasonal find — a skin of the account's own that does
-// not speak Japanese gives way to it for that visit. A worn skin that speaks
-// Japanese is already the April look: the glitch then only waits on its last
-// kana for the find alone.
+// The seasonal April discovery, independent of the account's selected skin.
+// The temporary look wins over an account response that arrives after a click.
 (function () {
-  SanakanSkins.define({
-    id: 'teto',
-    name: 'Teto',
-    lang: 'ja',
-    title: 'サナカン',
-    logo: { src: './skins/teto.webp', alt: 'テト' },
-    decorate: SanakanSkinJa.decorate,
-    translate: SanakanSkinJa.translate
-  });
-
-  // ---- The glitched letter, the way this skin is found ---------------------
-  // On 1 April only, the last letter of the name glitches and waits to be
-  // activated; that gives the seasonal find and, without a skin of the
-  // account's own, wears Teto for the visit (the profile keeps a skin, once it
-  // is unlocked).
+  // On 1 April the last letter waits to be activated. It gives the find and
+  // switches to Teto for this visit unless the page already speaks Japanese.
   if (!document.body.classList.contains('home') || !window.SanakanSafeguard
       || !SanakanSafeguard.holiday('aprilfools')) return;
 

@@ -328,33 +328,23 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.locator('.account-menu').waitFor();
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
-    assert.equal(await select.locator('option[value=teto]').evaluate(node => node.disabled), true, 'locked without the find');
-    assert.ok((await select.locator('option[value=teto]').textContent()).includes('Zagubiony w tłumaczeniu'),
-      'and says what unlocks it');
-    assert.equal(await select.locator('option[value=tao]').evaluate(node => node.disabled), true, 'Hu Tao is locked too');
-    assert.ok((await select.locator('option[value=tao]').textContent()).includes('Noc form krzemowych'),
-      'its find being the one of Halloween');
-    assert.equal(await select.locator('option[value=march7]').evaluate(node => node.disabled), true, 'March 7th is locked too');
-    assert.ok((await select.locator('option[value=march7]').textContent()).includes('Święta w Megastrukturze'),
-      'her find being the one of Christmas');
-    assert.equal(await select.locator('option[value=reisen]').evaluate(node => node.disabled), true, 'Reisen is locked too');
-    assert.ok((await select.locator('option[value=reisen]').textContent()).includes('Pisanki z Megastruktury'),
-      'her find being the one of Easter');
-    assert.equal(await select.locator('option[value=furi]').evaluate(node => node.disabled), true, 'Furina is locked too');
-    assert.ok((await select.locator('option[value=furi]').textContent()).includes('Nowy cykl'),
-      'her find being the one of the New Year');
-    assert.equal(await select.locator('option[value=sadako]').evaluate(node => node.disabled), true, 'Sadako is locked too');
-    assert.ok((await select.locator('option[value=sadako]').textContent()).includes('Piątek trzynastego'),
-      'her find being the one of Friday the 13th');
-    assert.equal(await select.locator('option[value=lain]').evaluate(node => node.disabled), true, 'Lain is locked too');
-    assert.ok((await select.locator('option[value=lain]').textContent()).includes('Piątek trzynastego'),
-      'her find being the same');
-    assert.equal(await select.locator('option[value=cibo]').evaluate(node => node.disabled), true, 'Cibo is locked too');
-    assert.ok((await select.locator('option[value=cibo]').textContent()).includes('Sto lat'),
-      'her find being the one of the birthday');
-    assert.equal(await select.locator('option[value=killy]').evaluate(node => node.disabled), true, 'Killy is locked too');
-    assert.ok((await select.locator('option[value=killy]').textContent()).includes('Sto lat'),
-      'his find being the same');
+    const locked = select.locator('option:disabled');
+    assert.equal(await locked.count(), 14, 'all seasonal skins are locked without finds');
+    for (const [group, hint] of [
+      ['Prima aprilis', 'Zagubiony w tłumaczeniu'], ['Halloween', 'Noc form krzemowych'],
+      ['Święta', 'Święta w Megastrukturze'], ['Wielkanoc', 'Pisanki z Megastruktury'],
+      ['Nowy rok', 'Nowy cykl'], ['Piątek trzynastego', 'Piątek trzynastego'], ['Urodziny', 'Sto lat']
+    ]) {
+      const options = select.locator(`optgroup[label="${group}"] option:disabled`);
+      assert.equal(await options.count(), 2);
+      for (const text of await options.allTextContents())
+        assert.equal(text, '??? · zablokowany: ' + hint, 'only the unlocking hint is visible');
+    }
+    assert.equal(await locked.evaluateAll(options => options.every(option => option.value === '' && !option.hasAttribute('data-skin-words'))), true,
+      'locked options expose neither identifiers nor language metadata');
+    const form = await page.locator('.skin-form').textContent();
+    for (const name of ['Teto', 'Miku', 'Hu Tao', 'Rin', 'March 7th', 'Padoru', 'Reisen', 'Pekora', 'Furina', 'Albedo', 'Sadako', 'Lain', 'Cibo', 'Killy'])
+      assert.equal(form.includes(name), false, 'the form keeps the name hidden: ' + name);
     // a form sent by hand cannot talk the server into a locked skin
     const me = await (await context.request.get(`${base}/account.php?finds`)).json();
     const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'teto' } });
@@ -383,7 +373,8 @@ export async function testHome({ browser, base, site, php, errors }) {
         'the Halloween find unlocked ' + key);
     await select.selectOption('tao');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
-    assert.equal(await page.locator('.skin-form input[name=skinwords]').count(), 0, 'a skin with no words offers no switch');
+    assert.equal(await page.locator('.skin-form input[name=skinwords]').isVisible(), false, 'a skin with no words offers no switch');
+    assert.equal(await page.locator('.skin-form input[name=skinwords]').isDisabled(), true, 'the hidden switch is not submitted');
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'tao');
     assert.match(await page.locator('img.logo').getAttribute('src'), /tao\.webp$/);
@@ -598,7 +589,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/teto\.webp$/);
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '217, 75, 88');
     assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), 'rgb(217, 75, 88)',
-      'the browser bar follows the skin (js/hud.js)');
+      'the browser bar follows the skin (js/appearance.js)');
     assert.equal(await page.locator('.home-language-reset').count(), 2, 'a way back, as for a visitor without a skin');
     await Promise.all([page.waitForNavigation(), page.locator('h1 .home-language-reset').click()]);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo', "the reload brings the account's own skin back");

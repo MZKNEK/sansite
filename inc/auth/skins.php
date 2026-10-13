@@ -1,118 +1,8 @@
 <?php
-    // The skins of the home page: the colours, the logo and, if the skin
-    // brings any, the words it speaks, each unlocked by a find of the
-    // Safeguard's register; the site's owner has them all. An account picks one
-    // in its profile (/account/), which is kept in inc/data/skins.json, and the
-    // choice goes into the cookie "skin" as the colour of the HUD goes into
-    // "hud", so the static pages (the home page) can wear it before the first
-    // paint (js/skins.js). The look itself is in css/skins.css and one
-    // js/skin-<id>.js per skin; tests/test_skins.php keeps the ids here, there
-    // and in the CSS together.
+    // Account skin preferences and unlock checks. Metadata is defined in
+    // inc/skin-catalog.php; colours in css/skins.css, home rendering in js/skins.js.
 
-    const SKINS = [
-        // id => the name, the find that unlocks it (null for none), whether the
-        // skin speaks words on the home page (the profile offers the
-        // translation switch only for those) and a line for the profile
-        'teto' => [
-            'name' => 'Teto',
-            'find' => 'aprilfools',
-            'words' => true,
-            'what' => 'japońska strona z 1 kwietnia: czerwień, logo Teto i japońskie napisy'
-        ],
-        'miku' => [
-            'name' => 'Miku',
-            'find' => 'aprilfools',
-            'words' => true,
-            'what' => 'turkusowa zieleń, logo Miku i japońskie napisy'
-        ],
-        'tao' => [
-            'name' => 'Hu Tao',
-            'find' => 'halloween',
-            'words' => false,
-            'what' => 'czerwień ognia i logo Hu Tao, bez napisów'
-        ],
-        'rin' => [
-            'name' => 'Rin',
-            'find' => 'halloween',
-            'words' => false,
-            'what' => 'żółć Rin i jej logo, bez napisów'
-        ],
-        'march7' => [
-            'name' => 'March 7th',
-            'find' => 'xmas',
-            'words' => false,
-            'what' => 'róż March 7th i jej logo, bez napisów'
-        ],
-        'padoru' => [
-            'name' => 'Padoru',
-            'find' => 'xmas',
-            'words' => false,
-            'what' => 'świąteczne złoto padoru i jego logo, bez napisów'
-        ],
-        'reisen' => [
-            'name' => 'Reisen',
-            'find' => 'easter',
-            'words' => false,
-            'what' => 'lawendowy fiolet i logo Reisen, bez napisów'
-        ],
-        'peko' => [
-            'name' => 'Pekora',
-            'find' => 'easter',
-            'words' => false,
-            'what' => 'błękit Pekory i jej logo, bez napisów'
-        ],
-        'furi' => [
-            'name' => 'Furina',
-            'find' => 'newyear',
-            'words' => false,
-            'what' => 'królewski błękit Furiny i jej logo, bez napisów'
-        ],
-        'albedo' => [
-            'name' => 'Albedo',
-            'find' => 'newyear',
-            'words' => false,
-            'what' => 'złoto Albedo na fioletowym tle i jej logo, bez napisów'
-        ],
-        'sadako' => [
-            'name' => 'Sadako',
-            'find' => 'friday13',
-            'words' => false,
-            'what' => 'widmowy błękit studni i logo Sadako, bez napisów'
-        ],
-        'lain' => [
-            'name' => 'Lain',
-            'find' => 'friday13',
-            'words' => false,
-            'what' => 'śliwkowy fiolet i szaroróż Lain, jej logo, bez napisów'
-        ],
-        'cibo' => [
-            'name' => 'Cibo',
-            'find' => 'birthday',
-            'words' => false,
-            'what' => 'granat i lawendowa biel Cibo, jej logo, bez napisów'
-        ],
-        'killy' => [
-            'name' => 'Killy',
-            'find' => 'birthday',
-            'words' => false,
-            'what' => 'stalowy błękit i czerń Killy\'ego, jego logo, bez napisów'
-        ]
-    ];
-
-    // The groups of the profile's picker: what a skin is unlocked by, read as
-    // its season (a find outside the map keeps its own name of the register;
-    // a skin unlocked by nothing sits under "Zawsze")
-    const SKIN_GROUPS = [
-        'aprilfools' => 'Prima aprilis',
-        'halloween' => 'Halloween',
-        'xmas' => 'Święta',
-        'easter' => 'Wielkanoc',
-        'newyear' => 'Nowy rok',
-        'friday13' => 'Piątek trzynastego',
-        'birthday' => 'Urodziny'
-    ];
-
-    // whether the skin speaks words on the home page (js/skin-<id>.js): the
+    // whether the skin speaks words on the home page (js/skin-catalog.js): the
     // profile offers its translation switch only for the ones that do
     function skinSpeaks($skin)
     {
@@ -120,13 +10,13 @@
     }
 
     // whether the account may wear the skin: its find in the register, or the
-    // owner, who wears anything; an unknown skin: no
+    // owner outside a permissions preview; an unknown skin: no
     function skinUnlocked($skin, $id)
     {
         $entry = SKINS[$skin] ?? null;
         if ($entry === null)
             return false;
-        if (realPanelAdminId($id))
+        if (realPanelAdminId($id) && testRights($id) === null)
             return true;
 
         return $entry['find'] === null || isset(safeguardFinds($id)[$entry['find']]);

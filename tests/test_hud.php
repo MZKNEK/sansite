@@ -47,7 +47,7 @@
 
     test('hudHtmlAttributes carries the mode, the colour and the own role', function () {
         clearData();
-        assertSame('', hudHtmlAttributes(null));
+        assertSame(' data-hud="default"', hudHtmlAttributes(null), 'the server marks an anonymous default instead of trusting old cookies');
 
         $user = ['id' => '111', 'name' => 'One', 'avatar' => 'a'];
         setHud('111', 'accent', 'dev');

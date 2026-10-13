@@ -1,0 +1,73 @@
+/* The April secret lives in the final letter, keeping the heading's spacing. */
+.april-letter {
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.april-letter-original {
+    animation: april-letter-original 5.6s steps(1) infinite;
+}
+
+.april-letter-kana {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    color: var(--accent-light);
+    letter-spacing: 0;
+    animation: april-letter-kana 5.6s steps(1) infinite;
+}
+
+.april-letter:focus-visible {
+    outline: 1px dashed var(--accent-light);
+    outline-offset: 4px;
+}
+
+@keyframes april-letter-original {
+    0%, 84%, 94%, 100% { opacity: 1; }
+    85%, 90% { opacity: 0.15; }
+    87%, 92% { opacity: 0.6; }
+}
+
+@keyframes april-letter-kana {
+    0%, 84%, 94%, 100% { opacity: 0; transform: none; }
+    85%, 90% { opacity: 1; transform: translate(2px, -1px); }
+    87%, 92% { opacity: 0.65; transform: translate(-2px, 1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .april-letter-original,
+    .april-letter-kana { animation: none; }
+
+    .april-letter-original { opacity: 0.6; }
+    .april-letter-kana { opacity: 0.45; }
+}
+
+.home-language-reset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-shadow: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.home-language-reset:focus-visible {
+    outline: 1px dashed var(--accent-light);
+    outline-offset: 4px;
+}

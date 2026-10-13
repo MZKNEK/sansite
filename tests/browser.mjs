@@ -8,11 +8,12 @@ import { spawn, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { testSafeguardSync } from './safeguard-browser.mjs';
 import { testHome } from './home-browser.mjs';
+import { testSkinChanges } from './skins-browser.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
 const site = mkdtempSync(path.join(tmpdir(), 'sanakan-browser-'));
-for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts']) {
+for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', 'hunters']) {
   cpSync(path.join(root, dir), path.join(site, dir), { recursive: true, filter: p => p !== path.join(root, 'inc/data') && p !== path.join(root, 'inc/config.php') });
 }
 mkdirSync(path.join(site, 'i'));
@@ -209,6 +210,7 @@ try {
   assert.equal((await rename('case-only.png', 'Case-Only.png')).status(), 200, 'a case-only rename without a collision still works');
   assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
   await testHome({ browser, base, site, php, errors });
+  await testSkinChanges({ browser, base, site, errors });
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
   console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');

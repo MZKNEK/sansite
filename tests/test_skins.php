@@ -60,6 +60,34 @@
         assertSame('teto', skinPref('999'));
     });
 
+    test('a permissions preview removes the owners skin bonus but keeps earned skins and the saved pick', function () {
+        sessionFor('sanakan-skins-preview', ['id' => '999', 'name' => 'Root', 'avatar' => 'a']);
+        try {
+            setSkin('999', 'teto', false);
+            foreach ([['role' => 'user'], ['panel' => false], ['role' => 'user', 'panel' => true]] as $rights) {
+                setTestRights($rights, 15);
+                assertFalse(skinUnlocked('teto', '999'), 'no owner bonus in a preview, even with panel access');
+                assertSame('', skinPref('999'));
+                assertFalse(setSkin('999', 'tao'), 'the server refuses an unearned pick too');
+                assertSame(['skin' => 'teto', 'words' => false], readData('skins')['999'], 'the saved pick survives');
+            }
+            writeData('finds', ['999' => ['aprilfools' => time()]]);
+            assertTrue(skinUnlocked('teto', '999'));
+            assertTrue(skinUnlocked('miku', '999'));
+            assertFalse(skinUnlocked('tao', '999'));
+            assertSame('teto', skinPref('999'), 'earned skins remain usable in the preview');
+            setTestRights(null);
+            assertTrue(skinUnlocked('tao', '999'), 'ending the preview restores the owner bonus');
+            setTestRights(['role' => 'user'], 15);
+            $_SESSION['test_rights']['until'] = time() - 1;
+            testRights(null, true);
+            assertTrue(skinUnlocked('tao', '999'), 'expiry restores the bonus too');
+        } finally {
+            setTestRights(null);
+            sessionEnd();
+        }
+    });
+
     test('a find taken back stops the skin', function () {
         clearData();
         writeData('finds', ['111' => ['aprilfools' => time()]]);
@@ -92,14 +120,16 @@
         assertFalse(skinSpeaks('rainbow'), 'and an unknown skin neither');
     });
 
-    test('every skin has its script and its block in the CSS', function () {
+    test('the generated skin catalog matches PHP and every skin has its logo and CSS', function () {
         $root = dirname(__DIR__);
+        assertSame(skinCatalogScript(), (string)file_get_contents($root . '/js/skin-catalog.js'),
+            'run php tools/asset-versions.php after changing the catalog');
         foreach (SKINS as $key => $skin) {
-            $script = (string)@file_get_contents($root . '/js/skin-' . $key . '.js');
-            assertTrue(strpos($script, "id: '" . $key . "'") !== false, 'js/skin-' . $key . '.js defines the skin');
+            assertTrue(is_file($root . '/skins/' . $key . '.webp'), $key . ' has a logo');
             assertTrue(strpos((string)@file_get_contents($root . '/css/skins.css'), 'html[data-skin="' . $key . '"]') !== false,
                 'css/skins.css styles ' . $key);
             assertTrue(is_bool($skin['words'] ?? null), $key . ' says whether it speaks words');
+            assertSame($skin['words'], isset($skin['lang']), $key . ' declares its language when it has words');
 
             $find = $skin['find'];
             assertTrue($find === null || isset(SAFEGUARD_FINDS[$find]) || isset(SAFEGUARD_SEASONAL[$find]),

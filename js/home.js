@@ -19,10 +19,6 @@ function homeHoliday(key) {
   return window.SanakanSafeguard ? SanakanSafeguard.holiday(key) : false;
 }
 
-function homeText(text) {
-  return window.SanakanHomeLanguage ? SanakanHomeLanguage.text(text) : text;
-}
-
 // a note over the logo that goes away by itself
 function homeSay(wrap, text, ms) {
   var say = document.createElement('p');
@@ -87,13 +83,15 @@ function homeSay(wrap, text, ms) {
 
   var motto = document.getElementById('motto');
   // The Japanese motto uses romanized Japanese for international Morse.
-  var text = motto.dataset.morse || motto.textContent.trim();
+  var plain = 'Niby nie taki lekki, ale lata';
+  var text = motto.dataset.morse || plain;
   var special = null;
   HOLIDAYS.some(function (holiday) {
-    if (!window.SanakanHomeLanguage && homeHoliday(holiday[0])) special = holiday[1];
+    if (homeHoliday(holiday[0])) special = holiday[1];
     return special;
   });
-  if (special) {
+  if (special) plain = special;
+  if (special && !window.SanakanHomeLanguage) {
     text = special;
     motto.title = special;
   }
@@ -132,7 +130,7 @@ function homeSay(wrap, text, ms) {
     var cycle = (t + PAUSE) * unit;
     motto.style.setProperty('--cycle', cycle + 'ms');
     motto.classList.remove('decoded');
-    motto.replaceChildren(signal, el('span', 'sr-only', homeText(message)));
+    motto.replaceChildren(signal, el('span', 'sr-only', message));
     return cycle;
   }
 
@@ -149,8 +147,8 @@ function homeSay(wrap, text, ms) {
   // The April letter can switch the language after Morse input has started.
   // Keep an unfinished message or reply, then use the new motto next time.
   document.addEventListener('sanakan:home-language', function () {
-    text = motto.dataset.morse || text;
-    motto.title = homeText(text);
+    text = motto.dataset.morse || plain;
+    motto.title = text;
     if (!busy && !down && !letters.length && !symbols) send(text, 0, UNIT);
   });
 
@@ -204,8 +202,7 @@ function homeSay(wrap, text, ms) {
 
     setTimeout(function () {
       motto.classList.add('decoded');
-      motto.replaceChildren(el('span', null, homeText('odebrano:') + ' ' + heard
-        + ' · ' + homeText('odpowiedź:') + ' ' + homeText(answer).toUpperCase()));
+      motto.replaceChildren(el('span', null, 'odebrano: ' + heard + ' · odpowiedź: ' + answer.toUpperCase()));
     }, sent);
 
     setTimeout(function () {
@@ -489,7 +486,7 @@ function homeWitness(key) {
   function el(tag, cls, text) {
     var node = document.createElement(tag);
     if (cls) node.className = cls;
-    if (text != null) node.textContent = homeText(text);
+    if (text != null) node.textContent = text;
     return node;
   }
 
@@ -501,7 +498,7 @@ function homeWitness(key) {
     var box = el('div', 'pp-box hud-corners');
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
-    box.setAttribute('aria-label', homeText('Ping pong z Safeguardem'));
+    box.setAttribute('aria-label', 'Ping pong z Safeguardem');
     box.tabIndex = -1;
     var head = el('div', 'pp-head');
     var close = el('button', 'pp-close', '×');
@@ -556,7 +553,7 @@ function homeWitness(key) {
     }
 
     function showScore() {
-      score.textContent = homeText('Ty') + ' ' + points[0] + ' : ' + points[1] + ' ' + homeText('Safeguard');
+      score.textContent = 'Ty ' + points[0] + ' : ' + points[1] + ' Safeguard';
     }
 
     // off a paddle: the farther from its middle, the steeper
@@ -758,12 +755,12 @@ function homeWitness(key) {
     .then(function (data) {
       if (!data || !labels[data.status]) throw new Error('unknown status');
 
-      var label = homeText(labels[data.status]
+      var label = labels[data.status]
         .replace('{uptime}', Number(data.uptime).toLocaleString('pl-PL'))
-        .replace(' {down}', data.down ? ' ' + data.down : ''));
-      if (data.status === 'idle' && data.issues) label = homeText('Zaraz wracam: bot działa, ale ' + data.issues);
+        .replace(' {down}', data.down ? ' ' + data.down : '');
+      if (data.status === 'idle' && data.issues) label = 'Zaraz wracam: bot działa, ale ' + data.issues;
       dot.className = 'bot-status ' + data.status;
-      dot.title = label + homeText(' (kliknij, żeby zobaczyć dostępność)');
+      dot.title = label + ' (kliknij, żeby zobaczyć dostępność)';
       dot.setAttribute('aria-label', label);
     })
     // without an answer nothing is known about the bot, so no dot at all

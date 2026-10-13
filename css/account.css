@@ -1,7 +1,7 @@
 /* The account of every page, on its own so Skalpelator and USkalpelator
    (apps/), which have a stylesheet of their own, can take it too: the colours
    of the roles on the bot's Discord server, the HUD in the colour of the role
-   (data-hud, js/hud.js), the account menu of the top right corner
+   (data-hud, js/appearance.js), the account menu of the top right corner
    (accountMenuHtml() in inc/auth.php, js/account.js) and the bar of trying
    other rights. It uses the colours of the site's :root (css/style.css, or
    the app's own) and the corners of .hud-corners, and goes after them. */

@@ -28,13 +28,13 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=d488cb9070" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=0b438d700a" type="text/css" rel="stylesheet" />
+  <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=0b8d6445c6" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=48b256d26f"></script>
+  <script src="../js/appearance.js?v=7b68bd4840"></script>
 </head>
 
 <body class="state-page">
@@ -64,10 +64,10 @@
     <p class="state-note">Strona odświeża się sama co 10 minut.</p>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
-  <script src="../js/account.js?v=ff288d9afb"></script>
+  <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
-  <script src="../js/palette.js?v=f09ec8cf36"></script>
+  <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
 </html>

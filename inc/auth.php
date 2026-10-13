@@ -27,6 +27,7 @@
     // time zone below.
     require_once __DIR__ . '/text.php';
     require_once __DIR__ . '/storage.php';
+    require_once __DIR__ . '/skin-catalog.php';
 
     // the times in the history and the panel follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');

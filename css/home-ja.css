@@ -1,0 +1,24 @@
+/* Japanese typography shared by Teto and Miku. Colours belong to skins.css. */
+html[lang="ja"] body.home {
+    font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+}
+
+html[lang="ja"] .home .hud-title {
+    color: var(--home-title, var(--text));
+    font-family: inherit;
+    letter-spacing: 0.22em;
+    padding-left: 0.22em;
+}
+
+html[lang="ja"] .home .links a,
+html[lang="ja"] .home .site-foot,
+html[lang="ja"] .home .home-login,
+html[lang="ja"] .home .tag {
+    letter-spacing: 0.08em;
+}
+
+/* The alternate label is longer than the main one, which sets its width. */
+html[lang="ja"] .home .links .below a.swap-alt {
+    padding-inline: 0.75em;
+    white-space: nowrap;
+}

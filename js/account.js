@@ -42,31 +42,20 @@ window.SanakanAccount = (function () {
   // Asks account.php for the account, puts its menu into box and its HUD
   // colour on the page; resolves to what account.php said, or null.
   function load(box) {
-    var root = document.documentElement;
-
     return fetch(ROOT + 'account.php?back=' + encodeURIComponent(here()), { credentials: 'same-origin', cache: 'no-store' })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (me) {
         if (!me) return null;
-        if (!me.menu) {
-          // the colour of an account that is gone (js/hud.js read it from the
-          // cookies account.php has just removed)
-          root.removeAttribute('data-hud');
-          root.className = root.className.replace(/\brole-\S+/g, '').trim();
-          return me;
+        if (me.menu) {
+          // the menu comes ready from the server, its texts escaped there
+          box.innerHTML = me.menu;
+          bind(box.firstElementChild);
+          box.hidden = false;
+        } else {
+          box.replaceChildren();
+          box.hidden = true;
         }
-
-        // the HUD colour chosen in the profile (/account/), applied at once
-        if (me.hud === 'accent' || me.hud === 'full') {
-          root.setAttribute('data-hud', me.hud);
-          if (me.role) root.classList.add('role-' + me.role);
-        }
-
-        // the menu comes ready from the server, its texts escaped there
-        box.innerHTML = me.menu;
-        bind(box.firstElementChild);
-        box.hidden = false;
-        // for the scripts that wait for the account (js/safeguard.js)
+        // Appearance also needs to hear when the account is gone.
         document.dispatchEvent(new CustomEvent('sanakan:account', { detail: me }));
         return me;
       })

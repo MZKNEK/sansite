@@ -2055,7 +2055,7 @@ a.who-name:hover {
     margin-top: 10px;
 }
 
-/* the skin of the home page, under the HUD's own fields (js/skins.js): the
+/* the skin of the home page, under the HUD's own fields (js/appearance-picker.js): the
    words' switch on a line of its own and the save under it, like the HUD's
    switch and its save (the save keeps its room when the picked skin speaks no
    words and the switch is not there at all) */
@@ -2067,7 +2067,7 @@ a.who-name:hover {
     margin-top: 16px;
 }
 
-.skin-form .skin-words {
+.skin-form .skin-words:not([hidden]) {
     display: flex;
     margin-top: 14px;
 }

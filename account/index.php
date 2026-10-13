@@ -58,10 +58,12 @@
         } else if (($_POST['action'] ?? '') === 'skin') {
             $skin = (string)($_POST['skin'] ?? '');
             $before = skinPrefs($user['id']);
-            // the translation switch is offered while the rendered pick speaks
-            // or nothing is picked (the default); without it the account's own
-            // choice stays
-            $hadSwitch = $before['skin'] === '' || skinSpeaks($before['skin']);
+            // The picker marks whether the selected skin offers its switch.
+            // Without it the stored words preference stays; older forms fall
+            // back to the switch the server originally rendered.
+            $hadSwitch = isset($_POST['skinwords_present'])
+                ? $_POST['skinwords_present'] === 'on'
+                : ($before['skin'] === '' || skinSpeaks($before['skin']));
             $words = $hadSwitch ? isset($_POST['skinwords']) : $before['words'];
             if (!setSkin($user['id'], $skin, $words)) {
                 setFlash('Ten skin jest jeszcze zablokowany.');
@@ -174,13 +176,13 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=d488cb9070" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
+  <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=3b796277b4" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=0b438d700a" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=b5de09b872" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=0b8d6445c6" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -378,7 +380,7 @@
         <form method="post" action="./" class="skin-form">
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="skin" />
-<?php $skinNow = skinPref($id); $skinGroups = []; foreach (SKINS as $key => $skin) { $skinGroups[(string)$skin['find']][] = $key; } ?>
+<?php $skinNow = skinPref($id); $skinSwitch = $skinNow === '' || skinSpeaks($skinNow); $skinGroups = []; foreach (SKINS as $key => $skin) { $skinGroups[(string)$skin['find']][] = $key; } ?>
           <label class="hud-field">
             <span class="hud-field-label">Skin</span>
             <span class="hud-select">
@@ -387,7 +389,11 @@
 <?php foreach ($skinGroups as $find => $keys): ?>
                 <optgroup label="<?=e($find === '' ? 'Zawsze' : (SKIN_GROUPS[$find] ?? (SAFEGUARD_FINDS[$find][0] ?? SAFEGUARD_SEASONAL[$find][0] ?? $find)))?>">
 <?php foreach ($keys as $key): $entry = SKINS[$key]; $unlocked = skinUnlocked($key, $id); ?>
-                  <option value="<?=e($key)?>"<?=$skinNow === $key ? ' selected' : ''?><?=$unlocked ? '' : ' disabled'?>><?=e($entry['name'])?><?php if ($unlocked): ?> &middot; <?=e($entry['what'])?><?php else: ?> &middot; zablokowany: <?=e($find !== '' ? (SAFEGUARD_FINDS[$find][0] ?? SAFEGUARD_SEASONAL[$find][0] ?? $find) : '')?><?php endif; ?></option>
+<?php if ($unlocked): ?>
+                  <option value="<?=e($key)?>" data-skin-words="<?=skinSpeaks($key) ? 'true' : 'false'?>"<?=$skinNow === $key ? ' selected' : ''?>><?=e($entry['name'])?> &middot; <?=e($entry['what'])?></option>
+<?php else: ?>
+                  <option value="" disabled>??? &middot; zablokowany: <?=e($find !== '' ? (SAFEGUARD_FINDS[$find][0] ?? SAFEGUARD_SEASONAL[$find][0] ?? $find) : '')?></option>
+<?php endif; ?>
 <?php endforeach; ?>
                 </optgroup>
 <?php endforeach; ?>
@@ -395,12 +401,11 @@
               <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
             </span>
           </label>
-<?php if ($skinNow === '' || skinSpeaks($skinNow)): ?>
-          <label class="admin-check skin-words">
-            <input type="checkbox" name="skinwords" value="on"<?=skinWords($id) ? ' checked' : ''?> />
-            <span>Tłumaczenie strony głównej <span class="muted">(napisy skina, japońskie w Teto i Miku; bez tego zostają kolory i logo)</span></span>
+          <input type="hidden" name="skinwords_present" value="<?=$skinSwitch ? 'on' : 'off'?>" data-skin-words-present />
+          <label class="admin-check skin-words"<?=$skinSwitch ? '' : ' hidden'?>>
+            <input type="checkbox" name="skinwords" value="on"<?=$skinSwitch ? '' : ' disabled'?><?=skinWords($id) ? ' checked' : ''?> />
+            <span>Tłumaczenie strony głównej <span class="muted">(napisy skina; bez tego zostają kolory i logo)</span></span>
           </label>
-<?php endif; ?>
           <button type="submit" class="admin-btn primary">Zapisz skin</button>
         </form>
       </section>
@@ -471,12 +476,12 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/hud.js?v=48b256d26f"></script>
-  <script src="../js/skins.js?v=a5f482b4bc"></script>
-  <script src="../js/account.js?v=ff288d9afb"></script>
+  <script src="../js/appearance.js?v=7b68bd4840"></script>
+  <script src="../js/appearance-picker.js?v=c6940d0a31"></script>
+  <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
-  <script src="../js/palette.js?v=f09ec8cf36"></script>
+  <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
 </html>

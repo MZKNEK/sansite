@@ -1,14 +1,18 @@
-// The Japanese words of the home page (the fonts come with the language,
-// css/style.css): what the skins Teto and Miku speak (js/skin-teto.js,
-// js/skin-miku.js), kept here so both say the same things. A skin brings its
-// colours and its logo (css/skins.css, js/skins.js); this module brings the
-// words and the small pieces that go with them: the motto in Morse, the
-// subtitle under the name, the title, description and locale of the page, and
-// the name itself, Japanese at once when the skin is worn.
+// Japanese home language shared by Teto and Miku.
 window.SanakanSkinJa = (function () {
   var heading = document.querySelector('h1.hud-title');
   // the name as the page wrote it, before any words of a skin are worn
   var name = heading ? heading.textContent : '';
+  var motto = document.getElementById('motto');
+  var subtitle = document.querySelector('.kana');
+  var baseSubtitle = subtitle.textContent;
+  var savedAttributes = [
+    [motto, 'data-morse'], [subtitle, 'lang'], [subtitle, 'aria-hidden']
+  ];
+  document.querySelectorAll('meta[name="description"], meta[property="og:description"], meta[property="og:title"], meta[property="og:locale"]').forEach(function (meta) {
+    savedAttributes.push([meta, 'content']);
+  });
+  savedAttributes.forEach(function (entry) { entry.push(entry[0].getAttribute(entry[1])); });
 
   var WORDS = {
     'Sanakan': 'サナカン',
@@ -130,6 +134,11 @@ window.SanakanSkinJa = (function () {
             .replace(/godz\.?|h/g, '時間').replace(/min/g, '分').replace(/sek\.?|s\b/g, '秒') + '）' : '');
         })
         .replace(/ \(kliknij, żeby zobaczyć dostępność\)$/, '（クリックして稼働状況を表示）')
+        .replace(/^Ty (\d+) : (\d+) Safeguard$/, 'あなた $1 : $2 セーフガード')
+        .replace(/^odebrano: (.+) · odpowiedź: (.+)$/, function (_, heard, answer) {
+          var reply = Object.keys(WORDS).find(function (key) { return key.toUpperCase() === answer; });
+          return WORDS['odebrano:'] + ' ' + heard + ' · ' + WORDS['odpowiedź:'] + ' ' + (reply ? WORDS[reply] : translate(answer));
+        })
         .replace(/^Safeguard wygrywa (\d+:\d+)\. Jak zawsze\.$/, 'セーフガードの勝利、$1。いつも通り。')
         .replace(/^Wygrywasz (\d+:\d+)\. Safeguard żąda rewanżu\.$/, 'あなたの勝利、$1。セーフガードが再戦を要求しています。')
         .replace(/^(\d+) z (\d+)/, '$1 / $2')
@@ -143,14 +152,14 @@ window.SanakanSkinJa = (function () {
   }
 
   // the name, Japanese or as the page wrote it (the second for someone who must
-  // put the plain name back, js/skin-teto.js on 1 April)
+  // put the plain name back, js/home-april.js on 1 April)
   function spell(japanese) {
     return japanese ? translate(name) : name;
   }
 
   // The name in the heading, with the glitched letter of April written around
   // it when there is one (node): Japanese at once while the skin is worn, the
-  // glitch only waiting on its last kana for the find alone (js/skin-teto.js).
+  // glitch only waiting on its last kana for the find alone (js/home-april.js).
   function writeName(japanese, node) {
     var shown = spell(japanese);
     var letter = node || heading.querySelector('.april-letter');
@@ -182,5 +191,14 @@ window.SanakanSkinJa = (function () {
     writeName(true);
   }
 
-  return { translate: translate, spell: spell, writeName: writeName, decorate: decorate };
+  function restore() {
+    savedAttributes.forEach(function (entry) {
+      if (entry[2] === null) entry[0].removeAttribute(entry[1]);
+      else entry[0].setAttribute(entry[1], entry[2]);
+    });
+    subtitle.textContent = baseSubtitle;
+    writeName(false);
+  }
+  return { lang: 'ja', title: 'サナカン', translate: translate, spell: spell,
+    writeName: writeName, decorate: decorate, restore: restore };
 })();

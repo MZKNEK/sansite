@@ -1,14 +1,15 @@
 /* The skins of the home page: the colours, the logo and, if a skin brings any,
-   the words it speaks (inc/auth/skins.php, js/skins.js, one js/skin-<id>.js per
-   skin). <html> carries data-skin while a skin is worn; the account picks it in
-   its profile (/account/), and the cookie js/skins.js reads wears it before the
+   the words it speaks (inc/skin-catalog.php, js/skin-catalog.js, js/skins.js).
+   <html> carries data-skin while a skin is worn; the account picks it in
+   its profile (/account/), and the cookie js/appearance.js reads wears it before the
    first paint. Loaded after css/account.css, so a skin's colours beat the HUD's
    own. One block per skin, in the order of SKINS. */
 
-/* Teto: the Japanese home page of 1 April (js/skin-teto.js) — its reds, the
+/* Teto: the Japanese home page of 1 April (inc/skin-catalog.php) — its reds, the
    logo it wears and the corner of Alter's link. The Japanese fonts of its
-   words are with the language, in css/style.css. */
+   words are with the language, in css/home-ja.css. */
 html[data-skin="teto"] {
+    --home-title: #ffe7ea;
     --accent: #d94b58;
     --accent-light: #ff8891;
     --accent-dark: #892b38;
@@ -38,9 +39,9 @@ html[data-skin="teto"] .home .link-swap:not(.below) a.swap-alt:hover {
     color: #fff;
 }
 
-/* Miku: the teal of the television singer (js/skin-miku.js) — its colours, the
+/* Miku: the teal of the television singer (inc/skin-catalog.php) — its colours, the
    logo she brings and the corner of Alter's link. Its Japanese words are the
-   same as Teto's (js/skin-ja.js). */
+   same as Teto's (js/home-ja.js). */
 html[data-skin="miku"] {
     --accent: #39c5bb;
     --accent-light: #7fe0d8;
@@ -71,7 +72,7 @@ html[data-skin="miku"] .home .link-swap:not(.below) a.swap-alt:hover {
     color: #fff;
 }
 
-/* Hu Tao: the fire reds and the logo of Halloween's find (js/skin-tao.js). No
+/* Hu Tao: the fire reds and the logo of Halloween's find (inc/skin-catalog.php). No
    words: the page keeps its own. */
 html[data-skin="tao"] {
     --accent: #e2622f;
@@ -104,7 +105,7 @@ html[data-skin="tao"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Rin: the yellow of the other singer and her logo, Halloween's find too
-   (js/skin-rin.js). No words either. */
+   (inc/skin-catalog.php). No words either. */
 html[data-skin="rin"] {
     --accent: #f0c232;
     --accent-light: #ffe07a;
@@ -135,7 +136,7 @@ html[data-skin="rin"] .home .link-swap:not(.below) a.swap-alt:hover {
     color: #fff;
 }
 
-/* March 7th: the pink and the logo of the Christmas find (js/skin-march7.js).
+/* March 7th: the pink and the logo of the Christmas find (inc/skin-catalog.php).
    No words. */
 html[data-skin="march7"] {
     --accent: #e5739b;
@@ -168,7 +169,7 @@ html[data-skin="march7"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Padoru: the Christmas gold of the little singer and its logo, the same find
-   (js/skin-padoru.js). No words either. */
+   (inc/skin-catalog.php). No words either. */
 html[data-skin="padoru"] {
     --accent: #dfa93f;
     --accent-light: #f4cf7c;
@@ -199,7 +200,7 @@ html[data-skin="padoru"] .home .link-swap:not(.below) a.swap-alt:hover {
     color: #fff;
 }
 
-/* Reisen: the lavender and the logo of the Easter find (js/skin-reisen.js).
+/* Reisen: the lavender and the logo of the Easter find (inc/skin-catalog.php).
    No words. */
 html[data-skin="reisen"] {
     --accent: #b285de;
@@ -232,7 +233,7 @@ html[data-skin="reisen"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Pekora: the blue of the rabbit and her logo, the same find
-   (js/skin-peko.js). No words either. */
+   (inc/skin-catalog.php). No words either. */
 html[data-skin="peko"] {
     --accent: #6c9fe0;
     --accent-light: #a9c8ef;
@@ -263,7 +264,7 @@ html[data-skin="peko"] .home .link-swap:not(.below) a.swap-alt:hover {
     color: #fff;
 }
 
-/* Furina: the royal blue and the logo of the New Year's find (js/skin-furi.js).
+/* Furina: the royal blue and the logo of the New Year's find (inc/skin-catalog.php).
    No words. */
 html[data-skin="furi"] {
     --accent: #4f6fe5;
@@ -296,7 +297,7 @@ html[data-skin="furi"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Albedo: the gold of her eyes and trims on the violet of her own, the same
-   find (js/skin-albedo.js). No words either. */
+   find (inc/skin-catalog.php). No words either. */
 html[data-skin="albedo"] {
     --accent: #e0c060;
     --accent-light: #f2dc9c;
@@ -328,7 +329,7 @@ html[data-skin="albedo"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Sadako: the cold blue of the well and the logo of the Friday the 13th's find
-   (js/skin-sadako.js). No words: the page keeps its own. */
+   (inc/skin-catalog.php). No words: the page keeps its own. */
 html[data-skin="sadako"] {
     --accent: #8b93bd;
     --accent-light: #c2c7e2;
@@ -360,7 +361,7 @@ html[data-skin="sadako"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Lain: the plum of the Wired and the muted mauve of the picture itself
-   (js/skin-lain.js). No words either. */
+   (inc/skin-catalog.php). No words either. */
 html[data-skin="lain"] {
     --accent: #a799a4;
     --accent-light: #c9bdc6;
@@ -392,7 +393,7 @@ html[data-skin="lain"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Cibo: the navy of the Megastructure and the lavender white of her hair, of
-   the birthday find (js/skin-cibo.js). No words: the page keeps its own. */
+   the birthday find (inc/skin-catalog.php). No words: the page keeps its own. */
 html[data-skin="cibo"] {
     --accent: #c2c8d9;
     --accent-light: #e2e6f0;
@@ -424,7 +425,7 @@ html[data-skin="cibo"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Killy: the steel blue of his own and the black he wears, the same find
-   (js/skin-killy.js). No words either. */
+   (inc/skin-catalog.php). No words either. */
 html[data-skin="killy"] {
     --accent: #66799b;
     --accent-light: #b9b8bd;

@@ -45,12 +45,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=d488cb9070" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="../css/account.css?v=1f284a3102" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=0b438d700a" type="text/css" rel="stylesheet" />
+  <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=0b8d6445c6" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <script src="../js/hud.js?v=48b256d26f"></script>
+  <script src="../js/appearance.js?v=7b68bd4840"></script>
 </head>
 
 <body>
@@ -100,10 +100,10 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/account.js?v=ff288d9afb"></script>
+  <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
-  <script src="../js/palette.js?v=f09ec8cf36"></script>
+  <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
 </html>
@@ -121,12 +121,12 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=d488cb9070" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=345d373ea1" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
-  <link rel="stylesheet" type="text/css" href="../css/account.css?v=1f284a3102" />
-  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=0b438d700a" />
+  <link rel="stylesheet" type="text/css" href="../css/account.css?v=cdf925d91d" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=0b8d6445c6" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
-  <script src="../js/hud.js?v=48b256d26f"></script>
+  <script src="../js/appearance.js?v=7b68bd4840"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -224,12 +224,12 @@
 <script src="./swagger-ui-standalone-preset.js?v=0ba407ddfc"> </script>
 <script src="../js/sanakan-util.js?v=f417e538a8"></script>
 <script src="./search.js?v=52c2c6eb3f"> </script>
-<script src="../js/account.js?v=ff288d9afb"></script>
+<script src="../js/account.js?v=9ad24ea77c"></script>
 <script src="./init.js?v=9e46400eb6"></script>
 <script src="../js/to-top.js?v=6ce6e2481f"></script>
 <script src="../js/netsphere.js?v=a98676efe2"></script>
 <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
-<script src="../js/palette.js?v=f09ec8cf36"></script>
+<script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

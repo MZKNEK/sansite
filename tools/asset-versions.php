@@ -10,6 +10,7 @@
     //   php tools/asset-versions.php
     // It prints the files it changed, one path per line, and nothing else on
     // standard output, so the hook can stage exactly those.
+    require __DIR__ . '/skin-catalog.php';
     $root = str_replace('\\', '/', dirname(__DIR__));
 
     // only tracked files, so nothing outside the repository is touched; tools/

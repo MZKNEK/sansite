@@ -123,13 +123,14 @@
     }
 
     // the attributes for <html> that put the chosen HUD and its colour on the
-    // page, and the skin it wears (inc/auth/skins.php); nothing when the visitor
-    // is not logged in. data-hud-own keeps the account's own role, so the
+    // page, and the skin it wears (inc/auth/skins.php). An anonymous page marks
+    // its default too, so stale cookies cannot override the server's answer.
+    // data-hud-own keeps the account's own role, so the
     // profile can put it back for "Kolor mojej roli".
     function hudHtmlAttributes($user)
     {
         if ($user === null)
-            return '';
+            return ' data-hud="default"';
 
         $badge = roleBadge(siteRoles());
         $key = hudColorKey($user['id'], $badge);

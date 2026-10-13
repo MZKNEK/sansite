@@ -193,7 +193,7 @@
     }
 
     // The HUD colour kept in cookies for the pages without an account menu
-    // (account.php, js/hud.js) goes with the account, so a logged-out browser
+    // (account.php, js/appearance.js) goes with the account, so a logged-out browser
     // shows the site's own purple, like the pages that know the account; the
     // snow turned off goes too (js/safeguard.js), and the skin with its words
     // (js/skins.js)
