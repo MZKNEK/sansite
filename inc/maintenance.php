@@ -99,7 +99,10 @@
             $report['problems'][] = $unknown . ' ' . plural($unknown, 'folder', 'foldery', 'folderów') . ' w koszu bez wpisu (inc/data/trash)';
         if (!$dryRun && microtime(true) < $deadline) {
             if (!$report['problems']) pruneConversionStaging($deadline);
-            refreshAccountUsageSnapshot(str_replace('\\', '/', dirname(__DIR__)) . '/i', $deadline);
+            // the same seam as validRecoveryOperation(): in a test the gallery
+            // is the data folder, never the one of the checkout (a developer's
+            // own account folders there must not reach the run)
+            refreshAccountUsageSnapshot(defined('SITE_TEST_IO') && SITE_TEST_IO ? dataDir() : str_replace('\\', '/', dirname(__DIR__)) . '/i', $deadline);
         }
         } catch (Throwable $error) {
             $report['problems'][] = $error->getMessage();
