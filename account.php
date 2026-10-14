@@ -121,5 +121,6 @@
         'role' => hudColorKey($user['id'], $badge),
         'skin' => skinPref($user['id']),
         'skinwords' => skinWords($user['id']),
+        'customskin' => skinPref($user['id']) === 'custom' ? customSkinAppearance($user['id']) : null,
         'flash' => takeFlash()
     ], JSON_UNESCAPED_UNICODE);

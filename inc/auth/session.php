@@ -199,7 +199,7 @@
     // (js/skins.js)
     function forgetHudCookies()
     {
-        foreach (['hud', 'hudrole', 'snow', 'skin', 'skinwords'] as $name)
+        foreach (['hud', 'hudrole', 'snow', 'skin', 'skinwords', 'customskin'] as $name)
             if (isset($_COOKIE[$name]))
                 setcookie($name, '', time() - 3600, '/');
     }

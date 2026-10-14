@@ -1,3 +1,4 @@
+import { chooseSkin } from './skin-picker-browser.mjs';
 // Regression cases for account/cookie disagreement, delayed responses and the
 // profile's selection. All requests use the disposable PHP site of browser.mjs.
 import assert from 'node:assert/strict';
@@ -184,7 +185,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     const save = page.locator('.skin-form button[type=submit]');
     assert.equal(await checkbox.isVisible(), false);
     assert.equal(await checkbox.isDisabled(), true);
-    await select.selectOption('miku');
+    await chooseSkin(page, 'miku');
     assert.equal(await checkbox.isVisible(), true, 'the words switch appears before saving');
     assert.equal(await checkbox.isDisabled(), false);
     await checkbox.check();
@@ -194,11 +195,11 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     await page.locator('.account-menu').waitFor();
     assert.equal(await language(page), 'ja');
     await page.goto(`${base}/account/`);
-    await select.selectOption('tao');
+    await chooseSkin(page, 'tao');
     assert.equal(await checkbox.isVisible(), false, 'the switch disappears as soon as a silent skin is selected');
     await Promise.all([page.waitForNavigation(), save.click()]);
     assert.equal(JSON.parse(readFileSync(prefsFile, 'utf8'))[owner], 'tao', 'a hidden switch preserves the words preference');
-    await select.selectOption('teto');
+    await chooseSkin(page, 'teto');
     await checkbox.uncheck();
     await Promise.all([page.waitForNavigation(), save.click()]);
     assert.deepEqual(JSON.parse(readFileSync(prefsFile, 'utf8'))[owner], { skin: 'teto', words: false }, 'an unchecked visible switch is saved in one submission');
@@ -206,7 +207,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
 
   await visit({ finds: {}, pathname: '/account/' }, async (page, context) => {
     const select = page.locator('select[name=skin]');
-    assert.equal(await select.locator('option:disabled').count(), 0, 'the real owner starts with every skin');
+    assert.equal(await select.locator('option:disabled').count(), 1, 'the owner gets ready-made skins; custom requires all finds');
     const me = await (await context.request.get(`${base}/account.php`)).json();
     const preview = await context.request.post(`${base}/admin/`, { form: {
       csrf: me.csrf, action: 'test-rights', panel: '0', role: 'user', gallery: 'none', api: '0', private: '0', minutes: '15'
@@ -214,7 +215,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.equal(preview.status(), 200);
     await page.reload();
     assert.equal(await page.locator('.test-bar').count(), 1);
-    assert.equal(await select.locator('option:disabled').count(), 18, 'the preview has no owner bonus');
+    assert.equal(await select.locator('option:disabled').count(), 19, 'the preview has no owner bonus');
     assert.equal(await select.locator('option[value=teto]').count(), 0, 'locked options do not expose identifiers');
     assert.equal(await page.locator('html').getAttribute('data-skin'), null, 'the server-rendered empty pick beats the old cookie');
     const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'tao' } });
@@ -225,11 +226,11 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     await defaultHome(page);
     update('finds', all => { all[owner] = { aprilfools: Math.floor(Date.now() / 1000) }; });
     await page.goto(`${base}/account/`);
-    assert.equal(await select.locator('option:disabled').count(), 16, 'only earned skins are exposed in the preview');
+    assert.equal(await select.locator('option:disabled').count(), 17, 'only earned skins are exposed in the preview');
     assert.ok((await select.locator('option[value=teto]').textContent()).includes('Teto'));
     assert.ok((await select.locator('option[value=miku]').textContent()).includes('Miku'));
     await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Wróć do swoich' }).click()]);
-    assert.equal(await select.locator('option:disabled').count(), 0, 'ending the preview restores all owner skins');
+    assert.equal(await select.locator('option:disabled').count(), 1, 'ending the preview restores ready-made owner skins');
     assert.equal(await select.inputValue(), 'teto');
     assert.equal(await page.locator('.test-bar').count(), 0);
     await page.goto(`${base}/`);

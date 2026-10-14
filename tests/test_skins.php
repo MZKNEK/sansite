@@ -142,15 +142,101 @@
         assertSame(skinCatalogScript(), (string)file_get_contents($root . '/js/skin-catalog.js'),
             'run php tools/asset-versions.php after changing the catalog');
         foreach (SKINS as $key => $skin) {
-            assertTrue(is_file($root . '/skins/' . $key . '.webp'), $key . ' has a logo');
+            if ($key !== 'custom')
+                assertTrue(is_file($root . '/skins/' . $key . '.webp'), $key . ' has a logo');
             assertTrue(strpos((string)@file_get_contents($root . '/css/skins.css'), 'html[data-skin="' . $key . '"]') !== false,
                 'css/skins.css styles ' . $key);
             assertTrue(is_bool($skin['words'] ?? null), $key . ' says whether it speaks words');
             assertSame($skin['words'], isset($skin['lang']), $key . ' declares its language when it has words');
 
             $find = $skin['find'];
-            assertTrue($find === null || isset(SAFEGUARD_FINDS[$find]) || isset(SAFEGUARD_SEASONAL[$find]),
+            assertTrue($find === null || $find === 'all' || isset(SAFEGUARD_FINDS[$find]) || isset(SAFEGUARD_SEASONAL[$find]),
                 $key . ' is unlocked by a find of the register');
             assertTrue($find === null || isset(SKIN_GROUPS[$find]), $key . ' has its group in the picker');
         }
+    });
+
+    test('custom skin requires every normal and seasonal find, even for the owner', function () {
+        $complete = array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time());
+        foreach (['111', '999'] as $id) {
+            assertFalse(skinUnlocked('custom', $id));
+            writeData('finds', [$id => $complete]);
+            assertTrue(skinUnlocked('custom', $id));
+            foreach (array_keys($complete) as $missing) {
+                $incomplete = $complete;
+                unset($incomplete[$missing]);
+                writeData('finds', [$id => $incomplete]);
+                assertFalse(skinUnlocked('custom', $id), 'missing ' . $missing);
+                assertFalse(setSkin($id, 'custom'));
+            }
+        }
+    });
+
+    test('custom colours are validated and kept when switching or losing a find', function () {
+        $input = customSkinPrefs('111');
+        $input['colors']['accent'] = '#12AB34';
+        assertFalse(setCustomSkin('111', $input));
+        writeData('finds', ['111' => array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time())]);
+        assertTrue(setSkin('111', 'custom', true, $input));
+        assertSame('#12ab34', customSkinPrefs('111')['colors']['accent']);
+        assertSame('custom', skinPref('111'));
+        assertSame('', customSkinAppearance('111')['image']);
+        assertTrue(strpos(skinHtmlAttribute('111'), 'data-custom-skin=') !== false);
+        $saved = customSkinPrefs('111');
+        foreach (['red', '#123', '#1234567', '#123456;--text:red', ['#123456'], "#123456\n"] as $bad) {
+            $invalid = $input;
+            $invalid['colors']['accent'] = $bad;
+            assertFalse(setSkin('111', 'custom', true, $invalid));
+            assertSame($saved, customSkinPrefs('111'));
+        }
+        $invalid = $input;
+        unset($invalid['colors']['text']);
+        assertFalse(setCustomSkin('111', $invalid));
+        assertTrue(setSkin('111', 'teto'));
+        assertSame($saved, customSkinPrefs('111'));
+        assertTrue(setSkin('111', 'custom'));
+        removeSafeguardFinds('111', ['killy']);
+        assertSame('', skinPref('111'));
+        assertSame('', skinHtmlAttribute('111'));
+        assertSame($saved, customSkinPrefs('111'));
+        assertSame('custom', readData('skins')['111']);
+        assertSame(customSkinPrefs('222')['colors']['accent'], '#9b59b6');
+    });
+
+    test('custom images are restricted to the accounts own real gallery images', function () {
+        $base = tempDir();
+        mkdir($base . '/users/111-Own/nested', 0750, true);
+        mkdir($base . '/users/222-Other', 0750, true);
+        writeData('user-folders', ['111' => '1111111111111111', '222' => '2222222222222222']);
+        writeData('roles', ['111' => ['roles' => ['user' => true, 'onGuild' => true], 'checked' => time()]]);
+        writeData('finds', ['111' => array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time())]);
+        userTokens('111');
+        $tokens = userTokens('222');
+        $ownToken = $tokens['111'];
+        $otherToken = $tokens['222'];
+        $image = imagecreatetruecolor(10, 10);
+        imagepng($image, $base . '/users/111-Own/nested/own.png');
+        imagepng($image, $base . '/users/222-Other/foreign.png');
+        file_put_contents($base . '/users/111-Own/fake.png', 'not an image');
+        file_put_contents($base . '/users/111-Own/movie.webm', 'not an image');
+        $own = 'u/' . $ownToken . '/nested/own.png';
+        $input = customSkinPrefs('111');
+        $input['image'] = $own;
+        assertSame($own, customSkinImage('111', $own, $base));
+        assertTrue(setCustomSkin('111', $input, $base));
+        foreach (['u/' . $otherToken . '/foreign.png', 'u/' . $ownToken . '/../222-Other/foreign.png',
+            'u/' . $ownToken . '/fake.png', 'u/' . $ownToken . '/movie.webm', 'u/' . $ownToken . '/missing.png',
+            'https://example.org/image.png', 'users/111-Own/nested/own.png'] as $bad) {
+            assertSame(null, customSkinImage('111', $bad, $base), $bad);
+            $input['image'] = $bad;
+            assertFalse(setCustomSkin('111', $input, $base), $bad);
+        }
+        $images = customSkinImages('111', $base);
+        assertTrue(isset($images[$own]));
+        assertFalse(isset($images['u/' . $otherToken . '/foreign.png']));
+        assertFalse(isset($images['u/' . $ownToken . '/movie.webm']));
+        addMovedLink('users/111-Own/old.png', 'users/111-Own/nested/own.png');
+        assertSame($own, customSkinImage('111', 'u/' . $ownToken . '/old.png', $base));
+        unlink($base . '/users/111-Own/nested/own.png');
+        assertSame(null, customSkinImage('111', $own, $base));
     });

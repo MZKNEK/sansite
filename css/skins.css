@@ -5,6 +5,27 @@
    first paint. Loaded after css/account.css, so a skin's colours beat the HUD's
    own. One block per skin, in the order of SKINS. */
 
+/* The completion reward uses validated account colours (js/appearance.js). */
+html[data-skin="custom"] {
+    --accent: var(--custom-accent, #9b59b6);
+    --accent-light: var(--custom-accent-light, #b670d3);
+    --accent-dark: var(--custom-accent-dark, #713b87);
+    --accent-rgb: var(--custom-accent-rgb, 155, 89, 182);
+    --accent-light-rgb: var(--custom-accent-light-rgb, 182, 112, 211);
+    --accent-dark-rgb: var(--custom-accent-dark-rgb, 113, 59, 135);
+    --hud-rgb: var(--accent-rgb);
+    --hud-light-rgb: var(--accent-light-rgb);
+    --bg-dark: var(--custom-bg-dark, #080909);
+    --bg-mid: var(--custom-bg-mid, #202225);
+    --text: var(--custom-text, #dcddde);
+    --home-title: var(--custom-home-title, #f0e2ff);
+}
+
+html[data-skin="custom"] .home .logo-slice,
+html[data-skin="custom"] .home .logo-shard {
+    background-image: var(--custom-logo, url("../logo.webp"));
+}
+
 /* Teto: the Japanese home page of 1 April (inc/skin-catalog.php) — its reds, the
    logo it wears and the corner of Alter's link. The Japanese fonts of its
    words are with the language, in css/home-ja.css. */

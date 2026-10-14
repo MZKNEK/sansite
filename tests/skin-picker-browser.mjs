@@ -1,0 +1,104 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+// Existing skin regressions use the same panel controls as a visitor.
+export async function chooseSkin(page, id) {
+  await page.locator('[data-skin-open]').click();
+  await page.locator(`[data-skin-tile="${id}"]`).click();
+  await page.locator('[data-skin-confirm]').click();
+}
+
+export async function testSkinPicker({ browser, base, site, errors }) {
+  function update(name, id, value) {
+    const file = path.join(site, 'inc/data', name + '.json');
+    const all = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+    all[id] = value;
+    writeFileSync(file, JSON.stringify(all));
+  }
+  const context = await browser.newContext({ viewport: { width: 1280, height: 850 } });
+  try {
+    await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
+    const user = '900000000000000002';
+    await context.request.get(`${base}/__login?id=${user}`);
+    update('finds', user, { aprilfools: Math.floor(Date.now() / 1000) - 86400 });
+    update('skins', user, '');
+    const page = await context.newPage();
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`${base}/account/`);
+    const dialog = page.getByRole('dialog', { name: 'Wybierz skin' });
+    const select = page.locator('[data-skin-choice]');
+    const current = page.locator('[data-skin-current-name]');
+    const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim());
+    assert.equal(await page.locator('[data-skin-native]').isVisible(), false);
+    assert.equal(await current.textContent(), 'Domyślny');
+    await page.locator('[data-skin-open]').click();
+    assert.equal(await dialog.isVisible(), true);
+    assert.equal(await page.locator('[data-skin-filter=unlocked]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await dialog.locator('.skin-tile:visible').count(), 4, 'default, named reward and two earned skins');
+    assert.deepEqual(await dialog.locator('.skin-tile').evaluateAll(tiles => tiles.slice(0, 2).map(tile => tile.getAttribute('data-skin-tile'))), ['', 'custom']);
+    const custom = dialog.locator('[data-skin-custom]');
+    assert.equal(await custom.isVisible(), true);
+    assert.equal(await custom.isDisabled(), true);
+    assert.ok((await custom.textContent()).includes('Własny skin'));
+    assert.equal(await dialog.locator('[data-skin-tile=miku] .skin-swatches i').first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(57, 197, 187)', 'swatches use the skin CSS, independently of the current skin');
+    await dialog.locator('[data-skin-tile=miku]').click();
+    assert.equal(await accent(), '57, 197, 187');
+    assert.equal(await select.inputValue(), '', 'a preview does not change the form');
+    assert.equal(await page.locator('[data-skin-selection-name]').textContent(), 'Miku');
+    await page.keyboard.press('Escape');
+    assert.equal(await dialog.isVisible(), false);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), null);
+    assert.equal(await current.textContent(), 'Domyślny');
+    assert.equal(await page.locator('[data-skin-open]').evaluate(el => el === document.activeElement), true, 'Escape restores focus');
+    await page.locator('[data-skin-open]').click();
+    await page.keyboard.press('ArrowDown');
+    assert.equal(await dialog.locator('[data-skin-tile=miku]').evaluate(el => el === document.activeElement), true, 'vertical arrows follow the grid columns');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await dialog.locator('[data-skin-tile=teto]').evaluate(el => el === document.activeElement), true, 'arrows skip disabled tiles');
+    await page.keyboard.press('Space');
+    assert.equal(await page.locator('[data-skin-selection-name]').textContent(), 'Teto');
+    await dialog.getByRole('button', { name: 'Anuluj', exact: true }).click();
+    await page.locator('[data-skin-open]').click();
+    await page.locator('[data-skin-filter=all]').click();
+    assert.equal(await dialog.locator('.skin-tile:visible').count(), 20);
+    assert.equal(await dialog.locator('[data-skin-locked] img').count(), 0, 'locked skins do not expose their artwork');
+    assert.ok((await dialog.locator('[data-skin-locked]').allTextContents()).every(text => text.includes('???')));
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await dialog.boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= 390);
+    assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= 844);
+    assert.equal(await page.locator('[data-skin-grid]').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), 2);
+    await dialog.locator('[data-skin-tile=miku]').click();
+    await page.locator('[data-skin-confirm]').click();
+    assert.equal(await select.inputValue(), 'miku');
+    assert.equal(await current.textContent(), 'Miku');
+    assert.equal(await page.locator('[name=skinwords]').isVisible(), true);
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.equal(await current.textContent(), 'Miku');
+    await page.setViewportSize({ width: 1280, height: 850 });
+    await page.locator('[data-skin-open]').click();
+    await dialog.locator('[data-skin-tile=teto]').click();
+    await page.mouse.click(5, 5);
+    assert.equal(await dialog.isVisible(), false, 'the backdrop cancels the preview');
+    assert.equal(await accent(), '57, 197, 187');
+    assert.equal(await select.inputValue(), 'miku');
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('skin-picker-open')), false);
+  } finally {
+    await context.close();
+  }
+  // The original select remains usable if JavaScript is disabled.
+  const plain = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    await plain.request.get(`${base}/__login?id=900000000000000002`);
+    const page = await plain.newPage();
+    await page.goto(`${base}/account/`);
+    assert.equal(await page.locator('[data-skin-native]').isVisible(), true);
+    await page.locator('[data-skin-choice]').selectOption('teto');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.equal(await page.locator('[data-skin-choice]').inputValue(), 'teto');
+  } finally {
+    await plain.close();
+  }
+}

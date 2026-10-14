@@ -39,6 +39,7 @@
     require_once __DIR__ . '/auth/preferences.php';
     require_once __DIR__ . '/auth/finds.php';
     require_once __DIR__ . '/auth/skins.php';
+    require_once __DIR__ . '/auth/custom-skins.php';
     require_once __DIR__ . '/auth/menu.php';
     require_once __DIR__ . '/auth/requests.php';
     require_once __DIR__ . '/auth/session.php';

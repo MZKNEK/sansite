@@ -48,9 +48,9 @@
   <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=b97c73e50d" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <script src="../js/appearance.js?v=7b68bd4840"></script>
+  <script src="../js/appearance.js?v=7d550aca36"></script>
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
@@ -126,9 +126,9 @@
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=345d373ea1" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=cdf925d91d" />
-  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=b97c73e50d" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=65caa290b1" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
-  <script src="../js/appearance.js?v=7b68bd4840"></script>
+  <script src="../js/appearance.js?v=7d550aca36"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />

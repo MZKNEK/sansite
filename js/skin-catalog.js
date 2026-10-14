@@ -89,5 +89,10 @@ window.SanakanSkinCatalog = {
         "name": "Hoshino Ai",
         "lang": null,
         "alt": "Hoshino Ai"
+    },
+    "custom": {
+        "name": "Własny skin",
+        "lang": null,
+        "alt": "Własny skin"
     }
 };

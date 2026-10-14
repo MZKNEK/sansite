@@ -31,10 +31,10 @@
   <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=b97c73e50d" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <script src="../js/appearance.js?v=7b68bd4840"></script>
+  <script src="../js/appearance.js?v=7d550aca36"></script>
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 

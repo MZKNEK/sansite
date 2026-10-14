@@ -16,6 +16,8 @@
         $entry = SKINS[$skin] ?? null;
         if ($entry === null)
             return false;
+        if ($skin === 'custom')
+            return !array_diff_key(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL, safeguardFinds($id));
         if (realPanelAdminId($id) && testRights($id) === null)
             return true;
 
@@ -53,10 +55,12 @@
     }
 
     // keeps or clears the pick and its words; refuses an unknown or locked skin
-    function setSkin($id, $skin, $words = true)
+    function setSkin($id, $skin, $words = true, $custom = null)
     {
         $skin = (string)$skin;
         if ($skin !== '' && !skinUnlocked($skin, $id))
+            return false;
+        if ($skin === 'custom' && $custom !== null && !setCustomSkin($id, $custom))
             return false;
 
         return updateData('skins', function (&$all) use ($id, $skin, $words) {
@@ -85,6 +89,11 @@
             setcookie('skinwords', 'off', time() + 31536000, '/');
         else if (isset($_COOKIE['skinwords']))
             setcookie('skinwords', '', time() - 3600, '/');
+
+        if ($prefs['skin'] === 'custom')
+            setcookie('customskin', json_encode(customSkinAppearance($id), JSON_UNESCAPED_SLASHES), time() + 31536000, '/');
+        else if (isset($_COOKIE['customskin']))
+            setcookie('customskin', '', time() - 3600, '/');
     }
 
     // the attribute for <html> of a page that knows the account, so it wears
@@ -94,5 +103,9 @@
     {
         $skin = $id === null ? '' : skinPref($id);
 
-        return $skin === '' ? '' : ' data-skin="' . htmlspecialchars($skin, ENT_QUOTES, 'UTF-8') . '"';
+        $html = $skin === '' ? '' : ' data-skin="' . htmlspecialchars($skin, ENT_QUOTES, 'UTF-8') . '"';
+        if ($skin === 'custom')
+            $html .= ' data-custom-skin="' . htmlspecialchars(json_encode(customSkinAppearance($id), JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8') . '"';
+
+        return $html;
     }

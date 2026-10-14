@@ -1,3 +1,4 @@
+import { chooseSkin } from './skin-picker-browser.mjs';
 // Exercise the real Morse input, register synchronization and home-only locale.
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -237,7 +238,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     assert.equal(await select.inputValue(), '', 'nothing picked yet');
-    assert.equal(await select.locator('optgroup').count(), 9, 'the picker groups the skins by their find');
+    assert.equal(await select.locator('optgroup').count(), 10, 'the picker groups the skins by their find');
     assert.equal(await select.locator('optgroup[label="Prima aprilis"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Nowy rok"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Piątek trzynastego"] option').count(), 2);
@@ -249,7 +250,7 @@ export async function testHome({ browser, base, site, php, errors }) {
         'the owner has every skin: ' + key);
     assert.ok((await select.locator('option[value=miku]').textContent()).includes('turkusowa zieleń'),
       'and sees what Miku is without finding it');
-    await select.selectOption('miku');
+    await chooseSkin(page, 'miku');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     assert.ok((await page.locator('#toast').textContent()).includes('Miku'), 'the profile says so');
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'miku', 'and wears its colours at once');
@@ -288,7 +289,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     assert.equal(await select.locator('option[value=teto]').evaluate(node => !node.disabled), true, 'the earned find unlocked the skin');
-    await select.selectOption('teto');
+    await chooseSkin(page, 'teto');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'teto');
@@ -311,7 +312,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01Polecenia');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false, 'nothing translates the page');
     await page.goto(`${base}/account/`);
-    await select.selectOption('');
+    await chooseSkin(page, '');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     assert.ok((await page.locator('#toast').textContent()).includes('Wyłączono skin'));
     assert.equal(await page.locator('html').getAttribute('data-skin'), null);
@@ -328,8 +329,10 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.locator('.account-menu').waitFor();
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
-    const locked = select.locator('option:disabled');
+    const locked = select.locator('option:disabled:not([value=custom])');
     assert.equal(await locked.count(), 18, 'all seasonal skins are locked without finds');
+    assert.equal(await select.locator('option[value=custom]').evaluate(option => option.disabled), true);
+    assert.ok((await select.locator('option[value=custom]').textContent()).includes('Własny skin'));
     for (const [group, hint] of [
       ['Prima aprilis', 'Zagubiony w tłumaczeniu'], ['Halloween', 'Noc form krzemowych'],
       ['Święta', 'Święta w Megastrukturze'], ['Wielkanoc', 'Pisanki z Megastruktury'],
@@ -371,7 +374,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     for (const key of ['tao', 'rin'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Halloween find unlocked ' + key);
-    await select.selectOption('tao');
+    await chooseSkin(page, 'tao');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     assert.equal(await page.locator('.skin-form input[name=skinwords]').isVisible(), false, 'a skin with no words offers no switch');
     assert.equal(await page.locator('.skin-form input[name=skinwords]').isDisabled(), true, 'the hidden switch is not submitted');
@@ -385,7 +388,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01Polecenia');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
     await page.goto(`${base}/account/`);
-    await select.selectOption('rin');
+    await chooseSkin(page, 'rin');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'rin');
@@ -409,7 +412,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     for (const key of ['march7', 'padoru'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Christmas find unlocked ' + key);
-    await select.selectOption('march7');
+    await chooseSkin(page, 'march7');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'march7');
@@ -419,7 +422,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
-    await select.selectOption('padoru');
+    await chooseSkin(page, 'padoru');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'padoru');
@@ -444,7 +447,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     for (const key of ['reisen', 'peko'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Easter find unlocked ' + key);
-    await select.selectOption('reisen');
+    await chooseSkin(page, 'reisen');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'reisen');
@@ -454,7 +457,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
-    await select.selectOption('peko');
+    await chooseSkin(page, 'peko');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'peko');
@@ -479,7 +482,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     for (const key of ['furi', 'albedo'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the New Year find unlocked ' + key);
-    await select.selectOption('furi');
+    await chooseSkin(page, 'furi');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'furi');
@@ -489,7 +492,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
-    await select.selectOption('albedo');
+    await chooseSkin(page, 'albedo');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo');
@@ -514,7 +517,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     for (const key of ['cibo', 'killy'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the birthday find unlocked ' + key);
-    await select.selectOption('cibo');
+    await chooseSkin(page, 'cibo');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'cibo');
@@ -524,7 +527,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
-    await select.selectOption('killy');
+    await chooseSkin(page, 'killy');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'killy');
@@ -549,7 +552,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     for (const key of ['sadako', 'lain'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Friday the 13th find unlocked ' + key);
-    await select.selectOption('sadako');
+    await chooseSkin(page, 'sadako');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'sadako');
@@ -559,7 +562,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
-    await select.selectOption('lain');
+    await chooseSkin(page, 'lain');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'lain');
@@ -571,7 +574,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     // back to the New Year's pick, which the April tests below read as the
     // account's own skin
     await page.goto(`${base}/account/`);
-    await select.selectOption('albedo');
+    await chooseSkin(page, 'albedo');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
   }, '900000000000000002');
 
@@ -602,7 +605,7 @@ export async function testHome({ browser, base, site, php, errors }) {
   await visit('2026-04-01', async page => {
     // the account picks Teto and turns its words off, as its profile does
     await page.goto(`${base}/account/`);
-    await page.locator('select[name=skin]').selectOption('teto');
+    await chooseSkin(page, 'teto');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.locator('input[name=skinwords]').uncheck();
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
@@ -626,7 +629,7 @@ export async function testHome({ browser, base, site, php, errors }) {
   await visit('2026-07-15', async page => {
     // a skin on the account, so the cookie is there to be taken along
     await page.goto(`${base}/account/`);
-    await page.locator('select[name=skin]').selectOption('teto');
+    await chooseSkin(page, 'teto');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
     await page.locator('.account-menu').waitFor();

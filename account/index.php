@@ -65,10 +65,15 @@
                 ? $_POST['skinwords_present'] === 'on'
                 : ($before['skin'] === '' || skinSpeaks($before['skin']));
             $words = $hadSwitch ? isset($_POST['skinwords']) : $before['words'];
-            if (!setSkin($user['id'], $skin, $words)) {
-                setFlash('Ten skin jest jeszcze zablokowany.');
+            $custom = $skin === 'custom' ? ['image' => $_POST['customimage'] ?? '', 'colors' => $_POST['customcolors'] ?? null] : null;
+            if (!setSkin($user['id'], $skin, $words, $custom)) {
+                setFlash($skin === 'custom' && skinUnlocked('custom', $user['id'])
+                    ? 'Nie udało się zapisać skina. Podaj kolory jako #RRGGBB i wybierz dostępny obrazek z własnej galerii.'
+                    : 'Ten skin jest jeszcze zablokowany.');
             } else {
-                if ($skin !== $before['skin'])
+                if ($skin === 'custom')
+                    addHistory('skin', 'Zapisano własny skin.');
+                else if ($skin !== $before['skin'])
                     addHistory('skin', $skin === '' ? 'Wyłączono skin.' : 'Zmieniono skin na: ' . SKINS[$skin]['name'] . '.');
                 if ($skin !== '' && $words !== $before['words'])
                     addHistory('skin', $words ? 'Włączono tłumaczenie strony głównej w skinie.' : 'Wyłączono tłumaczenie strony głównej w skinie.');
@@ -181,8 +186,8 @@
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=b5de09b872" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=b97c73e50d" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=04cfd97b50" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
@@ -377,12 +382,16 @@
           <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
         </form>
         <h3>Skin</h3>
-        <p class="hint">Skin zmienia stronę główną: jej kolory, logo i, jeśli skin je ma, napisy. Odblokowuje go sekret z rejestru Safeguarda; właściciel strony ma każdy. Kolory widać od razu na tej stronie, całość na stronie głównej.</p>
+        <p class="hint">Skin zmienia stronę główną: jej kolory, logo i, jeśli skin je ma, napisy. Gotowe skiny odblokowują sekrety z rejestru Safeguarda; właściciel strony ma je od razu. Własny skin jest nagrodą za zebranie wszystkich zwykłych i sezonowych znajdziek. Kolory widać od razu na tej stronie, całość na stronie głównej.</p>
+<?php $customUnlocked = skinUnlocked('custom', $id); ?>
+<?php if (!$customUnlocked): ?>
+        <p class="hint">Do własnego skina: zwykłe znajdźki <b><?=count(array_intersect_key($finds, SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></b>, sezonowe <b><?=count(array_intersect_key($finds, SAFEGUARD_SEASONAL))?> / <?=count(SAFEGUARD_SEASONAL)?></b>.</p>
+<?php endif; ?>
         <form method="post" action="./" class="skin-form">
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="skin" />
 <?php $skinNow = skinPref($id); $skinSwitch = $skinNow === '' || skinSpeaks($skinNow); $skinGroups = []; foreach (SKINS as $key => $skin) { $skinGroups[(string)$skin['find']][] = $key; } ?>
-          <label class="hud-field">
+          <label class="hud-field" data-skin-native>
             <span class="hud-field-label">Skin</span>
             <span class="hud-select">
               <select name="skin" data-skin-choice>
@@ -392,8 +401,10 @@
 <?php foreach ($keys as $key): $entry = SKINS[$key]; $unlocked = skinUnlocked($key, $id); ?>
 <?php if ($unlocked): ?>
                   <option value="<?=e($key)?>" data-skin-words="<?=skinSpeaks($key) ? 'true' : 'false'?>"<?=$skinNow === $key ? ' selected' : ''?>><?=e($entry['name'])?> &middot; <?=e($entry['what'])?></option>
+<?php elseif ($key === 'custom'): ?>
+                  <option value="custom" disabled>Własny skin &middot; zablokowany: wszystkie zwykłe i sezonowe znajdźki</option>
 <?php else: ?>
-                  <option value="" disabled>??? &middot; zablokowany: <?=e($find !== '' ? (SAFEGUARD_FINDS[$find][0] ?? SAFEGUARD_SEASONAL[$find][0] ?? $find) : '')?></option>
+                  <option value="" disabled>??? &middot; zablokowany: <?=e($find !== '' ? (SAFEGUARD_FINDS[$find][0] ?? SAFEGUARD_SEASONAL[$find][0] ?? SKIN_GROUPS[$find] ?? $find) : '')?></option>
 <?php endif; ?>
 <?php endforeach; ?>
                 </optgroup>
@@ -402,6 +413,110 @@
               <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
             </span>
           </label>
+          <div class="skin-current" data-skin-current hidden>
+            <img src="../logo.webp" alt="" width="64" height="64" data-skin-current-image />
+            <div class="skin-current-text">
+              <span class="hud-field-label">Wybrany skin</span>
+              <b data-skin-current-name></b>
+              <p data-skin-current-description></p>
+            </div>
+            <button type="button" class="admin-btn" data-skin-open aria-haspopup="dialog" aria-controls="skin-picker">Zmień skin</button>
+          </div>
+          <dialog class="skin-dialog" id="skin-picker" data-skin-dialog aria-labelledby="skin-picker-title" aria-describedby="skin-picker-hint">
+            <div class="skin-dialog-head">
+              <div>
+                <span class="tag">Wygląd strony</span>
+                <h2 id="skin-picker-title">Wybierz skin</h2>
+              </div>
+              <button type="button" class="skin-dialog-close" data-skin-cancel aria-label="Zamknij wybór skina">&times;</button>
+            </div>
+            <p class="skin-dialog-hint" id="skin-picker-hint">Kliknij skin, aby podejrzeć jego kolory. Pełny opis znajdziesz pod kafelkami.</p>
+            <div class="skin-dialog-toolbar">
+              <div class="skin-filters" role="group" aria-label="Pokaż skiny">
+                <button type="button" data-skin-filter="unlocked" aria-pressed="true">Odblokowane</button>
+                <button type="button" data-skin-filter="all" aria-pressed="false">Wszystkie</button>
+              </div>
+              <span class="skin-count" data-skin-count aria-live="polite"></span>
+            </div>
+            <div class="skin-grid" data-skin-grid role="group" aria-label="Dostępne skiny">
+<?php
+    $panelSkins = ['' => ['name' => 'Domyślny', 'find' => null, 'what' => 'Fiolet strony i oryginalne logo Sanakan.'], 'custom' => SKINS['custom']] + SKINS;
+    foreach ($panelSkins as $key => $entry):
+        $unlocked = $key === '' || skinUnlocked($key, $id);
+        $name = $unlocked || $key === 'custom' ? $entry['name'] : '???';
+        $group = $key === '' ? 'Sanakan' : ($key === 'custom' ? 'Komplet znajdziek' : (SKIN_GROUPS[$entry['find']] ?? ''));
+        $description = $unlocked ? $entry['what'] : ($key === 'custom' ? 'Zbierz wszystkie zwykłe i sezonowe znajdźki.' : 'Odkryj: ' . (SAFEGUARD_FINDS[$entry['find']][0] ?? SAFEGUARD_SEASONAL[$entry['find']][0] ?? ''));
+        $thumbnail = $key === '' ? '../logo.webp' : ($key === 'custom' || !$unlocked ? '' : '../skins/' . $key . '.webp');
+?>
+              <button type="button" class="skin-tile"<?=$unlocked ? '' : ' disabled title="' . e($description) . '"'?><?=$key === 'custom' ? ' data-skin-custom' : ''?><?=$unlocked || $key === 'custom' ? ' data-skin-tile="' . e($key) . '"' : ' data-skin-locked'?> data-skin-name="<?=e($name)?>" data-skin-description="<?=e($description)?>" data-skin-thumbnail="<?=e($thumbnail)?>" aria-pressed="<?=$unlocked && $skinNow === $key ? 'true' : 'false'?>">
+                <span class="skin-tile-art" aria-hidden="true">
+<?php if (!$unlocked): ?>
+                  <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>
+<?php elseif ($key === 'custom'): ?>
+                  <svg viewBox="0 0 24 24" data-skin-custom-icon><path d="m14 5 5 5M4 20l5-1L21 7l-5-5L4 14z" /></svg>
+                  <img alt="" width="56" height="56" data-skin-tile-image hidden />
+<?php else: ?>
+                  <img alt="" width="56" height="56" data-skin-tile-image />
+<?php endif; ?>
+                </span>
+                <b><?=e($name)?></b>
+                <span class="skin-tile-group"><?=e($group)?></span>
+<?php if ($unlocked): ?>
+                <span class="skin-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+<?php elseif ($key === 'custom'): ?>
+                <span class="skin-tile-status"><?=count($finds)?> / <?=count(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL)?> znajdziek</span>
+<?php else: ?>
+                <span class="skin-tile-status">Zablokowany</span>
+<?php endif; ?>
+                <span class="skin-tile-check" aria-hidden="true">&#10003;</span>
+              </button>
+<?php endforeach; ?>
+            </div>
+            <div class="skin-selection" aria-live="polite" aria-atomic="true">
+              <b data-skin-selection-name></b>
+              <p data-skin-selection-description></p>
+            </div>
+            <div class="skin-dialog-foot">
+              <span>Po wyborze kliknij „Zapisz skin” w profilu.</span>
+              <div>
+                <button type="button" class="admin-btn" data-skin-cancel>Anuluj</button>
+                <button type="button" class="admin-btn primary" data-skin-confirm>Wybierz</button>
+              </div>
+            </div>
+          </dialog>
+<?php if ($customUnlocked): $customPrefs = customSkinPrefs($id); $customBase = str_replace('\\', '/', realpath($galleryRoot)); $customImage = customSkinImage($id, $customPrefs['image'], $customBase); $customImages = customSkinImages($id, $customBase); ?>
+          <fieldset class="custom-skin" data-custom-editor<?=$skinNow === 'custom' ? '' : ' hidden disabled'?>>
+            <legend>Własny skin</legend>
+            <p class="hint">Komplet znajdziek odblokował twój własny wygląd. Wpisz kolory w formacie #RRGGBB lub wybierz je próbnikiem. Zmiany podejrzysz od razu; zapisze je przycisk „Zapisz skin”.</p>
+            <div class="custom-skin-image">
+              <img src="<?=e($customImage === null ? '../logo.webp' : siteRoot() . 'i/' . fileUrl($customImage))?>" alt="Podgląd obrazka własnego skina" width="112" height="112" data-custom-logo />
+              <label class="hud-field">
+                <span class="hud-field-label">Obrazek z własnej galerii</span>
+                <span class="hud-select">
+                  <select name="customimage" data-custom-image>
+                    <option value="">Domyślne logo Sanakan</option>
+<?php foreach ($customImages as $image => $name): ?>
+                    <option value="<?=e($image)?>" data-image-url="<?=e(siteRoot() . 'i/' . fileUrl($image))?>"<?=$customImage === $image ? ' selected' : ''?>><?=e($name)?></option>
+<?php endforeach; ?>
+                  </select>
+                  <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+                </span>
+                <span class="hint"><?php if (!$customImages): ?>Brak dostępnych obrazków w twoim folderze. <?php endif; ?><a href="../i/" target="_blank" rel="noopener">Otwórz galerię</a> — po dodaniu obrazka odśwież profil.</span>
+              </label>
+            </div>
+            <div class="hud-fields">
+<?php foreach (CUSTOM_SKIN_COLORS as $key => [$label, $default]): ?>
+              <div class="hud-field">
+                <label class="hud-field-label" for="custom-<?=e($key)?>"><?=e($label)?></label>
+                <div class="custom-skin-color">
+                  <input type="color" value="<?=e($customPrefs['colors'][$key])?>" aria-label="<?=e('Wybierz kolor: ' . $label)?>" data-custom-swatch="<?=e($key)?>" />
+                  <input type="text" id="custom-<?=e($key)?>" name="customcolors[<?=e($key)?>]" value="<?=e($customPrefs['colors'][$key])?>" pattern="#[0-9a-fA-F]{6}" maxlength="7" placeholder="<?=e($default)?>" title="Kolor w formacie #RRGGBB, np. #9b59b6" required spellcheck="false" autocomplete="off" data-custom-color="<?=e($key)?>" />
+                </div>
+              </div>
+<?php endforeach; ?>
+            </div>
+          </fieldset>
+<?php endif; ?>
           <input type="hidden" name="skinwords_present" value="<?=$skinSwitch ? 'on' : 'off'?>" data-skin-words-present />
           <label class="admin-check skin-words"<?=$skinSwitch ? '' : ' hidden'?>>
             <input type="checkbox" name="skinwords" value="on"<?=$skinSwitch ? '' : ' disabled'?><?=skinWords($id) ? ' checked' : ''?> />
@@ -477,8 +592,9 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/appearance.js?v=7b68bd4840"></script>
-  <script src="../js/appearance-picker.js?v=c6940d0a31"></script>
+  <script src="../js/appearance.js?v=7d550aca36"></script>
+  <script src="../js/skin-picker.js?v=7beb0fd542"></script>
+  <script src="../js/appearance-picker.js?v=25c93830ee"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>

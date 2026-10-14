@@ -116,6 +116,12 @@
             'find' => 'perseids',
             'words' => false,
             'what' => 'magenta i ciemny fiolet Hoshino Ai, jej logo, bez napisów'
+        ],
+        'custom' => [
+            'name' => 'Własny skin',
+            'find' => 'all',
+            'words' => false,
+            'what' => 'obrazek z własnej galerii i własne kolory'
         ]
     ];
 
@@ -131,7 +137,8 @@
         'friday13' => 'Piątek trzynastego',
         'birthday' => 'Urodziny',
         'sakura' => 'Sakura',
-        'perseids' => 'Perseidy'
+        'perseids' => 'Perseidy',
+        'all' => 'Wszystkie zwykłe i sezonowe znajdźki'
     ];
 
     function skinCatalogScript()

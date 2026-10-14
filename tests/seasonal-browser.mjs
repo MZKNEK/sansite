@@ -1,3 +1,4 @@
+import { chooseSkin } from './skin-picker-browser.mjs';
 // Seasonal background finds: real pointer/keyboard input, server-signed proof
 // fixtures for the pretend browser date, and real PHP account synchronization.
 import assert from 'node:assert/strict';
@@ -104,7 +105,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     const select = page.locator('select[name=skin]');
     for (const event of events) {
       for (const [id] of event.skins) {
-        await select.selectOption(id);
+        await chooseSkin(page, id);
         const layer = page.locator('.sg-' + event.key);
         await layer.waitFor();
         assert.equal(await page.locator('.sg-season-background').count(), 1, 'preview replaces the previous skin background');
@@ -130,15 +131,15 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       }
     }
     // Repeated previews reuse a scene, including after it was detached.
-    await select.selectOption('chisato');
+    await chooseSkin(page, 'chisato');
     await page.locator('.sg-sakura').waitFor();
     await page.evaluate(() => { window.originalPetals = document.querySelector('.sg-sakura'); });
-    await select.selectOption('suisei');
+    await chooseSkin(page, 'suisei');
     await page.locator('.sg-perseids').waitFor();
-    await select.selectOption('yaemiko');
+    await chooseSkin(page, 'yaemiko');
     await page.locator('.sg-sakura').waitFor();
     assert.equal(await page.evaluate(() => document.querySelector('.sg-sakura') === window.originalPetals), true);
-    await select.selectOption('');
+    await chooseSkin(page, '');
     await page.waitForFunction(() => !document.querySelector('.sg-season-background'));
     assert.equal(await page.locator('body').evaluate(el => el.classList.contains('seasonal-background')), false);
     // The last saved skin is still Hoshino; losing its find removes the background too.
@@ -159,7 +160,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       await page.waitForFunction(key => JSON.parse(localStorage.getItem('safeguard'))?.sent?.[key], event.key);
       assert.deepEqual(calls, [event.key], 'the seasonal discovery remains available while wearing another background');
       await page.goto(`${base}/account/`);
-      await page.locator('select[name=skin]').selectOption('');
+      await chooseSkin(page, '');
       await page.waitForFunction(() => document.querySelectorAll('.sg-season-background').length === 1);
       assert.equal(await page.locator('.sg-' + event.key).count(), 1, 'removing the skin keeps the seasonal background');
     }, { login: true, skin, finds: [find] });
@@ -274,7 +275,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       for (const [id, name, rgb] of event.skins) {
         await page.goto(`${base}/account/`);
         assert.ok((await select.locator(`option[value="${id}"]`).textContent()).includes(name));
-        await select.selectOption(id);
+        await chooseSkin(page, id);
         await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
         await page.goto(`${base}/`);
         await page.locator('.account-menu').waitFor();
