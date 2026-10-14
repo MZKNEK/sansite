@@ -217,7 +217,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>
-  <script src="../js/seasonal-background.js?v=075b67aacd"></script>
+  <script src="../js/seasonal-background.js?v=07fa3ad00c"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

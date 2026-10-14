@@ -181,6 +181,44 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
   }
 
   await visit('2026-08-10', async (page, context, calls) => {
+    // Keep the trajectories reproducible while rotating the same live scene.
+    await page.addInitScript(() => { Math.random = () => 0.5; });
+    await page.reload();
+    const flights = page.locator('.perseid-flight');
+    const initial = await flights.evaluateAll(movers => movers.map(mover => {
+      const animation = mover.getAnimations()[0];
+      animation.pause();
+      const timing = animation.effect.getTiming();
+      animation.currentTime = timing.delay + timing.duration * 0.95;
+      return { mover, animation };
+    }).map(({ mover, animation }, i) => {
+      window['seasonalFlight' + i] = { mover, animation };
+      return mover.style.cssText;
+    }));
+    for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(viewport);
+      await page.waitForFunction(({ width, height }) => innerWidth === width && innerHeight === height, viewport);
+      // A resize event is delivered on the next rendering frame.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const positions = await flights.evaluateAll(movers => movers.map((mover, i) => {
+        const saved = window['seasonalFlight' + i];
+        const r = mover.querySelector('button').getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2,
+          same: mover === saved.mover && mover.getAnimations()[0] === saved.animation,
+          paused: saved.animation.playState === 'paused' };
+      }));
+      for (const position of positions) {
+        assert.ok(position.x > 0 && position.x < viewport.width && position.y > 0 && position.y < viewport.height,
+          `a meteor stays on screen near the end of its flight after rotation to ${viewport.width}x${viewport.height}: ${JSON.stringify(position)}`);
+        assert.ok(position.same && position.paused, 'rotation preserves the particle and its paused animation');
+      }
+    }
+    assert.deepEqual(await flights.evaluateAll(movers => movers.map(mover => mover.style.cssText)), initial,
+      'rotating back restores the original trajectories without randomizing the shower');
+    assert.deepEqual(calls, [], 'rotating the phone never awards a find');
+  }, { viewport: { width: 844, height: 390 } });
+
+  await visit('2026-08-10', async (page, context, calls) => {
     let point = await movingComet(page);
     await page.mouse.move(point.x, point.y);
     await page.mouse.down();

@@ -139,7 +139,8 @@
   }
 
   function perseids() {
-    return scene('perseids', 'Perseidy', 'Złap kometę', small ? 2 : 3, function (layer) {
+    var headings = [];
+    var render = scene('perseids', 'Perseidy', 'Złap kometę', small ? 2 : 3, function (layer) {
       for (var i = 0; i < (small ? 32 : 56); i++) {
         var star = document.createElement('i');
         star.className = 'perseid-star';
@@ -159,14 +160,18 @@
       // vanish together; the lean stays inside what keeps the streak on screen.
       var x = between(0, 52);
       var from = between(-38, -8), to = between(78, 118);
-      var tilt = Math.atan2((x + 6) / 100 * innerWidth, 0.55 * innerHeight) * 180 / Math.PI;
-      var room = (100 - x) / 100 * innerWidth - 30;
-      var maxLean = Math.asin(Math.min(1, room / (to / 100 * innerHeight))) * 180 / Math.PI;
-      var lean = Math.min(tilt, maxLean) * between(0.85, 1);
+      var spread = between(0.85, 1);
+      function heading() {
+        var tilt = Math.atan2((x + 6) / 100 * innerWidth, 0.55 * innerHeight) * 180 / Math.PI;
+        var room = (100 - x) / 100 * innerWidth - 30;
+        var maxLean = Math.asin(Math.min(1, room / (to / 100 * innerHeight))) * 180 / Math.PI;
+        variable(mover, 'angle', (-Math.min(tilt, maxLean) * spread).toFixed(1) + 'deg');
+      }
+      heading();
+      headings.push(heading);
       var duration = (to - from) / between(9, 20);
       mover.classList.add('perseid-flight');
       mover.style.left = x.toFixed(2) + '%';
-      variable(mover, 'angle', (-lean).toFixed(1) + 'deg');
       variable(mover, 'duration', duration.toFixed(2) + 's');
       variable(mover, 'delay', (-((i + 0.5 + between(-0.15, 0.15)) / count) * duration).toFixed(2) + 's');
       variable(mover, 'from', from.toFixed(1) + 'vh');
@@ -178,6 +183,12 @@
       button.classList.add('perseid-comet');
       mover.appendChild(button);
     });
+    // The vh/% positions follow the viewport; keep the heading and edge limit
+    // in sync too, preserving each meteor's random choices and animation phase.
+    window.addEventListener('resize', function () {
+      headings.forEach(function (heading) { heading(); });
+    });
+    return render;
   }
 
   // Lazily create each scene once; profile previews reuse its particles and
