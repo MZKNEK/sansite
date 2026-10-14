@@ -45,7 +45,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=030ef1853b" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
@@ -123,7 +123,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=345d373ea1" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=030ef1853b" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=cdf925d91d" />
   <link rel="stylesheet" type="text/css" href="../css/skins.css?v=65caa290b1" />

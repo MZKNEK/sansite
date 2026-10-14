@@ -2408,7 +2408,8 @@ body.idle .logo-eye {
     touch-action: none;
 }
 
-.pp-note {
+.pp-note,
+.pp-controls {
     min-height: 1.4em;
     margin: 0;
     font: 12px "Sanakan Mono", monospace;

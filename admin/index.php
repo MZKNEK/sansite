@@ -130,7 +130,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=030ef1853b" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />

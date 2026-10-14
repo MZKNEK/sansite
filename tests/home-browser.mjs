@@ -78,12 +78,61 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.ok(!finds.aprilfools, 'playing outside April does not award the seasonal find');
     await page.evaluate(() => document.dispatchEvent(new CustomEvent('sanakan:pong')));
     assert.equal(await page.locator('.pp-overlay').count(), 1, 'the game cannot open twice');
+    const table = page.locator('.pp-table');
+    await table.click();
+    await page.waitForFunction(() => document.pointerLockElement === document.querySelector('.pp-table'));
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    async function paddleTop() {
+      return table.evaluate(canvas => {
+        const scale = canvas.height / 270;
+        const pixels = canvas.getContext('2d').getImageData(Math.round(16 * scale), 0, 1, canvas.height).data;
+        for (let y = 0; y < canvas.height; y++) if (pixels[y * 4 + 3]) return y / scale;
+        throw new Error('Player paddle is missing');
+      });
+    }
+    async function moveLockedMouse(movementY) {
+      await table.evaluate((canvas, movementY) => {
+        const event = new MouseEvent('mousemove', { bubbles: true });
+        Object.defineProperty(event, 'movementY', { value: movementY });
+        canvas.dispatchEvent(event);
+      }, movementY);
+    }
+    await moveLockedMouse(10000);
+    await page.clock.runFor(500);
+    const bottom = await paddleTop();
+    assert.ok(bottom >= 222 && bottom <= 224, 'locked mouse movement stops at the bottom of the table: ' + bottom);
+    await moveLockedMouse(-30);
+    await page.clock.runFor(300);
+    assert.ok(await paddleTop() < bottom - 10, 'reversing the mouse moves the paddle immediately after reaching the edge');
+    await page.clock.resume();
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.pointerLockElement);
+    assert.equal(await page.locator('.pp-overlay').count(), 1, 'Escape releases the mouse while keeping the game open');
     await page.keyboard.press('Tab');
     assert.equal(await page.locator('.pp-close').evaluate(node => node === document.activeElement), true);
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('.pp-overlay').count(), 0);
     await page.waitForTimeout(1100);
     assert.equal(await page.locator('.pp-overlay').count(), 0, 'the pending serve does not reopen a closed game');
+    await page.evaluate(() => {
+      Math.random = () => 0.5; // Horizontal serves miss a paddle parked at the top.
+      document.dispatchEvent(new CustomEvent('sanakan:pong'));
+    });
+    await table.click();
+    await page.waitForFunction(() => document.pointerLockElement === document.querySelector('.pp-table'));
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    await moveLockedMouse(-10000);
+    await page.clock.runFor(15000);
+    await page.clock.resume();
+    await page.locator('.pp-again').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => !document.pointerLockElement);
+    assert.equal(await page.locator('.pp-overlay').count(), 1, 'finishing a match releases the mouse and leaves the rematch available');
+    await page.locator('.pp-again').click();
+    await table.click();
+    await page.waitForFunction(() => document.pointerLockElement === document.querySelector('.pp-table'));
+    await page.evaluate(() => document.querySelector('.pp-close').click());
+    await page.waitForFunction(() => !document.pointerLockElement);
+    assert.equal(await page.locator('.pp-overlay').count(), 0, 'closing the game also releases a locked mouse');
   }, true);
 
   // 1 April 2029 is also Easter: Japanese takes precedence over its motto.

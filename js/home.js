@@ -513,10 +513,12 @@ function homeWitness(key) {
     canvas.height = H * dpr;
     var note = el('p', 'pp-note', 'Mysz, palec albo strzałki. Do pięciu punktów.');
     note.setAttribute('role', 'status');
+    var controls = el('p', 'pp-controls', 'Kliknij planszę, aby zablokować mysz. Esc uwalnia kursor.');
+    controls.hidden = !canvas.requestPointerLock;
     var again = el('button', 'pp-again hud-corners', 'Jeszcze raz');
     again.type = 'button';
     again.hidden = true;
-    box.append(head, score, canvas, note, again);
+    box.append(head, score, canvas, controls, note, again);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     box.focus();
@@ -535,6 +537,8 @@ function homeWitness(key) {
       guard = H / 2;
       points = [0, 0];
       playing = true;
+      target = null;
+      keys.up = keys.down = false;
       again.hidden = true;
       showScore();
       serve(-1);
@@ -575,6 +579,7 @@ function homeWitness(key) {
       }
       if (points[who] >= WIN) {
         playing = false;
+        releaseMouse();
         ball = null;
         note.textContent = who ? 'Safeguard wygrywa ' + points[1] + ':' + points[0] + '. Jak zawsze.'
           : 'Wygrywasz ' + points[0] + ':' + points[1] + '. Safeguard żąda rewanżu.';
@@ -640,19 +645,64 @@ function homeWitness(key) {
       if (active !== overlay) return;
       cancelAnimationFrame(frame);
       clearTimeout(serving);
+      releaseMouse();
+      document.removeEventListener('pointerlockchange', lockChanged);
+      document.removeEventListener('pointerlockerror', lockFailed);
       overlay.remove();
       active = null;
       if (before && before.focus) before.focus();
     }
 
-    // the paddle where the pointer is, over the table
-    canvas.addEventListener('pointermove', function (e) {
+    function releaseMouse() {
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
+    }
+
+    function lockChanged() {
+      if (document.pointerLockElement === canvas && !playing) releaseMouse();
+      target = null;
+      keys.up = keys.down = false;
+      controls.textContent = document.pointerLockElement === canvas
+        ? 'Mysz zablokowana w planszy. Esc uwalnia kursor.'
+        : 'Kliknij planszę, aby zablokować mysz. Esc uwalnia kursor.';
+    }
+
+    function lockFailed() {
+      if (active !== overlay) return;
+      controls.textContent = 'Nie udało się zablokować myszy. Spróbuj kliknąć planszę ponownie lub użyj strzałek.';
+    }
+
+    document.addEventListener('pointerlockchange', lockChanged);
+    document.addEventListener('pointerlockerror', lockFailed);
+
+    // Locked mouse input uses relative movement; touch and unlocked pointers
+    // keep their absolute position on the table. Clamp each move at the edge
+    // so reversing direction moves the paddle immediately.
+    function followPointer(e) {
+      if (!playing || document.pointerLockElement === canvas) return;
       var r = canvas.getBoundingClientRect();
-      target = (e.clientY - r.top) * H / r.height;
+      target = Math.max(PAD / 2, Math.min(H - PAD / 2, (e.clientY - r.top) * H / r.height));
+    }
+    canvas.addEventListener('mousemove', function (e) {
+      if (!playing || document.pointerLockElement !== canvas) return;
+      var r = canvas.getBoundingClientRect();
+      target = Math.max(PAD / 2, Math.min(H - PAD / 2,
+        (target == null ? me : target) + e.movementY * H / r.height));
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      followPointer(e);
     });
     canvas.addEventListener('pointerdown', function (e) {
-      var r = canvas.getBoundingClientRect();
-      target = (e.clientY - r.top) * H / r.height;
+      if (e.button !== 0) return;
+      followPointer(e);
+      if (!playing || e.pointerType !== 'mouse' || !canvas.requestPointerLock
+          || document.pointerLockElement === canvas) return;
+      box.focus();
+      try {
+        var request = canvas.requestPointerLock();
+        if (request && request.then) request.then(function () {
+          if (active !== overlay || !playing) releaseMouse();
+        }, lockFailed);
+      } catch (err) { lockFailed(); }
     });
 
     // the keys stay in the game: the motto's Morse, the Konami code and the
@@ -661,7 +711,10 @@ function homeWitness(key) {
       e.stopPropagation();
       var k = e.key.toLowerCase();
       if (k === 'escape') {
-        if (down) shut();
+        if (down) {
+          if (document.pointerLockElement === canvas) releaseMouse();
+          else shut();
+        }
         return;
       }
       if (k === 'tab') {
