@@ -1868,7 +1868,7 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
 }
 
 /* Asleep (js/home.js): after a few minutes of nothing the page goes dark and
-   grey under a veil, but the logo stays above it and Sanakan's eyes glow */
+   grey under a veil, but the logo stays above it; eyes glow only on the default skin */
 .idle-veil {
     position: fixed;
     inset: 0;
@@ -1917,7 +1917,7 @@ body.idle .logo-wrap {
     top: 33.7%;
 }
 
-body.idle .logo-eye {
+html:not([data-skin]) body.idle .logo-eye {
     opacity: 0.8;
     transition: opacity 2s ease-in 2.5s;
     animation: eye-glow 2.6s ease-in-out infinite alternate;
@@ -2002,7 +2002,7 @@ body.idle .logo-eye {
 
 @media (prefers-reduced-motion: reduce) {
     .motto.decoded,
-    body.idle .logo-eye,
+    html:not([data-skin]) body.idle .logo-eye,
     .sg-crawler .legs,
     .sg-crawler.caught svg {
         animation: none;
