@@ -1,4 +1,5 @@
-// Sakura and Perseids: background decorations never cover controls. A pointer
+// Sakura and Perseids: seasonal backgrounds, also worn by their skins all year.
+// Decorations never cover controls. A pointer
 // click on empty space may catch a visible petal/comet; one is also reachable
 // by keyboard. The server witnesses the find before anything is remembered.
 (function () {
@@ -13,7 +14,6 @@
   function variable(node, name, value) { node.style.setProperty('--season-' + name, value); }
 
   function scene(key, name, label, count, decorate, particle) {
-    if (!guard.holiday(key)) return;
     var layer = document.createElement('div');
     layer.className = 'sg-season-background sg-' + key;
     layer.setAttribute('role', 'group');
@@ -51,63 +51,124 @@
       targets.push({ button: button, mover: mover });
       layer.appendChild(mover);
     }
-    document.body.classList.add('seasonal-background');
-    document.body.appendChild(layer);
-
-    document.addEventListener('click', function (e) {
-      if (e.defaultPrevented || !e.target.closest || e.target.closest(protectedArea)) return;
+    // Hit-test when the press begins: a comet can leave its 44px target before
+    // release. The native click still confirms the tap; a drag or scroll cancels it.
+    var press = null;
+    function moved(e) {
+      var dx = e.clientX - press.x, dy = e.clientY - press.y;
+      return dx * dx + dy * dy > 100;
+    }
+    function cancelPress() { press = null; }
+    document.addEventListener('pointerdown', function (e) {
+      cancelPress();
+      if (!layer.isConnected || layer.getAttribute('aria-hidden') === 'true') return;
+      if (!e.isPrimary || e.button !== 0 || e.defaultPrevented || !e.target.closest || e.target.closest(protectedArea)) return;
       targets.some(function (target) {
         if (!target.button.getClientRects().length || getComputedStyle(target.mover).opacity < 0.1) return false;
         var r = target.button.getBoundingClientRect();
         if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return false;
-        catchTarget(target.button);
+        press = { id: e.pointerId, button: target.button, x: e.clientX, y: e.clientY };
         return true;
       });
     }, { passive: true });
-    function visibility() { layer.classList.toggle('paused', document.hidden); }
+    document.addEventListener('pointermove', function (e) {
+      if (press && e.pointerId === press.id && moved(e)) cancelPress();
+    }, { passive: true });
+    document.addEventListener('pointercancel', cancelPress, { passive: true });
+    document.addEventListener('scroll', cancelPress, { passive: true, capture: true });
+    document.addEventListener('contextmenu', cancelPress, { passive: true });
+    window.addEventListener('blur', cancelPress);
+    document.addEventListener('click', function (e) {
+      var hit = press;
+      if (hit && moved(e)) hit = null;
+      cancelPress();
+      if (!hit || e.detail === 0 || (e.pointerId != null && e.pointerId !== hit.id)
+          || e.defaultPrevented || !e.target.closest || e.target.closest(protectedArea)) return;
+      catchTarget(hit.button);
+    }, { passive: true });
+    function visibility() {
+      cancelPress();
+      layer.classList.toggle('paused', document.hidden);
+    }
     document.addEventListener('visibilitychange', visibility);
     visibility();
+    return function (show) {
+      cancelPress();
+      if (!show) {
+        layer.remove();
+        return;
+      }
+      var seasonal = guard.holiday(key);
+      if (seasonal) layer.removeAttribute('aria-hidden');
+      else layer.setAttribute('aria-hidden', 'true');
+      targets.forEach(function (target) {
+        target.button.disabled = !seasonal || !!guard.finds()[key];
+      });
+      if (!layer.isConnected) document.body.appendChild(layer);
+    };
   }
 
-  scene('sakura', 'Sakura', 'Złap płatek sakury', small ? 12 : 20, null, function (mover, button, i, count) {
-    var duration = between(15, 26);
-    mover.classList.add('sakura-fall');
-    mover.style.left = ((i + Math.random()) * 100 / count).toFixed(2) + '%';
-    variable(mover, 'duration', duration.toFixed(2) + 's');
-    variable(mover, 'delay', (-((i * 7) % count + 0.5) * duration / count).toFixed(2) + 's');
-    variable(mover, 'rest-top', between(12, 84).toFixed(2) + 'vh');
-    variable(mover, 'size', between(13, 23).toFixed(2) + 'px');
-    variable(mover, 'color', ['#efb2c9', '#e5a0b9', '#f4ced9'][i % 3]);
-    variable(mover, 'opacity', between(0.35, 0.6).toFixed(2));
-    variable(mover, 'sway', between(4, 8).toFixed(2) + 's');
-    var drift = document.createElement('div');
-    drift.className = 'sakura-drift';
-    button.classList.add('sakura-petal');
-    button.innerHTML = PETAL;
-    drift.appendChild(button);
-    mover.appendChild(drift);
-  });
+  function sakura() {
+    return scene('sakura', 'Sakura', 'Złap płatek sakury', small ? 12 : 20, null, function (mover, button, i, count) {
+      var duration = between(15, 26);
+      mover.classList.add('sakura-fall');
+      mover.style.left = ((i + Math.random()) * 100 / count).toFixed(2) + '%';
+      variable(mover, 'duration', duration.toFixed(2) + 's');
+      variable(mover, 'delay', (-((i * 7) % count + 0.5) * duration / count).toFixed(2) + 's');
+      variable(mover, 'rest-top', between(12, 84).toFixed(2) + 'vh');
+      variable(mover, 'size', between(13, 23).toFixed(2) + 'px');
+      variable(mover, 'color', ['#efb2c9', '#e5a0b9', '#f4ced9'][i % 3]);
+      variable(mover, 'opacity', between(0.35, 0.6).toFixed(2));
+      variable(mover, 'sway', between(4, 8).toFixed(2) + 's');
+      var drift = document.createElement('div');
+      drift.className = 'sakura-drift';
+      button.classList.add('sakura-petal');
+      button.innerHTML = PETAL;
+      drift.appendChild(button);
+      mover.appendChild(drift);
+    });
+  }
 
-  scene('perseids', 'Perseidy', 'Złap kometę', small ? 2 : 3, function (layer) {
-    for (var i = 0; i < (small ? 32 : 56); i++) {
-      var star = document.createElement('i');
-      star.className = 'perseid-star';
-      star.setAttribute('aria-hidden', 'true');
-      star.style.left = between(1, 99).toFixed(2) + '%';
-      star.style.top = between(1, 99).toFixed(2) + '%';
-      variable(star, 'size', between(1, 2.5).toFixed(2) + 'px');
-      variable(star, 'duration', between(3, 8).toFixed(2) + 's');
-      variable(star, 'delay', (-between(0, 8)).toFixed(2) + 's');
-      layer.appendChild(star);
-    }
-  }, function (mover, button, i, count) {
-    var duration = between(10, 16);
-    mover.classList.add('perseid-flight');
-    mover.style.left = ((i + 0.5) * 70 / count).toFixed(2) + '%';
-    variable(mover, 'duration', duration.toFixed(2) + 's');
-    variable(mover, 'delay', (-(0.62 + i * 0.09) * duration).toFixed(2) + 's');
-    variable(mover, 'rest-top', (20 + i * 24) + 'vh');
-    button.classList.add('perseid-comet');
-    mover.appendChild(button);
-  });
+  function perseids() {
+    return scene('perseids', 'Perseidy', 'Złap kometę', small ? 2 : 3, function (layer) {
+      for (var i = 0; i < (small ? 32 : 56); i++) {
+        var star = document.createElement('i');
+        star.className = 'perseid-star';
+        star.setAttribute('aria-hidden', 'true');
+        star.style.left = between(1, 99).toFixed(2) + '%';
+        star.style.top = between(1, 99).toFixed(2) + '%';
+        variable(star, 'size', between(1, 2.5).toFixed(2) + 'px');
+        variable(star, 'duration', between(3, 8).toFixed(2) + 's');
+        variable(star, 'delay', (-between(0, 8)).toFixed(2) + 's');
+        layer.appendChild(star);
+      }
+    }, function (mover, button, i, count) {
+      var duration = between(10, 16);
+      mover.classList.add('perseid-flight');
+      mover.style.left = ((i + 0.5) * 70 / count).toFixed(2) + '%';
+      variable(mover, 'duration', duration.toFixed(2) + 's');
+      variable(mover, 'delay', (-(0.62 + i * 0.09) * duration).toFixed(2) + 's');
+      variable(mover, 'rest-top', (20 + i * 24) + 'vh');
+      button.classList.add('perseid-comet');
+      mover.appendChild(button);
+    });
+  }
+
+  // Lazily create each scene once; profile previews reuse its particles and
+  // listeners. CSS declares which background belongs to the active skin.
+  var scenes = { sakura: { create: sakura }, perseids: { create: perseids } };
+  function update() {
+    var skin = getComputedStyle(document.documentElement).getPropertyValue('--season-background').trim();
+    var visible = false;
+    Object.keys(scenes).forEach(function (key) {
+      var show = guard.holiday(key) || skin === key;
+      var entry = scenes[key];
+      if (show && !entry.render) entry.render = entry.create();
+      if (entry.render) entry.render(show);
+      if (show) visible = true;
+    });
+    document.body.classList.toggle('seasonal-background', visible);
+  }
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin'] });
+  update();
 })();

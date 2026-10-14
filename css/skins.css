@@ -457,8 +457,9 @@ html[data-skin="killy"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Chisato: the burgundy of her eyes, ribbon and background with the cream of
-   her hair. The Sakura find unlocks her; colours and logo alone. */
+   her hair. The Sakura find unlocks her colours, logo and falling petals. */
 html[data-skin="chisato"] {
+    --season-background: sakura;
     --accent: #bc626d;
     --accent-light: #e8b8b5;
     --accent-dark: #873642;
@@ -491,6 +492,7 @@ html[data-skin="chisato"] .home .link-swap:not(.below) a.swap-alt:hover {
 /* Yae Miko: her rose hair and the plum of her eyes and clothes, unlocked by
    the same Sakura find. No words either. */
 html[data-skin="yaemiko"] {
+    --season-background: sakura;
     --accent: #c76c86;
     --accent-light: #edb8c9;
     --accent-dark: #86405f;
@@ -521,8 +523,9 @@ html[data-skin="yaemiko"] .home .link-swap:not(.below) a.swap-alt:hover {
 }
 
 /* Suisei: the blue of her hair and the navy of her starry picture. The
-   Perseids find unlocks her; colours and logo alone. */
+   Perseids find unlocks her colours, logo and starry background. */
 html[data-skin="suisei"] {
+    --season-background: perseids;
     --accent: #7097e3;
     --accent-light: #b8ccef;
     --accent-dark: #365493;
@@ -555,6 +558,7 @@ html[data-skin="suisei"] .home .link-swap:not(.below) a.swap-alt:hover {
 /* Hoshino Ai: magenta stars and ribbons on the dark violet of her hair,
    unlocked by the same Perseids find. No words either. */
 html[data-skin="hoshino"] {
+    --season-background: perseids;
     --accent: #ce5b9b;
     --accent-light: #ebb6d4;
     --accent-dark: #762b68;

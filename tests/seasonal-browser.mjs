@@ -29,13 +29,20 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.equal(made.status, 0, made.stderr);
     return made.stdout;
   }
-  async function visit(date, run, { login = false, ...options } = {}) {
+  async function visit(date, run, { login = false, skin = '', finds = [], ...options } = {}) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 850 }, ...options });
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
-      fixture('finds', all => { delete all[user]; });
-      fixture('skins', all => { delete all[user]; });
+      fixture('finds', all => {
+        delete all[user];
+        if (finds.length) all[user] = Object.fromEntries(finds.map(key => [key, Math.floor(Date.now() / 1000)]));
+      });
+      fixture('skins', all => {
+        delete all[user];
+        if (skin) all[user] = skin;
+      });
       if (login) await context.request.get(`${base}/__login?id=${user}`);
+      if (skin) await context.request.get(`${base}/account.php`); // seed the saved appearance cookies
       const page = await context.newPage();
       page.on('pageerror', error => errors.push(error.message));
       await page.addInitScript(date => localStorage.setItem('safeguard-date', date), date);
@@ -70,6 +77,155 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       return null;
     }, key);
   }
+  async function movingComet(page) {
+    return page.locator('.perseid-flight').first().evaluate(mover => {
+      // Start a real flight in the left margin, away from the page's controls.
+      mover.style.left = '4vw';
+      mover.style.animation = 'perseid-flight 10s -7s linear infinite';
+      const animation = mover.getAnimations()[0];
+      animation.currentTime = 0;
+      if (animation.playState !== 'running') throw new Error('The comet must keep moving during the gesture');
+      const r = mover.querySelector('button').getBoundingClientRect();
+      const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      const below = document.elementFromPoint(x, y);
+      if (!below || below.closest('a, button, input, select, textarea, .logo-wrap, .card, .notice-bar, .sg-toast'))
+        throw new Error('The moving comet must start over empty background');
+      return { x, y };
+    });
+  }
+
+  await visit('2026-06-10', async (page, context, calls) => {
+    await page.locator('.sg-sakura').waitFor();
+    assert.equal(await page.locator('.sg-season-background').count(), 1, 'a saved Sakura skin brings petals outside April');
+    await page.goto(`${base}/privacy/`);
+    await page.locator('.sg-sakura').waitFor();
+    assert.equal(await page.locator('.sg-season-background').count(), 1, 'the skin background follows navigation');
+    await page.goto(`${base}/account/`);
+    const select = page.locator('select[name=skin]');
+    for (const event of events) {
+      for (const [id] of event.skins) {
+        await select.selectOption(id);
+        const layer = page.locator('.sg-' + event.key);
+        await layer.waitFor();
+        assert.equal(await page.locator('.sg-season-background').count(), 1, 'preview replaces the previous skin background');
+        assert.equal(await layer.getAttribute('aria-hidden'), 'true', 'outside the season the skin background is decorative');
+        assert.equal(await layer.locator('.seasonal-catch:not(:disabled)').count(), 0);
+        assert.equal(await page.getByRole('button', { name: event.label }).count(), 0, 'decorations add no keyboard stop');
+        assert.equal(await layer.locator('.seasonal-particle').first().evaluate(el => getComputedStyle(el).animationName),
+          event.key === 'sakura' ? 'sakura-fall' : 'perseid-flight');
+        if (event.key === 'perseids') {
+          assert.equal(await layer.locator('.perseid-star').count(), 56);
+          assert.equal(await layer.locator('.perseid-star').first().evaluate(el => getComputedStyle(el).animationName), 'perseid-twinkle');
+        }
+        await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+        await page.goto(`${base}/`);
+        await layer.waitFor();
+        assert.equal(await page.locator('.sg-season-background').count(), 1, 'saving the skin keeps its background on home');
+        const point = await backgroundTarget(page, event.key);
+        assert.ok(point);
+        await page.mouse.click(point.x, point.y);
+        await page.waitForLoadState('networkidle');
+        assert.deepEqual(calls, [], 'a skin background outside the season never asks for a discovery');
+        await page.goto(`${base}/account/`);
+      }
+    }
+    // Repeated previews reuse a scene, including after it was detached.
+    await select.selectOption('chisato');
+    await page.locator('.sg-sakura').waitFor();
+    await page.evaluate(() => { window.originalPetals = document.querySelector('.sg-sakura'); });
+    await select.selectOption('suisei');
+    await page.locator('.sg-perseids').waitFor();
+    await select.selectOption('yaemiko');
+    await page.locator('.sg-sakura').waitFor();
+    assert.equal(await page.evaluate(() => document.querySelector('.sg-sakura') === window.originalPetals), true);
+    await select.selectOption('');
+    await page.waitForFunction(() => !document.querySelector('.sg-season-background'));
+    assert.equal(await page.locator('body').evaluate(el => el.classList.contains('seasonal-background')), false);
+    // The last saved skin is still Hoshino; losing its find removes the background too.
+    fixture('finds', all => { delete all[user]; });
+    await page.goto(`${base}/`);
+    await page.locator('.account-menu').waitFor();
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-skin'));
+    assert.equal(await page.locator('.sg-season-background').count(), 0, 'an account reply removes a revoked skin background');
+  }, { login: true, skin: 'chisato', finds: ['sakura', 'perseids'] });
+
+  for (const [event, skin, find] of [[events[0], 'suisei', 'perseids'], [events[1], 'chisato', 'sakura']]) {
+    await visit(event.date, async (page, context, calls) => {
+      await page.locator('.sg-' + event.key).waitFor();
+      assert.equal(await page.locator('.sg-season-background').count(), 2, 'the seasonal event stays alongside another skin background');
+      assert.equal(await page.locator('.sg-' + find).getAttribute('aria-hidden'), 'true');
+      await page.getByRole('button', { name: event.label }).focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(key => JSON.parse(localStorage.getItem('safeguard'))?.sent?.[key], event.key);
+      assert.deepEqual(calls, [event.key], 'the seasonal discovery remains available while wearing another background');
+      await page.goto(`${base}/account/`);
+      await page.locator('select[name=skin]').selectOption('');
+      await page.waitForFunction(() => document.querySelectorAll('.sg-season-background').length === 1);
+      assert.equal(await page.locator('.sg-' + event.key).count(), 1, 'removing the skin keeps the seasonal background');
+    }, { login: true, skin, finds: [find] });
+  }
+
+  await visit('2026-08-10', async (page, context, calls) => {
+    let point = await movingComet(page);
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.down();
+    await page.mouse.move(point.x + 40, point.y);
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.up();
+    await page.waitForLoadState('networkidle');
+    assert.deepEqual(calls, [], 'dragging away and back cancels the catch');
+
+    point = await movingComet(page);
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.down();
+    assert.deepEqual(calls, [], 'pressing alone does not award the find');
+    await page.waitForTimeout(180);
+    const r = await page.locator('.perseid-comet').first().boundingBox();
+    assert.ok(point.x < r.x || point.x > r.x + r.width || point.y < r.y || point.y > r.y + r.height,
+      'the animated comet has left the pressed point before release');
+    await page.mouse.up();
+    await page.waitForFunction(() => !!SanakanSafeguard.finds().perseids);
+    assert.deepEqual(calls, ['perseids'], 'release catches the comet hit at the start of the press');
+  });
+
+  await visit('2026-08-10', async (page, context, calls) => {
+    const touch = await context.newCDPSession(page);
+    async function start(point) {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 1 }] });
+    }
+    async function end(type = 'touchEnd') {
+      await touch.send('Input.dispatchTouchEvent', { type, touchPoints: [] });
+    }
+    await page.evaluate(() => { document.body.style.minHeight = '200vh'; });
+    let point = await movingComet(page);
+    await start(point);
+    for (const dy of [40, 80, 120]) {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: point.x, y: point.y - dy, id: 1 }] });
+    }
+    await end();
+    await page.waitForFunction(() => scrollY > 0);
+    await page.waitForLoadState('networkidle');
+    assert.deepEqual(calls, [], 'swiping from a comet scrolls without awarding a find');
+
+    // Reset the scrolled layout before starting a fresh tap.
+    await page.reload();
+    point = await movingComet(page);
+    await start(point);
+    await end('touchCancel');
+    await page.waitForLoadState('networkidle');
+    assert.deepEqual(calls, [], 'a cancelled touch gives no find');
+
+    point = await movingComet(page);
+    await start(point);
+    assert.deepEqual(calls, [], 'a finger still held down gives no find');
+    await page.waitForTimeout(180);
+    const r = await page.locator('.perseid-comet').first().boundingBox();
+    assert.ok(point.x < r.x || point.x > r.x + r.width || point.y < r.y || point.y > r.y + r.height,
+      'the comet has moved away while the finger stays still');
+    await end();
+    await page.waitForFunction(() => !!SanakanSafeguard.finds().perseids);
+    assert.deepEqual(calls, ['perseids'], 'a real touch catches the moving comet exactly once');
+  }, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
   for (const event of events) {
     await visit(event.date, async (page, context, calls, network) => {
@@ -124,6 +280,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
         await page.locator('.account-menu').waitFor();
         await page.waitForFunction(id => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0 && logo.src.endsWith('/skins/' + id + '.webp'); }, id);
         assert.equal(await page.locator('html').getAttribute('data-skin'), id);
+        assert.equal(await page.locator('.sg-season-background').count(), 1, 'a skin and its current season share one background');
         assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
         assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), rgb);
         assert.match(await page.locator('.logo-slice').first().evaluate(el => getComputedStyle(el).backgroundImage), new RegExp(id + '\\.webp'));

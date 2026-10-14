@@ -182,7 +182,7 @@
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=b5de09b872" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=5315e00a11" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=b97c73e50d" type="text/css" rel="stylesheet" />
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
@@ -482,7 +482,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>
-  <script src="../js/seasonal-background.js?v=e621dbc38d"></script>
+  <script src="../js/seasonal-background.js?v=7b21cb1ce5"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
