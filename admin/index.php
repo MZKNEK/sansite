@@ -138,7 +138,7 @@
   <link href="../css/status.css?v=c4ddf09879" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=76c08c2c33" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=c787589afa"></script>
-  <link href="../css/seasonal-background.css?v=52e4c86df9" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=bd96103a30" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page" data-csrf="<?=e($csrf)?>">
@@ -217,7 +217,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>
-  <script src="../js/seasonal-background.js?v=61fc7cb65c"></script>
+  <script src="../js/seasonal-background.js?v=075b67aacd"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

@@ -64,8 +64,9 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     } finally { await context.close(); }
   }
   async function backgroundTarget(page, key) {
-    return page.evaluate(key => {
-      document.getAnimations().filter(a => a.effect?.target.closest('.sg-season-background')).forEach(a => a.pause());
+    const pause = () => page.evaluate(() => document.getAnimations().filter(a => a.effect?.target.closest('.sg-season-background')).forEach(a => a.pause()));
+    const resume = () => page.evaluate(() => document.getAnimations().filter(a => a.effect?.target.closest('.sg-season-background')).forEach(a => a.play()));
+    const find = () => page.evaluate(key => {
       for (const button of document.querySelectorAll(`.sg-${key} .seasonal-catch`)) {
         const r = button.getBoundingClientRect();
         const x = r.left + r.width / 2, y = r.top + r.height / 2;
@@ -77,12 +78,25 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       }
       return null;
     }, key);
+    // A meteor shower has gaps between meteors: wait for one, then hold it still.
+    for (let i = 0; i < 100; i++) {
+      await pause();
+      const point = await find();
+      if (point) return point;
+      await resume();
+      await page.waitForTimeout(100);
+    }
+    return null;
   }
   async function movingComet(page) {
     return page.locator('.perseid-flight').first().evaluate(mover => {
-      // Start a real flight in the left margin, away from the page's controls.
-      mover.style.left = '4vw';
-      mover.style.animation = 'perseid-flight 10s -7s linear infinite';
+      // A known, fast flight in the left margin, away from the page's controls.
+      mover.style.cssText = 'left:4vw;top:0';
+      mover.style.setProperty('--season-angle', '0deg');
+      mover.style.setProperty('--season-from', '-40vh');
+      mover.style.setProperty('--season-to', '120vh');
+      mover.style.setProperty('--season-bright', '1');
+      mover.style.animation = 'perseid-flight 4s -1.8s linear infinite';
       const animation = mover.getAnimations()[0];
       animation.currentTime = 0;
       if (animation.playState !== 'running') throw new Error('The comet must keep moving during the gesture');

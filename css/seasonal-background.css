@@ -81,31 +81,35 @@ body.seasonal-background { isolation: isolate; }
     animation: perseid-twinkle var(--season-duration) var(--season-delay) ease-in-out infinite alternate;
 }
 .perseid-flight {
-    top: -100px;
+    top: 0;
     animation: perseid-flight var(--season-duration) var(--season-delay) linear infinite;
 }
 .perseid-comet { position: relative; }
+/* The trail points up the flight's own axis: the rotation in the keyframes
+   turns the whole comet to its heading, so the tail always trails straight
+   behind the head however the meteor leans. */
 .perseid-comet::before {
     content: "";
     position: absolute;
-    right: 50%;
-    top: 50%;
-    width: 130px;
-    height: 2px;
+    left: 50%;
+    bottom: 50%;
+    width: 2px;
+    height: var(--season-tail, 130px);
     border-radius: 50%;
-    background: linear-gradient(90deg, transparent, #8bbcf3);
-    transform: rotate(42deg);
-    transform-origin: right center;
+    background: linear-gradient(0deg, #8bbcf3, rgba(139, 188, 243, 0));
+    transform: translateX(-50%);
+    opacity: var(--season-bright, 0.8);
 }
 .perseid-comet::after {
     content: "";
-    width: 5px;
-    height: 5px;
+    width: var(--season-head, 5px);
+    height: var(--season-head, 5px);
     border-radius: 50%;
     background: #eff8ff;
     box-shadow: 0 0 8px #b8d9ff, 0 0 18px rgba(139, 188, 243, 0.65);
 }
 .perseid-comet.catching::after { box-shadow: 0 0 18px #eff8ff; }
+.perseid-comet.catching::before { opacity: 1; }
 
 @keyframes sakura-fall {
     0% {
@@ -139,10 +143,21 @@ body.seasonal-background { isolation: isolate; }
     from { opacity: 0.15; }
     to { opacity: 0.75; }
 }
+/* A meteor leaves the radiant leaning down-right (--season-angle), crosses on
+   its own time (--season-duration) and shows its own trail and brightness; the
+   transform spans the whole cycle so the streak keeps a steady speed. */
 @keyframes perseid-flight {
-    0%, 60% { opacity: 0; transform: translate(-24vw, 0); }
-    63% { opacity: 0.8; }
-    90%, 100% { opacity: 0; transform: translate(52vw, calc(100vh + 200px)); }
+    0% {
+        opacity: 0;
+        transform: rotate(var(--season-angle, 0deg)) translateY(var(--season-from, -40vh));
+    }
+    24% { opacity: 0; }
+    31% { opacity: var(--season-bright, 0.8); }
+    97% { opacity: var(--season-bright, 0.8); }
+    100% {
+        opacity: 0;
+        transform: rotate(var(--season-angle, 0deg)) translateY(var(--season-to, 140vh));
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

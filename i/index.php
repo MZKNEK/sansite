@@ -287,7 +287,7 @@
   <link href="../css/skins.css?v=2627f8bdee" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=08cb01faf8" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=c787589afa"></script>
-  <link href="../css/seasonal-background.css?v=52e4c86df9" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=bd96103a30" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="explorer-page">
@@ -767,7 +767,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>
-  <script src="../js/seasonal-background.js?v=61fc7cb65c"></script>
+  <script src="../js/seasonal-background.js?v=075b67aacd"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 <?php if ($manage && !$showTrash): ?>
   <script src="../js/explorer-admin.js?v=5c3e1c0087"></script>

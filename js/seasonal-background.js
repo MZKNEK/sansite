@@ -152,11 +152,28 @@
         layer.appendChild(star);
       }
     }, function (mover, button, i, count) {
-      var duration = between(10, 16);
+      // Every comet leaves the same radiant off the top-left corner: the higher
+      // and the further right one is born, the more it leans down-right, so the
+      // trails all point back to that corner. Each keeps its own speed, trail
+      // length, brightness and how far it falls, so they neither move nor
+      // vanish together; the lean stays inside what keeps the streak on screen.
+      var x = between(0, 52);
+      var from = between(-38, -8), to = between(78, 118);
+      var tilt = Math.atan2((x + 6) / 100 * innerWidth, 0.55 * innerHeight) * 180 / Math.PI;
+      var room = (100 - x) / 100 * innerWidth - 30;
+      var maxLean = Math.asin(Math.min(1, room / (to / 100 * innerHeight))) * 180 / Math.PI;
+      var lean = Math.min(tilt, maxLean) * between(0.85, 1);
+      var duration = (to - from) / between(9, 20);
       mover.classList.add('perseid-flight');
-      mover.style.left = ((i + 0.5) * 70 / count).toFixed(2) + '%';
+      mover.style.left = x.toFixed(2) + '%';
+      variable(mover, 'angle', (-lean).toFixed(1) + 'deg');
       variable(mover, 'duration', duration.toFixed(2) + 's');
-      variable(mover, 'delay', (-(0.62 + i * 0.09) * duration).toFixed(2) + 's');
+      variable(mover, 'delay', (-((i + 0.5 + between(-0.15, 0.15)) / count) * duration).toFixed(2) + 's');
+      variable(mover, 'from', from.toFixed(1) + 'vh');
+      variable(mover, 'to', to.toFixed(1) + 'vh');
+      variable(mover, 'tail', between(55, 165).toFixed(0) + 'px');
+      variable(mover, 'bright', between(0.55, 0.95).toFixed(2));
+      variable(mover, 'head', between(3.5, 6).toFixed(2) + 'px');
       variable(mover, 'rest-top', (20 + i * 24) + 'vh');
       button.classList.add('perseid-comet');
       mover.appendChild(button);

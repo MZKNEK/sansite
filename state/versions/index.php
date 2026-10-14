@@ -116,7 +116,7 @@
 <?php endif; ?>
   <script src="../../js/appearance.js?v=c787589afa"></script>
   <script src="../../js/versions.js?v=9f931adf42" defer></script>
-  <link href="../../css/seasonal-background.css?v=52e4c86df9" type="text/css" rel="stylesheet" />
+  <link href="../../css/seasonal-background.css?v=bd96103a30" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
@@ -229,7 +229,7 @@
   <script src="../../js/account.js?v=9ad24ea77c"></script>
   <script src="../../js/netsphere.js?v=a98676efe2"></script>
   <script src="../../js/safeguard.js?v=060589dc14"></script>
-  <script src="../../js/seasonal-background.js?v=61fc7cb65c"></script>
+  <script src="../../js/seasonal-background.js?v=075b67aacd"></script>
   <script src="../../js/palette.js?v=9d395acc33"></script>
 </body>
 
