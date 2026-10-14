@@ -26,11 +26,11 @@
     justify-content: space-between;
     gap: 8px 12px;
     padding: 8px 12px;
-    border: 1px solid rgba(5, 217, 232, 0.35);
-    background: rgba(5, 217, 232, 0.05);
+    border: 1px solid color-mix(in srgb, var(--utility-tone) 35%, transparent);
+    background: color-mix(in srgb, var(--utility-tone) 5%, transparent);
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
-    color: #b8f3f7;
+    color: var(--utility-ink);
   }
 
   button {

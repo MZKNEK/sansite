@@ -82,9 +82,9 @@
 <style>
   /* blue corners, apart from the green of the file */
   .btn-save {
-    --corner: rgba(5, 217, 232, 0.85);
-    --fill: rgba(5, 217, 232, 0.06);
-    color: #b8f3f7;
+    --corner: color-mix(in srgb, var(--utility-tone) 85%, transparent);
+    --fill: color-mix(in srgb, var(--utility-tone) 6%, transparent);
+    color: var(--utility-ink);
   }
 
   a.btn-save {
@@ -96,14 +96,14 @@
   }
 
   .btn-save:hover:not(:disabled) {
-    --fill: rgba(5, 217, 232, 0.18);
+    --fill: color-mix(in srgb, var(--utility-tone) 18%, transparent);
   }
 
   .note {
     align-self: center;
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
   }
 
   /* under the buttons (the break ends their row), as wide as the card at
@@ -120,16 +120,16 @@
     flex-direction: column;
     gap: 8px;
     padding: 10px 12px;
-    border: 1px solid rgba(5, 217, 232, 0.35);
-    background: rgba(5, 217, 232, 0.05);
+    border: 1px solid color-mix(in srgb, var(--utility-tone) 35%, transparent);
+    background: color-mix(in srgb, var(--utility-tone) 5%, transparent);
     font-size: 13px;
     text-align: left;
   }
 
   .saved.bad {
-    border-color: rgba(232, 98, 98, 0.5);
-    background: rgba(232, 98, 98, 0.06);
-    color: #f0c4c2;
+    border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+    background: color-mix(in srgb, var(--danger) 6%, transparent);
+    color: var(--lock-text);
   }
 
   .link {
@@ -141,8 +141,8 @@
     flex: 1;
     min-width: 0;
     padding: 6px 8px;
-    border: 1px solid rgba(220, 221, 222, 0.2);
-    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    background: var(--surface-input);
     color: var(--text);
     font: 12px "JetBrains Mono", monospace;
   }

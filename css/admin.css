@@ -209,7 +209,7 @@
 .quota-usage li > :first-child i {
     margin-left: 6px;
     font: normal 11px Lato, sans-serif;
-    color: rgba(var(--accent-light-rgb), 0.75);
+    color: var(--text-accent-muted);
 }
 
 .quota-usage li.over {
@@ -735,7 +735,7 @@ a.who-name:hover {
 
 .who code {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(var(--accent-light-rgb), 0.75);
+    color: var(--text-accent-muted);
 }
 
 .note {
@@ -973,7 +973,7 @@ a.who-name:hover {
 .trash-name code {
     overflow-wrap: anywhere;
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(var(--accent-light-rgb), 0.75);
+    color: var(--text-accent-muted);
 }
 
 /* a shared link, picked whole with one click to copy */

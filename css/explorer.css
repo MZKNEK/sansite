@@ -185,14 +185,14 @@ main.content {
     gap: 4px;
     text-align: center;
     font: 12px "Sanakan Mono", monospace;
-    color: var(--text-dim);
+    color: var(--media-caption);
 }
 
 .placeholder b {
     font-size: 22px;
     font-weight: 400;
     letter-spacing: 0.12em;
-    color: var(--link);
+    color: var(--media-link);
 }
 
 .badge {
@@ -496,7 +496,7 @@ main.content {
 .where {
     overflow: hidden;
     font: 11px "JetBrains Mono", Consolas, monospace;
-    color: rgba(var(--accent-light-rgb), 0.75);
+    color: var(--text-accent-muted);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1211,7 +1211,7 @@ body.selecting .tile.up {
 .gallery-trash .trash-name code {
     overflow-wrap: anywhere;
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(var(--accent-light-rgb), 0.75);
+    color: var(--text-accent-muted);
 }
 
 .gallery-trash .trash-info {

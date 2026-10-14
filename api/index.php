@@ -48,8 +48,8 @@
   <link href="../css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=5a07d8545d" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=1fce7df87a" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=2627f8bdee" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=08cb01faf8" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=c787589afa"></script>
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
@@ -126,7 +126,7 @@
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=0d6c821266" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=3bb1398e4e" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=66047e5fc2" />
-  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=5a07d8545d" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=2627f8bdee" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=1739858b8d" >
   <script src="../js/appearance.js?v=c787589afa"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />

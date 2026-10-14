@@ -526,6 +526,7 @@ function homeWitness(key) {
 
     var ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
+    var palette, paletteKey;
 
     var me, guard, ball, speed, points, serving, playing, target, frame, last;
     var keys = { up: false, down: false };
@@ -617,17 +618,35 @@ function homeWitness(key) {
       else if (ball.x > W + BALL) point(0);
     }
 
-    function draw() {
+    function colors() {
       var style = getComputedStyle(document.documentElement);
+      var names = ['--game-grid', '--link', '--danger', '--text'];
+      var key = style.colorScheme + names.map(function (name) { return style.getPropertyValue(name); }).join('|');
+      if (palette && key === paletteKey) return palette;
+      // Resolve light-dark() in CSS before passing colours to canvas.
+      var swatch = document.createElement('span');
+      swatch.hidden = true;
+      box.appendChild(swatch);
+      palette = names.map(function (name) {
+        swatch.style.color = 'var(' + name + ')';
+        return getComputedStyle(swatch).color;
+      });
+      swatch.remove();
+      paletteKey = key;
+      return palette;
+    }
+
+    function draw() {
+      var palette = colors();
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = style.getPropertyValue('--game-grid').trim();
+      ctx.fillStyle = palette[0];
       for (var y = 6; y < H; y += 18) ctx.fillRect(W / 2 - 1, y, 2, 9);
-      ctx.fillStyle = style.getPropertyValue('--link').trim();
+      ctx.fillStyle = palette[1];
       ctx.fillRect(EDGE, me - PAD / 2, PW, PAD);
-      ctx.fillStyle = style.getPropertyValue('--danger').trim();
+      ctx.fillStyle = palette[2];
       ctx.fillRect(W - EDGE - PW, guard - PAD / 2, PW, PAD);
       if (ball) {
-        ctx.fillStyle = style.getPropertyValue('--text').trim();
+        ctx.fillStyle = palette[3];
         ctx.fillRect(ball.x - BALL / 2, ball.y - BALL / 2, BALL, BALL);
       }
     }

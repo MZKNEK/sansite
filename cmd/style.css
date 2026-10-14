@@ -458,7 +458,7 @@ code {
 }
 
 .cmd-aliases code {
-    color: rgba(var(--accent-light-rgb), 0.75);
+    color: var(--text-accent-muted);
     font-size: 12px;
     word-break: break-all;
 }

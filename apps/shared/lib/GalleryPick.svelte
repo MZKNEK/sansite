@@ -86,17 +86,17 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: rgba(8, 9, 9, 0.75);
+    background: var(--scrim);
   }
 
   .pick {
-    --fill: #18181e;
+    --fill: var(--surface-raised);
     display: flex;
     flex-direction: column;
     width: min(880px, 100%);
     max-height: min(720px, 100%);
     border: 1px solid rgba(var(--accent-rgb), 0.3);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 12px 30px var(--shadow);
     text-align: left;
   }
 
@@ -110,7 +110,7 @@
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
   }
 
   .pick-close {
@@ -120,11 +120,11 @@
   .pick-note {
     margin: 0;
     padding: 24px 16px;
-    color: rgba(220, 221, 222, 0.7);
+    color: var(--text-secondary);
   }
 
   .pick-note.bad {
-    color: #f0c4c2;
+    color: var(--lock-text);
   }
 
   .pick-grid {
@@ -151,7 +151,7 @@
     width: 100%;
     aspect-ratio: 448 / 650;
     object-fit: cover;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--media-matte);
   }
 
   .pick-item span {

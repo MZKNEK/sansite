@@ -177,6 +177,7 @@ export async function testTheme({ browser, base, site, errors }) {
     }
     await preview(page, 'echidna');
     await contrast(page, '.cmd-desc, .cmd-params li');
+    await contrast(page, '.cmd-aliases code');
     for (const skin of ['', 'miku', 'ayame', 'echidna']) {
       await preview(page, skin);
       assert.equal(await page.locator('.toolbar').evaluate(e => getComputedStyle(e).backgroundColor), overlayColors[skin], 'command search toolbar shares the Ctrl+K surface');
@@ -213,6 +214,16 @@ export async function testTheme({ browser, base, site, errors }) {
     await page.locator('#act-mkdir').click();
     await contrast(page, '.ex-dialog[open] h2, .ex-dialog[open] p, .ex-dialog[open] input');
     await page.keyboard.press('Escape');
+
+    // Files without thumbnails keep dark media surfaces even in a light skin.
+    writeFileSync(path.join(site, `i/users/${owner}-User/A/readme.txt`), 'Theme fixture');
+    await page.goto(`${base}/i/?p=${encodeURIComponent(login.own + '/A')}&q=readme`);
+    for (const skin of ['', 'miku', 'echidna']) {
+      await preview(page, skin);
+      await contrast(page, '.placeholder');
+      await contrast(page, '.placeholder b');
+    }
+    await contrast(page, '.where');
 
     await page.goto(base + '/api/');
     await page.locator('.opblock-get .opblock-summary').last().click();
@@ -337,8 +348,10 @@ export async function testTheme({ browser, base, site, errors }) {
       await page.locator('.sel-btn').first().waitFor();
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light', app);
       await contrast(page, '.hud-title, .field > .label, .sel-value, .link-field input');
+      await contrast(page, '.sel-pos');
       await page.locator('.sel-btn').first().click();
       await contrast(page, '.sel-opt');
+      await contrast(page, '.sel-opt i');
       await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
       assert.equal(await page.locator('.sel-panel').count(), 0, 'cropper list still chooses with the keyboard');
@@ -353,7 +366,40 @@ export async function testTheme({ browser, base, site, errors }) {
       const overflow = await page.evaluate(() => [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && getComputedStyle(e).position !== 'absolute').slice(0, 8).map(e => `${e.tagName}.${e.className}: ${e.getBoundingClientRect().right}`));
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${app}: ${overflow.join(', ')}`);
       await page.setViewportSize({ width: 1280, height: 900 });
+      await page.locator('.btn-pick').click();
+      await page.locator('.pick-item span').first().waitFor();
+      await contrast(page, '.pick-head > span, .pick-item span, .pick-close');
+      await page.locator('.pick-item').first().hover();
+      await page.waitForTimeout(220);
+      await contrast(page, '.pick-item:hover span');
+      await page.keyboard.press('Escape');
+      await page.getByText('Tryb edycji', { exact: true }).click();
+      await contrast(page, '.btn-save, .btn-go');
     }
+
+    await page.goto(base + '/');
+    await page.locator('.account-menu').waitFor();
+    await page.evaluate(() => document.dispatchEvent(new CustomEvent('sanakan:pong')));
+    for (const [skin, expected] of [['', [232, 98, 98]], ['echidna', [169, 44, 47]]]) {
+      await preview(page, skin);
+      // The game's next frame must use the current scheme, including a
+      // light-dark() danger colour that canvas cannot resolve on its own.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const paddles = await page.locator('.pp-table').evaluate(canvas => {
+        const ctx = canvas.getContext('2d');
+        return [17, 463].map(x => {
+          const pixels = ctx.getImageData(Math.floor(x * canvas.width / 480), 0, 1, canvas.height).data;
+          const colors = [];
+          for (let y = 0; y < canvas.height; y++) {
+            if (pixels[y * 4 + 3] === 255) colors.push([...pixels.slice(y * 4, y * 4 + 3)]);
+          }
+          return colors;
+        });
+      });
+      assert.ok(paddles[1].some(rgb => rgb.every((v, i) => v === expected[i])), `${skin || 'default'}: opponent paddle has the resolved danger colour`);
+      assert.ok(!paddles[0].some(rgb => rgb.every((v, i) => v === expected[i])), 'the two paddles stay distinct');
+    }
+    await page.keyboard.press('Escape');
 
     // Light custom designs require an explicit base. Background colours alone
     // must not change the dark styles inherited by a legacy design.

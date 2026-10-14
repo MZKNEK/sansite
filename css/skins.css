@@ -74,6 +74,9 @@
     --swap-hover-text: var(--text-strong);
     --role-ink: var(--text-muted);
     --link: color-mix(in srgb, var(--accent-light) 40%, var(--text));
+    --text-accent-muted: light-dark(var(--link), rgba(var(--accent-light-rgb), 0.75));
+    --text-accent-dim: light-dark(var(--text-muted), rgba(var(--accent-light-rgb), 0.6));
+    --text-index: light-dark(var(--link), rgba(var(--accent-rgb), 0.7));
     --border: color-mix(in srgb, var(--text) 28%, var(--surface));
     --border-strong: color-mix(in srgb, var(--link) 70%, var(--surface));
     --focus: var(--link);
@@ -85,10 +88,10 @@
     --info-tone: #5865f2;
     --streaming-tone: #593695;
     --solid-shade: #000;
-    --success-solid: color-mix(in srgb, var(--success-tone) 70%, var(--solid-shade));
+    --success-solid: color-mix(in srgb, var(--success-tone) 65%, var(--solid-shade));
     --danger-solid: color-mix(in srgb, var(--danger-tone) 70%, var(--solid-shade));
     --warning-solid: color-mix(in srgb, var(--warning-tone) 50%, var(--solid-shade));
-    --info-solid: color-mix(in srgb, var(--info-tone) 85%, var(--solid-shade));
+    --info-solid: color-mix(in srgb, var(--info-tone) 75%, var(--solid-shade));
     --success: light-dark(var(--success-solid), #5fd38d);
     --danger: light-dark(var(--danger-solid), #f08a87);
     --warning: light-dark(var(--warning-solid), #f0b232);
@@ -107,8 +110,12 @@
     --shadow: rgb(0 0 0 / 0.35);
     --media-matte: #0b0b0d;
     --media-ink: #fff;
+    --media-caption: light-dark(var(--media-ink), var(--text-muted));
+    --media-link: light-dark(var(--media-ink), var(--link));
     --glitch-cyan: #05d9e8;
     --glitch-pink: #ff2a6d;
+    --utility-tone: light-dark(var(--info-tone), var(--glitch-cyan));
+    --utility-ink: light-dark(var(--info), #b8f3f7);
     --skin-logo: url("../logo.webp");
     --game-grid: color-mix(in srgb, var(--text) 14%, transparent);
 }
