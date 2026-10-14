@@ -47,7 +47,8 @@ try {
     try { await fetch(`${base}/favicon.svg`); break; } catch { await new Promise(resolve => setTimeout(resolve, 100)); }
   }
   const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-  browser = await chromium.launch({ headless: true, ...(existsSync(edge) ? { executablePath: edge } : {}) });
+  // Use Playwright's Chromium, as CI does; Edge is a fallback on unprepared PCs.
+  browser = await chromium.launch({ headless: true, ...(!existsSync(chromium.executablePath()) && existsSync(edge) ? { executablePath: edge } : {}) });
   const context = await browser.newContext();
   await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
   const page = await context.newPage();

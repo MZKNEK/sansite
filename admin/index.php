@@ -136,7 +136,7 @@
   <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=04cfd97b50" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=8e45c32894" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=7d550aca36"></script>
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>

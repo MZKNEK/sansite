@@ -16,10 +16,10 @@
         $entry = SKINS[$skin] ?? null;
         if ($entry === null)
             return false;
-        if ($skin === 'custom')
-            return !array_diff_key(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL, safeguardFinds($id));
         if (realPanelAdminId($id) && testRights($id) === null)
             return true;
+        if ($skin === 'custom')
+            return !array_diff_key(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL, safeguardFinds($id));
 
         return $entry['find'] === null || isset(safeguardFinds($id)[$entry['find']]);
     }

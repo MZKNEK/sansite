@@ -103,23 +103,33 @@ window.SanakanSkinPicker = function (field, design) {
   filters.forEach(function (button) {
     button.addEventListener('click', function () { showFilter(button.getAttribute('data-skin-filter')); });
   });
+  function restore() {
+    document.body.classList.remove('skin-picker-open');
+    SanakanAppearance.preview(field.value, design());
+    refresh();
+  }
+  function close() {
+    restore();
+    dialog.close();
+  }
   dialog.querySelectorAll('[data-skin-cancel]').forEach(function (button) {
-    button.addEventListener('click', function () { dialog.close(); });
+    button.addEventListener('click', close);
   });
   dialog.querySelector('[data-skin-confirm]').addEventListener('click', function () {
     field.value = candidate;
     field.dispatchEvent(new Event('change', { bubbles: true }));
-    dialog.close();
+    close();
   });
+  // Native Escape closes the dialog before its queued `close` event runs in
+  // Chromium. Restore on `cancel` too, while the dismissal is being handled.
+  dialog.addEventListener('cancel', restore);
   dialog.addEventListener('close', function () {
-    document.body.classList.remove('skin-picker-open');
-    SanakanAppearance.preview(field.value, design());
-    refresh();
+    if (!dialog.open) restore();
   });
   dialog.addEventListener('click', function (event) {
     var rect = dialog.getBoundingClientRect();
     if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right
-      || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+      || event.clientY < rect.top || event.clientY > rect.bottom)) close();
   });
   grid.addEventListener('keydown', function (event) {
     var visible = tiles.filter(function (tile) { return !tile.hidden; });

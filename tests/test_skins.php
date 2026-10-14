@@ -156,9 +156,9 @@
         }
     });
 
-    test('custom skin requires every normal and seasonal find, even for the owner', function () {
+    test('custom skin requires every normal and seasonal find for a regular account', function () {
         $complete = array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time());
-        foreach (['111', '999'] as $id) {
+        foreach (['111', '222'] as $id) {
             assertFalse(skinUnlocked('custom', $id));
             writeData('finds', [$id => $complete]);
             assertTrue(skinUnlocked('custom', $id));
@@ -169,6 +169,40 @@
                 assertFalse(skinUnlocked('custom', $id), 'missing ' . $missing);
                 assertFalse(setSkin($id, 'custom'));
             }
+        }
+    });
+
+    test('the owner gets a custom skin immediately and permissions previews suspend that bonus', function () {
+        sessionFor('sanakan-custom-preview', ['id' => '999', 'name' => 'Root', 'avatar' => 'a']);
+        try {
+            $design = customSkinPrefs('999');
+            $design['colors']['accent'] = '#123456';
+            assertTrue(skinUnlocked('custom', '999'));
+            assertTrue(setSkin('999', 'custom', true, $design));
+            assertSame('custom', skinPref('999'));
+            foreach ([['role' => 'user'], ['panel' => false], ['panel' => true, 'role' => 'user']] as $rights) {
+                setTestRights($rights, 15);
+                assertFalse(skinUnlocked('custom', '999'), 'a preview always removes the owner bonus');
+                assertSame('', skinPref('999'));
+                assertFalse(setSkin('999', 'custom', true, $design));
+                assertSame($design, customSkinPrefs('999'), 'the design survives a preview');
+                assertSame('custom', readData('skins')['999'], 'the saved choice survives too');
+            }
+            writeData('finds', ['999' => array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time())]);
+            assertTrue(skinUnlocked('custom', '999'), 'a complete earned register works in a preview');
+            assertSame('custom', skinPref('999'));
+            removeSafeguardFinds('999', ['sakura']);
+            assertFalse(skinUnlocked('custom', '999'));
+            setTestRights(null);
+            assertTrue(skinUnlocked('custom', '999'));
+            assertSame('custom', skinPref('999'), 'ending the preview restores the saved skin');
+            setTestRights(['role' => 'user'], 15);
+            $_SESSION['test_rights']['until'] = time() - 1;
+            testRights(null, true);
+            assertTrue(skinUnlocked('custom', '999'), 'expiry restores the bonus too');
+        } finally {
+            setTestRights(null);
+            sessionEnd();
         }
     });
 

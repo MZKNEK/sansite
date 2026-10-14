@@ -207,7 +207,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
 
   await visit({ finds: {}, pathname: '/account/' }, async (page, context) => {
     const select = page.locator('select[name=skin]');
-    assert.equal(await select.locator('option:disabled').count(), 1, 'the owner gets ready-made skins; custom requires all finds');
+    assert.equal(await select.locator('option:disabled').count(), 0, 'the owner gets every skin immediately');
     const me = await (await context.request.get(`${base}/account.php`)).json();
     const preview = await context.request.post(`${base}/admin/`, { form: {
       csrf: me.csrf, action: 'test-rights', panel: '0', role: 'user', gallery: 'none', api: '0', private: '0', minutes: '15'
@@ -230,11 +230,46 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.ok((await select.locator('option[value=teto]').textContent()).includes('Teto'));
     assert.ok((await select.locator('option[value=miku]').textContent()).includes('Miku'));
     await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Wróć do swoich' }).click()]);
-    assert.equal(await select.locator('option:disabled').count(), 1, 'ending the preview restores ready-made owner skins');
+    assert.equal(await select.locator('option:disabled').count(), 0, 'ending the preview restores every owner skin');
     assert.equal(await select.inputValue(), 'teto');
     assert.equal(await page.locator('.test-bar').count(), 0);
     await page.goto(`${base}/`);
     await page.locator('.account-menu').waitFor();
     assert.equal(await language(page), 'ja', 'the saved look returns');
+  });
+
+  await visit({ skin: 'custom', finds: {}, pathname: '/account/' }, async (page, context) => {
+    const select = page.locator('[data-skin-choice]');
+    assert.equal(await select.inputValue(), 'custom');
+    assert.equal(await page.locator('[data-custom-editor]').isVisible(), true, 'the owner can edit without any finds');
+    await page.locator('[data-custom-color=accent]').fill('#123456');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    const saved = JSON.parse(readFileSync(path.join(site, 'inc/data/custom-skins.json'), 'utf8'))[owner];
+    assert.equal(saved.colors.accent, '#123456');
+    const me = await (await context.request.get(`${base}/account.php`)).json();
+    const preview = await context.request.post(`${base}/admin/`, { form: {
+      csrf: me.csrf, action: 'test-rights', panel: '1', role: 'user', gallery: 'uploader', api: '0', private: '0', minutes: '15'
+    } });
+    assert.equal(preview.status(), 200);
+    await page.reload();
+    assert.equal(await select.inputValue(), '');
+    assert.equal(await select.locator('option[value=custom]').evaluate(option => option.disabled), true);
+    assert.equal(await page.locator('[data-custom-editor]').count(), 0);
+    assert.equal(await page.locator('[data-hud-choice]').isVisible(), true, 'losing the skin restores the default HUD controls');
+    const refused = await context.request.post(`${base}/account/`, { form: {
+      csrf: me.csrf, action: 'skin', skin: 'custom', customimage: '',
+      ...Object.fromEntries(Object.entries(saved.colors).map(([key, color]) => [`customcolors[${key}]`, color]))
+    } });
+    assert.ok((await refused.text()).includes('Ten skin jest jeszcze zablokowany'));
+    assert.equal(JSON.parse(readFileSync(prefsFile, 'utf8'))[owner], 'custom');
+    await page.goto(`${base}/`);
+    await page.locator('.account-menu').waitFor();
+    await defaultHome(page);
+    await page.goto(`${base}/account/`);
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Wróć do swoich' }).click()]);
+    assert.equal(await select.inputValue(), 'custom');
+    assert.equal(await page.locator('[data-custom-color=accent]').inputValue(), '#123456');
+    assert.equal(await page.locator('[data-hud-choice]').isVisible(), false);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(site, 'inc/data/custom-skins.json'), 'utf8'))[owner], saved);
   });
 }

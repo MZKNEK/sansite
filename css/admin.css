@@ -1996,6 +1996,13 @@ a.who-name:hover {
     margin-top: 14px;
 }
 
+/* Skins supply their own palette. Keep the saved HUD controls in the form,
+   so hiding them never clears the choice or affects the independent snow switch. */
+html[data-skin] [data-default-skin-only],
+html[data-skin] .hud-form [data-snow-pref][hidden] + .admin-btn {
+    display: none;
+}
+
 .hud-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

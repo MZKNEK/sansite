@@ -186,7 +186,7 @@
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=04cfd97b50" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=8e45c32894" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
@@ -344,12 +344,12 @@
 
       <section class="card wide">
         <h2><i><?=$showGallery ? '06' : '05'?></i>Wygląd</h2>
-        <p class="hint">Kolor strony. Domyślnie jest fioletowy, jak dotąd. W wariancie <b>kolor tylko w akcentach</b> wybrany kolor wchodzi w narożniki, linki, wyszukiwarkę i menu konta, a <b>na całym HUD</b> także w tło, poświatę tytułu i linie pod SAFEGUARD. Kolor wybiera konto z rolą na serwerze bota (od user w górę); bez wyboru jest to kolor jego roli. Zmiana widoczna od razu, zapisuje się przyciskiem.</p>
+        <p class="hint" data-default-skin-only>Kolory domyślnego skina. W wariancie <b>kolor tylko w akcentach</b> wybrany kolor wchodzi w narożniki, linki, wyszukiwarkę i menu konta, a <b>na całym HUD</b> także w tło, poświatę tytułu i linie pod SAFEGUARD. Kolor wybiera konto z rolą na serwerze bota (od user w górę); bez wyboru jest to kolor jego roli. Zmiana widoczna od razu, zapisuje się przyciskiem.</p>
         <form method="post" action="./" class="hud-form">
           <input type="hidden" name="csrf" value="<?=e($csrf)?>" />
           <input type="hidden" name="action" value="hud" />
 <?php $hudNow = hudMode($id); $colorNow = hudColor($id); $ownHex = HUD_COLOR_HEX[$badge['key'] ?? ''] ?? '#b670d3'; ?>
-          <div class="hud-fields">
+          <div class="hud-fields" data-default-skin-only>
             <label class="hud-field">
               <span class="hud-field-label">Wariant</span>
               <span class="hud-select">
@@ -382,7 +382,7 @@
           <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
         </form>
         <h3>Skin</h3>
-        <p class="hint">Skin zmienia stronę główną: jej kolory, logo i, jeśli skin je ma, napisy. Gotowe skiny odblokowują sekrety z rejestru Safeguarda; właściciel strony ma je od razu. Własny skin jest nagrodą za zebranie wszystkich zwykłych i sezonowych znajdziek. Kolory widać od razu na tej stronie, całość na stronie głównej.</p>
+        <p class="hint">Skin zmienia stronę główną: jej kolory, logo i, jeśli skin je ma, napisy. Skiny odblokowują sekrety z rejestru Safeguarda; właściciel strony ma je wszystkie od razu, również własny skin. Własny skin jest nagrodą za zebranie wszystkich zwykłych i sezonowych znajdziek. Kolory widać od razu na tej stronie, całość na stronie głównej.</p>
 <?php $customUnlocked = skinUnlocked('custom', $id); ?>
 <?php if (!$customUnlocked): ?>
         <p class="hint">Do własnego skina: zwykłe znajdźki <b><?=count(array_intersect_key($finds, SAFEGUARD_FINDS))?> / <?=count(SAFEGUARD_FINDS)?></b>, sezonowe <b><?=count(array_intersect_key($finds, SAFEGUARD_SEASONAL))?> / <?=count(SAFEGUARD_SEASONAL)?></b>.</p>
@@ -593,7 +593,7 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/appearance.js?v=7d550aca36"></script>
-  <script src="../js/skin-picker.js?v=7beb0fd542"></script>
+  <script src="../js/skin-picker.js?v=1900467557"></script>
   <script src="../js/appearance-picker.js?v=25c93830ee"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
