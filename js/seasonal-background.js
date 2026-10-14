@@ -8,7 +8,7 @@
   var small = innerWidth < 600;
   var protectedArea = 'a, button, input, select, textarea, [contenteditable], [role="button"], [role="dialog"], '
     + '.logo-wrap, .card, .notice-bar, .test-bar, .account-menu, .sg-toast, .sg-silicon, .ns-overlay, .pl-overlay, .pp-overlay, article.cmd';
-  var PETAL = '<svg viewBox="0 0 24 30" aria-hidden="true"><path d="M12 29C3 22 0 13 3 6 5 1 9 1 12 6 15 1 19 1 21 6 24 13 21 22 12 29Z" /></svg>';
+  var PETAL = '<svg viewBox="0 0 34 40" aria-hidden="true"><path d="M13.1 38.8C12.2 37.9 9.1 35.4 7.7 33.6C6.3 31.8 5.3 29.8 4.6 27.8C3.9 25.9 3.6 23.8 3.5 21.9C3.5 19.9 3.9 18 4.4 16.1C4.9 14.2 5.8 12.1 6.5 10.3C7.2 8.5 8.1 6.4 8.7 5.3C9.2 4.2 9.2 4 10 3.6C10.8 3.2 12.2 2.5 13.3 3C14.4 3.5 16.1 5.8 16.7 6.3C17.4 5.8 19.6 3.5 20.9 3.1C22.2 2.7 23.5 3.5 24.3 3.9C25.1 4.3 25.1 4.5 25.6 5.6C26.1 6.7 26.8 8.6 27.5 10.3C28.2 12.1 29.1 14.2 29.6 16.1C30.1 18 30.5 19.9 30.4 21.9C30.4 23.8 30.1 25.9 29.4 27.8C28.7 29.8 27.7 31.8 26.3 33.6C24.9 35.4 21.8 37.9 20.9 38.8Z" /></svg>';
 
   function between(min, max) { return min + Math.random() * (max - min); }
   function variable(node, name, value) { node.style.setProperty('--season-' + name, value); }
@@ -110,7 +110,7 @@
 
   function sakura() {
     return scene('sakura', 'Sakura', 'Złap płatek sakury', small ? 12 : 20, null, function (mover, button, i, count) {
-      var duration = between(15, 26);
+      var duration = between(9, 16);
       mover.classList.add('sakura-fall');
       mover.style.left = ((i + Math.random()) * 100 / count).toFixed(2) + '%';
       variable(mover, 'duration', duration.toFixed(2) + 's');
@@ -119,7 +119,16 @@
       variable(mover, 'size', between(13, 23).toFixed(2) + 'px');
       variable(mover, 'color', ['#efb2c9', '#e5a0b9', '#f4ced9'][i % 3]);
       variable(mover, 'opacity', between(0.35, 0.6).toFixed(2));
-      variable(mover, 'sway', between(4, 8).toFixed(2) + 's');
+      // The fall leans with the wind; sway, flutter and turn keep their own
+      // times, so the motions never line up into one pendulum.
+      variable(mover, 'lean', between(-90, 90).toFixed(0) + 'px');
+      variable(mover, 'sway', between(3.4, 5.8).toFixed(2) + 's');
+      variable(mover, 'sway-amp', between(22, 40).toFixed(2) + 'px');
+      variable(mover, 'flutter', between(1.5, 2.6).toFixed(2) + 's');
+      variable(mover, 'flutter-amp', between(3, 7).toFixed(2) + 'px');
+      variable(mover, 'flutter-delay', (-between(0, 17)).toFixed(2) + 's');
+      variable(mover, 'turn', between(3, 5.4).toFixed(2) + 's');
+      variable(mover, 'turn-delay', (-between(0, 37)).toFixed(2) + 's');
       var drift = document.createElement('div');
       drift.className = 'sakura-drift';
       button.classList.add('sakura-petal');

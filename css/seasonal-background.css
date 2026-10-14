@@ -35,25 +35,37 @@ body.seasonal-background { isolation: isolate; }
     opacity: 1;
     animation: none;
 }
-.seasonal-particle:focus-within .sakura-drift { animation: none; }
+.seasonal-particle:focus-within .sakura-drift,
+.seasonal-particle:focus-within .sakura-petal,
+.seasonal-particle:focus-within .sakura-petal svg { animation: none; }
 
 .sg-season-background.paused .seasonal-particle,
 .sg-season-background.paused .sakura-drift,
+.sg-season-background.paused .sakura-petal,
+.sg-season-background.paused .sakura-petal svg,
 .sg-season-background.paused .perseid-star { animation-play-state: paused; }
 
+/* The petal glides downwind (--season-lean), sways in gusts (--season-sway),
+   shivers a little (--season-flutter) and turns over in the air (--season-turn).
+   Each motion keeps its own time, so they never line up into one pendulum. */
 .sakura-fall {
     top: -50px;
     animation: sakura-fall var(--season-duration) var(--season-delay) linear infinite;
 }
 .sakura-drift {
-    animation: sakura-drift var(--season-sway) var(--season-delay) ease-in-out infinite alternate;
+    animation: sakura-drift var(--season-sway) var(--season-delay) ease-in-out infinite;
+}
+/* the small, faster shiver of air catching the petal */
+.sakura-petal {
+    animation: sakura-flutter var(--season-flutter) var(--season-flutter-delay) ease-in-out infinite;
 }
 .sakura-petal svg {
     width: var(--season-size);
-    height: calc(var(--season-size) * 1.25);
+    height: calc(var(--season-size) * 1.18);
     fill: var(--season-color);
     opacity: var(--season-opacity);
     transform: rotate(-32deg);
+    animation: sakura-turn var(--season-turn) var(--season-turn-delay) ease-in-out infinite;
     transition: opacity 0.2s;
 }
 .sakura-petal.catching svg,
@@ -96,11 +108,32 @@ body.seasonal-background { isolation: isolate; }
 .perseid-comet.catching::after { box-shadow: 0 0 18px #eff8ff; }
 
 @keyframes sakura-fall {
-    to { transform: translateY(calc(100vh + 100px)); }
+    0% {
+        transform: translate(var(--season-lean, 0px), 0);
+        animation-timing-function: cubic-bezier(0.55, 0.28, 0.75, 0.65);
+    }
+    45% {
+        transform: translate(calc(var(--season-lean, 0px) * 0.45), 50vh);
+        animation-timing-function: cubic-bezier(0.35, 0.5, 0.85, 0.9);
+    }
+    100% { transform: translate(var(--season-lean, 0px), calc(100vh + 100px)); }
 }
 @keyframes sakura-drift {
-    from { transform: translateX(-24px) rotate(-18deg); }
-    to { transform: translateX(24px) rotate(28deg); }
+    0%, 100% { transform: translateX(calc(var(--season-sway-amp, 24px) * -0.5)); }
+    18% { transform: translateX(calc(var(--season-sway-amp, 24px) * 0.45)); }
+    43% { transform: translateX(calc(var(--season-sway-amp, 24px) * 0.95)); }
+    62% { transform: translateX(calc(var(--season-sway-amp, 24px) * 0.3)); }
+    83% { transform: translateX(calc(var(--season-sway-amp, 24px) * -1)); }
+}
+@keyframes sakura-flutter {
+    0%, 100% { transform: translateX(calc(var(--season-flutter-amp, 5px) * -1)); }
+    50% { transform: translateX(var(--season-flutter-amp, 5px)); }
+}
+@keyframes sakura-turn {
+    0%, 100% { transform: rotate(-27deg) scaleX(1); }
+    21% { transform: rotate(-2deg) scaleX(0.5); }
+    46% { transform: rotate(30deg) scaleX(1); }
+    71% { transform: rotate(4deg) scaleX(0.5); }
 }
 @keyframes perseid-twinkle {
     from { opacity: 0.15; }
@@ -119,6 +152,8 @@ body.seasonal-background { isolation: isolate; }
         animation: none;
     }
     .sakura-drift,
+    .sakura-petal,
+    .sakura-petal svg,
     .perseid-star { animation: none; }
     .sakura-petal svg { transition: none; }
     .sg-sakura .seasonal-particle:nth-child(n + 9) { display: none; }

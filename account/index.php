@@ -188,7 +188,7 @@
   <link href="../css/status.css?v=c4ddf09879" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=76c08c2c33" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=2627f8bdee" type="text/css" rel="stylesheet" />
-  <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=52e4c86df9" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -608,7 +608,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>
-  <script src="../js/seasonal-background.js?v=7b21cb1ce5"></script>
+  <script src="../js/seasonal-background.js?v=61fc7cb65c"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
