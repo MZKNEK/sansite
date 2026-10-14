@@ -13,11 +13,11 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="/css/style.css?v=5191aa7143" type="text/css" rel="stylesheet" />
-  <link href="/css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="/css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="/css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
-  <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
+  <link href="/css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="/css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
+  <link href="/css/skins.css?v=5a07d8545d" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=1fce7df87a" type="text/css" rel="stylesheet" />
   <style>
     /* the Safeguard's terminal of BLAME!, as on the 404 page, asking a
        visitor it does not know yet to be identified by the Netsphere */
@@ -25,31 +25,31 @@
       font: 16px "Sanakan Mono", monospace;
       letter-spacing: 0.24em;
       text-transform: uppercase;
-      color: #e8d36a;
-      text-shadow: 0 0 10px rgba(232, 211, 106, 0.5);
+      color: var(--warning);
+      text-shadow: 0 0 10px color-mix(in srgb, var(--warning) 50%, transparent);
     }
 
     .unknown .lock-icon {
-      stroke: #e8d36a;
-      filter: drop-shadow(0 0 6px rgba(232, 211, 106, 0.5));
+      stroke: var(--warning);
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--warning) 50%, transparent));
     }
 
     .unknown > p {
       font: 13px/1.7 "Sanakan Mono", monospace;
       letter-spacing: 0.04em;
-      color: rgba(220, 221, 222, 0.75);
+      color: var(--text-secondary);
     }
 
     .unknown .asked::before {
       content: "> adres: ";
-      color: rgba(220, 221, 222, 0.45);
+      color: var(--text-dim);
     }
 
     .unknown .asked {
       display: block;
       margin: -8px 0 22px;
       font: 13px "JetBrains Mono", Consolas, monospace;
-      color: rgba(182, 112, 211, 0.75);
+      color: var(--link);
       overflow-wrap: anywhere;
     }
 
@@ -62,15 +62,15 @@
       font: 12px "Sanakan Mono", monospace;
       letter-spacing: 0.08em;
       text-align: left;
-      color: rgba(220, 221, 222, 0.6);
+      color: var(--text-muted);
     }
 
     .unknown .scan dd {
       margin: 0;
-      color: #e8d36a;
+      color: var(--warning);
     }
   </style>
-  <script src="/js/appearance.js?v=7d550aca36"></script>
+  <script src="/js/appearance.js?v=c787589afa"></script>
   <link href="/css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 

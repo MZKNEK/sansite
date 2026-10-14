@@ -355,7 +355,7 @@
     const wd = -x*scale - 448 / 2;
     const wdn = profilePicture.naturalWidth * scale;
 
-    borderColor = (pixelCrop.width < 448 || pixelCrop.height < 650) ? "#e86262" : "";
+    borderColor = (pixelCrop.width < 448 || pixelCrop.height < 650) ? "var(--danger)" : "";
 
     // after the cropper's own effect, which this is called from
     queueMicrotask(keepCover);

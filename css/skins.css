@@ -1,3 +1,158 @@
+/* Site palette and semantic colours. This is the only source for UI colours:
+   every page and both croppers load this file. Skins below override palette
+   inputs; all surfaces, text, controls and statuses are derived here.
+   tools/asset-versions.php embeds this default block in the offline page. */
+/* theme:start */
+:root {
+    --scheme: dark;
+    color-scheme: var(--scheme);
+    --accent: #9b59b6;
+    --accent-light: #b670d3;
+    --accent-dark: #713b87;
+    --accent-rgb: 155, 89, 182;
+    --accent-light-rgb: 182, 112, 211;
+    --accent-dark-rgb: 113, 59, 135;
+    --hud-rgb: 155, 89, 182;
+    --hud-light-rgb: 182, 112, 211;
+    --bg-dark: #080909;
+    --bg-mid: #202225;
+    --text: #dcddde;
+    --surface: color-mix(in srgb, var(--bg-dark) 55%, var(--bg-mid));
+    --surface-raised: color-mix(in srgb, var(--bg-mid) 94%, var(--text));
+    --panel-surface: var(--surface-raised);
+    --panel-border: rgba(var(--accent-rgb), 0.3);
+    --panel-divider: rgba(var(--accent-rgb), 0.22);
+    --panel-hover: color-mix(in srgb, var(--panel-surface) 84%, var(--accent));
+    --panel-selected: color-mix(in srgb, var(--panel-surface) 78%, var(--accent));
+    --surface-input: color-mix(in srgb, var(--bg-dark) 80%, var(--bg-mid));
+    --surface-hover: color-mix(in srgb, var(--surface) 90%, var(--accent));
+    --surface-selected: color-mix(in srgb, var(--surface) 78%, var(--accent));
+    --button-hover: color-mix(in srgb, var(--surface) 70%, var(--accent));
+    --overlay-panel: light-dark(var(--surface-raised), color-mix(in srgb, var(--bg-dark) 88%, var(--accent-dark)));
+    --overlay-backdrop: light-dark(var(--scrim), rgb(8 9 9 / 0.82));
+    --console-backdrop: light-dark(var(--overlay-backdrop), rgb(8 9 9 / 0.9));
+    --console-alarm-backdrop: light-dark(color-mix(in srgb, var(--surface-raised) 92%, var(--danger-tone)), rgb(26 6 8 / 0.92));
+    --maze-surface: light-dark(var(--surface-input), color-mix(in srgb, var(--bg-dark) 60%, transparent));
+    --maze-ink: light-dark(color-mix(in srgb, var(--link) 82%, var(--text)), rgba(var(--accent-light-rgb), 0.55));
+    --maze-seen: light-dark(color-mix(in srgb, var(--link) 30%, var(--surface-input)), rgba(var(--accent-light-rgb), 0.2));
+    --maze-note: light-dark(var(--danger), color-mix(in srgb, var(--lock-text) 80%, transparent));
+    --network: light-dark(#1f665e, #4fd1c5);
+    --discovery: light-dark(var(--warning-solid), #e8d36a);
+    --failure: light-dark(#854a1c, #f0a35e);
+    --snake-surface: light-dark(var(--surface-input), color-mix(in srgb, var(--bg-dark) 70%, transparent));
+    --snake-body: var(--failure);
+    --snake-head: var(--text-strong);
+    --snake-food: var(--danger);
+    --snake-grid: color-mix(in srgb, var(--snake-body) 6%, transparent);
+    --search-selected: color-mix(in srgb, var(--overlay-panel) 84%, var(--accent));
+    --search-field: color-mix(in srgb, var(--overlay-panel) 95%, var(--accent));
+    --api-tag-hover: color-mix(in srgb, var(--accent) 10%, transparent);
+    --api-get: var(--info-tone);
+    --api-post: var(--success-tone);
+    --api-put: var(--warning-tone);
+    --api-delete: var(--danger-tone);
+    --api-patch: var(--streaming-tone);
+    --api-options: var(--info-tone);
+    --api-head: var(--streaming-tone);
+    --api-method-ink: var(--on-solid);
+    --heading: color-mix(in srgb, var(--text) 92%, var(--accent-light));
+    --text-muted: color-mix(in srgb, var(--text) 78%, var(--surface));
+    --text-subtle: color-mix(in srgb, var(--text) 65%, var(--surface));
+    --text-body: var(--text);
+    --text-secondary: var(--text-muted);
+    --text-dim: var(--text-muted);
+    --text-strong: var(--text);
+    --decoration: var(--link);
+    --signal-ink: color-mix(in srgb, var(--text) 18%, transparent);
+    --logout: var(--danger);
+    --logout-hover: var(--danger);
+    --account-meta: var(--text-muted);
+    --swap-corner: var(--link);
+    --swap-fill: var(--surface-raised);
+    --swap-text: var(--link);
+    --swap-hover-fill: var(--surface-selected);
+    --swap-hover-text: var(--text-strong);
+    --role-ink: var(--text-muted);
+    --link: color-mix(in srgb, var(--accent-light) 40%, var(--text));
+    --border: color-mix(in srgb, var(--text) 28%, var(--surface));
+    --border-strong: color-mix(in srgb, var(--link) 70%, var(--surface));
+    --focus: var(--link);
+    /* Discord's status palette, shared by API methods, charts and dots.
+       Text gets readable variants; vivid badges have contrasting ink. */
+    --success-tone: #23a55a;
+    --danger-tone: #f23f43;
+    --warning-tone: #f0b232;
+    --info-tone: #5865f2;
+    --streaming-tone: #593695;
+    --solid-shade: #000;
+    --success-solid: color-mix(in srgb, var(--success-tone) 70%, var(--solid-shade));
+    --danger-solid: color-mix(in srgb, var(--danger-tone) 70%, var(--solid-shade));
+    --warning-solid: color-mix(in srgb, var(--warning-tone) 50%, var(--solid-shade));
+    --info-solid: color-mix(in srgb, var(--info-tone) 85%, var(--solid-shade));
+    --success: light-dark(var(--success-solid), #5fd38d);
+    --danger: light-dark(var(--danger-solid), #f08a87);
+    --warning: light-dark(var(--warning-solid), #f0b232);
+    --info: light-dark(var(--info-solid), #aab1ff);
+    --neutral: light-dark(#555963, #a6abb4);
+    --status-online: var(--success-tone);
+    --status-offline: light-dark(#555963, #80848e);
+    --status-maintenance: var(--danger-tone);
+    --ok: var(--success);
+    --bad: var(--danger);
+    --lock: var(--danger);
+    --lock-text: var(--danger);
+    --on-solid: #fff;
+    --on-vivid: #080909;
+    --scrim: rgb(0 0 0 / 0.65);
+    --shadow: rgb(0 0 0 / 0.35);
+    --media-matte: #0b0b0d;
+    --media-ink: #fff;
+    --glitch-cyan: #05d9e8;
+    --glitch-pink: #ff2a6d;
+    --skin-logo: url("../logo.webp");
+    --game-grid: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+/* The default HUD, ready-made dark skins and dark custom designs share the
+   established accents. Only explicitly light bases use the adaptive roles. */
+:root:not(:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"])) {
+    --heading: #efe2f7;
+    --link: var(--accent-light);
+    --decoration: var(--accent);
+    --border-strong: rgba(var(--accent-light-rgb), 0.9);
+    --surface: #141517;
+    --surface-raised: #18181e;
+    --surface-input: rgba(8, 9, 9, 0.55);
+    --text-body: rgba(220, 221, 222, 0.85);
+    --text-secondary: rgba(220, 221, 222, 0.7);
+    --text-muted: rgba(220, 221, 222, 0.6);
+    --text-dim: rgba(220, 221, 222, 0.5);
+    --text-subtle: rgba(220, 221, 222, 0.35);
+    --text-strong: #fff;
+    --role-ink: var(--role, var(--accent-light));
+    --danger: #e86262;
+    --lock: var(--danger);
+    --lock-text: #f0c4c2;
+    --logout: #f0a09e;
+    --logout-hover: #ffd2d0;
+    --account-meta: rgba(220, 221, 222, 0.42);
+    --swap-corner: #d6b4ec;
+    --swap-text: #d6b4ec;
+    --swap-fill: rgba(58, 24, 80, 0.9);
+    --swap-hover-fill: #5c2d78;
+    --swap-hover-text: var(--on-solid);
+    --shadow: rgba(0, 0, 0, 0.6);
+}
+
+html:not([data-skin])[data-hud="accent"],
+html:not([data-skin])[data-hud="full"] {
+    --swap-corner: color-mix(in srgb, var(--accent-light) 60%, #fff);
+    --swap-text: var(--swap-corner);
+    --swap-fill: color-mix(in srgb, var(--accent-dark) 50%, #000);
+    --swap-hover-fill: color-mix(in srgb, var(--accent-dark) 80%, #000);
+}
+/* theme:end */
+
 /* The skins of the home page: the colours, the logo and, if a skin brings any,
    the words it speaks (inc/skin-catalog.php, js/skin-catalog.js, js/skins.js).
    <html> carries data-skin while a skin is worn; the account picks it in
@@ -5,8 +160,22 @@
    first paint. Loaded after css/account.css, so a skin's colours beat the HUD's
    own. One block per skin, in the order of SKINS. */
 
+.role-dev { --role: #4fd1c5; --role-rgb: 79, 209, 197; --role-light-rgb: 127, 227, 216; --role-dark-rgb: 47, 156, 147; }
+.role-admin { --role: #e86262; --role-rgb: 232, 98, 98; --role-light-rgb: 240, 138, 138; --role-dark-rgb: 168, 59, 59; }
+.role-semiAdmin { --role: #f0a35e; --role-rgb: 240, 163, 94; --role-light-rgb: 246, 192, 140; --role-dark-rgb: 176, 110, 47; }
+.role-tester { --role: #e8d36a; --role-rgb: 232, 211, 106; --role-light-rgb: 240, 226, 154; --role-dark-rgb: 171, 154, 56; }
+.role-moderator { --role: #5fd38d; --role-rgb: 95, 211, 141; --role-light-rgb: 143, 227, 175; --role-dark-rgb: 55, 156, 94; }
+.role-user { --role: #b670d3; --role-rgb: 182, 112, 211; --role-light-rgb: 182, 112, 211; --role-dark-rgb: 113, 59, 135; }
+.role-none,
+.role-out { --role: #80848e; --role-rgb: 128, 132, 142; --role-light-rgb: 160, 164, 173; --role-dark-rgb: 85, 88, 95; }
+
+:where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-user, .role-none, .role-out) {
+    --role-ink: color-mix(in srgb, var(--role) 40%, var(--text));
+}
+
 /* The completion reward uses validated account colours (js/appearance.js). */
 html[data-skin="custom"] {
+    --skin-logo: var(--custom-logo, url("../logo.webp"));
     --accent: var(--custom-accent, #9b59b6);
     --accent-light: var(--custom-accent-light, #b670d3);
     --accent-dark: var(--custom-accent-dark, #713b87);
@@ -18,18 +187,32 @@ html[data-skin="custom"] {
     --bg-dark: var(--custom-bg-dark, #080909);
     --bg-mid: var(--custom-bg-mid, #202225);
     --text: var(--custom-text, #dcddde);
-    --home-title: var(--custom-home-title, #f0e2ff);
+    --home-title: var(--custom-home-title, var(--heading));
 }
 
-html[data-skin="custom"] .home .logo-slice,
-html[data-skin="custom"] .home .logo-shard {
-    background-image: var(--custom-logo, url("../logo.webp"));
+html[data-skin="custom"][data-skin-base="light"] {
+    --scheme: light;
+}
+
+/* Preserve the dark text hierarchy while allowing the custom text input to
+   recolour its descriptions and captions. Default colours match the HUD. */
+html[data-skin="custom"]:not([data-skin-base="light"]) {
+    --text-body: color-mix(in srgb, var(--text) 85%, transparent);
+    --text-secondary: color-mix(in srgb, var(--text) 70%, transparent);
+    --text-muted: color-mix(in srgb, var(--text) 60%, transparent);
+    --text-dim: color-mix(in srgb, var(--text) 50%, transparent);
+    --text-subtle: color-mix(in srgb, var(--text) 35%, transparent);
 }
 
 /* Teto: the Japanese home page of 1 April (inc/skin-catalog.php) — its reds, the
    logo it wears and the corner of Alter's link. The Japanese fonts of its
    words are with the language, in css/home-ja.css. */
 html[data-skin="teto"] {
+    --swap-corner: #ffacb4;
+    --swap-fill: rgba(92, 22, 32, 0.9);
+    --swap-text: #ffd1d6;
+    --swap-hover-fill: #892b38;
+    --skin-logo: url("../skins/teto.webp");
     --home-title: #ffe7ea;
     --accent: #d94b58;
     --accent-light: #ff8891;
@@ -44,26 +227,15 @@ html[data-skin="teto"] {
     --text: #f0dfe1;
 }
 
-html[data-skin="teto"] .home .logo-slice,
-html[data-skin="teto"] .home .logo-shard {
-    background-image: url("../skins/teto.webp");
-}
-
-html[data-skin="teto"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #ffacb4;
-    --fill: rgba(92, 22, 32, 0.9);
-    color: #ffd1d6;
-}
-
-html[data-skin="teto"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #892b38;
-    color: #fff;
-}
-
 /* Miku: the teal of the television singer (inc/skin-catalog.php) — its colours, the
    logo she brings and the corner of Alter's link. Its Japanese words are the
    same as Teto's (js/home-ja.js). */
 html[data-skin="miku"] {
+    --swap-corner: #a9e8e2;
+    --swap-fill: rgba(13, 66, 62, 0.9);
+    --swap-text: #bff0eb;
+    --swap-hover-fill: #1e7a74;
+    --skin-logo: url("../skins/miku.webp");
     --accent: #39c5bb;
     --accent-light: #7fe0d8;
     --accent-dark: #1e7a74;
@@ -77,153 +249,95 @@ html[data-skin="miku"] {
     --text: #dcf1ee;
 }
 
-html[data-skin="miku"] .home .logo-slice,
-html[data-skin="miku"] .home .logo-shard {
-    background-image: url("../skins/miku.webp");
+/* Echidna: the black of her dress and the forest green of her butterfly, the
+   Halloween find (inc/skin-catalog.php). No words: the page keeps its own. */
+html[data-skin="echidna"] {
+    --skin-logo: url("../skins/echidna.webp");
+    --scheme: light;
+    --accent: #426c47;
+    --accent-light: #9cb8a2;
+    --accent-dark: #29432c;
+    --accent-rgb: 66, 108, 71;
+    --accent-light-rgb: 156, 184, 162;
+    --accent-dark-rgb: 41, 67, 44;
+    --hud-rgb: 66, 108, 71;
+    --hud-light-rgb: 156, 184, 162;
+    --bg-dark: #e7e3ea;
+    --bg-mid: #f8f6fa;
+    --text: #1b1a20;
 }
 
-html[data-skin="miku"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #a9e8e2;
-    --fill: rgba(13, 66, 62, 0.9);
-    color: #bff0eb;
-}
-
-html[data-skin="miku"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #1e7a74;
-    color: #fff;
-}
-
-/* Hu Tao: the fire reds and the logo of Halloween's find (inc/skin-catalog.php). No
-   words: the page keeps its own. */
-html[data-skin="tao"] {
-    --accent: #e2622f;
-    --accent-light: #f5a35c;
-    --accent-dark: #7d3413;
-    --accent-rgb: 226, 98, 47;
-    --accent-light-rgb: 245, 163, 92;
-    --accent-dark-rgb: 125, 52, 19;
-    --hud-rgb: 226, 98, 47;
-    --hud-light-rgb: 245, 163, 92;
-    --bg-dark: #140a07;
-    --bg-mid: #2a1710;
-    --text: #f4e2d6;
-}
-
-html[data-skin="tao"] .home .logo-slice,
-html[data-skin="tao"] .home .logo-shard {
-    background-image: url("../skins/tao.webp");
-}
-
-html[data-skin="tao"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #f5b98f;
-    --fill: rgba(74, 26, 10, 0.9);
-    color: #fbe0c8;
-}
-
-html[data-skin="tao"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #7d3413;
-    color: #fff;
-}
-
-/* Rin: the yellow of the other singer and her logo, Halloween's find too
-   (inc/skin-catalog.php). No words either. */
-html[data-skin="rin"] {
-    --accent: #f0c232;
-    --accent-light: #ffe07a;
-    --accent-dark: #8f6d10;
-    --accent-rgb: 240, 194, 50;
-    --accent-light-rgb: 255, 224, 122;
-    --accent-dark-rgb: 143, 109, 16;
-    --hud-rgb: 240, 194, 50;
-    --hud-light-rgb: 255, 224, 122;
+/* Marisa Kirisame: the lime-lemon of her magic and her logo, Halloween's find
+   too (inc/skin-catalog.php). No words either. */
+html[data-skin="marisa"] {
+    --swap-corner: #eef2a4;
+    --swap-fill: rgba(66, 56, 10, 0.9);
+    --swap-text: #f7f4c4;
+    --swap-hover-fill: #8f812a;
+    --skin-logo: url("../skins/marisa.webp");
+    --accent: #e6d044;
+    --accent-light: #eef2a4;
+    --accent-dark: #8f812a;
+    --accent-rgb: 230, 208, 68;
+    --accent-light-rgb: 238, 242, 164;
+    --accent-dark-rgb: 143, 129, 42;
+    --hud-rgb: 230, 208, 68;
+    --hud-light-rgb: 238, 242, 164;
     --bg-dark: #100f08;
     --bg-mid: #24200f;
     --text: #f2edd8;
 }
 
-html[data-skin="rin"] .home .logo-slice,
-html[data-skin="rin"] .home .logo-shard {
-    background-image: url("../skins/rin.webp");
-}
-
-html[data-skin="rin"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #ffe9a3;
-    --fill: rgba(66, 56, 10, 0.9);
-    color: #fdf3c8;
-}
-
-html[data-skin="rin"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #8f6d10;
-    color: #fff;
-}
-
-/* March 7th: the pink and the logo of the Christmas find (inc/skin-catalog.php).
-   No words. */
-html[data-skin="march7"] {
-    --accent: #e5739b;
-    --accent-light: #f7b3cd;
-    --accent-dark: #9c3b60;
-    --accent-rgb: 229, 115, 155;
-    --accent-light-rgb: 247, 179, 205;
-    --accent-dark-rgb: 156, 59, 96;
-    --hud-rgb: 229, 115, 155;
-    --hud-light-rgb: 247, 179, 205;
-    --bg-dark: #120a0e;
-    --bg-mid: #2a141d;
-    --text: #f4e0e8;
-}
-
-html[data-skin="march7"] .home .logo-slice,
-html[data-skin="march7"] .home .logo-shard {
-    background-image: url("../skins/march7.webp");
-}
-
-html[data-skin="march7"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #f7c4d8;
-    --fill: rgba(74, 18, 42, 0.9);
-    color: #fbd9e6;
-}
-
-html[data-skin="march7"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #9c3b60;
-    color: #fff;
+/* Ceres Fauna: the holly green of the little kirin and her logo, the
+   Christmas find (inc/skin-catalog.php). No words: the page keeps its own. */
+html[data-skin="fauna"] {
+    --swap-corner: #b3dca1;
+    --swap-fill: rgba(23, 42, 20, 0.9);
+    --swap-text: #dff0d4;
+    --swap-hover-fill: #4d7a3a;
+    --skin-logo: url("../skins/fauna.webp");
+    --accent: #7cc45e;
+    --accent-light: #b3dca1;
+    --accent-dark: #4d7a3a;
+    --accent-rgb: 124, 196, 94;
+    --accent-light-rgb: 179, 220, 161;
+    --accent-dark-rgb: 77, 122, 58;
+    --hud-rgb: 124, 196, 94;
+    --hud-light-rgb: 179, 220, 161;
+    --bg-dark: #0a1309;
+    --bg-mid: #172a14;
+    --text: #e2f2da;
 }
 
 /* Padoru: the Christmas gold of the little singer and its logo, the same find
    (inc/skin-catalog.php). No words either. */
 html[data-skin="padoru"] {
-    --accent: #dfa93f;
-    --accent-light: #f4cf7c;
-    --accent-dark: #8c6414;
-    --accent-rgb: 223, 169, 63;
-    --accent-light-rgb: 244, 207, 124;
-    --accent-dark-rgb: 140, 100, 20;
-    --hud-rgb: 223, 169, 63;
-    --hud-light-rgb: 244, 207, 124;
+    --swap-corner: #f1d8a7;
+    --swap-fill: rgba(70, 22, 24, 0.9);
+    --swap-text: #faeec4;
+    --swap-hover-fill: #89641d;
+    --skin-logo: url("../skins/padoru.webp");
+    --accent: #dda22e;
+    --accent-light: #f1d8a7;
+    --accent-dark: #89641d;
+    --accent-rgb: 221, 162, 46;
+    --accent-light-rgb: 241, 216, 167;
+    --accent-dark-rgb: 137, 100, 29;
+    --hud-rgb: 221, 162, 46;
+    --hud-light-rgb: 241, 216, 167;
     --bg-dark: #16090a;
     --bg-mid: #2d1416;
     --text: #f5e6d4;
 }
 
-html[data-skin="padoru"] .home .logo-slice,
-html[data-skin="padoru"] .home .logo-shard {
-    background-image: url("../skins/padoru.webp");
-}
-
-html[data-skin="padoru"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #f6dc9e;
-    --fill: rgba(70, 22, 24, 0.9);
-    color: #faeec4;
-}
-
-html[data-skin="padoru"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #8c6414;
-    color: #fff;
-}
-
 /* Reisen: the lavender and the logo of the Easter find (inc/skin-catalog.php).
    No words. */
 html[data-skin="reisen"] {
+    --swap-corner: #e2cdf5;
+    --swap-fill: rgba(60, 22, 78, 0.9);
+    --swap-text: #f0defc;
+    --swap-hover-fill: #6f41a3;
+    --skin-logo: url("../skins/reisen.webp");
     --accent: #b285de;
     --accent-light: #dcc2f4;
     --accent-dark: #6f41a3;
@@ -237,153 +351,98 @@ html[data-skin="reisen"] {
     --text: #f1e4f6;
 }
 
-html[data-skin="reisen"] .home .logo-slice,
-html[data-skin="reisen"] .home .logo-shard {
-    background-image: url("../skins/reisen.webp");
-}
-
-html[data-skin="reisen"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #e2cdf5;
-    --fill: rgba(60, 22, 78, 0.9);
-    color: #f0defc;
-}
-
-html[data-skin="reisen"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #6f41a3;
-    color: #fff;
-}
-
 /* Pekora: the blue of the rabbit and her logo, the same find
    (inc/skin-catalog.php). No words either. */
 html[data-skin="peko"] {
-    --accent: #6c9fe0;
-    --accent-light: #a9c8ef;
-    --accent-dark: #35598f;
-    --accent-rgb: 108, 159, 224;
-    --accent-light-rgb: 169, 200, 239;
-    --accent-dark-rgb: 53, 89, 143;
-    --hud-rgb: 108, 159, 224;
-    --hud-light-rgb: 169, 200, 239;
+    --swap-corner: #c8e5f1;
+    --swap-fill: rgba(18, 48, 67, 0.9);
+    --swap-text: #d5e5f8;
+    --swap-hover-fill: #4d7789;
+    --skin-logo: url("../skins/peko.webp");
+    --accent: #7cc0dd;
+    --accent-light: #c8e5f1;
+    --accent-dark: #4d7789;
+    --accent-rgb: 124, 192, 221;
+    --accent-light-rgb: 200, 229, 241;
+    --accent-dark-rgb: 77, 119, 137;
+    --hud-rgb: 124, 192, 221;
+    --hud-light-rgb: 200, 229, 241;
     --bg-dark: #08101e;
-    --bg-mid: #16233c;
+    --bg-mid: #123043;
     --text: #e2ebf7;
 }
 
-html[data-skin="peko"] .home .logo-slice,
-html[data-skin="peko"] .home .logo-shard {
-    background-image: url("../skins/peko.webp");
-}
-
-html[data-skin="peko"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #bcd4f2;
-    --fill: rgba(16, 36, 64, 0.9);
-    color: #d5e5f8;
-}
-
-html[data-skin="peko"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #35598f;
-    color: #fff;
-}
-
-/* Furina: the royal blue and the logo of the New Year's find (inc/skin-catalog.php).
-   No words. */
-html[data-skin="furi"] {
-    --accent: #4f6fe5;
-    --accent-light: #9db4f4;
-    --accent-dark: #2b43a0;
-    --accent-rgb: 79, 111, 229;
-    --accent-light-rgb: 157, 180, 244;
-    --accent-dark-rgb: 43, 67, 160;
-    --hud-rgb: 79, 111, 229;
-    --hud-light-rgb: 157, 180, 244;
-    --bg-dark: #070b1c;
-    --bg-mid: #121a3a;
-    --text: #e4eafc;
-}
-
-html[data-skin="furi"] .home .logo-slice,
-html[data-skin="furi"] .home .logo-shard {
-    background-image: url("../skins/furi.webp");
-}
-
-html[data-skin="furi"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #a9bcf6;
-    --fill: rgba(16, 32, 90, 0.9);
-    color: #cfdafb;
-}
-
-html[data-skin="furi"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #2b43a0;
-    color: #fff;
+/* Nakiri Ayame: the wine of her kimono and the silver-rose of her hair, the
+   New Year's find (inc/skin-catalog.php). No words: the page keeps its own. */
+html[data-skin="ayame"] {
+    --swap-corner: #ab989d;
+    --swap-fill: rgba(28, 13, 19, 0.9);
+    --swap-text: #e6d6dc;
+    --swap-hover-fill: #491723;
+    --skin-logo: url("../skins/ayame.webp");
+    --accent: #752538;
+    --accent-light: #ab989d;
+    --accent-dark: #491723;
+    --accent-rgb: 117, 37, 56;
+    --accent-light-rgb: 171, 152, 157;
+    --accent-dark-rgb: 73, 23, 35;
+    --hud-rgb: 117, 37, 56;
+    --hud-light-rgb: 171, 152, 157;
+    --bg-dark: #160b0f;
+    --bg-mid: #1c0d13;
+    --text: #ece2e6;
 }
 
 /* Albedo: the gold of her eyes and trims on the violet of her own, the same
    find (inc/skin-catalog.php). No words either. */
 html[data-skin="albedo"] {
-    --accent: #e0c060;
-    --accent-light: #f2dc9c;
-    --accent-dark: #97742a;
-    --accent-rgb: 224, 192, 96;
-    --accent-light-rgb: 242, 220, 156;
-    --accent-dark-rgb: 151, 116, 42;
-    --hud-rgb: 224, 192, 96;
-    --hud-light-rgb: 242, 220, 156;
+    --swap-corner: #f7efd7;
+    --swap-fill: rgba(52, 32, 80, 0.9);
+    --swap-text: #f6e8bc;
+    --swap-hover-fill: #928663;
+    --skin-logo: url("../skins/albedo.webp");
+    --accent: #ecd8a0;
+    --accent-light: #f7efd7;
+    --accent-dark: #928663;
+    --accent-rgb: 236, 216, 160;
+    --accent-light-rgb: 247, 239, 215;
+    --accent-dark-rgb: 146, 134, 99;
+    --hud-rgb: 236, 216, 160;
+    --hud-light-rgb: 247, 239, 215;
     --bg-dark: #0d0814;
     --bg-mid: #1d1230;
     --text: #efe7db;
 }
 
-html[data-skin="albedo"] .home .logo-slice,
-html[data-skin="albedo"] .home .logo-shard {
-    background-image: url("../skins/albedo.webp");
-}
-
-html[data-skin="albedo"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #f0dc9e;
-    --fill: rgba(52, 32, 80, 0.9);
-    color: #f6e8bc;
-}
-
-html[data-skin="albedo"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #97742a;
-    color: #fff;
-}
-
-/* Sadako: the cold blue of the well and the logo of the Friday the 13th's find
-   (inc/skin-catalog.php). No words: the page keeps its own. */
-html[data-skin="sadako"] {
-    --accent: #8b93bd;
-    --accent-light: #c2c7e2;
-    --accent-dark: #4b5180;
-    --accent-rgb: 139, 147, 189;
-    --accent-light-rgb: 194, 199, 226;
-    --accent-dark-rgb: 75, 81, 128;
-    --hud-rgb: 139, 147, 189;
-    --hud-light-rgb: 194, 199, 226;
-    --bg-dark: #0a0a10;
-    --bg-mid: #191a26;
-    --text: #e2e3ec;
-}
-
-html[data-skin="sadako"] .home .logo-slice,
-html[data-skin="sadako"] .home .logo-shard {
-    background-image: url("../skins/sadako.webp");
-}
-
-html[data-skin="sadako"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #c6cbe6;
-    --fill: rgba(30, 33, 56, 0.9);
-    color: #dde0f0;
-}
-
-html[data-skin="sadako"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #4b5180;
-    color: #fff;
+/* Tomie: the ink of her hair and the paper white of Junji Ito's own, the
+   Friday the 13th find (inc/skin-catalog.php). No words: the page keeps its own. */
+html[data-skin="tomie"] {
+    --swap-corner: #8f8f9a;
+    --swap-fill: rgba(20, 20, 22, 0.9);
+    --swap-text: #dcdce2;
+    --swap-hover-fill: #2c2c32;
+    --skin-logo: url("../skins/tomie.webp");
+    --accent: #4a4a52;
+    --accent-light: #8f8f9a;
+    --accent-dark: #2c2c32;
+    --accent-rgb: 74, 74, 82;
+    --accent-light-rgb: 143, 143, 154;
+    --accent-dark-rgb: 44, 44, 50;
+    --hud-rgb: 74, 74, 82;
+    --hud-light-rgb: 143, 143, 154;
+    --bg-dark: #0e0e10;
+    --bg-mid: #141416;
+    --text: #ececf0;
 }
 
 /* Lain: the plum of the Wired and the muted mauve of the picture itself
    (inc/skin-catalog.php). No words either. */
 html[data-skin="lain"] {
+    --swap-corner: #cdc1ca;
+    --swap-fill: rgba(43, 34, 61, 0.9);
+    --swap-text: #e6dfe5;
+    --swap-hover-fill: #7b6b77;
+    --skin-logo: url("../skins/lain.webp");
     --accent: #a799a4;
     --accent-light: #c9bdc6;
     --accent-dark: #7b6b77;
@@ -397,25 +456,14 @@ html[data-skin="lain"] {
     --text: #ece6eb;
 }
 
-html[data-skin="lain"] .home .logo-slice,
-html[data-skin="lain"] .home .logo-shard {
-    background-image: url("../skins/lain.webp");
-}
-
-html[data-skin="lain"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #cdc1ca;
-    --fill: rgba(43, 34, 61, 0.9);
-    color: #e6dfe5;
-}
-
-html[data-skin="lain"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #7b6b77;
-    color: #fff;
-}
-
 /* Cibo: the navy of the Megastructure and the lavender white of her hair, of
    the birthday find (inc/skin-catalog.php). No words: the page keeps its own. */
 html[data-skin="cibo"] {
+    --swap-corner: #cdd3e4;
+    --swap-fill: rgba(28, 32, 52, 0.9);
+    --swap-text: #e6e9f3;
+    --swap-hover-fill: #5d6a90;
+    --skin-logo: url("../skins/cibo.webp");
     --accent: #c2c8d9;
     --accent-light: #e2e6f0;
     --accent-dark: #5d6a90;
@@ -429,25 +477,14 @@ html[data-skin="cibo"] {
     --text: #e8ebf3;
 }
 
-html[data-skin="cibo"] .home .logo-slice,
-html[data-skin="cibo"] .home .logo-shard {
-    background-image: url("../skins/cibo.webp");
-}
-
-html[data-skin="cibo"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #cdd3e4;
-    --fill: rgba(28, 32, 52, 0.9);
-    color: #e6e9f3;
-}
-
-html[data-skin="cibo"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #5d6a90;
-    color: #fff;
-}
-
 /* Killy: the steel blue of his own and the black he wears, the same find
    (inc/skin-catalog.php). No words either. */
 html[data-skin="killy"] {
+    --swap-corner: #c3c5cb;
+    --swap-fill: rgba(37, 45, 56, 0.9);
+    --swap-text: #dfe0e4;
+    --swap-hover-fill: #3c4552;
+    --skin-logo: url("../skins/killy.webp");
     --accent: #66799b;
     --accent-light: #b9b8bd;
     --accent-dark: #3c4552;
@@ -461,91 +498,58 @@ html[data-skin="killy"] {
     --text: #e1e2e5;
 }
 
-html[data-skin="killy"] .home .logo-slice,
-html[data-skin="killy"] .home .logo-shard {
-    background-image: url("../skins/killy.webp");
-}
-
-html[data-skin="killy"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #c3c5cb;
-    --fill: rgba(37, 45, 56, 0.9);
-    color: #dfe0e4;
-}
-
-html[data-skin="killy"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #3c4552;
-    color: #fff;
-}
-
-/* Chisato: the burgundy of her eyes, ribbon and background with the cream of
-   her hair. The Sakura find unlocks her colours, logo and falling petals. */
-html[data-skin="chisato"] {
+/* March 7th: the light pink of her hair and her logo, the Sakura find
+   (inc/skin-catalog.php). No words either. */
+html[data-skin="march7"] {
+    --swap-corner: #fbe0ec;
+    --swap-fill: rgba(82, 48, 64, 0.9);
+    --swap-text: #fbd9e6;
+    --swap-hover-fill: #955c74;
+    --skin-logo: url("../skins/march7.webp");
     --season-background: sakura;
-    --accent: #bc626d;
-    --accent-light: #e8b8b5;
-    --accent-dark: #873642;
-    --accent-rgb: 188, 98, 109;
-    --accent-light-rgb: 232, 184, 181;
-    --accent-dark-rgb: 135, 54, 66;
-    --hud-rgb: 188, 98, 109;
-    --hud-light-rgb: 232, 184, 181;
-    --bg-dark: #140b0e;
-    --bg-mid: #3b2028;
-    --text: #eeddd3;
+    --accent: #f5b3ce;
+    --accent-light: #fbe0ec;
+    --accent-dark: #955c74;
+    --accent-rgb: 245, 179, 206;
+    --accent-light-rgb: 251, 224, 236;
+    --accent-dark-rgb: 149, 92, 116;
+    --hud-rgb: 245, 179, 206;
+    --hud-light-rgb: 251, 224, 236;
+    --bg-dark: #251a22;
+    --bg-mid: #523040;
+    --text: #f4e0e8;
 }
 
-html[data-skin="chisato"] .home .logo-slice,
-html[data-skin="chisato"] .home .logo-shard {
-    background-image: url("../skins/chisato.webp");
-}
-
-html[data-skin="chisato"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #e8b8b5;
-    --fill: rgba(59, 32, 40, 0.9);
-    color: #eeddd3;
-}
-
-html[data-skin="chisato"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #873642;
-    color: #fff;
-}
-
-/* Yae Miko: her rose hair and the plum of her eyes and clothes, unlocked by
-   the same Sakura find. No words either. */
-html[data-skin="yaemiko"] {
+/* Raiden Shogun: the Electro violet of the ruler of Inazuma and her logo, the
+   same Sakura find. No words either. */
+html[data-skin="shogun"] {
+    --swap-corner: #ab9bdd;
+    --swap-fill: rgba(42, 30, 84, 0.9);
+    --swap-text: #d9cdf5;
+    --swap-hover-fill: #44337a;
+    --skin-logo: url("../skins/shogun.webp");
     --season-background: sakura;
-    --accent: #c76c86;
-    --accent-light: #edb8c9;
-    --accent-dark: #86405f;
-    --accent-rgb: 199, 108, 134;
-    --accent-light-rgb: 237, 184, 201;
-    --accent-dark-rgb: 134, 64, 95;
-    --hud-rgb: 199, 108, 134;
-    --hud-light-rgb: 237, 184, 201;
-    --bg-dark: #150b13;
-    --bg-mid: #432035;
-    --text: #f1dce4;
-}
-
-html[data-skin="yaemiko"] .home .logo-slice,
-html[data-skin="yaemiko"] .home .logo-shard {
-    background-image: url("../skins/yaemiko.webp");
-}
-
-html[data-skin="yaemiko"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #edb8c9;
-    --fill: rgba(67, 32, 53, 0.9);
-    color: #f1dce4;
-}
-
-html[data-skin="yaemiko"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #86405f;
-    color: #fff;
+    --accent: #6e52c4;
+    --accent-light: #ab9bdd;
+    --accent-dark: #44337a;
+    --accent-rgb: 110, 82, 196;
+    --accent-light-rgb: 171, 155, 221;
+    --accent-dark-rgb: 68, 51, 122;
+    --hud-rgb: 110, 82, 196;
+    --hud-light-rgb: 171, 155, 221;
+    --bg-dark: #0f0a1e;
+    --bg-mid: #2a1e54;
+    --text: #e6e1f6;
 }
 
 /* Suisei: the blue of her hair and the navy of her starry picture. The
    Perseids find unlocks her colours, logo and starry background. */
 html[data-skin="suisei"] {
+    --swap-corner: #c4d4f3;
+    --swap-fill: rgba(26, 26, 54, 0.9);
+    --swap-text: #e3e7f3;
+    --swap-hover-fill: #365493;
+    --skin-logo: url("../skins/suisei.webp");
     --season-background: perseids;
     --accent: #7097e3;
     --accent-light: #b8ccef;
@@ -555,56 +559,29 @@ html[data-skin="suisei"] {
     --accent-dark-rgb: 54, 84, 147;
     --hud-rgb: 112, 151, 227;
     --hud-light-rgb: 184, 204, 239;
-    --bg-dark: #080e1c;
-    --bg-mid: #16233f;
+    --bg-dark: #0a0a18;
+    --bg-mid: #1a1a36;
     --text: #e3e7f3;
-}
-
-html[data-skin="suisei"] .home .logo-slice,
-html[data-skin="suisei"] .home .logo-shard {
-    background-image: url("../skins/suisei.webp");
-}
-
-html[data-skin="suisei"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #c4d4f3;
-    --fill: rgba(22, 35, 63, 0.9);
-    color: #e3e7f3;
-}
-
-html[data-skin="suisei"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #365493;
-    color: #fff;
 }
 
 /* Hoshino Ai: magenta stars and ribbons on the dark violet of her hair,
    unlocked by the same Perseids find. No words either. */
 html[data-skin="hoshino"] {
+    --swap-corner: #e7aed0;
+    --swap-fill: rgba(64, 17, 61, 0.9);
+    --swap-text: #f0dce9;
+    --swap-hover-fill: #7b2759;
+    --skin-logo: url("../skins/hoshino.webp");
     --season-background: perseids;
-    --accent: #ce5b9b;
-    --accent-light: #ebb6d4;
-    --accent-dark: #762b68;
-    --accent-rgb: 206, 91, 155;
-    --accent-light-rgb: 235, 182, 212;
-    --accent-dark-rgb: 118, 43, 104;
-    --hud-rgb: 206, 91, 155;
-    --hud-light-rgb: 235, 182, 212;
+    --accent: #c73f90;
+    --accent-light: #e7aed0;
+    --accent-dark: #7b2759;
+    --accent-rgb: 199, 63, 144;
+    --accent-light-rgb: 231, 174, 208;
+    --accent-dark-rgb: 123, 39, 89;
+    --hud-rgb: 199, 63, 144;
+    --hud-light-rgb: 231, 174, 208;
     --bg-dark: #120a1b;
-    --bg-mid: #31132e;
+    --bg-mid: #40113d;
     --text: #f0dce9;
-}
-
-html[data-skin="hoshino"] .home .logo-slice,
-html[data-skin="hoshino"] .home .logo-shard {
-    background-image: url("../skins/hoshino.webp");
-}
-
-html[data-skin="hoshino"] .home .link-swap:not(.below) a.swap-alt {
-    --corner: #ebb6d4;
-    --fill: rgba(49, 19, 46, 0.9);
-    color: #f0dce9;
-}
-
-html[data-skin="hoshino"] .home .link-swap:not(.below) a.swap-alt:hover {
-    --fill: #762b68;
-    color: #fff;
 }

@@ -20,7 +20,7 @@ window.SanakanSkinPicker = function (field, design) {
     try {
       Array.from(sheet.cssRules).forEach(function (rule) {
         var match = /^html\[data-skin="([a-z0-9-]+)"\]$/.exec(rule.selectorText || '');
-        if (match) palettes[match[1]] = ['--accent', '--bg-dark', '--text'].map(function (key) {
+        if (match || rule.selectorText === ':root') palettes[match ? match[1] : ''] = ['--accent', '--bg-dark', '--text'].map(function (key) {
           return rule.style.getPropertyValue(key).trim();
         });
       });
@@ -45,7 +45,7 @@ window.SanakanSkinPicker = function (field, design) {
       var id = tile.getAttribute('data-skin-tile');
       var custom = id === 'custom' && design();
       var colors = custom ? [custom.colors.accent, custom.colors['bg-dark'], custom.colors.text]
-        : palettes[id] || ['#9b59b6', '#080909', '#dcddde'];
+        : palettes[id] || palettes[''] || [];
       ['--tile-accent', '--tile-bg', '--tile-text'].forEach(function (key, i) {
         if (/^#[0-9a-f]{6}$/i.test(colors[i])) tile.style.setProperty(key, colors[i]);
       });

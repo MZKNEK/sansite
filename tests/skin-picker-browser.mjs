@@ -42,6 +42,15 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     assert.equal(await color.isVisible(), true);
     await page.locator('[data-skin-open]').click();
     assert.equal(await dialog.isVisible(), true);
+    assert.ok(await dialog.evaluate(el => {
+      const panel = getComputedStyle(el);
+      const menu = getComputedStyle(document.querySelector('.account-drop'));
+      const button = el.querySelector('.skin-dialog-close').getBoundingClientRect();
+      const icon = el.querySelector('.skin-dialog-close svg').getBoundingClientRect();
+      return panel.backgroundColor === menu.backgroundColor && panel.borderTopColor === menu.borderTopColor
+        && Math.abs(icon.x + icon.width / 2 - button.x - button.width / 2) < .5
+        && Math.abs(icon.y + icon.height / 2 - button.y - button.height / 2) < .5;
+    }), 'picker uses account panel colours and centres its close icon');
     assert.equal(await page.locator('[data-skin-filter=unlocked]').getAttribute('aria-pressed'), 'true');
     assert.equal(await dialog.locator('.skin-tile:visible').count(), 4, 'default, named reward and two earned skins');
     assert.deepEqual(await dialog.locator('.skin-tile').evaluateAll(tiles => tiles.slice(0, 2).map(tile => tile.getAttribute('data-skin-tile'))), ['', 'custom']);

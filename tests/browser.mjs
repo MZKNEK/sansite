@@ -12,16 +12,17 @@ import { testSkinChanges } from './skins-browser.mjs';
 import { testCustomSkin } from './custom-skin-browser.mjs';
 import { testSkinPicker } from './skin-picker-browser.mjs';
 import { testSeasonalBackground } from './seasonal-browser.mjs';
+import { testTheme } from './theme-browser.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
 const site = mkdtempSync(path.join(tmpdir(), 'sanakan-browser-'));
-for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', 'hunters']) {
+for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', 'hunters', 'state', 'cmd', 'api', 'skalpel', 'uskalpel']) {
   cpSync(path.join(root, dir), path.join(site, dir), { recursive: true, filter: p => p !== path.join(root, 'inc/data') && p !== path.join(root, 'inc/config.php') });
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['index.html', 'logo.webp', 'status.php', 'account.php', 'megastructure.php', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['index.html', 'logo.webp', 'status.php', 'account.php', 'megastructure.php', 'palette.php', 'offline.html', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
 // the logos of the skins, in the folder the site keeps them (skins/)
 mkdirSync(path.join(site, 'skins'));
 cpSync(path.join(root, 'skins'), path.join(site, 'skins'), { recursive: true });
@@ -218,6 +219,7 @@ try {
   await testSeasonalBackground({ browser, base, site, php, errors });
   await testCustomSkin({ browser, base, site, php, errors });
   await testSkinPicker({ browser, base, site, errors });
+  await testTheme({ browser, base, site, errors });
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
   console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');

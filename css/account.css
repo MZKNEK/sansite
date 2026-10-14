@@ -3,21 +3,12 @@
    of the roles on the bot's Discord server, the HUD in the colour of the role
    (data-hud, js/appearance.js), the account menu of the top right corner
    (accountMenuHtml() in inc/auth.php, js/account.js) and the bar of trying
-   other rights. It uses the colours of the site's :root (css/style.css, or
-   the app's own) and the corners of .hud-corners, and goes after them. */
+   other rights. Colours and role identities come from css/skins.css;
+   page and cropper styles provide the layout and .hud-corners. */
 
 /* The role of the account on the bot's Discord server as a Safeguard level,
    "LV.9", next to its name on every page; the panel colours its role chips
    the same way */
-.role-dev { --role: #4fd1c5; --role-rgb: 79, 209, 197; --role-light-rgb: 127, 227, 216; --role-dark-rgb: 47, 156, 147; }
-.role-admin { --role: #e86262; --role-rgb: 232, 98, 98; --role-light-rgb: 240, 138, 138; --role-dark-rgb: 168, 59, 59; }
-.role-semiAdmin { --role: #f0a35e; --role-rgb: 240, 163, 94; --role-light-rgb: 246, 192, 140; --role-dark-rgb: 176, 110, 47; }
-.role-tester { --role: #e8d36a; --role-rgb: 232, 211, 106; --role-light-rgb: 240, 226, 154; --role-dark-rgb: 171, 154, 56; }
-.role-moderator { --role: #5fd38d; --role-rgb: 95, 211, 141; --role-light-rgb: 143, 227, 175; --role-dark-rgb: 55, 156, 94; }
-.role-user { --role: #b670d3; --role-rgb: 182, 112, 211; --role-light-rgb: 182, 112, 211; --role-dark-rgb: 113, 59, 135; }
-.role-none,
-.role-out { --role: #80848e; --role-rgb: 128, 132, 142; --role-light-rgb: 160, 164, 173; --role-dark-rgb: 85, 88, 95; }
-
 /* The HUD in the colour of the role, chosen in the profile (/account/).
    "accent" makes the accent elements (the targeting corners, links, the search
    box, the account menu) follow the role; "full" also the page chrome. The
@@ -42,17 +33,15 @@ html[data-hud="full"] {
    reads as "kept away" and stays apart from the red around it. */
 html[data-hud="accent"].role-admin,
 html[data-hud="full"].role-admin {
-    --lock: #f0b232;
-    --lock-text: #ffe0a3;
-    --lock-border-rgb: 240, 178, 50;
-    --lock-fill-rgb: 240, 178, 50;
+    --lock: var(--warning);
+    --lock-text: var(--warning);
 }
 
 .lv {
     flex: none;
     padding: 0 5px;
     background: var(--role);
-    color: var(--bg-dark);
+    color: var(--media-matte);
     font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     white-space: nowrap;
@@ -78,16 +67,16 @@ html[data-hud="full"].role-admin {
     max-width: 900px;
     margin: 0 auto;
     padding: 10px 14px;
-    border: 1px solid #f0b232;
-    background: rgba(26, 22, 12, 0.96);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--warning);
+    background: var(--surface-raised);
+    box-shadow: 0 6px 24px var(--shadow);
     font: 13px Lato, sans-serif;
-    color: rgba(240, 225, 190, 0.9);
+    color: var(--text);
 }
 
 .test-bar b {
     margin-right: 6px;
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .test-bar form {
@@ -96,15 +85,15 @@ html[data-hud="full"].role-admin {
 
 .test-bar button {
     padding: 6px 12px;
-    border: 1px solid #f0b232;
+    border: 1px solid var(--warning);
     background: transparent;
-    color: #f0b232;
+    color: var(--warning);
     font: 600 12px Lato, sans-serif;
     cursor: pointer;
 }
 
 .test-bar button:hover {
-    background: rgba(240, 178, 50, 0.15);
+    background: color-mix(in srgb, var(--warning) 15%, transparent);
 }
 
 .account-menu {
@@ -120,7 +109,7 @@ html[data-hud="full"].role-admin {
     padding: 5px 8px 5px 6px;
     border: 0;
     background: transparent;
-    color: rgba(220, 221, 222, 0.85);
+    color: var(--text-body);
     font: inherit;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
@@ -129,7 +118,7 @@ html[data-hud="full"].role-admin {
 .account-toggle:hover,
 .account-menu.open .account-toggle {
     background: rgba(var(--accent-rgb), 0.12);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .account-toggle img {
@@ -156,7 +145,7 @@ html[data-hud="full"].role-admin {
 }
 
 .account-toggle > .account-icon {
-    color: var(--accent-light);
+    color: var(--link);
     transition: transform 0.2s;
 }
 
@@ -167,8 +156,8 @@ html[data-hud="full"].role-admin {
 /* graphite with a thin frame under the corners, like the toasts of the site;
    .hud-corners, later in this file, would make it see-through */
 .account-menu .account-drop {
-    --fill: #18181e;
-    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    --fill: var(--panel-surface);
+    border: 1px solid var(--panel-border);
 }
 
 .account-drop {
@@ -177,7 +166,7 @@ html[data-hud="full"].role-admin {
     right: 0;
     min-width: 230px;
     padding-top: 8px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 12px 30px var(--shadow);
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-align: left;
@@ -195,7 +184,7 @@ html[data-hud="full"].role-admin {
 .account-drop a + form {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px solid rgba(var(--accent-rgb), 0.22);
+    border-top: 1px solid var(--panel-divider);
 }
 
 .account-drop a,
@@ -219,16 +208,16 @@ html[data-hud="full"].role-admin {
 
 .account-drop a:hover,
 .account-drop a:focus-visible {
-    background: rgba(var(--accent-rgb), 0.16);
-    color: #fff;
+    background: var(--panel-hover);
+    color: var(--text-strong);
 }
 
 .account-drop a .account-icon {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .account-drop a[aria-current] {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .account-drop small {
@@ -237,17 +226,17 @@ html[data-hud="full"].role-admin {
     font-size: 10px;
     letter-spacing: 0.05em;
     text-transform: none;
-    color: rgba(220, 221, 222, 0.32);
+    color: var(--text-subtle);
 }
 
 .account-drop .account-out {
-    color: #f0a09e;
+    color: var(--logout);
 }
 
 .account-drop .account-out:hover,
 .account-drop .account-out:focus-visible {
-    background: rgba(217, 83, 79, 0.16);
-    color: #ffd2d0;
+    background: color-mix(in srgb, var(--danger) 16%, transparent);
+    color: var(--logout-hover);
 }
 
 .account-scan {
@@ -255,7 +244,7 @@ html[data-hud="full"].role-admin {
     padding: 7px 16px 8px;
     border-top: 1px solid rgba(var(--accent-rgb), 0.18);
     background: rgba(var(--accent-rgb), 0.08);
-    color: rgba(220, 221, 222, 0.42);
+    color: var(--account-meta);
     font-size: 10px;
     letter-spacing: 0.14em;
     white-space: nowrap;
@@ -263,7 +252,7 @@ html[data-hud="full"].role-admin {
 
 .account-scan em {
     font-style: normal;
-    color: var(--role);
+    color: var(--role-ink);
 }
 
 /* on a phone the name goes, the avatar and the level stay */

@@ -25,6 +25,10 @@
     var editor = field.form.querySelector('[data-custom-editor]');
     var image = editor && editor.querySelector('[data-custom-image]');
     var logo = editor && editor.querySelector('[data-custom-logo]');
+    var base = editor && editor.querySelector('[data-custom-base]');
+    var palettes = editor && JSON.parse(editor.getAttribute('data-custom-palettes'));
+    var drafts = {};
+    var previousBase = base && base.value;
     var baseLogo = logo && new URL('../logo.webp', location.href).pathname;
     var panel = null;
     function design() {
@@ -34,7 +38,7 @@
         colors[color.getAttribute('data-custom-color')] = color.value;
       });
       var option = image.options[image.selectedIndex];
-      return { colors: colors, image: option.getAttribute('data-image-url') || '' };
+      return { colors: colors, image: option.getAttribute('data-image-url') || '', base: base.value };
     }
     function preview() {
       var custom = design();
@@ -58,6 +62,18 @@
       update();
     });
     if (editor) {
+      base.addEventListener('change', function () {
+        drafts[previousBase] = design().colors;
+        var colors = drafts[base.value] || palettes[base.value];
+        editor.querySelectorAll('[data-custom-color]').forEach(function (color) {
+          var key = color.getAttribute('data-custom-color');
+          color.value = colors[key];
+          color.placeholder = palettes[base.value][key];
+          editor.querySelector('[data-custom-swatch="' + key + '"]').value = colors[key];
+        });
+        previousBase = base.value;
+        preview();
+      });
       image.addEventListener('change', preview);
       logo.addEventListener('error', function () { if (logo.getAttribute('src') !== baseLogo) logo.src = baseLogo; });
       editor.querySelectorAll('[data-custom-color]').forEach(function (color) {

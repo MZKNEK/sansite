@@ -45,12 +45,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=5191aa7143" type="text/css" rel="stylesheet" />
-  <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <script src="../js/appearance.js?v=7d550aca36"></script>
+  <link href="../css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
+  <link href="../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=5a07d8545d" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=1fce7df87a" type="text/css" rel="stylesheet" />
+  <script src="../js/appearance.js?v=c787589afa"></script>
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
@@ -123,12 +123,12 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=5191aa7143" />
-  <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
-  <link rel="stylesheet" type="text/css" href="../css/account.css?v=cdf925d91d" />
-  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=65caa290b1" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
-  <script src="../js/appearance.js?v=7d550aca36"></script>
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=0d6c821266" />
+  <link rel="stylesheet" type="text/css" href="../css/palette.css?v=3bb1398e4e" />
+  <link rel="stylesheet" type="text/css" href="../css/account.css?v=66047e5fc2" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=5a07d8545d" />
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=1739858b8d" >
+  <script src="../js/appearance.js?v=c787589afa"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />

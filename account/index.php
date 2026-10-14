@@ -65,7 +65,7 @@
                 ? $_POST['skinwords_present'] === 'on'
                 : ($before['skin'] === '' || skinSpeaks($before['skin']));
             $words = $hadSwitch ? isset($_POST['skinwords']) : $before['words'];
-            $custom = $skin === 'custom' ? ['image' => $_POST['customimage'] ?? '', 'colors' => $_POST['customcolors'] ?? null] : null;
+            $custom = $skin === 'custom' ? ['image' => $_POST['customimage'] ?? '', 'colors' => $_POST['customcolors'] ?? null, 'base' => $_POST['custombase'] ?? 'dark'] : null;
             if (!setSkin($user['id'], $skin, $words, $custom)) {
                 setFlash($skin === 'custom' && skinUnlocked('custom', $user['id'])
                     ? 'Nie udało się zapisać skina. Podaj kolory jako #RRGGBB i wybierz dostępny obrazek z własnej galerii.'
@@ -181,13 +181,13 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=5191aa7143" type="text/css" rel="stylesheet" />
-  <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=8e45c32894" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
+  <link href="../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=1fce7df87a" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=c4ddf09879" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=6d17257606" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=5a07d8545d" type="text/css" rel="stylesheet" />
   <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
@@ -428,7 +428,7 @@
                 <span class="tag">Wygląd strony</span>
                 <h2 id="skin-picker-title">Wybierz skin</h2>
               </div>
-              <button type="button" class="skin-dialog-close" data-skin-cancel aria-label="Zamknij wybór skina">&times;</button>
+              <button type="button" class="skin-dialog-close" data-skin-cancel aria-label="Zamknij wybór skina"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
             </div>
             <p class="skin-dialog-hint" id="skin-picker-hint">Kliknij skin, aby podejrzeć jego kolory. Pełny opis znajdziesz pod kafelkami.</p>
             <div class="skin-dialog-toolbar">
@@ -485,7 +485,7 @@
             </div>
           </dialog>
 <?php if ($customUnlocked): $customPrefs = customSkinPrefs($id); $customBase = str_replace('\\', '/', realpath($galleryRoot)); $customImage = customSkinImage($id, $customPrefs['image'], $customBase); $customImages = customSkinImages($id, $customBase); ?>
-          <fieldset class="custom-skin" data-custom-editor<?=$skinNow === 'custom' ? '' : ' hidden disabled'?>>
+          <fieldset class="custom-skin" data-custom-editor data-custom-palettes="<?=e(json_encode(customSkinPalettes(), JSON_UNESCAPED_SLASHES))?>"<?=$skinNow === 'custom' ? '' : ' hidden disabled'?>>
             <legend>Własny skin</legend>
             <p class="hint">Komplet znajdziek odblokował twój własny wygląd. Wpisz kolory w formacie #RRGGBB lub wybierz je próbnikiem. Zmiany podejrzysz od razu; zapisze je przycisk „Zapisz skin”.</p>
             <div class="custom-skin-image">
@@ -505,7 +505,7 @@
               </label>
             </div>
             <div class="hud-fields">
-<?php foreach (CUSTOM_SKIN_COLORS as $key => [$label, $default]): ?>
+<?php foreach (CUSTOM_SKIN_COLORS as $key => $label): $default = customSkinPalettes()[$customPrefs['base']][$key]; ?>
               <div class="hud-field">
                 <label class="hud-field-label" for="custom-<?=e($key)?>"><?=e($label)?></label>
                 <div class="custom-skin-color">
@@ -514,6 +514,16 @@
                 </div>
               </div>
 <?php endforeach; ?>
+              <label class="hud-field">
+                <span class="hud-field-label">Baza</span>
+                <span class="hud-select">
+                  <select name="custombase" data-custom-base>
+                    <option value="dark"<?=$customPrefs['base'] === 'dark' ? ' selected' : ''?>>Ciemna</option>
+                    <option value="light"<?=$customPrefs['base'] === 'light' ? ' selected' : ''?>>Jasna</option>
+                  </select>
+                  <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+                </span>
+              </label>
             </div>
           </fieldset>
 <?php endif; ?>
@@ -592,9 +602,9 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/appearance.js?v=7d550aca36"></script>
-  <script src="../js/skin-picker.js?v=1900467557"></script>
-  <script src="../js/appearance-picker.js?v=25c93830ee"></script>
+  <script src="../js/appearance.js?v=c787589afa"></script>
+  <script src="../js/skin-picker.js?v=d04ca5eaa7"></script>
+  <script src="../js/appearance-picker.js?v=cfa79b055d"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=060589dc14"></script>

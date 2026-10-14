@@ -40,38 +40,38 @@ main.content {
 .crumbs a {
     padding: 2px 8px;
     border: 1px solid transparent;
-    color: var(--accent-light);
+    color: var(--link);
     transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .crumbs a:hover {
     border-color: rgba(var(--accent-rgb), 0.45);
     background: rgba(var(--accent-rgb), 0.15);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .crumbs a:last-child {
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .ex-meta {
     margin: 6px 0 0;
     font-size: 14px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 /* the folders of an account that sees only some: its own and the shared ones */
 .ex-meta a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .notice {
     max-width: 640px;
     margin: 24px auto 0;
     padding: 12px 18px;
-    border: 1px solid rgba(240, 178, 50, 0.35);
-    background: rgba(240, 178, 50, 0.06);
-    color: #e8d5a8;
+    border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+    background: color-mix(in srgb, var(--warning) 6%, transparent);
+    color: var(--warning);
     text-align: center;
 }
 
@@ -86,7 +86,7 @@ main.content {
     gap: 10px 14px;
     margin: 28px -16px 0;
     padding: 12px 16px;
-    background: rgba(14, 14, 17, 0.88);
+    background: var(--overlay-panel);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(var(--accent-rgb), 0.2);
@@ -113,7 +113,7 @@ main.content {
     padding: 8px 14px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: transparent;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
     font: 13px/1.5 "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -126,12 +126,12 @@ main.content {
 }
 
 .sort button:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .sort button[aria-pressed="true"] {
     background: rgba(var(--accent-rgb), 0.22);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .toolbar .search-info {
@@ -149,7 +149,7 @@ main.content {
 
 .tile {
     --corner: rgba(var(--accent-light-rgb), 0.35);
-    --fill: rgba(255, 255, 255, 0.02);
+    --fill: color-mix(in srgb, var(--text) 2%, transparent);
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -170,7 +170,7 @@ main.content {
     place-items: center;
     aspect-ratio: 4 / 5;
     overflow: hidden;
-    background: #0b0b0d;
+    background: var(--media-matte);
 }
 
 .thumb img,
@@ -185,14 +185,14 @@ main.content {
     gap: 4px;
     text-align: center;
     font: 12px "Sanakan Mono", monospace;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .placeholder b {
     font-size: 22px;
     font-weight: 400;
     letter-spacing: 0.12em;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .badge {
@@ -200,9 +200,9 @@ main.content {
     top: 6px;
     right: 6px;
     padding: 1px 6px;
-    background: rgba(14, 14, 17, 0.85);
+    background: var(--surface-raised);
     border: 1px solid rgba(var(--accent-rgb), 0.5);
-    color: var(--accent-light);
+    color: var(--link);
     font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
 }
@@ -213,16 +213,16 @@ main.content {
     left: 6px;
     bottom: 6px;
     padding: 1px 6px;
-    background: rgba(14, 14, 17, 0.85);
-    border: 1px solid rgba(240, 178, 50, 0.5);
-    color: #f0b232;
+    background: var(--surface-raised);
+    border: 1px solid color-mix(in srgb, var(--warning) 50%, transparent);
+    color: var(--warning);
     font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
 }
 
 .job-badge.failed {
-    border-color: rgba(214, 78, 78, 0.6);
-    color: #e06b6b;
+    border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+    color: var(--danger);
 }
 
 .media-jobs {
@@ -245,12 +245,12 @@ main.content {
     font: 13px/1.5 "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .media-jobs-summary {
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .media-jobs-list {
@@ -271,7 +271,7 @@ main.content {
     min-width: 0;
     padding: 3px 0;
     font: 12px/1.5 "Sanakan Mono", monospace;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .media-job-dot {
@@ -279,14 +279,14 @@ main.content {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: rgba(220, 221, 222, 0.35);
+    background: color-mix(in srgb, var(--text) 35%, transparent);
 }
 
 .media-job-name {
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
-    color: #efe2f7;
+    color: var(--heading);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -295,13 +295,13 @@ main.content {
     flex: none;
     margin-left: auto;
     white-space: nowrap;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .media-job.pending .media-job-dot,
 .media-job.converting .media-job-dot {
-    background: #f0b232;
-    box-shadow: 0 0 6px rgba(240, 178, 50, 0.7);
+    background: var(--warning);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--warning) 70%, transparent);
 }
 
 .media-job.converting .media-job-dot {
@@ -314,34 +314,34 @@ main.content {
 
 .media-job.pending .media-job-state,
 .media-job.converting .media-job-state {
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .media-job.done .media-job-dot {
-    background: #7fd18a;
+    background: var(--success);
 }
 
 .media-job.done .media-job-state {
-    color: #7fd18a;
+    color: var(--success);
 }
 
 .media-job.failed .media-job-dot {
-    background: #e06b6b;
+    background: var(--danger);
 }
 
 .media-job.failed .media-job-state {
-    color: #e06b6b;
+    color: var(--danger);
 }
 
 .media-jobs-link {
     margin-left: auto;
-    color: var(--accent-light);
+    color: var(--link);
     font: 13px/1.5 "Sanakan Mono", monospace;
     text-decoration: none;
 }
 
 .media-jobs-link:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 /* the tasks page (i/?zadania=1): every job of the account, with details */
@@ -367,31 +367,31 @@ main.content {
 .media-task-name {
     min-width: 0;
     overflow: hidden;
-    color: #efe2f7;
+    color: var(--heading);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .media-task-state {
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .media-job.pending .media-task-state,
 .media-job.converting .media-task-state {
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .media-job.done .media-task-state {
-    color: #7fd18a;
+    color: var(--success);
 }
 
 .media-job.failed .media-task-state {
-    color: #e06b6b;
+    color: var(--danger);
 }
 
 .media-task-time {
     white-space: nowrap;
-    color: rgba(220, 221, 222, 0.4);
+    color: var(--text-subtle);
 }
 
 @media (max-width: 640px) {
@@ -470,7 +470,7 @@ main.content {
 .name {
     overflow: hidden;
     font: 13px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -489,7 +489,7 @@ main.content {
 
 .info {
     font-size: 12px;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 /* in the search results: the folder a tile is in */
@@ -504,7 +504,7 @@ main.content {
 .empty {
     margin-top: 48px;
     text-align: center;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
     font-size: 18px;
 }
 
@@ -515,7 +515,7 @@ main.content {
     z-index: 100;
     display: flex;
     flex-direction: column;
-    background: rgba(6, 6, 8, 0.94);
+    background: var(--surface-raised);
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
 }
@@ -539,14 +539,14 @@ main.content {
 .viewer-name {
     overflow: hidden;
     font: 15px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .viewer-details {
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .viewer-actions {
@@ -559,7 +559,7 @@ main.content {
     padding: 6px 12px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
     background: transparent;
-    color: var(--accent-light);
+    color: var(--link);
     font: 13px/1.5 "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -569,22 +569,22 @@ main.content {
 
 .viewer-btn:hover {
     background: rgba(var(--accent-rgb), 0.2);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .viewer-btn.danger {
-    border-color: rgba(217, 83, 79, 0.6);
-    color: #e57373;
+    border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+    color: var(--danger);
 }
 
 .viewer-btn.danger:hover {
-    background: rgba(217, 83, 79, 0.25);
-    color: #fff;
+    background: color-mix(in srgb, var(--danger) 25%, transparent);
+    color: var(--text-strong);
 }
 
 .viewer-btn.done {
-    border-color: rgba(35, 165, 90, 0.6);
-    color: #3fca7a;
+    border-color: color-mix(in srgb, var(--success) 60%, transparent);
+    color: var(--success);
 }
 
 .viewer-close {
@@ -631,7 +631,7 @@ main.content {
     position: absolute;
     font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .viewer-nav {
@@ -653,7 +653,7 @@ main.content {
 .viewer-nav:hover {
     --arm: 18px;
     --fill: rgba(var(--accent-rgb), 0.18);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .viewer-nav.prev {
@@ -707,7 +707,7 @@ body.viewer-open {
     padding: 7px 14px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
     background: transparent;
-    color: var(--accent-light);
+    color: var(--link);
     font: 13px "JetBrains Mono", Consolas, monospace;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
@@ -715,32 +715,32 @@ body.viewer-open {
 
 .admin-btn:hover {
     background: rgba(var(--accent-rgb), 0.2);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .admin-btn.primary {
-    border-color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.35);
-    color: #fff;
+    border-color: var(--link);
+    background: var(--surface-selected);
+    color: var(--text-strong);
 }
 
 .admin-btn.primary:hover {
-    background: var(--accent);
+    background: var(--button-hover);
 }
 
 .admin-btn.danger {
-    border-color: rgba(217, 83, 79, 0.6);
-    color: #e57373;
+    border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+    color: var(--danger);
 }
 
 .admin-btn.danger:hover {
-    background: rgba(217, 83, 79, 0.25);
-    color: #fff;
+    background: color-mix(in srgb, var(--danger) 25%, transparent);
+    color: var(--text-strong);
 }
 
 .admin-btn[aria-pressed="true"] {
     background: rgba(var(--accent-rgb), 0.25);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .admin-btn:disabled {
@@ -759,7 +759,7 @@ body.viewer-open {
 .admin-count {
     margin: 0 4px;
     font-size: 13px;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .admin-hint {
@@ -768,7 +768,7 @@ body.viewer-open {
     gap: 6px;
     margin-left: auto;
     font-size: 12px;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 .admin-hint.collapsed .admin-hint-content {
@@ -782,7 +782,7 @@ body.viewer-open {
     padding: 0;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
     background: transparent;
-    color: var(--accent-light);
+    color: var(--link);
     font: 12px/1 "JetBrains Mono", Consolas, monospace;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
@@ -790,7 +790,7 @@ body.viewer-open {
 
 .admin-hint-toggle:hover {
     background: rgba(var(--accent-rgb), 0.2);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 /* picking tiles to move or delete */
@@ -802,8 +802,8 @@ body.viewer-open {
     display: none;
     width: 22px;
     height: 22px;
-    border: 2px solid #efe2f7;
-    background: rgba(14, 14, 17, 0.75);
+    border: 2px solid var(--heading);
+    background: var(--surface-raised);
 }
 
 body.selecting .check {
@@ -811,13 +811,13 @@ body.selecting .check {
 }
 
 .tile.selected {
-    --corner: #f0d4ff;
+    --corner: var(--link);
     --fill: rgba(var(--accent-rgb), 0.28);
     --arm: 18px;
 }
 
 .tile.selected .check {
-    border-color: var(--accent);
+    border-color: var(--link);
     background: var(--accent);
 }
 
@@ -828,7 +828,7 @@ body.selecting .check {
     top: 1px;
     width: 6px;
     height: 12px;
-    border: solid #fff;
+    border: solid var(--on-solid);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
@@ -844,7 +844,7 @@ body.selecting .tile.up {
     z-index: 90;
     display: grid;
     place-items: center;
-    background: rgba(8, 8, 10, 0.8);
+    background: var(--surface-raised);
     pointer-events: none;
 }
 
@@ -853,7 +853,7 @@ body.selecting .tile.up {
     --corner: var(--accent-light);
     --fill: rgba(var(--accent-rgb), 0.15);
     padding: 48px 64px;
-    color: #efe2f7;
+    color: var(--heading);
     font-size: 20px;
     text-align: center;
 }
@@ -868,8 +868,8 @@ body.selecting .tile.up {
     transform: translateX(-50%);
     padding: 12px 16px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
-    background: rgba(18, 18, 22, 0.96);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    background: var(--surface-raised);
+    box-shadow: 0 10px 30px var(--shadow);
     font-size: 14px;
 }
 
@@ -878,8 +878,8 @@ body.selecting .tile.up {
 }
 
 .toast.error {
-    border-color: rgba(217, 83, 79, 0.6);
-    color: #f0b4b2;
+    border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+    color: var(--danger);
 }
 
 .progress-text {
@@ -909,13 +909,13 @@ body.selecting .tile.up {
     width: min(460px, calc(100vw - 32px));
     padding: 22px 24px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
-    background: #121216;
+    background: var(--surface-raised);
     color: var(--text);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 20px 50px var(--shadow);
 }
 
 .ex-dialog::backdrop {
-    background: rgba(4, 4, 6, 0.7);
+    background: var(--scrim);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
 }
@@ -925,13 +925,13 @@ body.selecting .tile.up {
     font-size: 18px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .ex-dialog p {
     margin: 0 0 14px;
     font-size: 14px;
-    color: rgba(220, 221, 222, 0.75);
+    color: var(--text-secondary);
     overflow-wrap: anywhere;
 }
 
@@ -952,14 +952,14 @@ body.selecting .tile.up {
     margin-bottom: 14px;
     padding: 6px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: rgba(8, 9, 9, 0.55);
+    background: var(--surface-input);
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
     outline: 0;
 }
 
 .ex-dialog select[size]:focus {
-    border-color: var(--accent-light);
+    border-color: var(--link);
 }
 
 .ex-dialog option {
@@ -967,20 +967,20 @@ body.selecting .tile.up {
 }
 
 .ex-dialog option:disabled {
-    color: rgba(220, 221, 222, 0.3);
+    color: var(--text-subtle);
 }
 
 .ex-dialog option:checked {
     background: rgba(var(--accent-rgb), 0.45);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .dialog-warning {
-    color: #e8d5a8 !important;
+    color: var(--warning) !important;
 }
 
 .dialog-error {
-    color: #f0b4b2 !important;
+    color: var(--danger) !important;
 }
 
 .dialog-actions {
@@ -1000,18 +1000,18 @@ body.selecting .tile.up {
     gap: 10px;
     margin: 0 0 14px;
     font: 14px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.8);
+    color: var(--text-body);
 }
 
 .webp-quality output {
     min-width: 2.4em;
     text-align: right;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .webp-quality input[type="range"] {
     flex: 1;
-    accent-color: var(--accent-light);
+    accent-color: var(--link);
 }
 
 .webp-processing {
@@ -1019,7 +1019,7 @@ body.selecting .tile.up {
     align-items: center;
     gap: 10px;
     margin: 0 0 14px;
-    color: rgba(220, 221, 222, 0.8);
+    color: var(--text-body);
     font: 14px "JetBrains Mono", Consolas, monospace;
 }
 
@@ -1028,7 +1028,7 @@ body.selecting .tile.up {
     width: 16px;
     height: 16px;
     border: 2px solid rgba(var(--accent-rgb), 0.35);
-    border-top-color: var(--accent-light);
+    border-top-color: var(--link);
     border-radius: 50%;
     animation: webp-spin 0.8s linear infinite;
 }
@@ -1040,7 +1040,7 @@ body.selecting .tile.up {
 .webp-compare {
     position: relative;
     overflow: hidden;
-    background: #0b0b0d;
+    background: var(--media-matte);
     border: 1px solid rgba(var(--accent-rgb), 0.3);
 }
 
@@ -1052,8 +1052,8 @@ body.selecting .tile.up {
     z-index: 2;
     width: 2px;
     margin-left: -1px;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.65);
+    background: color-mix(in srgb, var(--text) 90%, transparent);
+    box-shadow: 0 0 8px var(--shadow);
     pointer-events: none;
 }
 
@@ -1076,9 +1076,9 @@ body.selecting .tile.up {
     position: absolute;
     top: 6px;
     padding: 1px 6px;
-    background: rgba(14, 14, 17, 0.8);
+    background: var(--surface-raised);
     border: 1px solid rgba(var(--accent-rgb), 0.5);
-    color: var(--accent-light);
+    color: var(--link);
     font: 11px/16px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
 }
@@ -1094,7 +1094,7 @@ body.selecting .tile.up {
 .webp-slider {
     width: 100%;
     margin: 10px 0 16px;
-    accent-color: var(--accent-light);
+    accent-color: var(--link);
 }
 
 /* login screen, shown instead of the gallery without access */
@@ -1121,12 +1121,12 @@ body.selecting .tile.up {
     font-size: 20px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .locked p {
     margin: 0 0 22px;
-    color: rgba(220, 221, 222, 0.7);
+    color: var(--text-secondary);
 }
 
 .locked p:last-child {
@@ -1146,7 +1146,7 @@ body.selecting .tile.up {
     gap: 6px;
     padding: 6px 4px;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.75);
+    color: var(--text-secondary);
     cursor: pointer;
 }
 
@@ -1154,7 +1154,7 @@ body.selecting .tile.up {
     width: 16px;
     height: 16px;
     margin: 0;
-    accent-color: var(--accent);
+    accent-color: var(--link);
     cursor: pointer;
 }
 
@@ -1173,7 +1173,7 @@ body.selecting .tile.up {
 }
 
 .request-sent {
-    color: #3fca7a;
+    color: var(--success);
 }
 
 /* the whole folder as a ZIP, next to the sorting */
@@ -1203,7 +1203,7 @@ body.selecting .tile.up {
 .gallery-trash .trash-name b {
     overflow: hidden;
     font: 700 14px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1216,7 +1216,7 @@ body.selecting .tile.up {
 
 .gallery-trash .trash-info {
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .gallery-trash .trash-actions {

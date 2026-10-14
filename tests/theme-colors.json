@@ -1,0 +1,172 @@
+{
+  "teto": {
+    "--accent": "#d94b58",
+    "--accent-light": "#ff8891",
+    "--bg-dark": "#120809",
+    "--bg-mid": "#29181d",
+    "--text": "#f0dfe1",
+    "--swap-corner": "#ffacb4",
+    "--swap-fill": "rgba(92, 22, 32, 0.9)",
+    "--swap-text": "#ffd1d6"
+  },
+  "miku": {
+    "--accent": "#39c5bb",
+    "--accent-light": "#7fe0d8",
+    "--bg-dark": "#04100f",
+    "--bg-mid": "#0f2220",
+    "--text": "#dcf1ee",
+    "--swap-corner": "#a9e8e2",
+    "--swap-fill": "rgba(13, 66, 62, 0.9)",
+    "--swap-text": "#bff0eb"
+  },
+  "marisa": {
+    "--accent": "#e6d044",
+    "--accent-light": "#eef2a4",
+    "--bg-dark": "#100f08",
+    "--bg-mid": "#24200f",
+    "--text": "#f2edd8",
+    "--swap-corner": "#eef2a4",
+    "--swap-fill": "rgba(66, 56, 10, 0.9)",
+    "--swap-text": "#f7f4c4"
+  },
+  "fauna": {
+    "--accent": "#7cc45e",
+    "--accent-light": "#b3dca1",
+    "--bg-dark": "#0a1309",
+    "--bg-mid": "#172a14",
+    "--text": "#e2f2da",
+    "--swap-corner": "#b3dca1",
+    "--swap-fill": "rgba(23, 42, 20, 0.9)",
+    "--swap-text": "#dff0d4"
+  },
+  "padoru": {
+    "--accent": "#dda22e",
+    "--accent-light": "#f1d8a7",
+    "--bg-dark": "#16090a",
+    "--bg-mid": "#2d1416",
+    "--text": "#f5e6d4",
+    "--swap-corner": "#f1d8a7",
+    "--swap-fill": "rgba(70, 22, 24, 0.9)",
+    "--swap-text": "#faeec4"
+  },
+  "reisen": {
+    "--accent": "#b285de",
+    "--accent-light": "#dcc2f4",
+    "--bg-dark": "#140814",
+    "--bg-mid": "#2a1327",
+    "--text": "#f1e4f6",
+    "--swap-corner": "#e2cdf5",
+    "--swap-fill": "rgba(60, 22, 78, 0.9)",
+    "--swap-text": "#f0defc"
+  },
+  "peko": {
+    "--accent": "#7cc0dd",
+    "--accent-light": "#c8e5f1",
+    "--bg-dark": "#08101e",
+    "--bg-mid": "#123043",
+    "--text": "#e2ebf7",
+    "--swap-corner": "#c8e5f1",
+    "--swap-fill": "rgba(18, 48, 67, 0.9)",
+    "--swap-text": "#d5e5f8"
+  },
+  "ayame": {
+    "--accent": "#752538",
+    "--accent-light": "#ab989d",
+    "--bg-dark": "#160b0f",
+    "--bg-mid": "#1c0d13",
+    "--text": "#ece2e6",
+    "--swap-corner": "#ab989d",
+    "--swap-fill": "rgba(28, 13, 19, 0.9)",
+    "--swap-text": "#e6d6dc"
+  },
+  "albedo": {
+    "--accent": "#ecd8a0",
+    "--accent-light": "#f7efd7",
+    "--bg-dark": "#0d0814",
+    "--bg-mid": "#1d1230",
+    "--text": "#efe7db",
+    "--swap-corner": "#f7efd7",
+    "--swap-fill": "rgba(52, 32, 80, 0.9)",
+    "--swap-text": "#f6e8bc"
+  },
+  "tomie": {
+    "--accent": "#4a4a52",
+    "--accent-light": "#8f8f9a",
+    "--bg-dark": "#0e0e10",
+    "--bg-mid": "#141416",
+    "--text": "#ececf0",
+    "--swap-corner": "#8f8f9a",
+    "--swap-fill": "rgba(20, 20, 22, 0.9)",
+    "--swap-text": "#dcdce2"
+  },
+  "lain": {
+    "--accent": "#a799a4",
+    "--accent-light": "#c9bdc6",
+    "--bg-dark": "#19141b",
+    "--bg-mid": "#2b223d",
+    "--text": "#ece6eb",
+    "--swap-corner": "#cdc1ca",
+    "--swap-fill": "rgba(43, 34, 61, 0.9)",
+    "--swap-text": "#e6dfe5"
+  },
+  "cibo": {
+    "--accent": "#c2c8d9",
+    "--accent-light": "#e2e6f0",
+    "--bg-dark": "#0f1016",
+    "--bg-mid": "#1c2034",
+    "--text": "#e8ebf3",
+    "--swap-corner": "#cdd3e4",
+    "--swap-fill": "rgba(28, 32, 52, 0.9)",
+    "--swap-text": "#e6e9f3"
+  },
+  "killy": {
+    "--accent": "#66799b",
+    "--accent-light": "#b9b8bd",
+    "--bg-dark": "#0d0f12",
+    "--bg-mid": "#252d38",
+    "--text": "#e1e2e5",
+    "--swap-corner": "#c3c5cb",
+    "--swap-fill": "rgba(37, 45, 56, 0.9)",
+    "--swap-text": "#dfe0e4"
+  },
+  "march7": {
+    "--accent": "#f5b3ce",
+    "--accent-light": "#fbe0ec",
+    "--bg-dark": "#251a22",
+    "--bg-mid": "#523040",
+    "--text": "#f4e0e8",
+    "--swap-corner": "#fbe0ec",
+    "--swap-fill": "rgba(82, 48, 64, 0.9)",
+    "--swap-text": "#fbd9e6"
+  },
+  "shogun": {
+    "--accent": "#6e52c4",
+    "--accent-light": "#ab9bdd",
+    "--bg-dark": "#0f0a1e",
+    "--bg-mid": "#2a1e54",
+    "--text": "#e6e1f6",
+    "--swap-corner": "#ab9bdd",
+    "--swap-fill": "rgba(42, 30, 84, 0.9)",
+    "--swap-text": "#d9cdf5"
+  },
+  "suisei": {
+    "--accent": "#7097e3",
+    "--accent-light": "#b8ccef",
+    "--bg-dark": "#0a0a18",
+    "--bg-mid": "#1a1a36",
+    "--text": "#e3e7f3",
+    "--swap-corner": "#c4d4f3",
+    "--swap-fill": "rgba(26, 26, 54, 0.9)",
+    "--swap-text": "#e3e7f3"
+  },
+  "hoshino": {
+    "--accent": "#c73f90",
+    "--accent-light": "#e7aed0",
+    "--bg-dark": "#120a1b",
+    "--bg-mid": "#40113d",
+    "--text": "#f0dce9",
+    "--swap-corner": "#e7aed0",
+    "--swap-fill": "rgba(64, 17, 61, 0.9)",
+    "--swap-text": "#f0dce9"
+  }
+}

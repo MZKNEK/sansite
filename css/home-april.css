@@ -29,7 +29,7 @@
 }
 
 .april-letter:focus-visible {
-    outline: 1px dashed var(--accent-light);
+    outline: 1px dashed var(--focus);
     outline-offset: 4px;
 }
 
@@ -68,6 +68,6 @@
 }
 
 .home-language-reset:focus-visible {
-    outline: 1px dashed var(--accent-light);
+    outline: 1px dashed var(--focus);
     outline-offset: 4px;
 }

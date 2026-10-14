@@ -104,8 +104,10 @@
         $skin = $id === null ? '' : skinPref($id);
 
         $html = $skin === '' ? '' : ' data-skin="' . htmlspecialchars($skin, ENT_QUOTES, 'UTF-8') . '"';
-        if ($skin === 'custom')
-            $html .= ' data-custom-skin="' . htmlspecialchars(json_encode(customSkinAppearance($id), JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8') . '"';
+        if ($skin === 'custom') {
+            $appearance = customSkinAppearance($id);
+            $html .= ' data-skin-base="' . $appearance['base'] . '" data-custom-skin="' . htmlspecialchars(json_encode($appearance, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8') . '"';
+        }
 
         return $html;
     }

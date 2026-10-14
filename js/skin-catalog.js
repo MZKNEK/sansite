@@ -10,20 +10,20 @@ window.SanakanSkinCatalog = {
         "lang": "ja",
         "alt": "ミク"
     },
-    "tao": {
-        "name": "Hu Tao",
+    "echidna": {
+        "name": "Echidna",
         "lang": null,
-        "alt": "Hu Tao"
+        "alt": "Echidna"
     },
-    "rin": {
-        "name": "Rin",
+    "marisa": {
+        "name": "Marisa Kirisame",
         "lang": null,
-        "alt": "Rin"
+        "alt": "Marisa Kirisame"
     },
-    "march7": {
-        "name": "March 7th",
+    "fauna": {
+        "name": "Ceres Fauna",
         "lang": null,
-        "alt": "March 7th"
+        "alt": "Ceres Fauna"
     },
     "padoru": {
         "name": "Padoru",
@@ -40,20 +40,20 @@ window.SanakanSkinCatalog = {
         "lang": null,
         "alt": "Pekora"
     },
-    "furi": {
-        "name": "Furina",
+    "ayame": {
+        "name": "Nakiri Ayame",
         "lang": null,
-        "alt": "Furina"
+        "alt": "Nakiri Ayame"
     },
     "albedo": {
         "name": "Albedo",
         "lang": null,
         "alt": "Albedo"
     },
-    "sadako": {
-        "name": "Sadako",
+    "tomie": {
+        "name": "Tomie",
         "lang": null,
-        "alt": "Sadako"
+        "alt": "Tomie"
     },
     "lain": {
         "name": "Lain",
@@ -70,15 +70,15 @@ window.SanakanSkinCatalog = {
         "lang": null,
         "alt": "Killy"
     },
-    "chisato": {
-        "name": "Chisato",
+    "march7": {
+        "name": "March 7th",
         "lang": null,
-        "alt": "Chisato"
+        "alt": "March 7th"
     },
-    "yaemiko": {
-        "name": "Yae Miko",
+    "shogun": {
+        "name": "Raiden Shogun",
         "lang": null,
-        "alt": "Yae Miko"
+        "alt": "Raiden Shogun"
     },
     "suisei": {
         "name": "Suisei",

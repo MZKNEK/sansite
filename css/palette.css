@@ -9,7 +9,7 @@
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    color: rgba(220, 221, 222, 0.35);
+    color: var(--text-subtle);
     outline-offset: 2px;
     cursor: pointer;
     transition: color 0.2s;
@@ -17,13 +17,13 @@
 
 .site-foot .foot-search:hover,
 .site-foot .foot-search:focus-visible {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .foot-search kbd {
     margin-left: 6px;
     padding: 0 4px;
-    border: 1px solid rgba(220, 221, 222, 0.2);
+    border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
     font: inherit;
     letter-spacing: 0.05em;
 }
@@ -46,7 +46,7 @@ body.pl-open {
     justify-content: center;
     align-items: flex-start;
     padding: min(12vh, 96px) 16px 16px;
-    background: rgba(8, 9, 9, 0.82);
+    background: var(--overlay-backdrop);
     animation: pl-in 0.15s ease-out;
 }
 
@@ -58,8 +58,8 @@ body.pl-open {
     max-width: 600px;
     max-height: 100%;
     padding: 14px;
-    --fill: rgba(20, 12, 26, 0.97);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    --fill: var(--overlay-panel);
+    box-shadow: 0 16px 40px var(--shadow);
 }
 
 .pl-field {
@@ -88,8 +88,8 @@ body.pl-open {
     outline: 0;
     background: none;
     font: 16px Lato, Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #fff;
-    caret-color: var(--accent-light);
+    color: var(--text-strong);
+    caret-color: var(--link);
 }
 
 .pl-field input::-webkit-search-cancel-button {
@@ -99,9 +99,9 @@ body.pl-open {
 .pl-field kbd {
     flex: none;
     padding: 1px 5px;
-    border: 1px solid rgba(220, 221, 222, 0.2);
+    border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
     font: 11px "Sanakan Mono", monospace;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .pl-list {
@@ -125,9 +125,9 @@ body.pl-open {
 }
 
 .pl-list [aria-selected="true"] a {
-    border-left-color: var(--accent-light);
-    background: rgba(var(--accent-rgb), 0.16);
-    color: #fff;
+    border-left-color: var(--link);
+    background: var(--search-selected);
+    color: var(--text-strong);
 }
 
 .pl-kind {
@@ -135,11 +135,11 @@ body.pl-open {
     font: 10px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 .pl-kind.pl-command {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .pl-list b {
@@ -155,7 +155,7 @@ body.pl-open {
 
 .pl-list mark {
     background: none;
-    color: var(--accent-light);
+    color: var(--link);
     text-decoration: underline;
     text-underline-offset: 3px;
 }
@@ -165,14 +165,14 @@ body.pl-open {
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .pl-info {
     margin: 0;
     padding: 0 8px;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .pl-info:not(:empty) {
@@ -185,7 +185,7 @@ body.pl-open {
     border-top: 1px solid rgba(var(--accent-rgb), 0.2);
     font: 11px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
-    color: rgba(220, 221, 222, 0.4);
+    color: var(--text-subtle);
 }
 
 @media (hover: none) {

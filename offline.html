@@ -21,18 +21,163 @@
       src: url("/fonts/sanakan-mono-400.woff2?v=68de4eecad") format("woff2");
     }
 
-    :root {
-      --accent: #9b59b6;
-      --accent-light: #b670d3;
-      --text: #dcddde;
-    }
+/* theme:start */
+:root {
+    --scheme: dark;
+    color-scheme: var(--scheme);
+    --accent: #9b59b6;
+    --accent-light: #b670d3;
+    --accent-dark: #713b87;
+    --accent-rgb: 155, 89, 182;
+    --accent-light-rgb: 182, 112, 211;
+    --accent-dark-rgb: 113, 59, 135;
+    --hud-rgb: 155, 89, 182;
+    --hud-light-rgb: 182, 112, 211;
+    --bg-dark: #080909;
+    --bg-mid: #202225;
+    --text: #dcddde;
+    --surface: color-mix(in srgb, var(--bg-dark) 55%, var(--bg-mid));
+    --surface-raised: color-mix(in srgb, var(--bg-mid) 94%, var(--text));
+    --panel-surface: var(--surface-raised);
+    --panel-border: rgba(var(--accent-rgb), 0.3);
+    --panel-divider: rgba(var(--accent-rgb), 0.22);
+    --panel-hover: color-mix(in srgb, var(--panel-surface) 84%, var(--accent));
+    --panel-selected: color-mix(in srgb, var(--panel-surface) 78%, var(--accent));
+    --surface-input: color-mix(in srgb, var(--bg-dark) 80%, var(--bg-mid));
+    --surface-hover: color-mix(in srgb, var(--surface) 90%, var(--accent));
+    --surface-selected: color-mix(in srgb, var(--surface) 78%, var(--accent));
+    --button-hover: color-mix(in srgb, var(--surface) 70%, var(--accent));
+    --overlay-panel: light-dark(var(--surface-raised), color-mix(in srgb, var(--bg-dark) 88%, var(--accent-dark)));
+    --overlay-backdrop: light-dark(var(--scrim), rgb(8 9 9 / 0.82));
+    --console-backdrop: light-dark(var(--overlay-backdrop), rgb(8 9 9 / 0.9));
+    --console-alarm-backdrop: light-dark(color-mix(in srgb, var(--surface-raised) 92%, var(--danger-tone)), rgb(26 6 8 / 0.92));
+    --maze-surface: light-dark(var(--surface-input), color-mix(in srgb, var(--bg-dark) 60%, transparent));
+    --maze-ink: light-dark(color-mix(in srgb, var(--link) 82%, var(--text)), rgba(var(--accent-light-rgb), 0.55));
+    --maze-seen: light-dark(color-mix(in srgb, var(--link) 30%, var(--surface-input)), rgba(var(--accent-light-rgb), 0.2));
+    --maze-note: light-dark(var(--danger), color-mix(in srgb, var(--lock-text) 80%, transparent));
+    --network: light-dark(#1f665e, #4fd1c5);
+    --discovery: light-dark(var(--warning-solid), #e8d36a);
+    --failure: light-dark(#854a1c, #f0a35e);
+    --snake-surface: light-dark(var(--surface-input), color-mix(in srgb, var(--bg-dark) 70%, transparent));
+    --snake-body: var(--failure);
+    --snake-head: var(--text-strong);
+    --snake-food: var(--danger);
+    --snake-grid: color-mix(in srgb, var(--snake-body) 6%, transparent);
+    --search-selected: color-mix(in srgb, var(--overlay-panel) 84%, var(--accent));
+    --search-field: color-mix(in srgb, var(--overlay-panel) 95%, var(--accent));
+    --api-tag-hover: color-mix(in srgb, var(--accent) 10%, transparent);
+    --api-get: var(--info-tone);
+    --api-post: var(--success-tone);
+    --api-put: var(--warning-tone);
+    --api-delete: var(--danger-tone);
+    --api-patch: var(--streaming-tone);
+    --api-options: var(--info-tone);
+    --api-head: var(--streaming-tone);
+    --api-method-ink: var(--on-solid);
+    --heading: color-mix(in srgb, var(--text) 92%, var(--accent-light));
+    --text-muted: color-mix(in srgb, var(--text) 78%, var(--surface));
+    --text-subtle: color-mix(in srgb, var(--text) 65%, var(--surface));
+    --text-body: var(--text);
+    --text-secondary: var(--text-muted);
+    --text-dim: var(--text-muted);
+    --text-strong: var(--text);
+    --decoration: var(--link);
+    --signal-ink: color-mix(in srgb, var(--text) 18%, transparent);
+    --logout: var(--danger);
+    --logout-hover: var(--danger);
+    --account-meta: var(--text-muted);
+    --swap-corner: var(--link);
+    --swap-fill: var(--surface-raised);
+    --swap-text: var(--link);
+    --swap-hover-fill: var(--surface-selected);
+    --swap-hover-text: var(--text-strong);
+    --role-ink: var(--text-muted);
+    --link: color-mix(in srgb, var(--accent-light) 40%, var(--text));
+    --border: color-mix(in srgb, var(--text) 28%, var(--surface));
+    --border-strong: color-mix(in srgb, var(--link) 70%, var(--surface));
+    --focus: var(--link);
+    /* Discord's status palette, shared by API methods, charts and dots.
+       Text gets readable variants; vivid badges have contrasting ink. */
+    --success-tone: #23a55a;
+    --danger-tone: #f23f43;
+    --warning-tone: #f0b232;
+    --info-tone: #5865f2;
+    --streaming-tone: #593695;
+    --solid-shade: #000;
+    --success-solid: color-mix(in srgb, var(--success-tone) 70%, var(--solid-shade));
+    --danger-solid: color-mix(in srgb, var(--danger-tone) 70%, var(--solid-shade));
+    --warning-solid: color-mix(in srgb, var(--warning-tone) 50%, var(--solid-shade));
+    --info-solid: color-mix(in srgb, var(--info-tone) 85%, var(--solid-shade));
+    --success: light-dark(var(--success-solid), #5fd38d);
+    --danger: light-dark(var(--danger-solid), #f08a87);
+    --warning: light-dark(var(--warning-solid), #f0b232);
+    --info: light-dark(var(--info-solid), #aab1ff);
+    --neutral: light-dark(#555963, #a6abb4);
+    --status-online: var(--success-tone);
+    --status-offline: light-dark(#555963, #80848e);
+    --status-maintenance: var(--danger-tone);
+    --ok: var(--success);
+    --bad: var(--danger);
+    --lock: var(--danger);
+    --lock-text: var(--danger);
+    --on-solid: #fff;
+    --on-vivid: #080909;
+    --scrim: rgb(0 0 0 / 0.65);
+    --shadow: rgb(0 0 0 / 0.35);
+    --media-matte: #0b0b0d;
+    --media-ink: #fff;
+    --glitch-cyan: #05d9e8;
+    --glitch-pink: #ff2a6d;
+    --skin-logo: url("../logo.webp");
+    --game-grid: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+/* The default HUD, ready-made dark skins and dark custom designs share the
+   established accents. Only explicitly light bases use the adaptive roles. */
+:root:not(:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"])) {
+    --heading: #efe2f7;
+    --link: var(--accent-light);
+    --decoration: var(--accent);
+    --border-strong: rgba(var(--accent-light-rgb), 0.9);
+    --surface: #141517;
+    --surface-raised: #18181e;
+    --surface-input: rgba(8, 9, 9, 0.55);
+    --text-body: rgba(220, 221, 222, 0.85);
+    --text-secondary: rgba(220, 221, 222, 0.7);
+    --text-muted: rgba(220, 221, 222, 0.6);
+    --text-dim: rgba(220, 221, 222, 0.5);
+    --text-subtle: rgba(220, 221, 222, 0.35);
+    --text-strong: #fff;
+    --role-ink: var(--role, var(--accent-light));
+    --danger: #e86262;
+    --lock: var(--danger);
+    --lock-text: #f0c4c2;
+    --logout: #f0a09e;
+    --logout-hover: #ffd2d0;
+    --account-meta: rgba(220, 221, 222, 0.42);
+    --swap-corner: #d6b4ec;
+    --swap-text: #d6b4ec;
+    --swap-fill: rgba(58, 24, 80, 0.9);
+    --swap-hover-fill: #5c2d78;
+    --swap-hover-text: var(--on-solid);
+    --shadow: rgba(0, 0, 0, 0.6);
+}
+
+html:not([data-skin])[data-hud="accent"],
+html:not([data-skin])[data-hud="full"] {
+    --swap-corner: color-mix(in srgb, var(--accent-light) 60%, #fff);
+    --swap-text: var(--swap-corner);
+    --swap-fill: color-mix(in srgb, var(--accent-dark) 50%, #000);
+    --swap-hover-fill: color-mix(in srgb, var(--accent-dark) 80%, #000);
+}
+/* theme:end */
 
     * {
       box-sizing: border-box;
     }
 
     html {
-      background: #080909;
+      background: var(--bg-dark);
     }
 
     body {
@@ -43,8 +188,8 @@
       min-height: 100vh;
       margin: 0;
       padding: 32px 16px;
-      background: radial-gradient(ellipse at top right, rgba(155, 89, 182, 0.18), transparent 55%),
-                  linear-gradient(to top right, #080909, #202225);
+      background: radial-gradient(ellipse at top right, rgba(var(--accent-rgb), 0.18), transparent 55%),
+                  linear-gradient(to top right, var(--bg-dark), var(--bg-mid));
       color: var(--text);
       font: 14px/1.6 "Sanakan Mono", monospace;
       text-align: center;
@@ -67,7 +212,7 @@
       content: "";
       flex: 1;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(182, 112, 211, 0.6));
+      background: linear-gradient(90deg, transparent, rgba(var(--accent-light-rgb), 0.6));
     }
 
     .tag::after {
@@ -86,8 +231,8 @@
       line-height: 1.1;
       letter-spacing: 0.3em;
       text-transform: uppercase;
-      color: #efe2f7;
-      text-shadow: 0 0 18px rgba(155, 89, 182, 0.7);
+      color: var(--heading);
+      text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.7);
     }
 
     .box {
@@ -95,7 +240,7 @@
       width: 100%;
       max-width: 520px;
       padding: 22px 24px;
-      background: rgba(155, 89, 182, 0.05);
+      background: rgba(var(--accent-rgb), 0.05);
     }
 
     /* the corners of the HUD */
@@ -122,13 +267,13 @@
       font-weight: 400;
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: #e86262;
-      text-shadow: 0 0 10px rgba(232, 98, 98, 0.5);
+      color: var(--danger);
+      text-shadow: 0 0 10px color-mix(in srgb, var(--danger) calc(0.5 * 100%), transparent);
     }
 
     p {
       margin: 0 0 16px;
-      color: rgba(220, 221, 222, 0.8);
+      color: var(--text-body);
     }
 
     dl {
@@ -143,7 +288,7 @@
     }
 
     dt {
-      color: rgba(220, 221, 222, 0.55);
+      color: var(--text-muted);
     }
 
     dd {
@@ -151,19 +296,19 @@
     }
 
     .bad {
-      color: #e86262;
+      color: var(--danger);
     }
 
     .dim {
-      color: rgba(220, 221, 222, 0.5);
+      color: var(--text-dim);
     }
 
     a {
       display: inline-block;
       padding: 8px 16px;
-      border: 1px solid rgba(182, 112, 211, 0.7);
-      background: rgba(155, 89, 182, 0.18);
-      color: #fff;
+      border: 1px solid rgba(var(--accent-light-rgb), 0.7);
+      background: rgba(var(--accent-rgb), 0.18);
+      color: var(--text-strong);
       letter-spacing: 0.14em;
       text-decoration: none;
       text-transform: uppercase;
@@ -171,13 +316,13 @@
 
     a:hover,
     a:focus-visible {
-      background: rgba(155, 89, 182, 0.35);
+      background: rgba(var(--accent-rgb), 0.35);
     }
 
     .note {
       margin: 18px 0 0;
       font-size: 12px;
-      color: rgba(220, 221, 222, 0.4);
+      color: var(--text-subtle);
     }
 
     @keyframes blink {

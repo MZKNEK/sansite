@@ -13,6 +13,25 @@
     require __DIR__ . '/skin-catalog.php';
     $root = str_replace('\\', '/', dirname(__DIR__));
 
+    // Offline must work without fetching styles. Embed the canonical default
+    // palette instead of maintaining a second copy of its colours.
+    $palette = (string)file_get_contents($root . '/css/skins.css');
+    $offlinePath = $root . '/offline.html';
+    $offline = (string)file_get_contents($offlinePath);
+    $themePattern = '~/\* theme:start \*/.*?/\* theme:end \*/~s';
+    if (!preg_match($themePattern, $palette, $theme)) {
+        fwrite(STDERR, "Brak domyślnej palety w css/skins.css.\n");
+        exit(1);
+    }
+    $newOffline = preg_replace_callback($themePattern, function () use ($theme) { return $theme[0]; }, $offline, 1, $embedded);
+    if ($newOffline === null || $embedded !== 1) {
+        fwrite(STDERR, "Brak miejsca na paletę w offline.html.\n");
+        exit(1);
+    }
+    $offlineChanged = $newOffline !== $offline;
+    if ($offlineChanged && file_put_contents($offlinePath, $newOffline) === false)
+        exit(1);
+
     // only tracked files, so nothing outside the repository is touched; tools/
     // itself is left alone
     exec('git -C ' . escapeshellarg($root) . ' ls-files', $files, $code);
@@ -23,7 +42,7 @@
 
     // an asset link in a page: a path to a .css or .js file with "?v=" on it
     // (or, in sw.js and the offline page, a page, a font or an icon)
-    $changed = [];
+    $changed = $offlineChanged ? ['offline.html'] : [];
     foreach ($files as $file) {
         if ((!preg_match('/\.(?:php|html)$/', $file) && $file !== 'sw.js') || strpos($file, 'tools/') === 0)
             continue;

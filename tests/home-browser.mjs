@@ -402,7 +402,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await locked.evaluateAll(options => options.every(option => option.value === '' && !option.hasAttribute('data-skin-words'))), true,
       'locked options expose neither identifiers nor language metadata');
     const form = await page.locator('.skin-form').textContent();
-    for (const name of ['Teto', 'Miku', 'Hu Tao', 'Rin', 'March 7th', 'Padoru', 'Reisen', 'Pekora', 'Furina', 'Albedo', 'Sadako', 'Lain', 'Cibo', 'Killy', 'Chisato', 'Yae Miko', 'Suisei', 'Hoshino Ai'])
+    for (const name of ['Teto', 'Miku', 'Echidna', 'Marisa Kirisame', 'Ceres Fauna', 'Padoru', 'Reisen', 'Pekora', 'Nakiri Ayame', 'Albedo', 'Tomie', 'Lain', 'Cibo', 'Killy', 'March 7th', 'Raiden Shogun', 'Suisei', 'Hoshino Ai'])
       assert.equal(form.includes(name), false, 'the form keeps the name hidden: ' + name);
     // a form sent by hand cannot talk the server into a locked skin
     const me = await (await context.request.get(`${base}/account.php?finds`)).json();
@@ -415,7 +415,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
   }, '900000000000000004');
 
-  // ---- Hu Tao and Rin, the skins of the Halloween find: colours and logo
+  // ---- Echidna and Marisa, the skins of the Halloween find: colours and logo
   // alone (no words at all, whatever the translation switch says).
 
   const findsFile = path.join(site, 'inc/data/finds.json');
@@ -427,34 +427,34 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.locator('.account-menu').waitFor();
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
-    for (const key of ['tao', 'rin'])
+    for (const key of ['echidna', 'marisa'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Halloween find unlocked ' + key);
-    await chooseSkin(page, 'tao');
+    await chooseSkin(page, 'echidna');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     assert.equal(await page.locator('.skin-form input[name=skinwords]').isVisible(), false, 'a skin with no words offers no switch');
     assert.equal(await page.locator('.skin-form input[name=skinwords]').isDisabled(), true, 'the hidden switch is not submitted');
     await page.goto(`${base}/`);
-    assert.equal(await page.locator('html').getAttribute('data-skin'), 'tao');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /tao\.webp$/);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'echidna');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /echidna\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '226, 98, 47');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '66, 108, 71');
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     assert.equal(await page.locator('.links a[href="./cmd/"]').textContent(), '01Polecenia');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
     await page.goto(`${base}/account/`);
-    await chooseSkin(page, 'rin');
+    await chooseSkin(page, 'marisa');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
-    assert.equal(await page.locator('html').getAttribute('data-skin'), 'rin');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /rin\.webp$/);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'marisa');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /marisa\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '240, 194, 50');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '230, 208, 68');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
   }, '900000000000000002');
 
-  // ---- March 7th and Padoru, the skins of the Christmas find: colours and
+  // ---- Ceres Fauna and Padoru, the skins of the Christmas find: colours and
   // logo alone as well.
 
   const withXmas = JSON.parse(readFileSync(findsFile, 'utf8'));
@@ -465,16 +465,16 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.locator('.account-menu').waitFor();
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
-    for (const key of ['march7', 'padoru'])
+    for (const key of ['fauna', 'padoru'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Christmas find unlocked ' + key);
-    await chooseSkin(page, 'march7');
+    await chooseSkin(page, 'fauna');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
-    assert.equal(await page.locator('html').getAttribute('data-skin'), 'march7');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /march7\.webp$/);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'fauna');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /fauna\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '229, 115, 155');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '124, 196, 94');
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
@@ -484,7 +484,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'padoru');
     assert.match(await page.locator('img.logo').getAttribute('src'), /padoru\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '223, 169, 63');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '221, 162, 46');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
   }, '900000000000000002');
@@ -519,12 +519,12 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'peko');
     assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/peko\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '108, 159, 224');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '124, 192, 221');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
   }, '900000000000000002');
 
-  // ---- Furina and Albedo, the skins of the New Year's find: colours and logo
+  // ---- Nakiri Ayame and Albedo, the skins of the New Year's find: colours and logo
   // alone as well.
 
   const withNewYear = JSON.parse(readFileSync(findsFile, 'utf8'));
@@ -535,16 +535,16 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.locator('.account-menu').waitFor();
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
-    for (const key of ['furi', 'albedo'])
+    for (const key of ['ayame', 'albedo'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the New Year find unlocked ' + key);
-    await chooseSkin(page, 'furi');
+    await chooseSkin(page, 'ayame');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
-    assert.equal(await page.locator('html').getAttribute('data-skin'), 'furi');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/furi\.webp$/);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'ayame');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/ayame\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '79, 111, 229');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '117, 37, 56');
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);
@@ -554,7 +554,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.locator('html').getAttribute('data-skin'), 'albedo');
     assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/albedo\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '224, 192, 96');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '236, 216, 160');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
   }, '900000000000000002');
@@ -594,7 +594,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false);
   }, '900000000000000002');
 
-  // ---- Sadako and Lain, the skins of Friday the 13th's find: colours and logo
+  // ---- Tomie and Lain, the skins of Friday the 13th's find: colours and logo
   // alone as well.
 
   const withFriday13 = JSON.parse(readFileSync(findsFile, 'utf8'));
@@ -605,16 +605,16 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.locator('.account-menu').waitFor();
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
-    for (const key of ['sadako', 'lain'])
+    for (const key of ['tomie', 'lain'])
       assert.equal(await select.locator(`option[value=${key}]`).evaluate(node => !node.disabled), true,
         'the Friday the 13th find unlocked ' + key);
-    await chooseSkin(page, 'sadako');
+    await chooseSkin(page, 'tomie');
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     await page.goto(`${base}/`);
-    assert.equal(await page.locator('html').getAttribute('data-skin'), 'sadako');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/sadako\.webp$/);
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'tomie');
+    assert.match(await page.locator('img.logo').getAttribute('src'), /skins\/tomie\.webp$/);
     await page.waitForFunction(() => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0; });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '139, 147, 189');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), '74, 74, 82');
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'these skins speak no words');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     await page.goto(`${base}/account/`);

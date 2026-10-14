@@ -11,22 +11,22 @@
 .hint {
     margin: -6px 0 14px;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .hint code,
 .everyone code,
 .server code {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .muted {
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 .warn {
-    color: #f0b232;
+    color: var(--warning);
     font-weight: 400;
 }
 
@@ -37,7 +37,7 @@
 
 .status-more a,
 .notice-now a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .notice-form {
@@ -51,7 +51,7 @@
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .notice-now {
@@ -95,7 +95,7 @@
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .quality-form input[type="number"],
@@ -105,7 +105,7 @@
     padding: 0 10px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
     border-radius: 0;
-    background: rgba(8, 9, 9, 0.55);
+    background: var(--surface-input);
     color: var(--text);
     font: 15px "JetBrains Mono", Consolas, monospace;
     text-align: center;
@@ -122,7 +122,7 @@
 
 .quality-form input[type="number"]:focus,
 .quota-form input[type="number"]:focus {
-    border-color: var(--accent-light);
+    border-color: var(--link);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
@@ -156,7 +156,7 @@
     font: 600 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .quota-field {
@@ -171,7 +171,7 @@
 
 .quota-field em {
     font: normal 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 /* the choice is the profile's own (.hud-select), as tall as the fields */
@@ -213,17 +213,17 @@
 }
 
 .quota-usage li.over {
-    background: linear-gradient(90deg, rgba(240, 178, 50, 0.25) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    background: linear-gradient(90deg, color-mix(in srgb, var(--warning) 25%, transparent) var(--share), color-mix(in srgb, var(--text) 2%, transparent) var(--share));
 }
 
 .quota-usage li.over > :last-child,
 .quota-usage li.over b {
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .quota-usage li > :last-child b {
     font-weight: 400;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 #quota-impact {
@@ -263,8 +263,8 @@
     width: 264px;
     padding: 12px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
-    background: #121115;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    background: var(--surface-raised);
+    box-shadow: 0 10px 30px var(--shadow);
 }
 
 .dt-head {
@@ -277,7 +277,7 @@
 .dt-head b {
     font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .dt-step {
@@ -285,13 +285,13 @@
     height: 28px;
     border: 0;
     background: transparent;
-    color: var(--accent-light);
+    color: var(--link);
     font-size: 20px;
     cursor: pointer;
 }
 
 .dt-step:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .dt-grid {
@@ -304,7 +304,7 @@
     padding: 4px 0;
     text-align: center;
     font-size: 11px;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 .dt-day {
@@ -321,15 +321,15 @@
 }
 
 .dt-day.other {
-    color: rgba(220, 221, 222, 0.3);
+    color: var(--text-subtle);
 }
 
 .dt-day.sunday {
-    color: #e86262;
+    color: var(--danger);
 }
 
 .dt-day.other.sunday {
-    color: rgba(232, 98, 98, 0.4);
+    color: color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .dt-day.today {
@@ -338,7 +338,7 @@
 
 .dt-day.chosen {
     background: var(--accent);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .dt-time {
@@ -348,7 +348,7 @@
     gap: 6px;
     margin: 10px 0;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 /* the hour and minute, small number cells as the WebP quality's */
@@ -356,12 +356,12 @@
     width: 52px;
     padding: 5px 6px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: rgba(8, 9, 9, 0.55);
+    background: var(--surface-input);
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
     text-align: center;
     outline: 0;
-    color-scheme: dark;
+    color-scheme: var(--scheme);
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -370,7 +370,7 @@
 }
 
 .dt-time input:focus {
-    border-color: var(--accent-light);
+    border-color: var(--link);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
@@ -384,17 +384,17 @@
 .server-clock {
     margin: 12px 0 0;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.7);
+    color: var(--text-secondary);
 }
 
 .server-clock b {
     font: 14px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .server-clock .warn {
     font: inherit;
-    color: #f0b232;
+    color: var(--warning);
 }
 
 /* the search under the title of the panel */
@@ -422,7 +422,7 @@
 }
 
 .device-name {
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 /* "to urządzenie" a little apart from the browser's name */
@@ -451,34 +451,34 @@
 
 .profile-name {
     font-size: 20px;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .profile-head code {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .profile-yes {
-    color: #3ba55c;
+    color: var(--success);
 }
 
 a.who-name:hover {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .role.account {
-    border-color: rgba(88, 101, 242, 0.6);
-    color: #8ea1ff;
+    border-color: color-mix(in srgb, var(--info) 60%, transparent);
+    color: var(--info);
 }
 
 .role.account:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .role.protected {
-    border-color: rgba(59, 165, 92, 0.6);
-    color: #3ba55c;
+    border-color: color-mix(in srgb, var(--success) 60%, transparent);
+    color: var(--success);
 }
 
 .notice-form > .hint:last-of-type {
@@ -493,12 +493,12 @@ a.who-name:hover {
 
 /* requests for access */
 .card.requests {
-    border-color: rgba(35, 165, 90, 0.5);
-    background: rgba(35, 165, 90, 0.05);
+    border-color: color-mix(in srgb, var(--success) 50%, transparent);
+    background: color-mix(in srgb, var(--success) 5%, transparent);
 }
 
 .card.requests h2 i {
-    color: #3fca7a;
+    color: var(--success);
 }
 
 /* the backup form in the server card */
@@ -516,12 +516,12 @@ a.who-name:hover {
 
 /* cron has stopped checking the bot */
 .card.alarm {
-    border-color: rgba(240, 178, 50, 0.6);
-    background: rgba(240, 178, 50, 0.06);
+    border-color: color-mix(in srgb, var(--warning) 60%, transparent);
+    background: color-mix(in srgb, var(--warning) 6%, transparent);
 }
 
 .card.alarm h2 i {
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .card.alarm p {
@@ -552,12 +552,12 @@ a.who-name:hover {
     flex-wrap: wrap;
     gap: 6px 26px;
     font-size: 14px;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .stats-summary b {
     font: 20px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .disk {
@@ -567,7 +567,7 @@ a.who-name:hover {
 .disk-bar {
     display: flex;
     height: 14px;
-    background: rgba(220, 221, 222, 0.08);
+    background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .disk-bar .gallery,
@@ -581,7 +581,7 @@ a.who-name:hover {
 }
 
 .disk.low .disk-bar .used {
-    background: rgba(240, 178, 50, 0.7);
+    background: color-mix(in srgb, var(--warning) 70%, transparent);
 }
 
 .disk .timeline-legend {
@@ -604,18 +604,18 @@ a.who-name:hover {
     gap: 10px;
     margin-bottom: 6px;
     font-size: 14px;
-    color: rgba(220, 221, 222, 0.75);
+    color: var(--text-secondary);
 }
 
 .meter-head b {
     font: 15px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
     white-space: nowrap;
 }
 
 .meter-bar {
     height: 10px;
-    background: rgba(220, 221, 222, 0.08);
+    background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .meter-bar span {
@@ -625,18 +625,18 @@ a.who-name:hover {
 }
 
 .meter.high .meter-bar span {
-    background: #f0b232;
+    background: var(--warning);
 }
 
 .meter.critical .meter-bar span {
-    background: #e86262;
+    background: var(--danger);
 }
 
 .meter p {
     margin: 8px 0 0;
     font-size: 12px;
     line-height: 1.6;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .stats-grid {
@@ -652,7 +652,7 @@ a.who-name:hover {
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 /* a part of a card under its own title, as the account's trash */
@@ -673,7 +673,7 @@ a.who-name:hover {
     gap: 12px;
     margin-top: 3px;
     padding: 5px 8px;
-    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) var(--share), color-mix(in srgb, var(--text) 2%, transparent) var(--share));
     font: 13px "JetBrains Mono", Consolas, monospace;
 }
 
@@ -682,16 +682,16 @@ a.who-name:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .stat-list li > :last-child {
     flex: none;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .stat-list a:hover {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .admin-btn.small {
@@ -729,7 +729,7 @@ a.who-name:hover {
 }
 
 .who-name {
-    color: #efe2f7;
+    color: var(--heading);
     font-size: 14px;
 }
 
@@ -741,27 +741,27 @@ a.who-name:hover {
 .note {
     font-size: 13px;
     font-style: italic;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .badge-config,
 .role {
     padding: 1px 8px;
     border: 1px solid rgba(var(--accent-rgb), 0.4);
-    color: var(--accent-light);
+    color: var(--link);
     font: 11px/18px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
 }
 
 .role.none {
-    border-color: rgba(220, 221, 222, 0.2);
-    color: rgba(220, 221, 222, 0.45);
+    border-color: var(--text-subtle);
+    color: var(--text-dim);
 }
 
 /* a role on the bot's Discord server, in its colour (css/style.css) */
 .role.bot {
     border-color: var(--role);
-    color: var(--role);
+    color: var(--role-ink);
 }
 
 /* the recent logins: the highest role as a level, as tall as the chips */
@@ -777,23 +777,23 @@ a.who-name:hover {
     align-items: center;
     height: 22px;
     padding: 0 8px;
-    border-left: 2px solid rgba(220, 221, 222, 0.12);
+    border-left: 2px solid color-mix(in srgb, var(--text) 12%, transparent);
     font-size: 12px;
-    color: rgba(220, 221, 222, 0.35);
+    color: var(--text-subtle);
     white-space: nowrap;
     cursor: help;
 }
 
 .access-cell.on {
-    border-left-color: var(--accent-light);
+    border-left-color: var(--link);
     background: rgba(var(--accent-rgb), 0.08);
-    color: #e6dcef;
+    color: var(--text);
 }
 
 .access-cell.strong {
-    border-left-color: #fff;
+    border-left-color: var(--text-strong);
     background: rgba(var(--accent-rgb), 0.25);
-    color: #fff;
+    color: var(--text-strong);
     font-weight: 700;
 }
 
@@ -809,7 +809,7 @@ a.who-name:hover {
 .nobody,
 .everyone {
     font-size: 14px;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .people .nobody {
@@ -849,7 +849,7 @@ a.who-name:hover {
     font: 10px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 .login-head span:nth-child(n + 4) {
@@ -865,7 +865,7 @@ a.who-name:hover {
     padding: 0;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
     background: transparent;
-    color: var(--accent-light);
+    color: var(--link);
     cursor: pointer;
 }
 
@@ -894,7 +894,7 @@ a.who-name:hover {
     gap: 10px 24px;
     padding: 8px 12px 4px;
     border-left: 2px solid rgba(var(--accent-rgb), 0.4);
-    background: rgba(255, 255, 255, 0.02);
+    background: color-mix(in srgb, var(--text) 2%, transparent);
 }
 
 .login-details[hidden] {
@@ -931,7 +931,7 @@ a.who-name:hover {
 
 .login-when {
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .login-roles,
@@ -965,7 +965,7 @@ a.who-name:hover {
 .trash-name b {
     overflow: hidden;
     font: 700 14px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1024,7 +1024,7 @@ a.who-name:hover {
 
 .trash-info {
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 /* a long trash scrolls in its card, as the history does */
@@ -1061,7 +1061,7 @@ a.who-name:hover {
     max-width: 100%;
     max-height: 420px;
     border: 1px solid rgba(var(--accent-rgb), 0.25);
-    background: #0b0b0d;
+    background: var(--media-matte);
 }
 
 .trash-grid {
@@ -1075,11 +1075,11 @@ a.who-name:hover {
     aspect-ratio: 1;
     overflow: hidden;
     border: 1px solid rgba(var(--accent-rgb), 0.25);
-    background: #0b0b0d;
+    background: var(--media-matte);
 }
 
 .trash-grid a:hover {
-    border-color: var(--accent-light);
+    border-color: var(--link);
 }
 
 .trash-grid img,
@@ -1117,20 +1117,20 @@ a.who-name:hover {
 
 .history time {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .history-who,
 .history-who a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .history-who a:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .history-text {
-    color: rgba(220, 221, 222, 0.85);
+    color: var(--text-body);
     overflow-wrap: anywhere;
 }
 
@@ -1145,7 +1145,7 @@ a.who-name:hover {
 }
 
 .server dt {
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 /* running text, so "GD wyłączone: duże pliki…" keeps its colon in place; a
@@ -1162,7 +1162,7 @@ a.who-name:hover {
 }
 
 .server dd a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 /* processor and memory of 24 h: the average of every 5 minutes as a line,
@@ -1176,11 +1176,11 @@ a.who-name:hover {
 }
 
 .usage-cpu {
-    --usage: #a66fd0;
+    --usage: var(--accent);
 }
 
 .usage-mem {
-    --usage: #2fa294;
+    --usage: var(--info);
 }
 
 .usage-plot {
@@ -1198,7 +1198,7 @@ a.who-name:hover {
 
 .usage-grid {
     fill: none;
-    stroke: rgba(220, 221, 222, 0.07);
+    stroke: color-mix(in srgb, var(--text) 7%, transparent);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
 }
@@ -1231,7 +1231,7 @@ a.who-name:hover {
     right: 0;
     transform: translateY(3px);
     font: 10px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.35);
+    color: var(--text-subtle);
     pointer-events: none;
 }
 
@@ -1251,7 +1251,7 @@ a.who-name:hover {
 }
 
 .usage-columns span:hover {
-    background: rgba(220, 221, 222, 0.08);
+    background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 /* Availability of the site: three 24 h bars close together, the failures and
@@ -1273,7 +1273,7 @@ a.who-name:hover {
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .diag-title .muted {
@@ -1287,7 +1287,7 @@ a.who-name:hover {
     margin-right: 8px;
     font-style: normal;
     font-family: "Sanakan Mono", monospace;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .diag-episodes {
@@ -1299,12 +1299,12 @@ a.who-name:hover {
 
 .diag-episode {
     margin-top: 6px;
-    border-left: 2px solid rgba(217, 83, 79, 0.85);
-    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid color-mix(in srgb, var(--danger) 85%, transparent);
+    background: color-mix(in srgb, var(--text) 2%, transparent);
 }
 
 .diag-episode.ongoing {
-    border-left-color: #f0b232;
+    border-left-color: var(--warning);
 }
 
 .diag-episode summary {
@@ -1327,7 +1327,7 @@ a.who-name:hover {
 }
 
 .diag-episode summary b {
-    color: #e86262;
+    color: var(--danger);
 }
 
 .diag-episode[open] summary {
@@ -1357,7 +1357,7 @@ a.who-name:hover {
     gap: 2px 14px;
     margin-top: 3px;
     padding: 5px 8px;
-    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) var(--share), rgba(255, 255, 255, 0.02) var(--share));
+    background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) var(--share), color-mix(in srgb, var(--text) 2%, transparent) var(--share));
     font: 13px "JetBrains Mono", Consolas, monospace;
 }
 
@@ -1367,22 +1367,22 @@ a.who-name:hover {
 }
 
 .diag-ip a {
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .diag-ip a:hover {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .diag-count {
-    color: rgba(220, 221, 222, 0.75);
+    color: var(--text-secondary);
 }
 
 .diag-agent {
     display: grid;
     min-width: 0;
     font: 12px Lato, sans-serif;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .diag-agent > span,
@@ -1394,7 +1394,7 @@ a.who-name:hover {
 
 .diag-agent code {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .diag-ips .warn {
@@ -1413,13 +1413,13 @@ a.who-name:hover {
 }
 
 .role.scanner {
-    border-color: rgba(240, 178, 50, 0.5);
-    color: #f0b232;
+    border-color: color-mix(in srgb, var(--warning) 50%, transparent);
+    color: var(--warning);
 }
 
 .role.blocked {
-    border-color: rgba(217, 83, 79, 0.6);
-    color: #e86262;
+    border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+    color: var(--danger);
 }
 
 .diag-scroll {
@@ -1448,12 +1448,12 @@ a.who-name:hover {
 
 .diag-blocked code {
     font: 13px "JetBrains Mono", Consolas, monospace;
-    color: #efe2f7;
+    color: var(--heading);
     overflow-wrap: anywhere;
 }
 
 .diag-blocked li > span {
-    color: rgba(220, 221, 222, 0.7);
+    color: var(--text-secondary);
     overflow-wrap: anywhere;
 }
 
@@ -1463,16 +1463,16 @@ a.who-name:hover {
 }
 
 .cf-pending li[data-status="pending"] .cf-op-status {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .cf-pending li[data-status="completed"] .cf-op-status {
-    color: #3ba55c;
+    color: var(--success);
 }
 
 .cf-pending li[data-status="failed"] .cf-op-status,
 .cf-pending li[data-status="unconfirmed"] .cf-op-status {
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .diag-slow {
@@ -1480,9 +1480,9 @@ a.who-name:hover {
     margin: 6px 0 0;
     padding: 10px 12px;
     overflow: auto;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--surface-input);
     font: 12px/1.5 "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.75);
+    color: var(--text-secondary);
     white-space: pre;
 }
 
@@ -1526,7 +1526,7 @@ a.who-name:hover {
 
     .access-cell::before {
         content: attr(data-column) "\00a0";
-        color: rgba(220, 221, 222, 0.45);
+        color: var(--text-dim);
         font-weight: 400;
     }
 
@@ -1573,11 +1573,11 @@ a.who-name:hover {
 }
 
 .own-profile .hint a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .own-profile .hint a:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .own-profile .server + .hint {
@@ -1599,9 +1599,9 @@ a.who-name:hover {
     flex-direction: column;
     gap: 4px;
     padding: 10px 12px;
-    border: 1px dashed rgba(220, 221, 222, 0.15);
+    border: 1px dashed color-mix(in srgb, var(--text) 15%, transparent);
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 .register b {
@@ -1617,20 +1617,20 @@ a.who-name:hover {
 }
 
 .register li.found b {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .register time {
     margin-top: auto;
     font: 11px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 /* how soon a seasonal find not made yet comes back; lit while it lasts */
 .register-soon {
     margin-top: auto;
     font: 11px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .register li.now {
@@ -1638,7 +1638,7 @@ a.who-name:hover {
 }
 
 .register li.now .register-soon {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 /* the account's finds flagged as cheated (inc/auth/finds.php), in the profile and the panel */
@@ -1646,9 +1646,9 @@ a.who-name:hover {
 .profile-flag {
     margin: 0 0 12px;
     padding: 8px 12px;
-    border: 1px solid rgba(232, 98, 98, 0.45);
-    background: rgba(232, 98, 98, 0.08);
-    color: #e86262;
+    border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    color: var(--danger);
 }
 
 .profile-flag .warn {
@@ -1695,7 +1695,7 @@ a.who-name:hover {
     gap: 8px;
     padding: 9px 12px;
     border-left: 2px solid transparent;
-    color: rgba(228, 224, 232, 0.82);
+    color: color-mix(in srgb, var(--text-muted) 82%, transparent);
     text-decoration: none;
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.1em;
@@ -1704,13 +1704,13 @@ a.who-name:hover {
 }
 
 .admin-nav a:hover {
-    color: #fff;
+    color: var(--text-strong);
     background: rgba(var(--accent-rgb), 0.14);
 }
 
 .admin-nav a.active {
-    border-color: var(--accent-light);
-    color: #fff;
+    border-color: var(--link);
+    color: var(--text-strong);
     background: rgba(var(--accent-rgb), 0.22);
 }
 
@@ -1719,11 +1719,11 @@ a.who-name:hover {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #3fca7a;
+    background: var(--success);
 }
 
 .admin-nav .dot.warn {
-    background: #f0b232;
+    background: var(--warning);
     animation: nav-pulse 1.6s infinite;
 }
 
@@ -1734,14 +1734,14 @@ a.who-name:hover {
 
 .admin-nav .n {
     margin-left: auto;
-    color: #f0b232;
+    color: var(--warning);
 }
 
 /* the cards of a section, under its link */
 /* the categories stand out, the cards under them sit back on a guide line */
 .admin-nav .nav-section {
     margin-top: 6px;
-    color: #f2e9f8;
+    color: var(--heading);
 }
 
 .admin-nav .nav-sub {
@@ -1754,14 +1754,14 @@ a.who-name:hover {
 .admin-nav .nav-card {
     padding: 5px 12px 5px 13px;
     border-left: 0;
-    color: rgba(190, 168, 208, 0.78);
+    color: color-mix(in srgb, var(--text-muted) 78%, transparent);
     font: 12px/1.45 "JetBrains Mono", Consolas, monospace;
     letter-spacing: 0;
     text-transform: none;
 }
 
 .admin-nav .nav-card:hover {
-    color: #fff;
+    color: var(--text-strong);
     background: rgba(var(--accent-rgb), 0.12);
 }
 
@@ -1779,7 +1779,7 @@ a.who-name:hover {
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
     scroll-margin-top: 80px;
 }
 
@@ -1793,15 +1793,15 @@ a.who-name:hover {
 }
 
 .card[data-state="ok"] {
-    border-left-color: #3fca7a;
+    border-left-color: var(--success);
 }
 
 .card[data-state="warn"] {
-    border-left-color: #f0b232;
+    border-left-color: var(--warning);
 }
 
 .card[data-state="bad"] {
-    border-left-color: #e57373;
+    border-left-color: var(--danger);
 }
 
 .card.collapsible > h2 {
@@ -1823,15 +1823,15 @@ a.who-name:hover {
     height: 9px;
     margin-left: 14px;
     border-radius: 50%;
-    background: #3fca7a;
+    background: var(--success);
 }
 
 .card h2 .card-dot.warn {
-    background: #f0b232;
+    background: var(--warning);
 }
 
 .card h2 .card-dot.bad {
-    background: #e57373;
+    background: var(--danger);
 }
 
 .card h2 .card-sum {
@@ -1840,7 +1840,7 @@ a.who-name:hover {
     font: 12px "JetBrains Mono", Consolas, monospace;
     letter-spacing: 0;
     text-transform: none;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
     white-space: nowrap;
 }
 
@@ -1872,13 +1872,13 @@ a.who-name:hover {
     align-items: center;
     gap: 8px;
     padding: 11px 15px;
-    border: 1px solid rgba(240, 178, 50, 0.6);
-    background: rgba(20, 14, 2, 0.95);
-    color: #f0b232;
+    border: 1px solid color-mix(in srgb, var(--warning) 60%, transparent);
+    background: var(--surface-raised);
+    color: var(--warning);
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.08em;
     text-decoration: none;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 6px 24px var(--shadow);
 }
 
 .admin-fab[hidden] {
@@ -1886,7 +1886,7 @@ a.who-name:hover {
 }
 
 .admin-fab:hover {
-    background: rgba(240, 178, 50, 0.18);
+    background: color-mix(in srgb, var(--warning) 18%, transparent);
 }
 
 /* the diagnostics card folded into sub-accordions */
@@ -1894,7 +1894,7 @@ a.who-name:hover {
     margin-top: 8px;
     border: 1px solid rgba(var(--accent-rgb), 0.18);
     border-left: 2px solid rgba(var(--accent-rgb), 0.4);
-    background: rgba(255, 255, 255, 0.015);
+    background: color-mix(in srgb, var(--text) 2%, transparent);
 }
 
 .diag-sub > summary {
@@ -1922,7 +1922,7 @@ a.who-name:hover {
 
 .diag-sub[open] {
     border-color: rgba(var(--accent-rgb), 0.35);
-    border-left-color: var(--accent-light);
+    border-left-color: var(--link);
 }
 
 .diag-sub[open] > summary {
@@ -2030,7 +2030,7 @@ html[data-skin] .hud-form [data-snow-pref][hidden] + .admin-btn {
     font: 600 12px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .hud-field-label .muted {
@@ -2044,7 +2044,7 @@ html[data-skin] .hud-form [data-snow-pref][hidden] + .admin-btn {
     flex: none;
     width: 13px;
     height: 13px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
     border-radius: 50%;
 }
 
@@ -2116,7 +2116,7 @@ html[data-skin] .hud-form [data-snow-pref][hidden] + .admin-btn {
 .skin-current-text > p {
     margin: 5px 0 0;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.65);
+    color: var(--text-muted);
 }
 
 .skin-current .admin-btn {
@@ -2133,10 +2133,10 @@ body.skin-picker-open {
     max-width: none;
     max-height: calc(100dvh - 40px);
     padding: 24px;
-    border: 1px solid #745386;
-    background: #121216;
-    color: #eae4ef;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+    border: 1px solid var(--panel-border);
+    background: var(--panel-surface);
+    color: var(--text);
+    box-shadow: 0 24px 80px var(--shadow);
 }
 
 .skin-dialog[open] {
@@ -2149,7 +2149,7 @@ body.skin-picker-open {
 }
 
 .skin-dialog::backdrop {
-    background: rgba(4, 4, 6, 0.78);
+    background: var(--scrim);
     backdrop-filter: blur(5px);
 }
 
@@ -2166,7 +2166,7 @@ body.skin-picker-open {
     animation: none;
     font-size: 10px;
     letter-spacing: 0.15em;
-    color: #b670d3;
+    color: var(--link);
 }
 
 .skin-dialog-head .tag::before,
@@ -2179,25 +2179,44 @@ body.skin-picker-open {
     margin: 6px 0 0;
     font-size: 20px;
     letter-spacing: 0.1em;
-    color: #f0e2ff;
+    color: var(--heading);
 }
 
 .skin-dialog-close {
     flex: none;
+    display: grid;
+    place-items: center;
     width: 36px;
     height: 36px;
-    border: 1px solid #504357;
+    box-sizing: border-box;
+    padding: 0;
+    border: 1px solid var(--panel-border);
     background: transparent;
-    color: #eae4ef;
-    font-size: 25px;
+    color: var(--text);
+    line-height: 1;
     cursor: pointer;
+}
+
+.skin-dialog-close svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+}
+
+.skin-dialog-close:hover {
+    background: var(--panel-hover);
+    color: var(--text-strong);
 }
 
 .skin-dialog-hint {
     margin: 14px 0 18px;
     font-size: 13px;
     line-height: 1.5;
-    color: #aaa4b0;
+    color: var(--text-muted);
 }
 
 .skin-dialog-toolbar {
@@ -2212,29 +2231,29 @@ body.skin-picker-open {
     display: flex;
     gap: 4px;
     padding: 3px;
-    border: 1px solid #403447;
-    background: #0c0c10;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-surface);
 }
 
 .skin-filters button {
     padding: 8px 12px;
     border: 1px solid transparent;
     background: transparent;
-    color: #aaa4b0;
+    color: var(--text-muted);
     font: 12px "Sanakan Mono", monospace;
     cursor: pointer;
 }
 
 .skin-filters button[aria-pressed="true"] {
-    border-color: #76508b;
-    background: #2d2035;
-    color: #f0e2ff;
+    border-color: var(--panel-border);
+    background: var(--panel-selected);
+    color: var(--heading);
 }
 
 .skin-count {
     flex: none;
     font: 11px "Sanakan Mono", monospace;
-    color: #aaa4b0;
+    color: var(--text-muted);
 }
 
 .skin-grid {
@@ -2246,7 +2265,7 @@ body.skin-picker-open {
     max-height: 45dvh;
     padding: 2px 6px 2px 2px;
     overscroll-behavior: contain;
-    scrollbar-color: #745386 #121216;
+    scrollbar-color: var(--border-strong) var(--surface-raised);
     scrollbar-width: thin;
 }
 
@@ -2259,29 +2278,29 @@ body.skin-picker-open {
     gap: 6px;
     min-width: 0;
     padding: 14px 10px;
-    border: 1px solid #38313f;
-    background: #19171e;
-    color: #eae4ef;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-surface);
+    color: var(--text);
     font: inherit;
     text-align: center;
     cursor: pointer;
 }
 
 .skin-tile:hover:not(:disabled) {
-    border-color: #8c659e;
-    background: #211b28;
+    border-color: var(--link);
+    background: var(--panel-hover);
 }
 
 .skin-tile[aria-pressed="true"] {
-    border-color: #c58bdf;
-    box-shadow: inset 0 0 0 1px #c58bdf;
-    background: #2b2033;
+    border-color: var(--focus);
+    box-shadow: inset 0 0 0 1px var(--focus);
+    background: var(--panel-selected);
 }
 
 .skin-tile:disabled {
     border-style: dashed;
-    color: #a09aa7;
-    background: #141319;
+    color: var(--text-subtle);
+    background: var(--panel-surface);
     cursor: not-allowed;
 }
 
@@ -2293,9 +2312,9 @@ body.skin-picker-open {
     height: 56px;
     margin-bottom: 3px;
     overflow: hidden;
-    border: 1px solid #4b3b56;
+    border: 1px solid var(--border);
     border-radius: 50%;
-    background: var(--tile-bg, #0c0c10);
+    background: var(--tile-bg, var(--surface-input));
 }
 
 .skin-tile-art img {
@@ -2320,12 +2339,12 @@ body.skin-picker-open {
 .skin-tile-group,
 .skin-tile-status {
     font-size: 11px;
-    color: #aaa4b0;
+    color: var(--text-muted);
 }
 
 .skin-tile-status {
     margin-top: 2px;
-    color: #c4a5d3;
+    color: var(--link);
 }
 
 .skin-swatches {
@@ -2337,20 +2356,20 @@ body.skin-picker-open {
 .skin-swatches i {
     width: 14px;
     height: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
     border-radius: 50%;
-    background: var(--tile-accent, #9b59b6);
+    background: var(--tile-accent, var(--accent));
 }
 
-.skin-swatches i:nth-child(2) { background: var(--tile-bg, #080909); }
-.skin-swatches i:nth-child(3) { background: var(--tile-text, #dcddde); }
+.skin-swatches i:nth-child(2) { background: var(--tile-bg, var(--bg-dark)); }
+.skin-swatches i:nth-child(3) { background: var(--tile-text, var(--text)); }
 
 .skin-tile-check {
     display: none;
     position: absolute;
     top: 8px;
     right: 10px;
-    color: #e2b9f5;
+    color: var(--link);
 }
 
 .skin-tile[aria-pressed="true"] .skin-tile-check {
@@ -2362,14 +2381,14 @@ body.skin-picker-open {
     min-height: 65px;
     margin-top: 16px;
     padding-top: 14px;
-    border-top: 1px solid #403447;
+    border-top: 1px solid var(--panel-divider);
 }
 
 .skin-selection > p {
     margin: 5px 0 0;
     font-size: 13px;
     line-height: 1.5;
-    color: #c5becd;
+    color: var(--text-muted);
 }
 
 .skin-dialog-foot {
@@ -2384,7 +2403,7 @@ body.skin-picker-open {
     max-width: 240px;
     font-size: 12px;
     line-height: 1.5;
-    color: #aaa4b0;
+    color: var(--text-muted);
 }
 
 .skin-dialog-foot > div {
@@ -2395,14 +2414,10 @@ body.skin-picker-open {
 
 .skin-dialog .admin-btn {
     margin: 0;
-    --accent: #9b59b6;
-    --accent-rgb: 155, 89, 182;
-    --accent-light: #d5a1ef;
-    --accent-light-rgb: 213, 161, 239;
 }
 
 .skin-dialog button:focus-visible {
-    outline: 2px solid #d5a1ef;
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -2427,7 +2442,7 @@ body.skin-picker-open {
 
 .custom-skin legend {
     padding: 0 8px;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .custom-skin-image {
@@ -2470,13 +2485,13 @@ body.skin-picker-open {
     height: 38px;
     padding: 7px 10px;
     border: 1px solid rgba(var(--accent-rgb), 0.4);
-    background: rgba(0, 0, 0, 0.22);
+    background: var(--surface-input);
     color: var(--text);
     font: 16px "Sanakan Mono", monospace;
 }
 
 .custom-skin-color input:focus-visible {
-    outline: 2px solid var(--accent-light);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -2497,7 +2512,7 @@ body.skin-picker-open {
 }
 
 .ranking-form .admin-check a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .ranking-form .admin-btn {

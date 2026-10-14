@@ -61,12 +61,12 @@
     });
 
     test('one seasonal find unlocks both of its new skins and no skins from the other event', function () {
-        foreach (['sakura' => ['chisato', 'yaemiko'], 'perseids' => ['suisei', 'hoshino']] as $find => $keys) {
+        foreach (['sakura' => ['march7', 'shogun'], 'perseids' => ['suisei', 'hoshino']] as $find => $keys) {
             clearData();
-            foreach (['chisato', 'yaemiko', 'suisei', 'hoshino'] as $key)
+            foreach (['march7', 'shogun', 'suisei', 'hoshino'] as $key)
                 assertFalse(skinUnlocked($key, '111'));
             writeData('finds', ['111' => [$find => time()]]);
-            foreach (['chisato', 'yaemiko', 'suisei', 'hoshino'] as $key) {
+            foreach (['march7', 'shogun', 'suisei', 'hoshino'] as $key) {
                 assertSame(in_array($key, $keys, true), skinUnlocked($key, '111'));
                 assertFalse(skinSpeaks($key));
             }
@@ -85,20 +85,20 @@
                 setTestRights($rights, 15);
                 assertFalse(skinUnlocked('teto', '999'), 'no owner bonus in a preview, even with panel access');
                 assertSame('', skinPref('999'));
-                assertFalse(setSkin('999', 'tao'), 'the server refuses an unearned pick too');
+                assertFalse(setSkin('999', 'echidna'), 'the server refuses an unearned pick too');
                 assertSame(['skin' => 'teto', 'words' => false], readData('skins')['999'], 'the saved pick survives');
             }
             writeData('finds', ['999' => ['aprilfools' => time()]]);
             assertTrue(skinUnlocked('teto', '999'));
             assertTrue(skinUnlocked('miku', '999'));
-            assertFalse(skinUnlocked('tao', '999'));
+            assertFalse(skinUnlocked('echidna', '999'));
             assertSame('teto', skinPref('999'), 'earned skins remain usable in the preview');
             setTestRights(null);
-            assertTrue(skinUnlocked('tao', '999'), 'ending the preview restores the owner bonus');
+            assertTrue(skinUnlocked('echidna', '999'), 'ending the preview restores the owner bonus');
             setTestRights(['role' => 'user'], 15);
             $_SESSION['test_rights']['until'] = time() - 1;
             testRights(null, true);
-            assertTrue(skinUnlocked('tao', '999'), 'expiry restores the bonus too');
+            assertTrue(skinUnlocked('echidna', '999'), 'expiry restores the bonus too');
         } finally {
             setTestRights(null);
             sessionEnd();
@@ -127,9 +127,9 @@
     test('skinSpeaks tells the skins that bring words from the rest', function () {
         assertTrue(skinSpeaks('teto'));
         assertTrue(skinSpeaks('miku'));
-        assertFalse(skinSpeaks('tao'), 'Hu Tao brings none');
+        assertFalse(skinSpeaks('echidna'), 'Echidna brings none');
         assertFalse(skinSpeaks('albedo'));
-        assertFalse(skinSpeaks('sadako'), 'Sadako brings none');
+        assertFalse(skinSpeaks('tomie'), 'Tomie brings none');
         assertFalse(skinSpeaks('lain'));
         assertFalse(skinSpeaks('cibo'), 'Cibo brings none');
         assertFalse(skinSpeaks('killy'));
@@ -154,6 +154,17 @@
                 $key . ' is unlocked by a find of the register');
             assertTrue($find === null || isset(SKIN_GROUPS[$find]), $key . ' has its group in the picker');
         }
+    });
+
+    test('offline embeds the canonical palette without external styles or scripts', function () {
+        $root = dirname(__DIR__);
+        $pattern = '~/\* theme:start \*/.*?/\* theme:end \*/~s';
+        assertSame(1, preg_match($pattern, (string)file_get_contents($root . '/css/skins.css'), $palette));
+        $offline = (string)file_get_contents($root . '/offline.html');
+        assertSame(1, preg_match($pattern, $offline, $embedded));
+        assertSame($palette[0], $embedded[0], 'run php tools/asset-versions.php after changing shared colours');
+        assertFalse(strpos($offline, 'rel="stylesheet"') !== false);
+        assertFalse(strpos($offline, '<script') !== false);
     });
 
     test('custom skin requires every normal and seasonal find for a regular account', function () {
@@ -235,6 +246,37 @@
         assertSame($saved, customSkinPrefs('111'));
         assertSame('custom', readData('skins')['111']);
         assertSame(customSkinPrefs('222')['colors']['accent'], '#9b59b6');
+    });
+
+    test('custom base defaults to dark and explicit light survives every appearance format', function () {
+        $defaults = customSkinPrefs('111');
+        assertSame('dark', $defaults['base']);
+        assertSame('#9b59b6', $defaults['colors']['accent']);
+        assertSame('#efe2f7', $defaults['colors']['home-title']);
+        $palettes = customSkinPalettes();
+        assertSame($palettes['dark'], $defaults['colors']);
+        assertSame('#e7e3ea', $palettes['light']['bg-dark']);
+        assertSame('#1b1a20', $palettes['light']['text']);
+        // Old light-looking colours still inherit the dark base by default.
+        writeData('custom-skins', ['111' => ['colors' => $palettes['light']]]);
+        assertSame('dark', customSkinPrefs('111')['base']);
+        assertSame($palettes['light'], customSkinPrefs('111')['colors']);
+        writeData('finds', ['111' => array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time())]);
+        $design = ['image' => '', 'colors' => $palettes['light'], 'base' => 'light'];
+        assertTrue(setSkin('111', 'custom', true, $design));
+        assertSame($design, customSkinPrefs('111'));
+        assertSame('light', customSkinAppearance('111')['base']);
+        assertContains('data-skin-base="light"', skinHtmlAttribute('111'));
+        foreach (['auto', '', 'light" onload="alert(1)', ['light'], false] as $bad) {
+            $invalid = $design;
+            $invalid['base'] = $bad;
+            assertFalse(setCustomSkin('111', $invalid));
+            assertSame($design, customSkinPrefs('111'));
+        }
+        unset($design['base']);
+        assertTrue(setCustomSkin('111', $design));
+        assertSame('dark', customSkinPrefs('111')['base']);
+        assertContains('data-skin-base="dark"', skinHtmlAttribute('111'));
     });
 
     test('custom images are restricted to the accounts own real gallery images', function () {

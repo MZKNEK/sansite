@@ -950,13 +950,13 @@
 
   .info-label {
     font: 12px "JetBrains Mono", Consolas, monospace;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
     white-space: nowrap;
   }
 
   .hint {
     font-size: 12px;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
   }
 
   .nudge-actions {
@@ -1063,7 +1063,7 @@
     left: 0;
     width: 475px;
     height: 667px;
-    outline: 1px solid rgba(var(--accent-light-rgb), 0.6);
+    outline: 1px solid var(--focus);
     outline-offset: -1px;
     pointer-events: none;
     z-index: 999;

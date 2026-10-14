@@ -152,7 +152,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.match(await page.locator('img.logo').getAttribute('src'), /teto\.webp$/, 'the skin stays when only words change');
   });
 
-  await visit({ skin: 'tao', cookieSkin: 'teto', delayed: true }, async (page, context, release) => {
+  await visit({ skin: 'echidna', cookieSkin: 'teto', delayed: true }, async (page, context, release) => {
     await page.locator('#bot-status.online').waitFor();
     await page.clock.install();
     await page.clock.pauseAt(Date.now() + 100);
@@ -161,13 +161,13 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.equal(await page.locator('.pp-score').textContent(), 'あなた 0 : 0 セーフガード');
     release();
     await page.locator('.account-menu').waitFor();
-    assert.equal(await page.locator('html').getAttribute('data-skin'), 'tao');
+    assert.equal(await page.locator('html').getAttribute('data-skin'), 'echidna');
     assert.equal(await language(page), 'pl', 'a silent skin restores the original language');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /tao\.webp$/);
+    assert.match(await page.locator('img.logo').getAttribute('src'), /echidna\.webp$/);
     await page.getByRole('dialog', { name: 'Ping pong z Safeguardem' }).waitFor();
     assert.equal(await page.locator('.pp-score').textContent(), 'Ty 0 : 0 Safeguard');
     assert.equal(await page.locator('.pp-note').textContent(), 'Mysz, palec albo strzałki. Do pięciu punktów.');
-    assert.equal(await accent(page), '226, 98, 47');
+    assert.equal(await accent(page), '66, 108, 71');
   });
 
   await visit({ skin: 'miku', cookieSkin: '', pathname: '/privacy/' }, async page => {
@@ -179,7 +179,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.equal(await page.evaluate(() => !!window.SanakanHomeLanguage), false, 'static pages need only the shared appearance module');
   });
 
-  await visit({ skin: 'tao', words: false, pathname: '/account/' }, async page => {
+  await visit({ skin: 'echidna', words: false, pathname: '/account/' }, async page => {
     const checkbox = page.locator('input[name=skinwords]');
     const select = page.locator('select[name=skin]');
     const save = page.locator('.skin-form button[type=submit]');
@@ -195,10 +195,10 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     await page.locator('.account-menu').waitFor();
     assert.equal(await language(page), 'ja');
     await page.goto(`${base}/account/`);
-    await chooseSkin(page, 'tao');
+    await chooseSkin(page, 'echidna');
     assert.equal(await checkbox.isVisible(), false, 'the switch disappears as soon as a silent skin is selected');
     await Promise.all([page.waitForNavigation(), save.click()]);
-    assert.equal(JSON.parse(readFileSync(prefsFile, 'utf8'))[owner], 'tao', 'a hidden switch preserves the words preference');
+    assert.equal(JSON.parse(readFileSync(prefsFile, 'utf8'))[owner], 'echidna', 'a hidden switch preserves the words preference');
     await chooseSkin(page, 'teto');
     await checkbox.uncheck();
     await Promise.all([page.waitForNavigation(), save.click()]);
@@ -218,7 +218,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.equal(await select.locator('option:disabled').count(), 19, 'the preview has no owner bonus');
     assert.equal(await select.locator('option[value=teto]').count(), 0, 'locked options do not expose identifiers');
     assert.equal(await page.locator('html').getAttribute('data-skin'), null, 'the server-rendered empty pick beats the old cookie');
-    const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'tao' } });
+    const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'echidna' } });
     assert.ok((await refused.text()).includes('Ten skin jest jeszcze zablokowany'));
     assert.equal(JSON.parse(readFileSync(prefsFile, 'utf8'))[owner], 'teto', 'previewing and a refused save preserve the real pick');
     await page.goto(`${base}/`);

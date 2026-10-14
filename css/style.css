@@ -1,28 +1,3 @@
-:root {
-    --accent: #9b59b6;
-    --accent-light: #b670d3;
-    --accent-dark: #713b87;
-    /* the same colours as rgb triples, so a rule can use them with its own
-       alpha and the HUD can follow the role (see the role-* and data-hud rules) */
-    --accent-rgb: 155, 89, 182;
-    --accent-light-rgb: 182, 112, 211;
-    --accent-dark-rgb: 113, 59, 135;
-    /* the page chrome (the background, the glow of the title, the lines under
-       SAFEGUARD): the role colour only in the "full" HUD, the site's purple
-       otherwise */
-    --hud-rgb: 155, 89, 182;
-    --hud-light-rgb: 182, 112, 211;
-    /* the locked accent: the API button and the moderator commands, red as a
-       warning; an admin (whose HUD is red) gets amber instead, see below */
-    --lock: #e86262;
-    --lock-text: #f0c4c2;
-    --lock-border-rgb: 232, 98, 98;
-    --lock-fill-rgb: 217, 83, 79;
-    --bg-dark: #080909;
-    --bg-mid: #202225;
-    --text: #dcddde;
-}
-
 html, body {
     min-height: 100%;
 }
@@ -123,7 +98,7 @@ img.logo {
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: url("../logo.webp") center / cover;
+    background: var(--skin-logo) center / cover;
     opacity: 0;
     pointer-events: none;
 }
@@ -138,23 +113,23 @@ img.logo {
 
 @keyframes glitch-a {
     0%, 92%, 100% { opacity: 0; }
-    93% { opacity: 1; clip-path: inset(18% 0 62% 0); transform: translateX(-9px); filter: drop-shadow(3px 0 #05d9e8); }
-    94% { opacity: 1; clip-path: inset(55% 0 28% 0); transform: translateX(7px); filter: drop-shadow(-3px 0 #ff2a6d); }
+    93% { opacity: 1; clip-path: inset(18% 0 62% 0); transform: translateX(-9px); filter: drop-shadow(3px 0 var(--glitch-cyan)); }
+    94% { opacity: 1; clip-path: inset(55% 0 28% 0); transform: translateX(7px); filter: drop-shadow(-3px 0 var(--glitch-pink)); }
     95% { opacity: 0; }
-    97% { opacity: 1; clip-path: inset(40% 0 50% 0); transform: translateX(-5px); filter: drop-shadow(3px 0 #05d9e8); }
+    97% { opacity: 1; clip-path: inset(40% 0 50% 0); transform: translateX(-5px); filter: drop-shadow(3px 0 var(--glitch-cyan)); }
     98% { opacity: 0; }
 }
 
 @keyframes glitch-b {
     0%, 93%, 100% { opacity: 0; }
-    93.5% { opacity: 1; clip-path: inset(70% 0 12% 0); transform: translateX(6px); filter: drop-shadow(-3px 0 #ff2a6d); }
-    94.5% { opacity: 1; clip-path: inset(8% 0 80% 0); transform: translateX(-8px); filter: drop-shadow(3px 0 #05d9e8); }
+    93.5% { opacity: 1; clip-path: inset(70% 0 12% 0); transform: translateX(6px); filter: drop-shadow(-3px 0 var(--glitch-pink)); }
+    94.5% { opacity: 1; clip-path: inset(8% 0 80% 0); transform: translateX(-8px); filter: drop-shadow(3px 0 var(--glitch-cyan)); }
     95.5% { opacity: 0; }
 }
 
 @keyframes glitch-ring {
     0%, 92%, 95%, 100% { box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.4); }
-    93%, 94% { box-shadow: -4px 0 0 #ff2a6d, 4px 0 0 #05d9e8, 0 0 34px rgba(var(--accent-rgb), 0.4); }
+    93%, 94% { box-shadow: -4px 0 0 var(--glitch-pink), 4px 0 0 var(--glitch-cyan), 0 0 34px rgba(var(--accent-rgb), 0.4); }
 }
 
 /* status dot like on Discord, set by the script in index.html from status.php:
@@ -168,8 +143,8 @@ img.logo {
     width: 20%;
     aspect-ratio: 1;
     border-radius: 50%;
-    border: 7px solid #141517;
-    background: #80848e;
+    border: 7px solid var(--surface);
+    background: var(--status-offline);
     opacity: 0;
     transform: scale(0.6);
     transition: opacity 0.3s, transform 0.3s ease-out, background-color 0.3s;
@@ -192,7 +167,7 @@ img.logo {
         box-shadow: 0 0 0 4px rgba(var(--accent-light-rgb), 0.9), 0 0 28px 10px rgba(var(--accent-rgb), 0.7);
     }
     to {
-        box-shadow: 0 0 0 5px #fff, 0 0 36px 16px rgba(214, 180, 236, 0.95);
+        box-shadow: 0 0 0 5px #fff, 0 0 36px 16px color-mix(in srgb, var(--link) 95%, transparent);
     }
 }
 
@@ -214,7 +189,7 @@ img.logo {
     margin-top: -1px;
     transform-origin: left center;
     background: #fff;
-    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.9), 0 0 18px 6px rgba(var(--accent-light-rgb), 0.8);
+    box-shadow: 0 0 6px 2px color-mix(in srgb, var(--text) 90%, transparent), 0 0 18px 6px rgba(var(--accent-light-rgb), 0.8);
     pointer-events: none;
     animation: gbe 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
@@ -224,7 +199,7 @@ img.logo {
     6% { transform: scaleX(1) scaleY(1); }
     22% { transform: scaleX(1) scaleY(0.6); }
     34% { transform: scaleX(1) scaleY(14); background: #fff; }
-    60% { transform: scaleX(1) scaleY(5); background: #d6b4ec; opacity: 0.8; }
+    60% { transform: scaleX(1) scaleY(5); background: var(--link); opacity: 0.8; }
     100% { transform: scaleX(1) scaleY(1); opacity: 0; }
 }
 
@@ -258,7 +233,7 @@ img.logo {
     z-index: 1;
     border-radius: 50%;
     border: 4px solid var(--accent);
-    background: url("../logo.webp") center / cover no-repeat, var(--bg-dark);
+    background: var(--skin-logo) center / cover no-repeat, var(--bg-dark);
     background-origin: content-box;
     background-clip: padding-box;
     pointer-events: none;
@@ -276,7 +251,7 @@ img.logo {
     margin-top: -1.5px;
     transform-origin: 0 50%;
     background: #fff;
-    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.8), 0 0 16px 5px rgba(var(--accent-light-rgb), 0.8);
+    box-shadow: 0 0 6px 2px color-mix(in srgb, var(--text) 80%, transparent), 0 0 16px 5px rgba(var(--accent-light-rgb), 0.8);
     pointer-events: none;
     animation: crack-burn 2s ease-out forwards;
 }
@@ -316,7 +291,7 @@ img.logo {
     right: 0;
     top: -30%;
     height: 30%;
-    background: linear-gradient(to bottom, transparent, rgba(var(--accent-light-rgb), 0.45) 80%, rgba(240, 226, 255, 0.9));
+    background: linear-gradient(to bottom, transparent, rgba(var(--accent-light-rgb), 0.45) 80%, color-mix(in srgb, var(--heading) 90%, transparent));
     animation: regen-scan 1.1s ease-in-out forwards;
 }
 
@@ -404,7 +379,7 @@ body.gbe-shot main.hero {
     margin: 0;
     padding: 10px 16px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
-    background: rgba(18, 18, 22, 0.96);
+    background: var(--surface-raised);
     font-size: 14px;
     transform: translateX(-50%);
 }
@@ -433,11 +408,11 @@ body.gbe-shot main.hero {
 }
 
 .bot-status.online {
-    background: #23a55a;
+    background: var(--status-online);
 }
 
 .bot-status.idle {
-    background: #f0b232;
+    background: var(--warning);
     overflow: hidden;
 }
 
@@ -450,11 +425,11 @@ body.gbe-shot main.hero {
     width: 72%;
     height: 72%;
     border-radius: 50%;
-    background: #141517;
+    background: var(--surface);
 }
 
 .bot-status.offline {
-    background: #80848e;
+    background: var(--status-offline);
 }
 
 /* the hole that turns the dot into a ring */
@@ -466,12 +441,12 @@ body.gbe-shot main.hero {
     width: 40%;
     height: 40%;
     border-radius: 50%;
-    background: #141517;
+    background: var(--surface);
 }
 
 /* a planned break: Discord's "do not disturb", red with a bar across */
 .bot-status.maintenance {
-    background: #f23f43;
+    background: var(--status-maintenance);
 }
 
 .bot-status.maintenance::before {
@@ -482,7 +457,7 @@ body.gbe-shot main.hero {
     width: 60%;
     height: 20%;
     border-radius: 999px;
-    background: #141517;
+    background: var(--surface);
 }
 
 /* texts styled like the Safeguard scanner HUD from BLAME! */
@@ -495,7 +470,7 @@ body.gbe-shot main.hero {
     margin: 26px auto 10px;
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.3em;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .tag::before,
@@ -521,7 +496,7 @@ body.gbe-shot main.hero {
     padding-left: 0.38em;
     font-size: clamp(30px, 10vw, 56px);
     line-height: 1.1;
-    color: #efe2f7;
+    color: var(--heading);
     font-family: Lato, sans-serif;
     font-weight: 700;
     letter-spacing: 0.38em;
@@ -529,12 +504,16 @@ body.gbe-shot main.hero {
     text-shadow: 0 0 18px rgba(var(--hud-rgb), 0.7);
 }
 
+.home .hud-title {
+    color: var(--home-title, var(--heading));
+}
+
 .kana {
     margin: 8px 0 0;
     padding-left: 0.6em;
     font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.6em;
-    color: var(--accent);
+    color: var(--decoration);
     opacity: 0.7;
 }
 
@@ -551,7 +530,7 @@ body.gbe-shot main.hero {
     white-space: nowrap;
     font: 11px/1 "Sanakan Mono", monospace;
     letter-spacing: 0.2em;
-    color: rgba(220, 221, 222, 0.18);
+    color: var(--signal-ink);
     /* it takes Morse keyed on it too */
     cursor: pointer;
     -webkit-user-select: none;
@@ -585,7 +564,7 @@ body.gbe-shot main.hero {
     margin: 0 1px;
     border-radius: 3px;
     vertical-align: middle;
-    background: rgba(220, 221, 222, 0.14);
+    background: color-mix(in srgb, var(--text) 14%, transparent);
     animation: signal var(--cycle, 10s) linear infinite;
 }
 
@@ -596,12 +575,12 @@ body.gbe-shot main.hero {
 @keyframes signal {
     0%,
     3% {
-        background: rgba(239, 226, 247, 0.6);
+        background: color-mix(in srgb, var(--heading) 60%, transparent);
         box-shadow: 0 0 4px rgba(var(--accent-light-rgb), 0.5);
     }
 
     12% {
-        background: rgba(220, 221, 222, 0.14);
+        background: color-mix(in srgb, var(--text) 14%, transparent);
         box-shadow: none;
     }
 }
@@ -633,7 +612,7 @@ body.gbe-shot main.hero {
 .links a,
 .hud-corners,
 .field {
-    --corner: rgba(var(--accent-light-rgb), 0.9);
+    --corner: var(--border-strong);
     --fill: rgba(var(--accent-rgb), 0.05);
     --arm: 10px;
     background:
@@ -653,11 +632,12 @@ body.gbe-shot main.hero {
 a.hud-corners:hover {
     --arm: 18px;
     --fill: rgba(var(--accent-rgb), 0.18);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 /* Search box with targeting corners, used on the commands page and the API docs */
-.search {
+.search.hud-corners {
+    --fill: var(--search-field);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -667,7 +647,7 @@ a.hud-corners:hover {
 
 .search:focus-within {
     --arm: 18px;
-    --fill: rgba(var(--accent-rgb), 0.12);
+    --fill: var(--search-selected);
 }
 
 .search-icon {
@@ -695,14 +675,14 @@ a.hud-corners:hover {
 }
 
 .search input::placeholder {
-    color: rgba(220, 221, 222, 0.4);
+    color: var(--text-subtle);
 }
 
 .search kbd {
     padding: 0 7px;
     border: 1px solid rgba(var(--accent-rgb), 0.45);
     border-radius: 3px;
-    color: var(--accent-light);
+    color: var(--link);
     font: 13px/20px "Sanakan Mono", monospace;
     opacity: 0.7;
 }
@@ -710,7 +690,7 @@ a.hud-corners:hover {
 .search-info {
     margin-top: 6px;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 .search-info:empty {
@@ -730,13 +710,13 @@ a.hud-corners:hover {
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
     outline: 0;
-    color-scheme: dark;
+    color-scheme: var(--scheme);
     -webkit-appearance: none;
     appearance: none;
 }
 
 .field::placeholder {
-    color: rgba(220, 221, 222, 0.4);
+    color: var(--text-subtle);
 }
 
 .field:hover {
@@ -749,7 +729,7 @@ a.hud-corners:hover {
 }
 
 .field.invalid {
-    --corner: #e86262;
+    --corner: var(--danger);
 }
 
 textarea.field {
@@ -771,7 +751,7 @@ textarea.field {
     padding: 0 44px 0 12px;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
     border-radius: 0;
-    background: rgba(8, 9, 9, 0.55);
+    background: var(--surface-input);
     color: var(--text);
     font: 14px "JetBrains Mono", Consolas, monospace;
     outline: 0;
@@ -786,12 +766,12 @@ textarea.field {
 }
 
 .hud-select select:focus {
-    border-color: var(--accent-light);
+    border-color: var(--link);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
 }
 
 .hud-select select option {
-    background: #17151c;
+    background: var(--surface-raised);
     color: var(--text);
 }
 
@@ -849,14 +829,14 @@ textarea.field {
 .links a i {
     margin-right: 10px;
     font-style: normal;
-    color: var(--accent);
+    color: var(--decoration);
     opacity: 0.8;
 }
 
 /* a page behind a login (API): red instead of purple, with a padlock */
 .links a.restricted {
-    --corner: rgba(var(--lock-border-rgb), 0.85);
-    --fill: rgba(var(--lock-fill-rgb), 0.06);
+    --corner: color-mix(in srgb, var(--lock) 85%, transparent);
+    --fill: color-mix(in srgb, var(--lock) 6%, transparent);
     color: var(--lock-text);
 }
 
@@ -866,8 +846,8 @@ textarea.field {
 }
 
 .links a.restricted:hover {
-    --fill: rgba(var(--lock-fill-rgb), 0.2);
-    color: #fff;
+    --fill: color-mix(in srgb, var(--lock) 20%, transparent);
+    color: var(--text-strong);
 }
 
 .links a.restricted i {
@@ -911,9 +891,9 @@ textarea.field {
     left: 0;
     width: 100%;
     box-sizing: border-box;
-    --corner: #d6b4ec;
-    --fill: rgba(58, 24, 80, 0.9);
-    color: #d6b4ec;
+    --corner: var(--swap-corner);
+    --fill: var(--swap-fill);
+    color: var(--swap-text);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-14px);
@@ -922,26 +902,8 @@ textarea.field {
 }
 
 .links a.swap-alt:hover {
-    --fill: #5c2d78;
-    color: #fff;
-}
-
-/* a coloured HUD gives Alter its colour too, mixed the way the lilac above
-   comes from the site's purple: a pale corner and text, a deep fill (the
-   "below" variant already follows the accent) */
-@supports (color: color-mix(in srgb, red, blue)) {
-    html[data-hud="accent"] .link-swap:not(.below) a.swap-alt,
-    html[data-hud="full"] .link-swap:not(.below) a.swap-alt {
-        --corner: color-mix(in srgb, rgb(var(--accent-light-rgb)) 60%, #fff);
-        --fill: color-mix(in srgb, rgb(var(--accent-dark-rgb)) 50%, #000);
-        color: var(--corner);
-    }
-
-    html[data-hud="accent"] .link-swap:not(.below) a.swap-alt:hover,
-    html[data-hud="full"] .link-swap:not(.below) a.swap-alt:hover {
-        --fill: color-mix(in srgb, rgb(var(--accent-dark-rgb)) 80%, #000);
-        color: #fff;
-    }
+    --fill: var(--swap-hover-fill);
+    color: var(--swap-hover-text);
 }
 
 .link-swap:hover a.swap-main {
@@ -978,7 +940,7 @@ textarea.field {
 
 .links .below a.swap-alt:hover {
     --fill: rgba(var(--accent-rgb), 0.18);
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .link-swap.below:hover a.swap-main {
@@ -1198,8 +1160,8 @@ textarea.field {
     height: 44px;
     padding: 0;
     border: 0;
-    --fill: rgba(14, 14, 17, 0.88);
-    color: var(--accent-light);
+    --fill: var(--surface-raised);
+    color: var(--link);
     cursor: pointer;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
@@ -1219,8 +1181,8 @@ textarea.field {
 .to-top:hover,
 .to-top:focus-visible {
     --arm: 18px;
-    --fill: rgba(40, 26, 48, 0.92);
-    color: #fff;
+    --fill: var(--surface-raised);
+    color: var(--text-strong);
     outline: none;
 }
 
@@ -1269,7 +1231,7 @@ textarea.field {
 
 .site-foot,
 .site-foot a {
-    color: rgba(220, 221, 222, 0.35);
+    color: var(--text-subtle);
     text-decoration: none;
     transition: color 0.2s;
 }
@@ -1280,7 +1242,7 @@ textarea.field {
 }
 
 .site-foot a:hover {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 /* Text pages (privacy/) */
@@ -1289,7 +1251,7 @@ textarea.field {
     margin: 32px auto 0;
     line-height: 1.65;
     text-align: left;
-    color: rgba(220, 221, 222, 0.85);
+    color: var(--text-body);
 }
 
 .prose h2 {
@@ -1297,7 +1259,7 @@ textarea.field {
     font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #efe2f7;
+    color: var(--heading);
 }
 
 .prose p,
@@ -1334,18 +1296,18 @@ textarea.field {
 }
 
 .prose a {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .prose code {
     font: 13px "JetBrains Mono", Consolas, monospace;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .prose .updated {
     margin-top: 32px;
     font-size: 13px;
-    color: rgba(220, 221, 222, 0.45);
+    color: var(--text-dim);
 }
 
 /* Easter egg (js/netsphere.js): the Safeguard asks for the Net Terminal Gene */
@@ -1357,7 +1319,7 @@ textarea.field {
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: rgba(8, 9, 9, 0.9);
+    background: var(--console-backdrop);
     animation: ns-in 0.25s ease-out;
 }
 
@@ -1380,7 +1342,7 @@ textarea.field {
     width: 100%;
     max-width: 520px;
     padding: 22px 24px 18px;
-    --fill: rgba(20, 12, 26, 0.95);
+    --fill: var(--overlay-panel);
     font: 14px "Sanakan Mono", monospace;
     color: var(--text);
 }
@@ -1390,7 +1352,7 @@ textarea.field {
     font: inherit;
     font-size: 15px;
     letter-spacing: 0.25em;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .ns-log {
@@ -1410,21 +1372,21 @@ textarea.field {
 }
 
 .ns-label {
-    color: rgba(220, 221, 222, 0.75);
+    color: var(--text-secondary);
 }
 
 .ns-result {
     margin-left: auto;
     letter-spacing: 0.1em;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .ns-result.ok {
-    color: #5fd38d;
+    color: var(--success);
 }
 
 .ns-result.bad {
-    color: #e86262;
+    color: var(--danger);
 }
 
 .ns-bar {
@@ -1446,22 +1408,22 @@ textarea.field {
 }
 
 .ns-bar.fail i {
-    background: #e86262;
+    background: var(--danger);
 }
 
 /* the scan of a browser that has the Net Terminal Gene (js/netsphere.js) */
 .ns-bar.pass i {
-    background: #5fd38d;
+    background: var(--success);
 }
 
 .ns-overlay.granted .ns-verdict {
-    color: #5fd38d;
-    text-shadow: 0 0 10px rgba(95, 211, 141, 0.6);
+    color: var(--success);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--success) 60%, transparent);
     animation: ns-in 0.2s ease-out;
 }
 
 .ns-overlay.granted .ns-note {
-    color: rgba(196, 240, 214, 0.85);
+    color: color-mix(in srgb, var(--success) 85%, transparent);
 }
 
 .ns-verdict {
@@ -1469,8 +1431,8 @@ textarea.field {
     font-size: 20px;
     letter-spacing: 0.3em;
     text-align: center;
-    color: #e86262;
-    text-shadow: 0 0 10px rgba(232, 98, 98, 0.6);
+    color: var(--danger);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--danger) 60%, transparent);
     animation: ns-in 0.2s ease-out, blink 0.5s steps(1) 3 0.2s;
 }
 
@@ -1478,20 +1440,20 @@ textarea.field {
     margin: 0;
     text-align: center;
     font-size: 13px;
-    color: rgba(240, 196, 194, 0.85);
+    color: color-mix(in srgb, var(--danger) 85%, transparent);
     animation: ns-in 0.2s ease-out;
 }
 
 .ns-cmd {
     margin: 12px 0 4px;
     overflow-wrap: anywhere;
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .ns-out {
     margin: 0 0 4px;
     overflow-wrap: anywhere;
-    color: rgba(220, 221, 222, 0.85);
+    color: var(--text-body);
 }
 
 /* a label with its value on the right, as the lines of the scan */
@@ -1503,7 +1465,7 @@ textarea.field {
 
 .ns-row b {
     font-weight: normal;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
 }
 
 .ns-row span {
@@ -1518,7 +1480,7 @@ textarea.field {
 
 .ns-help b {
     flex: 0 0 16ch;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .ns-help span {
@@ -1539,22 +1501,22 @@ textarea.field {
 
 .ns-out.dim,
 .ns-out .dim {
-    color: rgba(220, 221, 222, 0.5);
+    color: var(--text-dim);
 }
 
 .ns-out.ok,
 .ns-out .ok {
-    color: #5fd38d;
+    color: var(--success);
 }
 
 .ns-out.warn,
 .ns-out .warn {
-    color: #f0b232;
+    color: var(--warning);
 }
 
 .ns-out.bad,
 .ns-out .bad {
-    color: #e86262;
+    color: var(--danger);
 }
 
 .ns-prompt {
@@ -1572,7 +1534,7 @@ textarea.field {
 }
 
 .ns-sign {
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 /* 16px, or phones zoom in on the prompt */
@@ -1584,8 +1546,8 @@ textarea.field {
     outline: 0;
     background: none;
     font: 16px "Sanakan Mono", monospace;
-    color: #fff;
-    caret-color: var(--accent-light);
+    color: var(--text-strong);
+    caret-color: var(--link);
 }
 
 .ns-close {
@@ -1596,34 +1558,34 @@ textarea.field {
     background: none;
     font: inherit;
     letter-spacing: 0.1em;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
     cursor: pointer;
 }
 
 .ns-close:hover,
 .ns-close:focus-visible {
-    color: #fff;
-    outline: 1px solid rgba(var(--accent-light-rgb), 0.6);
+    color: var(--text-strong);
+    outline: 1px solid var(--focus);
 }
 
 /* found out: everything turns red */
 .ns-overlay.alarm {
-    background: rgba(26, 6, 8, 0.92);
+    background: var(--console-alarm-backdrop);
 }
 
 .ns-overlay.alarm::before {
-    background: linear-gradient(90deg, transparent, rgba(232, 98, 98, 0.9), transparent);
-    box-shadow: 0 0 14px rgba(232, 98, 98, 0.7);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--danger) 90%, transparent), transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 70%, transparent);
     animation-duration: 0.9s;
 }
 
 .ns-overlay.alarm .ns-box {
-    --corner: rgba(232, 98, 98, 0.9);
+    --corner: color-mix(in srgb, var(--danger) 90%, transparent);
     animation: ns-shake 0.4s;
 }
 
 .ns-overlay.alarm .ns-title {
-    color: #e86262;
+    color: var(--danger);
 }
 
 body.ns-open {
@@ -1685,15 +1647,15 @@ body.ns-open {
     gap: 2px;
     max-width: min(360px, calc(100vw - 32px));
     padding: 10px 14px;
-    --fill: rgba(20, 12, 26, 0.96);
+    --fill: var(--surface-raised);
     font: 13px "Sanakan Mono", monospace;
     color: var(--text);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 10px 30px var(--shadow);
     animation: ns-in 0.25s ease-out, sg-toast-glitch 0.4s steps(2) 0.1s;
 }
 
 a.sg-toast:hover {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .sg-toast b {
@@ -1701,7 +1663,7 @@ a.sg-toast:hover {
     font-size: 11px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .sg-toast span {
@@ -1711,7 +1673,7 @@ a.sg-toast:hover {
 
 .sg-toast small {
     font-size: 11px;
-    color: rgba(220, 221, 222, 0.55);
+    color: var(--text-muted);
 }
 
 @keyframes sg-toast-glitch {
@@ -1738,12 +1700,12 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
     gap: 6px;
     width: min(380px, calc(100vw - 32px));
     padding: 14px 16px;
-    --corner: rgba(124, 222, 92, 0.95);
-    --fill: rgba(10, 22, 8, 0.95);
+    --corner: var(--success);
+    --fill: var(--surface-raised);
     font: 13px "Sanakan Mono", monospace;
-    color: #c9f5b8;
+    color: var(--text);
     transform: translateX(-50%);
-    box-shadow: 0 0 24px rgba(124, 222, 92, 0.25);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--success) 25%, transparent);
     animation: ns-in 0.2s ease-out;
 }
 
@@ -1752,34 +1714,34 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
     font-size: 15px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: #7cde5c;
+    color: var(--success);
     animation: sg-flicker 0.5s steps(1) infinite;
 }
 
 .sg-silicon-bar {
     display: block;
     height: 6px;
-    background: rgba(124, 222, 92, 0.15);
+    background: color-mix(in srgb, var(--success) 15%, transparent);
 }
 
 .sg-silicon-bar i {
     display: block;
     width: 0;
     height: 100%;
-    background: #7cde5c;
+    background: var(--success);
     transition: width 0.1s;
 }
 
 /* the Safeguard takes over: its own colours again */
 .sg-silicon.clean {
     --corner: rgba(var(--accent-light-rgb), 0.9);
-    --fill: rgba(20, 12, 26, 0.95);
+    --fill: var(--surface-raised);
     color: var(--text);
     box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.3);
 }
 
 .sg-silicon.clean b {
-    color: var(--accent-light);
+    color: var(--link);
     animation: none;
 }
 
@@ -1858,12 +1820,12 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
 
 .morse-letter i.lit {
     animation: none;
-    background: rgba(239, 226, 247, 0.6);
+    background: color-mix(in srgb, var(--heading) 60%, transparent);
     box-shadow: 0 0 4px rgba(var(--accent-light-rgb), 0.5);
 }
 
 .motto.decoded {
-    color: rgba(239, 226, 247, 0.55);
+    color: var(--link);
     animation: ns-in 0.4s ease-out;
 }
 
@@ -1874,7 +1836,7 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
     inset: 0;
     z-index: 40;
     pointer-events: none;
-    background: rgba(8, 9, 9, 0.55);
+    background: var(--surface-input);
     -webkit-backdrop-filter: grayscale(1) brightness(0.6);
     backdrop-filter: grayscale(1) brightness(0.6);
     opacity: 0;
@@ -1899,7 +1861,7 @@ body.idle .logo-wrap {
     width: 9%;
     aspect-ratio: 1;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(240, 226, 255, 0.95) 0 12%, rgba(182, 112, 211, 0.6) 30%, transparent 68%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--heading) 95%, transparent) 0 12%, color-mix(in srgb, var(--accent-light) 60%, transparent) 30%, transparent 68%);
     mix-blend-mode: screen;
     opacity: 0;
     transform: translate(-50%, -50%);
@@ -1961,13 +1923,13 @@ html:not([data-skin]) body.idle .logo-eye {
     25% {
         transform: scale(1.4);
         stroke: #fff;
-        filter: drop-shadow(0 0 8px #e86262) brightness(1.8);
+        filter: drop-shadow(0 0 8px var(--danger)) brightness(1.8);
     }
 
     100% {
         opacity: 0;
         transform: scale(0.2) rotate(180deg);
-        stroke: #e86262;
+        stroke: var(--danger);
     }
 }
 
@@ -2028,7 +1990,7 @@ html:not([data-skin]) body.idle .logo-eye {
     top: -24px;
     font: 12px "Sanakan Mono", monospace;
     font-style: normal;
-    color: #efe2f7;
+    color: var(--heading);
     text-shadow: 0 0 6px rgba(var(--accent-light-rgb), 0.7);
     animation-name: sg-fall, sg-sway;
     animation-timing-function: linear, ease-in-out;
@@ -2072,7 +2034,7 @@ html:not([data-skin]) body.idle .logo-eye {
 .santa-hat svg {
     display: block;
     width: 100%;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 3px 6px var(--shadow));
 }
 
 .santa-hat .cap {
@@ -2084,7 +2046,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .santa-hat .fur {
-    fill: #f3eef7;
+    fill: var(--heading);
 }
 
 .santa-hat:hover {
@@ -2092,7 +2054,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .santa-hat:focus-visible {
-    outline: 1px solid var(--accent-light);
+    outline: 1px solid var(--focus);
 }
 
 .santa-hat.off {
@@ -2111,7 +2073,7 @@ html:not([data-skin]) body.idle .logo-eye {
     margin: 0;
     padding: 6px 12px;
     border: 1px solid rgba(var(--accent-rgb), 0.5);
-    background: rgba(20, 12, 26, 0.95);
+    background: var(--surface-raised);
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.06em;
     color: var(--text);
@@ -2141,7 +2103,7 @@ html:not([data-skin]) body.idle .logo-eye {
     display: block;
     width: 100%;
     overflow: visible;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+    filter: drop-shadow(0 3px 6px var(--shadow));
 }
 
 .birthday-cake:hover:not(:disabled) {
@@ -2149,7 +2111,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .birthday-cake:focus-visible {
-    outline: 1px solid var(--accent-light);
+    outline: 1px solid var(--focus);
 }
 
 .birthday-cake:disabled {
@@ -2157,7 +2119,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .birthday-cake .plate {
-    fill: #c9ccd3;
+    fill: var(--neutral);
 }
 
 .birthday-cake .sponge {
@@ -2165,7 +2127,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .birthday-cake .cream {
-    fill: #f3eef7;
+    fill: var(--heading);
 }
 
 .birthday-cake .band {
@@ -2177,13 +2139,13 @@ html:not([data-skin]) body.idle .logo-eye {
 .birthday-cake .candle {
     font: 700 31px Lato, Roboto, "Helvetica Neue", Arial, sans-serif;
     fill: var(--accent-light);
-    stroke: #f3eef7;
+    stroke: var(--heading);
     stroke-width: 1.5;
     paint-order: stroke;
 }
 
 .birthday-cake .wick {
-    stroke: #c9ccd3;
+    stroke: var(--neutral);
     stroke-width: 1.6;
     stroke-linecap: round;
 }
@@ -2198,8 +2160,8 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .birthday-cake .flame {
-    fill: #f0a35e;
-    filter: drop-shadow(0 0 4px rgba(240, 195, 94, 1)) drop-shadow(0 0 10px rgba(240, 163, 94, 0.7));
+    fill: var(--warning);
+    filter: drop-shadow(0 0 4px rgba(240, 195, 94, 1)) drop-shadow(0 0 10px color-mix(in srgb, var(--warning) 70%, transparent));
 }
 
 .birthday-cake .flame-core {
@@ -2208,7 +2170,7 @@ html:not([data-skin]) body.idle .logo-eye {
 
 .birthday-cake .smoke {
     fill: none;
-    stroke: rgba(220, 221, 222, 0.6);
+    stroke: color-mix(in srgb, var(--text) 60%, transparent);
     stroke-width: 1.5;
     stroke-linecap: round;
     opacity: 0;
@@ -2280,7 +2242,7 @@ html:not([data-skin]) body.idle .logo-eye {
     display: block;
     width: 100%;
     overflow: visible;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+    filter: drop-shadow(0 3px 6px var(--shadow));
 }
 
 .ny-rocket:hover:not(:disabled) {
@@ -2288,7 +2250,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .ny-rocket:focus-visible {
-    outline: 1px solid var(--accent-light);
+    outline: 1px solid var(--focus);
 }
 
 .ny-rocket .stick {
@@ -2298,7 +2260,7 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .ny-rocket .cone {
-    fill: #e86262;
+    fill: var(--danger);
 }
 
 .ny-rocket .tube {
@@ -2308,13 +2270,13 @@ html:not([data-skin]) body.idle .logo-eye {
 }
 
 .ny-rocket .band {
-    stroke: #e8d36a;
+    stroke: var(--warning);
     stroke-width: 2;
 }
 
 .ny-rocket .fuse {
     fill: none;
-    stroke: #f0a35e;
+    stroke: var(--warning);
     stroke-width: 1.5;
 }
 
@@ -2348,7 +2310,7 @@ html:not([data-skin]) body.idle .logo-eye {
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: rgba(6, 3, 10, 0.78);
+    background: var(--scrim);
     animation: ns-in 0.25s ease-out;
 }
 
@@ -2358,7 +2320,7 @@ html:not([data-skin]) body.idle .logo-eye {
     gap: 10px;
     width: min(560px, 100%);
     padding: 16px;
-    --fill: rgba(16, 10, 22, 0.97);
+    --fill: var(--surface-raised);
     outline: 0;
 }
 
@@ -2373,7 +2335,7 @@ html:not([data-skin]) body.idle .logo-eye {
     font: 13px "Sanakan Mono", monospace;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--accent-light);
+    color: var(--link);
 }
 
 .pp-close {
@@ -2382,13 +2344,13 @@ html:not([data-skin]) body.idle .logo-eye {
     background: none;
     font-size: 22px;
     line-height: 1;
-    color: rgba(220, 221, 222, 0.6);
+    color: var(--text-muted);
     cursor: pointer;
 }
 
 .pp-close:hover,
 .pp-close:focus-visible {
-    color: #fff;
+    color: var(--text-strong);
 }
 
 .pp-score {
@@ -2403,7 +2365,7 @@ html:not([data-skin]) body.idle .logo-eye {
     width: 100%;
     aspect-ratio: 16 / 9;
     border: 1px solid rgba(var(--accent-rgb), 0.35);
-    background: rgba(8, 5, 12, 0.9);
+    background: var(--surface-raised);
     cursor: none;
     touch-action: none;
 }
@@ -2415,7 +2377,7 @@ html:not([data-skin]) body.idle .logo-eye {
     font: 12px "Sanakan Mono", monospace;
     letter-spacing: 0.06em;
     text-align: center;
-    color: rgba(220, 221, 222, 0.7);
+    color: var(--text-secondary);
 }
 
 .pp-again {
@@ -2451,7 +2413,7 @@ html:not([data-skin]) body.idle .logo-eye {
     width: 100%;
     height: 100%;
     overflow: visible;
-    filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 1px rgba(220, 221, 222, 0.25));
+    filter: drop-shadow(0 0 10px var(--shadow)) drop-shadow(0 0 1px color-mix(in srgb, var(--text) 25%, transparent));
 }
 
 .sg-killy .coat {
@@ -2473,7 +2435,7 @@ html:not([data-skin]) body.idle .logo-eye {
 
 .sg-killy .charge {
     fill: #9be8ff;
-    filter: drop-shadow(0 0 3px #4fd1c5) drop-shadow(0 0 6px #4fd1c5);
+    filter: drop-shadow(0 0 3px var(--info)) drop-shadow(0 0 6px var(--info));
     animation: sg-killy-charge 1.2s ease-in-out infinite;
 }
 
@@ -2507,7 +2469,7 @@ html:not([data-skin]) body.idle .logo-eye {
     margin-bottom: 4px;
     padding: 2px 10px;
     border: 1px solid rgba(var(--accent-rgb), 0.5);
-    background: rgba(20, 12, 26, 0.95);
+    background: var(--surface-raised);
     font: 14px "Sanakan Mono", monospace;
     color: var(--text);
     transform: translateX(-50%);
@@ -2570,8 +2532,8 @@ html:not([data-skin]) body.idle .logo-eye {
 /* Friday the 13th (js/safeguard.js): a title that glitches for a moment */
 .sg-glitch {
     position: relative;
-    color: #e86262 !important;
-    text-shadow: 2px 0 rgba(79, 209, 197, 0.75), -2px 0 rgba(232, 98, 98, 0.75);
+    color: var(--danger) !important;
+    text-shadow: 2px 0 rgba(79, 209, 197, 0.75), -2px 0 color-mix(in srgb, var(--danger) 75%, transparent);
     cursor: crosshair;
     animation: sg-glitch 0.18s steps(2) infinite;
 }
@@ -2593,7 +2555,7 @@ html:not([data-skin]) body.idle .logo-eye {
     border: 0;
     background: none;
     cursor: pointer;
-    filter: drop-shadow(0 0 5px var(--egg, #9b59b6));
+    filter: drop-shadow(0 0 5px var(--egg, var(--accent)));
     animation: sg-egg-in 0.5s ease-out;
     -webkit-tap-highlight-color: transparent;
 }
@@ -2606,19 +2568,19 @@ html:not([data-skin]) body.idle .logo-eye {
 
 .sg-egg .shell {
     fill: #1a1320;
-    stroke: var(--egg, #9b59b6);
+    stroke: var(--egg, var(--accent));
     stroke-width: 1.4;
 }
 
 .sg-egg .band {
     fill: none;
-    stroke: #efe2f7;
+    stroke: var(--heading);
     stroke-width: 1.2;
     stroke-linejoin: round;
 }
 
 .sg-egg .dot {
-    fill: var(--egg, #9b59b6);
+    fill: var(--egg, var(--accent));
 }
 
 .sg-egg:hover,
@@ -2656,7 +2618,7 @@ html:not([data-skin]) body.idle .logo-eye {
     100% {
         opacity: 0;
         transform: scale(1.8) rotate(25deg) translateY(-12px);
-        filter: drop-shadow(0 0 14px var(--egg, #9b59b6)) brightness(2);
+        filter: drop-shadow(0 0 14px var(--egg, var(--accent))) brightness(2);
     }
 }
 

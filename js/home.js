@@ -526,8 +526,6 @@ function homeWitness(key) {
 
     var ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
-    var style = getComputedStyle(document.documentElement);
-    var mine = style.getPropertyValue('--accent-light').trim() || '#b670d3';
 
     var me, guard, ball, speed, points, serving, playing, target, frame, last;
     var keys = { up: false, down: false };
@@ -620,15 +618,16 @@ function homeWitness(key) {
     }
 
     function draw() {
+      var style = getComputedStyle(document.documentElement);
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = 'rgba(220, 221, 222, 0.18)';
+      ctx.fillStyle = style.getPropertyValue('--game-grid').trim();
       for (var y = 6; y < H; y += 18) ctx.fillRect(W / 2 - 1, y, 2, 9);
-      ctx.fillStyle = mine;
+      ctx.fillStyle = style.getPropertyValue('--link').trim();
       ctx.fillRect(EDGE, me - PAD / 2, PW, PAD);
-      ctx.fillStyle = '#e86262';
+      ctx.fillStyle = style.getPropertyValue('--danger').trim();
       ctx.fillRect(W - EDGE - PW, guard - PAD / 2, PW, PAD);
       if (ball) {
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = style.getPropertyValue('--text').trim();
         ctx.fillRect(ball.x - BALL / 2, ball.y - BALL / 2, BALL, BALL);
       }
     }

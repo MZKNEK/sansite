@@ -10,9 +10,9 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
   const user = '900000000000000002';
   const events = [
     { key: 'sakura', date: '2026-04-10', label: 'Złap płatek sakury', group: 'Sakura',
-      skins: [['chisato', 'Chisato', '188, 98, 109'], ['yaemiko', 'Yae Miko', '199, 108, 134']] },
+      skins: [['march7', 'March 7th', '245, 179, 206'], ['shogun', 'Raiden Shogun', '110, 82, 196']] },
     { key: 'perseids', date: '2026-08-10', label: 'Złap kometę', group: 'Perseidy',
-      skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '206, 91, 155']] }
+      skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '199, 63, 144']] }
   ];
   function fixture(name, change) {
     const file = path.join(site, 'inc/data', name + '.json');
@@ -131,12 +131,12 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       }
     }
     // Repeated previews reuse a scene, including after it was detached.
-    await chooseSkin(page, 'chisato');
+    await chooseSkin(page, 'march7');
     await page.locator('.sg-sakura').waitFor();
     await page.evaluate(() => { window.originalPetals = document.querySelector('.sg-sakura'); });
     await chooseSkin(page, 'suisei');
     await page.locator('.sg-perseids').waitFor();
-    await chooseSkin(page, 'yaemiko');
+    await chooseSkin(page, 'shogun');
     await page.locator('.sg-sakura').waitFor();
     assert.equal(await page.evaluate(() => document.querySelector('.sg-sakura') === window.originalPetals), true);
     await chooseSkin(page, '');
@@ -148,9 +148,9 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await page.locator('.account-menu').waitFor();
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-skin'));
     assert.equal(await page.locator('.sg-season-background').count(), 0, 'an account reply removes a revoked skin background');
-  }, { login: true, skin: 'chisato', finds: ['sakura', 'perseids'] });
+  }, { login: true, skin: 'march7', finds: ['sakura', 'perseids'] });
 
-  for (const [event, skin, find] of [[events[0], 'suisei', 'perseids'], [events[1], 'chisato', 'sakura']]) {
+  for (const [event, skin, find] of [[events[0], 'suisei', 'perseids'], [events[1], 'march7', 'sakura']]) {
     await visit(event.date, async (page, context, calls) => {
       await page.locator('.sg-' + event.key).waitFor();
       assert.equal(await page.locator('.sg-season-background').count(), 2, 'the seasonal event stays alongside another skin background');

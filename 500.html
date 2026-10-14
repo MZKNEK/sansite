@@ -15,11 +15,11 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
   <link href="/css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="/css/style.css?v=5191aa7143" type="text/css" rel="stylesheet" />
-  <link href="/css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="/css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="/css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
-  <link href="/css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
+  <link href="/css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
+  <link href="/css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="/css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
+  <link href="/css/skins.css?v=5a07d8545d" type="text/css" rel="stylesheet" />
+  <link href="/css/explorer.css?v=1fce7df87a" type="text/css" rel="stylesheet" />
   <style>
     /* the Safeguard's terminal of BLAME!, as on the 404 page, reporting a
        failure of the Megastructure's own machinery */
@@ -27,19 +27,19 @@
       font: 16px "Sanakan Mono", monospace;
       letter-spacing: 0.24em;
       text-transform: uppercase;
-      color: #f0a35e;
-      text-shadow: 0 0 10px rgba(240, 163, 94, 0.5);
+      color: var(--failure);
+      text-shadow: 0 0 10px color-mix(in srgb, var(--failure) 50%, transparent);
     }
 
     .failure .lock-icon {
-      stroke: #f0a35e;
-      filter: drop-shadow(0 0 6px rgba(240, 163, 94, 0.5));
+      stroke: var(--failure);
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--failure) 50%, transparent));
     }
 
     .failure > p {
       font: 13px/1.7 "Sanakan Mono", monospace;
       letter-spacing: 0.04em;
-      color: rgba(220, 221, 222, 0.75);
+      color: var(--text-secondary);
     }
 
     .failure .scan {
@@ -51,12 +51,12 @@
       font: 12px "Sanakan Mono", monospace;
       letter-spacing: 0.08em;
       text-align: left;
-      color: rgba(220, 221, 222, 0.6);
+      color: var(--text-muted);
     }
 
     .failure .scan dd {
       margin: 0;
-      color: #f0a35e;
+      color: var(--failure);
     }
 
     /* the warning sign, which hides something (js/500.js) */
@@ -70,7 +70,7 @@
     }
 
     .failure .failure-mark:focus-visible {
-      outline: 1px dashed rgba(240, 163, 94, 0.7);
+      outline: 1px dashed color-mix(in srgb, var(--failure) 70%, transparent);
       outline-offset: 4px;
     }
 
@@ -88,8 +88,8 @@
       display: block;
       margin: 0 auto 10px;
       max-width: 100%;
-      border: 1px solid rgba(240, 163, 94, 0.35);
-      background: rgba(8, 9, 9, 0.7);
+      border: 1px solid color-mix(in srgb, var(--failure) 35%, transparent);
+      background: var(--snake-surface);
       touch-action: none;
     }
 
@@ -100,22 +100,22 @@
       margin: 0 0 6px;
       font: 12px "Sanakan Mono", monospace;
       letter-spacing: 0.08em;
-      color: rgba(220, 221, 222, 0.6);
+      color: var(--text-muted);
     }
 
     .failure .snake-score b {
       font-weight: 400;
-      color: #f0a35e;
+      color: var(--failure);
     }
 
     .failure .snake-note {
       margin: 0;
       font: 11px/1.6 "Sanakan Mono", monospace;
       letter-spacing: 0.04em;
-      color: rgba(220, 221, 222, 0.45);
+      color: var(--text-dim);
     }
   </style>
-  <script src="/js/appearance.js?v=7d550aca36"></script>
+  <script src="/js/appearance.js?v=c787589afa"></script>
   <link href="/css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
@@ -148,7 +148,7 @@
   <script src="/js/account.js?v=9ad24ea77c"></script>
   <script src="/js/safeguard.js?v=060589dc14"></script>
   <script src="/js/seasonal-background.js?v=7b21cb1ce5"></script>
-  <script src="/js/500.js?v=219882180a"></script>
+  <script src="/js/500.js?v=a526ea6e3b"></script>
   <script src="/js/netsphere.js?v=a98676efe2"></script>
   <script src="/js/palette.js?v=9d395acc33"></script>
 </body>

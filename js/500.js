@@ -26,6 +26,7 @@
   var opened = null;  // the page's own content while the game is open
   var canvas, ctx, cell, scoreEl, bestEl, noteEl;
   var snake, dir, next, food, eaten, timer, state;  // state: ready, run, pause, over
+  var colorWatch, palette, paletteKey, lastDead;
 
   function best() {
     if (serverBest !== null) return serverBest;
@@ -79,6 +80,8 @@
 
     size();
     reset();
+    colorWatch = new MutationObserver(function () { draw(lastDead); });
+    colorWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-hud', 'class', 'style'] });
     document.addEventListener('keydown', onKey);
     window.addEventListener('resize', size);
     canvas.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -136,6 +139,7 @@
   function shut() {
     if (!opened) return;
     clearTimeout(timer);
+    colorWatch.disconnect();
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', size);
     box.removeChild(box.lastChild);
@@ -257,11 +261,33 @@
       + (serverBest !== null && !game.ticket ? ' Safeguard nie widział tej gry, więc jej nie zapisał.' : ''));
   }
 
+  function colors() {
+    var theme = getComputedStyle(document.documentElement);
+    var names = ['--snake-head', '--snake-body', '--snake-food', '--snake-grid'];
+    var key = theme.colorScheme + names.map(function (name) { return theme.getPropertyValue(name); }).join('|');
+    if (palette && key === paletteKey) return palette;
+    // Canvas cannot resolve light-dark(). Let CSS resolve the palette first,
+    // and cache it until a skin or its native colour scheme changes.
+    var swatch = document.createElement('span');
+    swatch.hidden = true;
+    canvas.parentNode.appendChild(swatch);
+    palette = names.map(function (name) {
+      swatch.style.color = 'var(' + name + ')';
+      return getComputedStyle(swatch).color;
+    });
+    swatch.remove();
+    paletteKey = key;
+    return palette;
+  }
+
   function draw(dead) {
+    lastDead = !!dead;
+    var palette = colors();
+    var ink = palette[0], accent = palette[1], danger = palette[2];
     var w = cell * COLS;
     var h = cell * ROWS;
     ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(240, 163, 94, 0.06)';
+    ctx.strokeStyle = palette[3];
     ctx.lineWidth = 1;
     for (var x = 1; x < COLS; x++) {
       ctx.beginPath();
@@ -277,16 +303,18 @@
     }
 
     ctx.shadowBlur = 8;
-    ctx.shadowColor = 'rgba(232, 98, 98, 0.9)';
-    ctx.fillStyle = '#e86262';
+    ctx.shadowColor = danger;
+    ctx.fillStyle = danger;
     ctx.fillRect(food.x * cell + cell * 0.25, food.y * cell + cell * 0.25, cell * 0.5, cell * 0.5);
 
     snake.forEach(function (s, i) {
-      ctx.shadowColor = dead ? 'rgba(232, 98, 98, 0.8)' : 'rgba(240, 163, 94, 0.8)';
+      ctx.shadowColor = dead ? danger : accent;
       ctx.shadowBlur = i === 0 ? 10 : 4;
-      ctx.fillStyle = i === 0 ? (dead ? '#e86262' : '#fff') : 'rgba(240, 163, 94, ' + Math.max(0.35, 1 - i * 0.03) + ')';
+      ctx.fillStyle = i === 0 ? (dead ? danger : ink) : accent;
+      ctx.globalAlpha = i === 0 ? 1 : Math.max(0.35, 1 - i * 0.03);
       ctx.fillRect(s.x * cell + 1, s.y * cell + 1, cell - 2, cell - 2);
     });
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
   }
 

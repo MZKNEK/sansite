@@ -102,19 +102,19 @@
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link rel="manifest" href="../../site.webmanifest" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=5191aa7143" type="text/css" rel="stylesheet" />
-  <link href="../../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
-  <link href="../../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="../../css/skins.css?v=65caa290b1" type="text/css" rel="stylesheet" />
-  <link href="../../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=b20c9359a9" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
+  <link href="../../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="../../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
+  <link href="../../css/skins.css?v=5a07d8545d" type="text/css" rel="stylesheet" />
+  <link href="../../css/explorer.css?v=1fce7df87a" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=c4ddf09879" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
   <link rel="prev" href="?v=<?=e(rawurlencode($around['older']['version']))?>" />
 <?php endif; ?>
 <?php if ($around['newer']): ?>
   <link rel="next" href="?v=<?=e(rawurlencode($around['newer']['version']))?>" />
 <?php endif; ?>
-  <script src="../../js/appearance.js?v=7d550aca36"></script>
+  <script src="../../js/appearance.js?v=c787589afa"></script>
   <script src="../../js/versions.js?v=9f931adf42" defer></script>
   <link href="../../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>

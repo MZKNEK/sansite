@@ -21,23 +21,23 @@
             'words' => true,
             'what' => 'turkusowa zieleń, logo Miku i japońskie napisy'
         ],
-        'tao' => [
-            'name' => 'Hu Tao',
+        'echidna' => [
+            'name' => 'Echidna',
             'find' => 'halloween',
             'words' => false,
-            'what' => 'czerwień ognia i logo Hu Tao, bez napisów'
+            'what' => 'czerń sukni i zieleń motyla Echidny, jej logo, bez napisów'
         ],
-        'rin' => [
-            'name' => 'Rin',
+        'marisa' => [
+            'name' => 'Marisa Kirisame',
             'find' => 'halloween',
             'words' => false,
-            'what' => 'żółć Rin i jej logo, bez napisów'
+            'what' => 'limonkowa żółć wiedźmy i jej logo, bez napisów'
         ],
-        'march7' => [
-            'name' => 'March 7th',
+        'fauna' => [
+            'name' => 'Ceres Fauna',
             'find' => 'xmas',
             'words' => false,
-            'what' => 'róż March 7th i jej logo, bez napisów'
+            'what' => 'świąteczna zieleń i logo Ceres Fauny, bez napisów'
         ],
         'padoru' => [
             'name' => 'Padoru',
@@ -57,11 +57,11 @@
             'words' => false,
             'what' => 'błękit Pekory i jej logo, bez napisów'
         ],
-        'furi' => [
-            'name' => 'Furina',
+        'ayame' => [
+            'name' => 'Nakiri Ayame',
             'find' => 'newyear',
             'words' => false,
-            'what' => 'królewski błękit Furiny i jej logo, bez napisów'
+            'what' => 'wino i srebro Ayame, jej logo, bez napisów'
         ],
         'albedo' => [
             'name' => 'Albedo',
@@ -69,11 +69,11 @@
             'words' => false,
             'what' => 'złoto Albedo na fioletowym tle i jej logo, bez napisów'
         ],
-        'sadako' => [
-            'name' => 'Sadako',
+        'tomie' => [
+            'name' => 'Tomie',
             'find' => 'friday13',
             'words' => false,
-            'what' => 'widmowy błękit studni i logo Sadako, bez napisów'
+            'what' => 'tusz i czerń Tomie, jej logo, bez napisów'
         ],
         'lain' => [
             'name' => 'Lain',
@@ -93,17 +93,17 @@
             'words' => false,
             'what' => 'stalowy błękit i czerń Killy\'ego, jego logo, bez napisów'
         ],
-        'chisato' => [
-            'name' => 'Chisato',
+        'march7' => [
+            'name' => 'March 7th',
             'find' => 'sakura',
             'words' => false,
-            'what' => 'bordowa czerwień i krem Chisato, jej logo, bez napisów'
+            'what' => 'jasny róż płatka i logo March 7th, bez napisów'
         ],
-        'yaemiko' => [
-            'name' => 'Yae Miko',
+        'shogun' => [
+            'name' => 'Raiden Shogun',
             'find' => 'sakura',
             'words' => false,
-            'what' => 'róż i śliwkowy fiolet Yae Miko, jej logo, bez napisów'
+            'what' => 'fiolet władczyni Inazumy i logo Raiden Shogun, bez napisów'
         ],
         'suisei' => [
             'name' => 'Suisei',

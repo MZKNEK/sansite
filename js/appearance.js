@@ -25,7 +25,7 @@ window.SanakanAppearance = (function () {
         if (url.origin === location.origin && /\/i\/u\/[0-9a-f]{16}\//.test(url.pathname)) image = url.pathname;
       } catch (_) { /* An unavailable picture falls back to Sanakan. */ }
     }
-    return { colors: colors, image: image };
+    return { colors: colors, image: image, base: value.base === 'light' ? 'light' : 'dark' };
   }
   if (!root.hasAttribute('data-hud')) {
     var hud = cookie('hud');
@@ -50,6 +50,8 @@ window.SanakanAppearance = (function () {
     return { skin: state.skin, words: state.words, custom: state.skin === 'custom' ? state.custom : null };
   }
   function paintSkin(id, custom) {
+    root.style.removeProperty('--scheme');
+    root.removeAttribute('data-skin-base');
     custom = customDesign(custom);
     root.style.removeProperty('--custom-logo');
     ['accent', 'accent-light', 'accent-dark', 'bg-dark', 'bg-mid', 'text', 'home-title',
@@ -57,6 +59,8 @@ window.SanakanAppearance = (function () {
       root.style.removeProperty('--custom-' + key);
     });
     if (id === 'custom' && custom) {
+      // Custom designs inherit the dark HUD unless light was chosen explicitly.
+      root.setAttribute('data-skin-base', custom.base);
       Object.keys(custom.colors).forEach(function (key) {
         var hex = custom.colors[key];
         root.style.setProperty('--custom-' + key, hex);

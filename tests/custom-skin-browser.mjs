@@ -52,6 +52,14 @@ export async function testCustomSkin({ browser, base, site, php, errors }) {
     assert.equal(await editor.isVisible(), true);
     assert.equal(await editor.evaluate(el => el.disabled), false);
     assert.equal(await page.locator('[name=skinwords]').isVisible(), false);
+    const baseField = page.locator('[data-custom-base]');
+    assert.equal(await baseField.inputValue(), 'dark');
+    assert.deepEqual(await baseField.locator('option').allTextContents(), ['Ciemna', 'Jasna']);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
+    assert.deepEqual(await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return Object.fromEntries(['--link', '--heading', '--surface', '--swap-fill'].map(key => [key, style.getPropertyValue(key).trim()]));
+    }), { '--link': '#b670d3', '--heading': '#efe2f7', '--surface': '#141517', '--swap-fill': 'rgba(58, 24, 80, 0.9)' }, 'default custom design inherits the original dark purple HUD');
     await page.locator('[data-custom-image]').selectOption(`${login.own}/A/test.png`);
     await page.locator('[data-custom-color=accent]').fill('#123456');
     await page.locator('[data-custom-color=bg-dark]').fill('#010203');
@@ -62,6 +70,30 @@ export async function testCustomSkin({ browser, base, site, php, errors }) {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
     assert.equal(await page.locator('[data-custom-color="accent-light"]').inputValue(), '#abcdef');
+    await baseField.selectOption('light');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light');
+    assert.equal(await page.locator('[data-custom-color=bg-dark]').inputValue(), '#e7e3ea');
+    assert.equal(await page.locator('[data-custom-color=text]').inputValue(), '#1b1a20');
+    await page.locator('[data-custom-color=accent]').fill('#456789');
+    await baseField.selectOption('dark');
+    assert.equal(await accent(), '18, 52, 86', 'the dark draft survives a light preview');
+    assert.equal(await page.locator('[data-custom-color="accent-light"]').inputValue(), '#abcdef');
+    assert.equal(await page.locator('[data-custom-color=bg-dark]').inputValue(), '#010203');
+    await baseField.selectOption('light');
+    assert.equal(await accent(), '69, 103, 137', 'the light draft survives switching back');
+    await save();
+    assert.equal(await baseField.inputValue(), 'light');
+    assert.equal(await page.locator('html').getAttribute('data-skin-base'), 'light');
+    await page.goto(`${base}/privacy/`);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light', 'saved light base travels through the appearance cookie');
+    await page.goto(`${base}/account/`);
+    assert.equal(await baseField.inputValue(), 'light', 'saved light base is rendered by PHP');
+    // A fresh page has a fresh dark draft; explicitly restore this test's
+    // edited colours before checking the original save and gallery flow.
+    await baseField.selectOption('dark');
+    await page.locator('[data-custom-color=accent]').fill('#123456');
+    await page.locator('[data-custom-color="accent-light"]').fill('#abcdef');
+    await page.locator('[data-custom-color=bg-dark]').fill('#010203');
     await page.locator('[data-custom-logo]').evaluate(img => img.decode());
     // The editor must fit a phone, and changing skins must remove its variables.
     await page.setViewportSize({ width: 390, height: 844 });
@@ -78,6 +110,7 @@ export async function testCustomSkin({ browser, base, site, php, errors }) {
     assert.equal(saved.image, `${login.own}/A/test.png`);
     assert.equal(saved.colors.accent, '#123456');
     assert.equal(saved.colors['bg-dark'], '#010203');
+    assert.equal(saved.base, 'dark');
     await page.goto(`${base}/`);
     await page.locator('.account-menu').waitFor();
     await page.locator('img.logo').evaluate(img => img.decode());
