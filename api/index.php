@@ -48,9 +48,10 @@
   <link href="../css/style.css?v=345d373ea1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=ff07306679" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=cdf925d91d" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=0b8d6445c6" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=5315e00a11" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=4e82c4b35a" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=7b68bd4840"></script>
+  <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -102,7 +103,8 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
-  <script src="../js/safeguard.js?v=a78c0e3f4b"></script>
+  <script src="../js/safeguard.js?v=060589dc14"></script>
+  <script src="../js/seasonal-background.js?v=e621dbc38d"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
@@ -124,7 +126,7 @@
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=345d373ea1" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=ff07306679" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=cdf925d91d" />
-  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=0b8d6445c6" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=5315e00a11" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=bd6495c3fc" >
   <script src="../js/appearance.js?v=7b68bd4840"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
@@ -149,6 +151,7 @@
       margin:0;
     }
   </style>
+  <link href="../css/seasonal-background.css?v=e80f70eea5" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -228,7 +231,8 @@
 <script src="./init.js?v=9e46400eb6"></script>
 <script src="../js/to-top.js?v=6ce6e2481f"></script>
 <script src="../js/netsphere.js?v=a98676efe2"></script>
-<script src="../js/safeguard.js?v=a78c0e3f4b"></script>
+<script src="../js/safeguard.js?v=060589dc14"></script>
+<script src="../js/seasonal-background.js?v=e621dbc38d"></script>
 <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>

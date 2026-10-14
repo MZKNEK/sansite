@@ -455,3 +455,131 @@ html[data-skin="killy"] .home .link-swap:not(.below) a.swap-alt:hover {
     --fill: #3c4552;
     color: #fff;
 }
+
+/* Chisato: the burgundy of her eyes, ribbon and background with the cream of
+   her hair. The Sakura find unlocks her; colours and logo alone. */
+html[data-skin="chisato"] {
+    --accent: #bc626d;
+    --accent-light: #e8b8b5;
+    --accent-dark: #873642;
+    --accent-rgb: 188, 98, 109;
+    --accent-light-rgb: 232, 184, 181;
+    --accent-dark-rgb: 135, 54, 66;
+    --hud-rgb: 188, 98, 109;
+    --hud-light-rgb: 232, 184, 181;
+    --bg-dark: #140b0e;
+    --bg-mid: #3b2028;
+    --text: #eeddd3;
+}
+
+html[data-skin="chisato"] .home .logo-slice,
+html[data-skin="chisato"] .home .logo-shard {
+    background-image: url("../skins/chisato.webp");
+}
+
+html[data-skin="chisato"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #e8b8b5;
+    --fill: rgba(59, 32, 40, 0.9);
+    color: #eeddd3;
+}
+
+html[data-skin="chisato"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #873642;
+    color: #fff;
+}
+
+/* Yae Miko: her rose hair and the plum of her eyes and clothes, unlocked by
+   the same Sakura find. No words either. */
+html[data-skin="yaemiko"] {
+    --accent: #c76c86;
+    --accent-light: #edb8c9;
+    --accent-dark: #86405f;
+    --accent-rgb: 199, 108, 134;
+    --accent-light-rgb: 237, 184, 201;
+    --accent-dark-rgb: 134, 64, 95;
+    --hud-rgb: 199, 108, 134;
+    --hud-light-rgb: 237, 184, 201;
+    --bg-dark: #150b13;
+    --bg-mid: #432035;
+    --text: #f1dce4;
+}
+
+html[data-skin="yaemiko"] .home .logo-slice,
+html[data-skin="yaemiko"] .home .logo-shard {
+    background-image: url("../skins/yaemiko.webp");
+}
+
+html[data-skin="yaemiko"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #edb8c9;
+    --fill: rgba(67, 32, 53, 0.9);
+    color: #f1dce4;
+}
+
+html[data-skin="yaemiko"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #86405f;
+    color: #fff;
+}
+
+/* Suisei: the blue of her hair and the navy of her starry picture. The
+   Perseids find unlocks her; colours and logo alone. */
+html[data-skin="suisei"] {
+    --accent: #7097e3;
+    --accent-light: #b8ccef;
+    --accent-dark: #365493;
+    --accent-rgb: 112, 151, 227;
+    --accent-light-rgb: 184, 204, 239;
+    --accent-dark-rgb: 54, 84, 147;
+    --hud-rgb: 112, 151, 227;
+    --hud-light-rgb: 184, 204, 239;
+    --bg-dark: #080e1c;
+    --bg-mid: #16233f;
+    --text: #e3e7f3;
+}
+
+html[data-skin="suisei"] .home .logo-slice,
+html[data-skin="suisei"] .home .logo-shard {
+    background-image: url("../skins/suisei.webp");
+}
+
+html[data-skin="suisei"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #c4d4f3;
+    --fill: rgba(22, 35, 63, 0.9);
+    color: #e3e7f3;
+}
+
+html[data-skin="suisei"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #365493;
+    color: #fff;
+}
+
+/* Hoshino Ai: magenta stars and ribbons on the dark violet of her hair,
+   unlocked by the same Perseids find. No words either. */
+html[data-skin="hoshino"] {
+    --accent: #ce5b9b;
+    --accent-light: #ebb6d4;
+    --accent-dark: #762b68;
+    --accent-rgb: 206, 91, 155;
+    --accent-light-rgb: 235, 182, 212;
+    --accent-dark-rgb: 118, 43, 104;
+    --hud-rgb: 206, 91, 155;
+    --hud-light-rgb: 235, 182, 212;
+    --bg-dark: #120a1b;
+    --bg-mid: #31132e;
+    --text: #f0dce9;
+}
+
+html[data-skin="hoshino"] .home .logo-slice,
+html[data-skin="hoshino"] .home .logo-shard {
+    background-image: url("../skins/hoshino.webp");
+}
+
+html[data-skin="hoshino"] .home .link-swap:not(.below) a.swap-alt {
+    --corner: #ebb6d4;
+    --fill: rgba(49, 19, 46, 0.9);
+    color: #f0dce9;
+}
+
+html[data-skin="hoshino"] .home .link-swap:not(.below) a.swap-alt:hover {
+    --fill: #762b68;
+    color: #fff;
+}

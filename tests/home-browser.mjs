@@ -237,7 +237,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     assert.equal(await select.inputValue(), '', 'nothing picked yet');
-    assert.equal(await select.locator('optgroup').count(), 7, 'the picker groups the skins by their find');
+    assert.equal(await select.locator('optgroup').count(), 9, 'the picker groups the skins by their find');
     assert.equal(await select.locator('optgroup[label="Prima aprilis"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Nowy rok"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Piątek trzynastego"] option').count(), 2);
@@ -329,11 +329,11 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     const locked = select.locator('option:disabled');
-    assert.equal(await locked.count(), 14, 'all seasonal skins are locked without finds');
+    assert.equal(await locked.count(), 18, 'all seasonal skins are locked without finds');
     for (const [group, hint] of [
       ['Prima aprilis', 'Zagubiony w tłumaczeniu'], ['Halloween', 'Noc form krzemowych'],
       ['Święta', 'Święta w Megastrukturze'], ['Wielkanoc', 'Pisanki z Megastruktury'],
-      ['Nowy rok', 'Nowy cykl'], ['Piątek trzynastego', 'Piątek trzynastego'], ['Urodziny', 'Sto lat']
+      ['Nowy rok', 'Nowy cykl'], ['Piątek trzynastego', 'Piątek trzynastego'], ['Urodziny', 'Sto lat'], ['Sakura', 'Sakura'], ['Perseidy', 'Perseidy']
     ]) {
       const options = select.locator(`optgroup[label="${group}"] option:disabled`);
       assert.equal(await options.count(), 2);
@@ -343,7 +343,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await locked.evaluateAll(options => options.every(option => option.value === '' && !option.hasAttribute('data-skin-words'))), true,
       'locked options expose neither identifiers nor language metadata');
     const form = await page.locator('.skin-form').textContent();
-    for (const name of ['Teto', 'Miku', 'Hu Tao', 'Rin', 'March 7th', 'Padoru', 'Reisen', 'Pekora', 'Furina', 'Albedo', 'Sadako', 'Lain', 'Cibo', 'Killy'])
+    for (const name of ['Teto', 'Miku', 'Hu Tao', 'Rin', 'March 7th', 'Padoru', 'Reisen', 'Pekora', 'Furina', 'Albedo', 'Sadako', 'Lain', 'Cibo', 'Killy', 'Chisato', 'Yae Miko', 'Suisei', 'Hoshino Ai'])
       assert.equal(form.includes(name), false, 'the form keeps the name hidden: ' + name);
     // a form sent by hand cannot talk the server into a locked skin
     const me = await (await context.request.get(`${base}/account.php?finds`)).json();

@@ -92,6 +92,30 @@
             'find' => 'birthday',
             'words' => false,
             'what' => 'stalowy błękit i czerń Killy\'ego, jego logo, bez napisów'
+        ],
+        'chisato' => [
+            'name' => 'Chisato',
+            'find' => 'sakura',
+            'words' => false,
+            'what' => 'bordowa czerwień i krem Chisato, jej logo, bez napisów'
+        ],
+        'yaemiko' => [
+            'name' => 'Yae Miko',
+            'find' => 'sakura',
+            'words' => false,
+            'what' => 'róż i śliwkowy fiolet Yae Miko, jej logo, bez napisów'
+        ],
+        'suisei' => [
+            'name' => 'Suisei',
+            'find' => 'perseids',
+            'words' => false,
+            'what' => 'gwiezdny błękit na granacie Suisei, jej logo, bez napisów'
+        ],
+        'hoshino' => [
+            'name' => 'Hoshino Ai',
+            'find' => 'perseids',
+            'words' => false,
+            'what' => 'magenta i ciemny fiolet Hoshino Ai, jej logo, bez napisów'
         ]
     ];
 
@@ -105,7 +129,9 @@
         'easter' => 'Wielkanoc',
         'newyear' => 'Nowy rok',
         'friday13' => 'Piątek trzynastego',
-        'birthday' => 'Urodziny'
+        'birthday' => 'Urodziny',
+        'sakura' => 'Sakura',
+        'perseids' => 'Perseidy'
     ];
 
     function skinCatalogScript()

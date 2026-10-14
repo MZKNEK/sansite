@@ -34,6 +34,37 @@
     $app = preg_match('~^/u?skalpel/~', $path) === 1;
     previewHeaders($root . '/server/nginx/' . ($app ? 'sanakan-app-headers.conf' : 'sanakan-headers.conf'), $path);
 
+    // Direct links to the two seasonal previews. Keep them on separate hosts
+    // (127.0.0.1 and localhost) so their localStorage dates stay independent.
+    // A skin override lasts this page visit, leaving account preferences alone.
+    require_once $root . '/inc/skin-catalog.php';
+    $eventDays = ['sakura' => '04-10', 'perseids' => '08-10'];
+    $event = is_string($_GET['event'] ?? null) ? $_GET['event'] : '';
+    $skin = is_string($_GET['skin'] ?? null) ? $_GET['skin'] : '';
+    $event = isset($eventDays[$event]) ? $event : '';
+    $skin = isset(SKINS[$skin]) ? $skin : '';
+    if (($event !== '' || $skin !== '') && ($path === '/' || $path === '/__event.js')) {
+        header('Cache-Control: no-store');
+        if ($path === '/__event.js') {
+            header('Content-Type: text/javascript; charset=utf-8');
+            if ($event !== '')
+                echo 'localStorage.setItem("safeguard-date", ' . json_encode($eventDays[$event]) . ');';
+            if ($skin !== '') {
+                echo 'document.documentElement.setAttribute("data-skin", ' . json_encode($skin) . ');';
+                echo 'document.addEventListener("DOMContentLoaded", function () {'
+                    . 'SanakanAppearance.forVisit(' . json_encode($skin) . ', false);'
+                    . 'document.title = ' . json_encode(SKINS[$skin]['name'] . ' · podgląd Sanakan') . ';'
+                    . '});';
+            }
+        } else {
+            header('Content-Type: text/html; charset=utf-8');
+            $query = htmlspecialchars(http_build_query(['event' => $event, 'skin' => $skin]), ENT_QUOTES, 'UTF-8');
+            echo str_replace('<head>', '<head><script src="/__event.js?' . $query . '"></script>',
+                (string)file_get_contents($root . '/index.html'));
+        }
+        return true;
+    }
+
     // never served: the configuration and the data and the dot files (.preview,
     // .git), refused as nginx does; the folders of the accounts by their IDs
     // and the sources of the apps, missing as on the site

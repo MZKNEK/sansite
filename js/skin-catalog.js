@@ -69,5 +69,25 @@ window.SanakanSkinCatalog = {
         "name": "Killy",
         "lang": null,
         "alt": "Killy"
+    },
+    "chisato": {
+        "name": "Chisato",
+        "lang": null,
+        "alt": "Chisato"
+    },
+    "yaemiko": {
+        "name": "Yae Miko",
+        "lang": null,
+        "alt": "Yae Miko"
+    },
+    "suisei": {
+        "name": "Suisei",
+        "lang": null,
+        "alt": "Suisei"
+    },
+    "hoshino": {
+        "name": "Hoshino Ai",
+        "lang": null,
+        "alt": "Hoshino Ai"
     }
 };

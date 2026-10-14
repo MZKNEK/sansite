@@ -441,6 +441,21 @@
         assertTrue(!isset(SAFEGUARD_SEASONAL['pingpong']));
     });
 
+    test('Sakura and Perseids need an in-season server witness with the usual timezone slack', function () {
+        foreach (['sakura' => 4, 'perseids' => 8] as $key => $month) {
+            $start = new DateTimeImmutable(sprintf('2026-%02d-01 12:00', $month), new DateTimeZone('Europe/Warsaw'));
+            $end = $start->modify('+14 days');
+            foreach ([$start, $end, $start->modify('-16 hours'), $end->modify('+16 hours')] as $day) {
+                $answer = megastructureAnswer('a', ['witness' => $key], $day);
+                assertSame(['proof' => true], proven($answer, $key, $day->getTimestamp()), $key . ' on ' . $day->format('c'));
+            }
+            foreach ([$start->modify('-2 days'), $end->modify('+2 days')] as $day)
+                assertSame(['denied' => true], megastructureAnswer('a', ['witness' => $key], $day));
+            assertTrue(isset(megastructureAnswer('a', ['witness' => $key], $start->modify('+3 months'), true)['proof']), 'the local preview can pretend the event');
+            assertFalse(in_array($key, MEGA_PLAIN_FINDS, true), 'the event cannot bypass the date check');
+        }
+    });
+
     test('the idle page and the Emitter need the time they take since their ticket', function () {
         $noon = megaAt(12, 0);
         $ticket = function ($kind, $at) { return megastructureAnswer('a', ['ticket' => $kind], $at)['ticket'] ?? null; };

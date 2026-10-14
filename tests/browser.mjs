@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { testSafeguardSync } from './safeguard-browser.mjs';
 import { testHome } from './home-browser.mjs';
 import { testSkinChanges } from './skins-browser.mjs';
+import { testSeasonalBackground } from './seasonal-browser.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
@@ -211,6 +212,7 @@ try {
   assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
   await testHome({ browser, base, site, php, errors });
   await testSkinChanges({ browser, base, site, errors });
+  await testSeasonalBackground({ browser, base, site, php, errors });
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
   console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');

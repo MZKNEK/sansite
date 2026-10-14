@@ -59,7 +59,9 @@ window.SanakanSafeguard = (function () {
     aprilfools: 'Zagubiony w tłumaczeniu',
     birthday: 'Sto lat',
     halloween: 'Noc form krzemowych',
-    friday13: 'Piątek trzynastego'
+    friday13: 'Piątek trzynastego',
+    sakura: 'Sakura',
+    perseids: 'Perseidy'
   };
   var NAMES = {};
   [FINDS, SEASONAL].forEach(function (list) {
@@ -617,7 +619,9 @@ window.SanakanSafeguard = (function () {
   // January), "newyear" on 31 December and 1 January, "easter" from Palm
   // Sunday to Easter Monday, "aprilfools" on 1 April, "birthday" on the bot's,
   // 13 October, "halloween" on 31 October and "friday13" on every Friday the
-  // 13th (the same as safeguardHolidays() in inc/auth/finds.php).
+  // 13th, "sakura" from 1 to 15 April and "perseids" from 1 to 15 August
+  // (the same as safeguardHolidays() in inc/auth/finds.php; backgrounds in
+  // js/seasonal-background.js).
   function holidays(d) {
     d = d || today();
     var list = [];
@@ -630,6 +634,8 @@ window.SanakanSafeguard = (function () {
     if (d.month === 10 && d.day === 13) list.push('birthday');
     if (d.month === 10 && d.day === 31) list.push('halloween');
     if (d.day === 13 && date.getDay() === 5) list.push('friday13');
+    if (d.month === 4 && d.day <= 15) list.push('sakura');
+    if (d.month === 8 && d.day <= 15) list.push('perseids');
     return list;
   }
 
@@ -1167,6 +1173,7 @@ window.SanakanSafeguard = (function () {
   // asks megastructure.php (post for a POST), fragment(n, value) keeps a fragment of the gene
   // and fragments() gives those kept
   return {
+    notice: notice,
     found: found,
     witness: witness,
     ticket: ticket,

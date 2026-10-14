@@ -60,6 +60,23 @@
         assertSame('teto', skinPref('999'));
     });
 
+    test('one seasonal find unlocks both of its new skins and no skins from the other event', function () {
+        foreach (['sakura' => ['chisato', 'yaemiko'], 'perseids' => ['suisei', 'hoshino']] as $find => $keys) {
+            clearData();
+            foreach (['chisato', 'yaemiko', 'suisei', 'hoshino'] as $key)
+                assertFalse(skinUnlocked($key, '111'));
+            writeData('finds', ['111' => [$find => time()]]);
+            foreach (['chisato', 'yaemiko', 'suisei', 'hoshino'] as $key) {
+                assertSame(in_array($key, $keys, true), skinUnlocked($key, '111'));
+                assertFalse(skinSpeaks($key));
+            }
+            foreach ($keys as $key) {
+                assertTrue(setSkin('111', $key));
+                assertSame($key, skinPref('111'));
+            }
+        }
+    });
+
     test('a permissions preview removes the owners skin bonus but keeps earned skins and the saved pick', function () {
         sessionFor('sanakan-skins-preview', ['id' => '999', 'name' => 'Root', 'avatar' => 'a']);
         try {

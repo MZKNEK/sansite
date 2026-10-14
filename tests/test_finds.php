@@ -116,12 +116,28 @@
         assertSame(['easter'], $on('2027-03-21'), 'Palm Sunday, Easter on 28 March 2027');
         assertSame(['easter'], $on('2027-03-29'), 'Easter Monday');
         assertSame([], $on('2027-03-30'));
-        assertSame(['easter', 'aprilfools'], $on('2029-04-01'), 'Easter Sunday on 1 April 2029');
+        assertSame(['easter', 'aprilfools', 'sakura'], $on('2029-04-01'), 'Sakura overlaps Easter Sunday and April Fools');
         assertSame(['birthday'], $on('2026-10-13'));
         assertSame(['halloween'], $on('2026-10-31'));
         assertSame(['friday13'], $on('2026-11-13'));
         assertSame(['birthday', 'friday13'], $on('2028-10-13'), 'the birthday on a Friday');
         assertSame([], $on('2026-10-12'));
+    });
+
+    test('Sakura and Perseids last the first fifteen days of their months', function () {
+        foreach (['sakura' => 4, 'perseids' => 8] as $key => $month) {
+            $start = new DateTimeImmutable(sprintf('2026-%02d-01 00:00', $month), new DateTimeZone('Europe/Warsaw'));
+            assertFalse(in_array($key, safeguardHolidays($start->modify('-1 day')), true));
+            for ($day = 0; $day < 15; $day++) {
+                $date = $start->modify('+' . $day . ' days');
+                assertTrue(in_array($key, safeguardHolidays($date), true), $key . ' on ' . $date->format('Y-m-d'));
+                assertSame(0, safeguardHolidayIn($key, $date));
+            }
+            assertFalse(in_array($key, safeguardHolidays($start->modify('+15 days')), true));
+            assertSame(1, safeguardHolidayIn($key, $start->modify('-1 day')));
+            assertTrue(isset(SAFEGUARD_SEASONAL[$key]));
+            assertFalse(isset(SAFEGUARD_FINDS[$key]), 'the event stays outside the permanent count');
+        }
     });
 
     test('safeguardHolidayIn says how soon a seasonal find comes back', function () {

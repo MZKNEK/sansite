@@ -1,0 +1,126 @@
+/* Native CSS backgrounds for seasonal finds. Content stays above the layer;
+   background clicks are checked by js/seasonal-background.js, not intercepted. */
+body.seasonal-background { isolation: isolate; }
+
+.sg-season-background {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.seasonal-particle { position: absolute; }
+
+.seasonal-catch {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+}
+
+.seasonal-catch:focus-visible {
+    outline: 1px dashed var(--season-color, #bddaff);
+    outline-offset: -4px;
+}
+
+/* Focus makes the target visible and stationary, including between flights. */
+.sg-season-background:focus-within { z-index: 31; }
+.seasonal-particle:focus-within {
+    top: 18vh;
+    opacity: 1;
+    animation: none;
+}
+.seasonal-particle:focus-within .sakura-drift { animation: none; }
+
+.sg-season-background.paused .seasonal-particle,
+.sg-season-background.paused .sakura-drift,
+.sg-season-background.paused .perseid-star { animation-play-state: paused; }
+
+.sakura-fall {
+    top: -50px;
+    animation: sakura-fall var(--season-duration) var(--season-delay) linear infinite;
+}
+.sakura-drift {
+    animation: sakura-drift var(--season-sway) var(--season-delay) ease-in-out infinite alternate;
+}
+.sakura-petal svg {
+    width: var(--season-size);
+    height: calc(var(--season-size) * 1.25);
+    fill: var(--season-color);
+    opacity: var(--season-opacity);
+    transform: rotate(-32deg);
+    transition: opacity 0.2s;
+}
+.sakura-petal.catching svg,
+.sakura-petal:focus-visible svg { opacity: 1; }
+
+.perseid-star {
+    position: absolute;
+    width: var(--season-size);
+    height: var(--season-size);
+    border-radius: 50%;
+    background: #dbe9ff;
+    box-shadow: 0 0 5px rgba(151, 192, 255, 0.45);
+    animation: perseid-twinkle var(--season-duration) var(--season-delay) ease-in-out infinite alternate;
+}
+.perseid-flight {
+    top: -100px;
+    animation: perseid-flight var(--season-duration) var(--season-delay) linear infinite;
+}
+.perseid-comet { position: relative; }
+.perseid-comet::before {
+    content: "";
+    position: absolute;
+    right: 50%;
+    top: 50%;
+    width: 130px;
+    height: 2px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, transparent, #8bbcf3);
+    transform: rotate(42deg);
+    transform-origin: right center;
+}
+.perseid-comet::after {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #eff8ff;
+    box-shadow: 0 0 8px #b8d9ff, 0 0 18px rgba(139, 188, 243, 0.65);
+}
+.perseid-comet.catching::after { box-shadow: 0 0 18px #eff8ff; }
+
+@keyframes sakura-fall {
+    to { transform: translateY(calc(100vh + 100px)); }
+}
+@keyframes sakura-drift {
+    from { transform: translateX(-24px) rotate(-18deg); }
+    to { transform: translateX(24px) rotate(28deg); }
+}
+@keyframes perseid-twinkle {
+    from { opacity: 0.15; }
+    to { opacity: 0.75; }
+}
+@keyframes perseid-flight {
+    0%, 60% { opacity: 0; transform: translate(-24vw, 0); }
+    63% { opacity: 0.8; }
+    90%, 100% { opacity: 0; transform: translate(52vw, calc(100vh + 200px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .seasonal-particle {
+        top: var(--season-rest-top);
+        opacity: 0.65;
+        animation: none;
+    }
+    .sakura-drift,
+    .perseid-star { animation: none; }
+    .sakura-petal svg { transition: none; }
+    .sg-sakura .seasonal-particle:nth-child(n + 9) { display: none; }
+    .perseid-star { opacity: 0.35; }
+}
