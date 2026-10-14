@@ -218,12 +218,19 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.getByRole('dialog', { name: 'セーフガードと卓球' }).waitFor();
     assert.equal(await page.locator('.pp-note').textContent(), 'マウス、タッチ、矢印キーで操作。5点先取。');
     await page.keyboard.press('Escape');
+    // Morse installs a fake clock, so its requestAnimationFrame can run before
+    // the native resize event repositions the Easter egg from desktop to phone.
+    await page.evaluate(() => {
+      window.__homePhoneResized = false;
+      window.addEventListener('resize', () => { window.__homePhoneResized = true; }, { once: true });
+    });
     await page.setViewportSize({ width: 390, height: 844 });
-    // Let resize listeners reposition seasonal decorations before measuring.
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+    await page.waitForFunction(() => window.__homePhoneResized);
+    await page.evaluate(() => { delete window.__homePhoneResized; });
     const overflow = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth,
       elements: [...document.body.querySelectorAll('*')].filter(node => node.getBoundingClientRect().right > innerWidth + 1)
-        .slice(0, 8).map(node => ({ tag: node.tagName, cls: node.className, text: node.textContent.slice(0, 80), right: node.getBoundingClientRect().right })) }));
+        .map(node => ({ tag: node.tagName, cls: node.className, text: node.textContent.slice(0, 80), right: node.getBoundingClientRect().right }))
+        .sort((a, b) => b.right - a.right).slice(0, 8) }));
     assert.ok(overflow.scroll <= overflow.width, 'Japanese navigation fits a phone: ' + JSON.stringify(overflow));
     await Promise.all([page.waitForNavigation(), page.locator('h1 .home-language-reset').click()]);
     assert.equal(await page.locator('html').getAttribute('lang'), 'pl', 'clicking the title restores Polish');
