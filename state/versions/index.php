@@ -228,7 +228,7 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
   <script src="../../js/account.js?v=9ad24ea77c"></script>
   <script src="../../js/netsphere.js?v=8517a9ef25"></script>
-  <script src="../../js/safeguard.js?v=5303da0ccd"></script>
+  <script src="../../js/safeguard.js?v=d0f347f6fa"></script>
   <script src="../../js/seasonal-background.js?v=50f1ef0470"></script>
   <script src="../../js/palette.js?v=9d395acc33"></script>
 </body>

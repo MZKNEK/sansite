@@ -17,8 +17,9 @@
     //      Safeguard in the browser's console, and safeguard('<that word>')
     //      there the third fragment (a find, "maze");
     //   4. the fourth fragment the Safeguard leaves only on paper: once the
-    //      browser knows the word, any page printed (its preview is enough)
-    //      shows it, and nothing on the screen does (a find, "paper").
+    //      browser knows the word or the account has the third fragment, any
+    //      page printed (its preview is enough) shows it, and nothing on the
+    //      screen does (a find, "paper").
     // The four together, "gen <sequence>" in the terminal of the Netsphere,
     // give the gene, the one time the Safeguard lets anyone in (a find, "gene").
     //
@@ -1033,6 +1034,7 @@
 
         if (isset($query['paper']))
             return strtolower(trim($query['paper'])) === megaConsoleWord($secret)
+                || isset(safeguardFinds($id)['maze'])
                 ? ['fragment' => geneFragment($secret, 4), 'proof' => $proof('paper')]
                 : ['known' => false];
 

@@ -97,6 +97,38 @@ export async function testSafeguardSync({ browser, base, site, php, errors }) {
     assert.deepEqual(state.retryProofs || {}, {}, 'confirmed finds no longer keep replacement proofs');
   }
 
+  // A new device can print the last fragment using the account's third one,
+  // including static pages whose account menu arrives after Safeguard starts.
+  const beforePaper = Object.fromEntries(Object.entries(fixture.finds).slice(0, 3));
+  for (const url of ['/', '/500.html']) {
+    await withRegister({}, beforePaper, async page => {
+      const prepared = page.waitForResponse(response => new URL(response.url()).searchParams.has('paper'));
+      await page.goto(base + url);
+      assert.ok((await (await prepared).json()).fragment, 'the recorded maze prepares paper without a local word');
+      await page.waitForLoadState('networkidle');
+      assert.equal(await page.evaluate(() => localStorage.getItem('safeguard-gene')), null);
+      assert.equal(await page.locator('.sg-paper').count(), 0, 'preparing paper keeps it off screen');
+      assert.deepEqual(JSON.parse(readFileSync(findsFile, 'utf8'))[id], beforePaper, 'preparing does not award the paper find');
+      await page.emulateMedia({ media: 'print' });
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+      assert.equal(await page.locator('.sg-paper b').textContent(), `Fragment sekwencji 4/4: ${fixture.fragments[3]}`);
+      assert.ok(await page.locator('.sg-paper').isVisible(), 'the fragment is visible in print');
+      await page.waitForFunction(() => JSON.parse(localStorage.getItem('safeguard'))?.sent?.paper);
+      assert.ok(JSON.parse(readFileSync(findsFile, 'utf8'))[id].paper, 'printing records an account-bound paper proof');
+      await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+      assert.equal(await page.locator('.sg-paper').count(), 0);
+    });
+  }
+  await withRegister({ finds: { maze: fixture.finds.maze }, sent: { maze: 1 } }, {}, async page => {
+    await page.addInitScript(() => localStorage.setItem('safeguard-gene', JSON.stringify({ 3: 'FFFF' })));
+    const prepared = page.waitForResponse(response => new URL(response.url()).searchParams.has('paper'));
+    await page.goto(base + '/500.html');
+    assert.equal((await (await prepared).json()).known, false, 'local progress cannot replace the account check');
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+    assert.equal(await page.locator('.sg-paper').count(), 0);
+  });
+
   // A fresh browser recovers fragments from the account, and stale local
   // fragments never reveal discoveries the account lacks.
   for (const keys of [Object.keys(beforeGene), ['builders', 'paper'], []]) {

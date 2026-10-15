@@ -206,6 +206,22 @@
         assertSame([], megastructureAnswer('', ['paper' => megaConsoleWord('a')], $noon));
     });
 
+    test('the recorded third fragment gives paper without a local word', function () {
+        $noon = megaAt(12, 0);
+        writeData('finds', ['111' => ['builders' => 10, 'floor0' => 40, 'maze' => 70], '222' => ['builders' => 10, 'floor0' => 40]]);
+        foreach (['', 'outdated-word'] as $word) {
+            $answer = megastructureAnswer('a', ['paper' => $word], $noon, false, '111');
+            assertSame(['fragment' => geneFragment('a', 4), 'proof' => true], proven($answer, 'paper', $noon->getTimestamp()));
+            assertSame($noon->getTimestamp(), megaProofTime('a', 'paper', $answer['proof'], '111'));
+            assertSame(null, megaProofTime('a', 'paper', $answer['proof'], '222'));
+            assertSame(['known' => false], megastructureAnswer('a', ['paper' => $word], $noon, false, '222'));
+            assertSame(['stranger' => true], megastructureAnswer('a', ['paper' => $word], $noon));
+        }
+        assertSame(['builders' => 10, 'floor0' => 40, 'maze' => 70], safeguardFinds('111'), 'prefetching does not award paper');
+        writeData('finds', ['111' => ['builders' => 10, 'floor0' => 40]]);
+        assertSame(['known' => false], megastructureAnswer('a', ['paper' => ''], $noon, false, '111'), 'withdrawn third fragment no longer permits paper');
+    });
+
     test('the console word gives the third fragment', function () {
         $noon = megaAt(12, 0);
         assertSame(['known' => false], megastructureAnswer('a', ['ask' => 'toha'], $noon, false, '111'));

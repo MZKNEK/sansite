@@ -426,9 +426,10 @@ window.SanakanSafeguard = (function () {
   }
 
   // The fourth fragment the Safeguard leaves only on paper. Once the browser
-  // has the word of floor zero's maze, every page asks for it beforehand and
-  // keeps it in memory only; a page about to be printed (its preview is
-  // enough) gets it as a line on top, gone again after, and then the terminal
+  // has the word of floor zero's maze or the account earned its third fragment,
+  // every page asks for it beforehand and keeps it in memory only; a page
+  // about to be printed (its preview is enough) gets it as a line on top,
+  // gone again after, and then the terminal
   // knows it too. Nothing on the screen ever shows it.
   var paperFragment = null;
   var paperProof = null;
@@ -436,14 +437,17 @@ window.SanakanSafeguard = (function () {
 
   function paper() {
     var word = fragments().word;
-    if (!word || paperFragment) return;
-    mega({ paper: word }).then(function (answer) {
+    if (paperFragment || (!word && !loggedIn())) return;
+    // Without a local word the server checks this account's recorded maze.
+    mega({ paper: word || '' }).then(function (answer) {
       if (answer && answer.fragment) {
         paperFragment = answer.fragment;
         paperProof = answer.proof;
       }
     });
   }
+  // Static pages learn about the session after their account menu arrives.
+  document.addEventListener('sanakan:account', paper);
 
   function onPaper() {
     if (!paperFragment || paperLine) return;
