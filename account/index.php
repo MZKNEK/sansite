@@ -596,7 +596,7 @@
     </div>
 <?php endif; ?>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>
@@ -612,7 +612,7 @@
   <script src="../js/netsphere.js?v=8517a9ef25"></script>
   <script src="../js/safeguard.js?v=d0f347f6fa"></script>
   <script src="../js/seasonal-background.js?v=50f1ef0470"></script>
-  <script src="../js/palette.js?v=9d395acc33"></script>
+  <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 
 </html>

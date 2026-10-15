@@ -92,7 +92,7 @@
 <?php endif; ?>
     </section>
   </main>
-  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+  <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
 
 <?php if ($flash): ?>
   <div class="toast" id="toast" role="status"><?=e($flash)?></div>
@@ -105,7 +105,7 @@
   <script src="../js/netsphere.js?v=8517a9ef25"></script>
   <script src="../js/safeguard.js?v=d0f347f6fa"></script>
   <script src="../js/seasonal-background.js?v=50f1ef0470"></script>
-  <script src="../js/palette.js?v=9d395acc33"></script>
+  <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 
 </html>
@@ -217,7 +217,7 @@
 <p class="api-flash" role="status"><?=e($flash)?></p>
 <?php endif; ?>
 
-<footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a></footer>
+<footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
 
 <button type="button" class="to-top hud-corners" id="to-top" data-focus="api-search" title="Na górę" aria-label="Na górę strony" hidden>
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
@@ -233,7 +233,7 @@
 <script src="../js/netsphere.js?v=8517a9ef25"></script>
 <script src="../js/safeguard.js?v=d0f347f6fa"></script>
 <script src="../js/seasonal-background.js?v=50f1ef0470"></script>
-<script src="../js/palette.js?v=9d395acc33"></script>
+<script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

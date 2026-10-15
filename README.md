@@ -98,7 +98,8 @@ Games and ticket redemption use POST with a session CSRF token from `megastructu
 | `inc/verdiff.php`, `inc/verdiff-builtin.md`, `inc/markdown.php` | The bot's changelog (`verdiff.md` in its repository, read over HTTP and cached; the versions from 1.0.0.0-alpha to 1.4.10.13, which the file never described, written in `inc/verdiff-builtin.md` from the bot's commits and listed on the page even when the bot never reported them), the @nick of a known account as its avatar, and the small dependency-free Markdown renderer the version history `state/versions/` uses |
 | `fonts/`, `css/fonts.css` | The site's fonts (Lato, Sanakan Mono, JetBrains Mono, SIL Open Font License; Sanakan Mono is Share Tech Mono with the Polish letters it lacks added), served from the site instead of Google Fonts, so no visitor's address goes to Google |
 | `inc/fonts/` | Lato and Sanakan Mono (SIL Open Font License) for the preview picture of `/state/` |
-| `privacy/` | Privacy notice, linked from the footer of every page, next to the bot status |
+| `privacy/` | Privacy notice for the site, bot and API, linked from every footer |
+| `terms/` | Terms of use, linked next to the privacy notice in every footer |
 | `inc/config.example.php` | Configuration template |
 | `css/`, `js/` | Styles and scripts; the account menu's styles in `css/account.css` and the search's in `css/palette.css`, which every page links after `css/style.css` (the croppers without it) |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/`, the API documentation and the ranking of the hunters |

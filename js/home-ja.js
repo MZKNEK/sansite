@@ -28,6 +28,7 @@ window.SanakanSkinJa = (function () {
     'USkalpelator': 'Uスカルペル',
     'Status': '稼働状況',
     'Prywatność': 'プライバシー',
+    'Zasady': '利用規約',
     'Sakura': '桜',
     'Perseidy': 'ペルセウス座流星群',
     'Złap płatek sakury': '桜の花びらをつかむ',

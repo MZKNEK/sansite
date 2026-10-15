@@ -23,6 +23,7 @@
         'i' => ['drawGallery', 86400],
         'api' => ['drawApi', 86400],
         'privacy' => ['drawPrivacy', 86400],
+        'terms' => ['drawTerms', 86400],
         // the sites are checked every 5 minutes
         'admin' => ['drawAdmin', SERVICE_INTERVAL],
         'account' => ['drawAccount', 86400],
@@ -520,6 +521,18 @@
         text($img, OG_MONO, 26, 540, 252, color($img, '#b670d3'), 'SAFEGUARD · LV.9', 8);
         text($img, OG_BOLD, 56, 540, 350, color($img, '#efe2f7'), 'PRYWATNOŚĆ', 6);
         text($img, OG_MONO, 28, 540, 420, color($img, '#9b59b6'), 'sanakan.pl/privacy', 3);
+
+        return ogSave($img, $file);
+    }
+
+    function drawTerms($file)
+    {
+        $img = ogCanvas();
+        shieldLock($img, 300, 140, 1.25);
+
+        text($img, OG_MONO, 26, 540, 252, color($img, '#b670d3'), 'SAFEGUARD · LV.9', 8);
+        text($img, OG_BOLD, 56, 540, 350, color($img, '#efe2f7'), 'ZASADY', 6);
+        text($img, OG_MONO, 28, 540, 420, color($img, '#9b59b6'), 'sanakan.pl/terms', 3);
 
         return ogSave($img, $file);
     }

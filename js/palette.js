@@ -27,6 +27,7 @@
     ['Skalpelator', 'skalpel/', 'karta przycinanie obrazek crop'],
     ['USkalpelator', 'uskalpel/', 'ultimate karta przycinanie crop'],
     ['Prywatność', 'privacy/', 'dane cookies privacy'],
+    ['Zasady', 'terms/', 'regulamin terms warunki'],
     ['Wiki', 'https://wiki.sanakan.pl', 'pomoc poradnik'],
     ['Waifu', 'https://waifu.sanakan.pl', 'karty kolekcja'],
     ['Alter', 'https://alter.sanakan.pl/', '']

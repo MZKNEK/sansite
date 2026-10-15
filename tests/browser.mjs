@@ -17,7 +17,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
 const site = mkdtempSync(path.join(tmpdir(), 'sanakan-browser-'));
-for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', 'hunters', 'state', 'cmd', 'api', 'skalpel', 'uskalpel']) {
+for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', 'terms', 'hunters', 'state', 'cmd', 'api', 'skalpel', 'uskalpel']) {
   cpSync(path.join(root, dir), path.join(site, dir), { recursive: true, filter: p => p !== path.join(root, 'inc/data') && p !== path.join(root, 'inc/config.php') });
 }
 mkdirSync(path.join(site, 'i'));

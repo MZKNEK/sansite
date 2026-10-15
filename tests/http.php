@@ -105,6 +105,8 @@
         ['/401.html', [200]],
         ['/500.html', [200]],
         ['/privacy/', [200]],
+        ['/terms/', [200]],
+        ['/og.php?p=terms', [200, 302]],
         ['/status.php', [200]],
         ['/palette.php', [200]],
         ['/megastructure.php', [200]],
