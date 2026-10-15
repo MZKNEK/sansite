@@ -478,7 +478,16 @@ fi
 # and Cloudflare forgets it below. One removed here stays on the server.
 changed_audio=()
 if compgen -G 'audio/*.mp3' > /dev/null; then
-    remote_audio=$(ssh "$target" "cd '$root' 2>/dev/null && for file in audio/*.mp3; do [ -f \"\$file\" ] && echo \"\$(md5sum < \"\$file\" | cut -d' ' -f1) \$file\"; done; true")
+    # in bash, as the server's login shell (zsh) stops at a pattern that
+    # matches nothing, before there is any audio/ there
+    remote_audio=$(ssh "$target" "bash -s -- '$root'" <<'REMOTE'
+cd "$1" 2>/dev/null || exit 0
+for file in audio/*.mp3; do
+    [ -f "$file" ] && echo "$(md5sum < "$file" | cut -d' ' -f1) $file"
+done
+exit 0
+REMOTE
+)
     for file in audio/*.mp3; do
         grep -qxF "$(md5sum < "$file" | cut -d' ' -f1) $file" <<< "$remote_audio" || changed_audio+=("$file")
     done
