@@ -28,7 +28,8 @@
         'emitter' => 'Stalowy pył i żar (Killy)',
         'sakura' => 'Płatki sakury (March 7th)',
         'lightning' => 'Pioruny (Raiden Shogun)',
-        'perseids' => 'Gwiazdy i komety (Suisei, Hoshino Ai)',
+        'perseids' => 'Gwiazdy i komety (Suisei)',
+        'idol' => 'Światła sceny i gwiazdki (Hoshino Ai)',
         'fireflies' => 'Świetliki (Firefly, Yoimiya)'
     ];
 

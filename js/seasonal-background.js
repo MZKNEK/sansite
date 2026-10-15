@@ -359,6 +359,37 @@
     });
   }
 
+  // Hoshino Ai: an idol's stage. Beams of stage lights sweep slowly from the
+  // top in the skin's colours, and star sparkles twinkle between them, a few
+  // six-pointed like the stars in her eyes.
+  function idol() {
+    var beams = small ? 2 : 4, stars = small ? 10 : 18;
+    var FOUR = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 0C10.8 6.2 13.8 9.2 20 10C13.8 10.8 10.8 13.8 10 20C9.2 13.8 6.2 10.8 0 10C6.2 9.2 9.2 6.2 10 0Z"/></svg>';
+    var SIX = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 0L11.6 6.5L17.8 4.4L13.2 10L17.8 15.6L11.6 13.5L10 20L8.4 13.5L2.2 15.6L6.8 10L2.2 4.4L8.4 6.5Z"/></svg>';
+    return decoration('idol', beams + stars, function (bit, i) {
+      if (i < beams) {
+        bit.className = 'idol-beam' + (i % 2 ? ' idol-beam-light' : '');
+        bit.style.left = ((i + 0.5) * 100 / beams + between(-6, 6)).toFixed(2) + '%';
+        variable(bit, 'spread', between(small ? 9 : 7, small ? 14 : 12).toFixed(1) + 'deg');
+        variable(bit, 'swing', between(10, 22).toFixed(1) + 'deg');
+        variable(bit, 'tilt', ((i + 0.5) / beams * 2 - 1) * -14 + between(-4, 4) + 'deg');
+        var sweep = between(9, 16);
+        variable(bit, 'duration', sweep.toFixed(2) + 's');
+        variable(bit, 'delay', (-between(0, sweep)).toFixed(2) + 's');
+        return;
+      }
+      var six = i % 5 === 0;
+      bit.className = 'idol-star' + (six ? ' idol-star-eye' : '');
+      bit.style.left = between(3, 97).toFixed(2) + '%';
+      bit.style.top = between(6, 92).toFixed(2) + '%';
+      variable(bit, 'size', between(six ? 14 : 7, six ? 22 : 15).toFixed(1) + 'px');
+      var twinkle = between(2.6, 5.5);
+      variable(bit, 'duration', twinkle.toFixed(2) + 's');
+      variable(bit, 'delay', (-between(0, twinkle)).toFixed(2) + 's');
+      bit.innerHTML = six ? SIX : FOUR;
+    });
+  }
+
   function rabbits() {
     return decoration('rabbits', small ? 2 : 4, function (bit, i, count) {
       bit.className = 'rabbit-run';
@@ -531,6 +562,7 @@
     butterflies: { create: butterflies },
     magic: { create: magic },
     lavender: { create: lavender },
+    idol: { create: idol },
     rabbits: { create: rabbits },
     netsphere: { create: netsphere },
     emitter: { create: emitter },

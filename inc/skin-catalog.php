@@ -115,7 +115,7 @@
             'name' => 'Hoshino Ai',
             'find' => 'perseids',
             'words' => false,
-            'what' => 'magenta i ciemny fiolet Hoshino Ai, jej logo, bez napisów'
+            'what' => 'magenta i ciemny fiolet Hoshino Ai, jej logo, światła sceny i gwiazdki w tle, bez napisów'
         ],
         'firefly' => [
             'name' => 'Firefly',

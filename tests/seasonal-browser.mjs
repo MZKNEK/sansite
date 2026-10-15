@@ -13,7 +13,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     { key: 'sakura', date: '2026-04-10', label: 'Złap płatek sakury', group: 'Sakura',
       skins: [['march7', 'March 7th', '245, 179, 206'], ['shogun', 'Raiden Shogun', '110, 82, 196', 'lightning']] },
     { key: 'perseids', date: '2026-08-10', label: 'Złap kometę', group: 'Perseidy',
-      skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '199, 63, 144']] },
+      skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '199, 63, 144', 'idol']] },
     { key: 'fireflies', date: '2026-06-21', label: 'Złap świetlika', group: 'Noc świetlików',
       skins: [['firefly', 'Firefly', '168, 230, 207'], ['yoimiya', 'Yoimiya', '245, 130, 69']] }
   ];
@@ -186,7 +186,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       ['ayame', '.sg-fireworks'], ['albedo', '.sg-fireworks'],
       ['reisen', '.sg-lavender'], ['peko', '.sg-rabbits'],
       ['cibo', '.sg-netsphere'], ['killy', '.sg-emitter'],
-      ['march7', '.sg-sakura'], ['shogun', '.sg-lightning'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids'],
+      ['march7', '.sg-sakura'], ['shogun', '.sg-lightning'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-idol'],
       ['firefly', '.sg-fireflies'], ['yoimiya', '.sg-fireflies']]) {
       await chooseSkin(page, skin);
       assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);

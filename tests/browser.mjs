@@ -22,6 +22,9 @@ const site = mkdtempSync(path.join(tmpdir(), 'sanakan-browser-'));
 for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'img', 'privacy', 'terms', 'hunters', 'state', 'cmd', 'api', 'skalpel', 'uskalpel']) {
   cpSync(path.join(root, dir), path.join(site, dir), { recursive: true, filter: p => p !== path.join(root, 'inc/data') && p !== path.join(root, 'inc/config.php') });
 }
+// the data folder, there before any part runs (BROWSER_ONLY may skip the
+// ones that would make it)
+mkdirSync(path.join(site, 'inc/data'), { recursive: true });
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
 for (const file of ['index.html', 'status.php', 'account.php', 'megastructure.php', 'palette.php', 'offline.html', 'sw.js', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
@@ -44,6 +47,11 @@ const server = spawn(php, [...extensions, ...limits, '-d', 'display_errors=1', '
   { cwd: site, env: { ...process.env, SANAKAN_BROWSER_ROOT: site.replaceAll('\\', '/') }, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
 let log = '';
 server.stderr.on('data', data => { log += data; });
+// BROWSER_ONLY=seasonal,theme runs only those parts while working on them
+// (storage, core, home, skins, seasonal, custom, picker, theme); the whole
+// suite, without it, before a commit.
+const only = (process.env.BROWSER_ONLY || '').split(',').map(name => name.trim()).filter(Boolean);
+const want = name => !only.length || only.includes(name);
 let browser;
 try {
   for (let i = 0; i < 60; i++) {
@@ -52,13 +60,16 @@ try {
   const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
   // Use Playwright's Chromium, as CI does; Edge is a fallback on unprepared PCs.
   browser = await chromium.launch({ headless: true, ...(!existsSync(chromium.executablePath()) && existsSync(edge) ? { executablePath: edge } : {}) });
-  const storageErrors = [];
-  await testDiscoveryStorage({ browser, base, errors: storageErrors });
-  assert.deepEqual(storageErrors, []);
+  if (want('storage')) {
+    const storageErrors = [];
+    await testDiscoveryStorage({ browser, base, errors: storageErrors });
+    assert.deepEqual(storageErrors, []);
+  }
+  const errors = [];
+  if (want('core')) {
   const context = await discoveryContext(browser);
   await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
   const page = await context.newPage();
-  const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   // the panel without a login: the site's 401 page
   const anonymous = await context.request.get(`${base}/admin/?konto=900000000000000004`, { headers: { Accept: 'text/html' } });
@@ -219,15 +230,17 @@ try {
   writeFileSync(path.join(renameDir, 'case-only.png'), 'CASE ONLY');
   assert.equal((await rename('case-only.png', 'Case-Only.png')).status(), 200, 'a case-only rename without a collision still works');
   assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
-  await testHome({ browser, base, site, php, errors });
-  await testSkinChanges({ browser, base, site, errors });
-  await testSeasonalBackground({ browser, base, site, php, errors });
-  await testCustomSkin({ browser, base, site, php, errors });
-  await testSkinPicker({ browser, base, site, errors });
-  await testTheme({ browser, base, site, errors });
+  }
+  if (want('home')) await testHome({ browser, base, site, php, errors });
+  if (want('skins')) await testSkinChanges({ browser, base, site, errors });
+  if (want('seasonal')) await testSeasonalBackground({ browser, base, site, php, errors });
+  if (want('custom')) await testCustomSkin({ browser, base, site, php, errors });
+  if (want('picker')) await testSkinPicker({ browser, base, site, errors });
+  if (want('theme')) await testTheme({ browser, base, site, errors });
   assert.deepEqual(errors, []);
   assert.ok(!/PHP (Warning|Fatal|Deprecated)|Uncaught/.test(log), log);
-  console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');
+  if (only.length) console.log('Browser OK (only ' + only.join(', ') + ')');
+  else console.log('Browser OK: register migration, synchronization races, CSRF and retries, quotas, own move, authorization, profile, private sharing, public token confinement, rename collisions.');
 } catch (error) {
   console.error(log.split('\n').filter(line => /Warning|Fatal|Deprecated|Error|sanakan:/.test(line)).join('\n'));
   throw error;

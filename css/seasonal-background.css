@@ -463,6 +463,62 @@ body.seasonal-background { isolation: isolate; }
     100% { opacity: 0; transform: translate(var(--season-wind), -60px); }
 }
 
+/* Hoshino Ai: an idol's stage. Cones of stage light sweep from the top, one
+   colour in two, and star sparkles twinkle, a few six-pointed like her eyes. */
+/* a cone of light from its top centre: soft edges from the conic stops,
+   fading downwards through the mask */
+.idol-beam {
+    --beam: var(--accent-rgb);
+    position: absolute;
+    top: -8vh;
+    width: 110vh;
+    height: 125vh;
+    margin-left: -55vh;
+    background: conic-gradient(from calc(180deg - var(--season-spread)) at 50% 0,
+        rgba(var(--beam), 0) 0deg,
+        rgba(var(--beam), 0.24) calc(var(--season-spread) * 0.6),
+        rgba(var(--beam), 0.24) calc(var(--season-spread) * 1.4),
+        rgba(var(--beam), 0) calc(var(--season-spread) * 2),
+        rgba(var(--beam), 0) 360deg);
+    -webkit-mask-image: linear-gradient(#000, rgba(0, 0, 0, 0.35) 55%, transparent 92%);
+    mask-image: linear-gradient(#000, rgba(0, 0, 0, 0.35) 55%, transparent 92%);
+    transform-origin: 50% 0;
+    transform: rotate(var(--season-tilt));
+    mix-blend-mode: screen;
+    animation: idol-sweep var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.idol-beam-light { --beam: var(--accent-light-rgb); }
+.idol-star {
+    position: absolute;
+    width: var(--season-size);
+    height: var(--season-size);
+    color: var(--accent-light);
+    opacity: 0;
+    animation: idol-twinkle var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.idol-star svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+    filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.9));
+}
+.idol-star-eye { color: #fff; }
+/* light bases: screen blending would wash the beams out */
+:root:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"]) .idol-beam { mix-blend-mode: normal; }
+:root:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"]) .idol-star-eye { color: var(--accent); }
+@keyframes idol-sweep {
+    0%, 100% { opacity: 0.55; transform: rotate(calc(var(--season-tilt) - var(--season-swing))); }
+    50% { opacity: 0.9; transform: rotate(calc(var(--season-tilt) + var(--season-swing))); }
+}
+@keyframes idol-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+    45% { opacity: 0.85; transform: scale(1) rotate(25deg); }
+    60% { opacity: 0.5; transform: scale(0.8) rotate(35deg); }
+}
+.sg-season-background.paused .idol-beam,
+.sg-season-background.paused .idol-star { animation-play-state: paused; }
+
 /* Pekora: little rabbits cross the lower edge in both directions. Their hop
    stretches on takeoff, arcs through the air and squashes on landing. */
 .rabbit-run {
@@ -616,6 +672,8 @@ body.seasonal-background { isolation: isolate; }
     .magic-star { animation: none; opacity: 0.5; }
     .magic-star::before { display: none; }
     .lavender-mote { animation: none; opacity: 0.3; }
+    .idol-beam { animation: none; opacity: 0.6; }
+    .idol-star { animation: none; opacity: 0.5; transform: scale(0.8); }
     .rabbit-run { animation: none; left: var(--season-rest-left); transform: translateX(-50%); }
     .rabbit-run svg { animation: none; }
     .netsphere-signal,
