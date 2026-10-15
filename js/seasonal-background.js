@@ -193,7 +193,7 @@
 
   // Decorative skins have no targets or finds; their effects stay behind the
   // content, reusing the same layer when a profile preview is cancelled.
-  function decoration(key, count, particle) {
+  function decoration(key, count, particle, decorate) {
     var layer = document.createElement('div');
     layer.className = 'sg-season-background sg-' + key;
     layer.setAttribute('aria-hidden', 'true');
@@ -202,6 +202,7 @@
       particle(bit, i, count);
       layer.appendChild(bit);
     }
+    if (decorate) decorate(layer);
     function visibility() { layer.classList.toggle('paused', document.hidden); }
     document.addEventListener('visibilitychange', visibility);
     visibility();
@@ -311,6 +312,91 @@
     });
   }
 
+  function netsphere() {
+    var layer, width, height;
+    function element(name, attributes) {
+      var node = document.createElementNS('http://www.w3.org/2000/svg', name);
+      Object.keys(attributes).forEach(function (key) { node.setAttribute(key, attributes[key]); });
+      return node;
+    }
+    function build() {
+      width = innerWidth;
+      height = innerHeight;
+      var cols = Math.max(3, Math.min(14, Math.ceil(width / (small ? 150 : 190))));
+      var rows = Math.max(3, Math.min(9, Math.ceil(height / 180)));
+      var points = [], edges = [];
+      function position(point) { return point.x.toFixed(1) + ' ' + point.y.toFixed(1); }
+      function connect(a, b) {
+        points[a].links.push(b);
+        points[b].links.push(a);
+        edges.push('M' + position(points[a]) + 'L' + position(points[b]));
+      }
+      // A jittered grid gives the whole viewport a connected mesh, without
+      // dense clusters or an expensive all-pairs search on large screens.
+      for (var row = 0; row < rows; row++) {
+        for (var col = 0; col < cols; col++) {
+          var index = points.length;
+          points.push({ x: (col + between(0.2, 0.8)) * width / cols,
+            y: (row + between(0.2, 0.8)) * height / rows, links: [] });
+          if (col) connect(index, index - 1);
+          if (row) connect(index, index - cols);
+          if (row && col && Math.random() < 0.35) connect(index, index - cols - 1);
+        }
+      }
+      var svg = element('svg', { class: 'netsphere-mesh', viewBox: '0 0 ' + width + ' ' + height,
+        'aria-hidden': 'true', preserveAspectRatio: 'none' });
+      svg.appendChild(element('path', { class: 'netsphere-links', d: edges.join('') }));
+      points.forEach(function (point) {
+        svg.appendChild(element('circle', { class: 'netsphere-node', cx: point.x, cy: point.y, r: between(1.2, 1.8).toFixed(2) }));
+      });
+      var routes = small ? 2 : 3;
+      for (var i = 0; i < routes; i++) {
+        var current = Math.floor(Math.random() * points.length), previous = -1;
+        var route = 'M' + position(points[current]);
+        for (var step = 0; step < 10; step++) {
+          var choices = points[current].links.filter(function (next) { return next !== previous; });
+          var next = choices[Math.floor(Math.random() * choices.length)];
+          previous = current;
+          current = next;
+          route += 'L' + position(points[current]);
+        }
+        var duration = between(22, 34);
+        ['netsphere-trail', 'netsphere-signal'].forEach(function (name) {
+          var packet = element('path', { class: name, d: route, pathLength: 1 });
+          variable(packet, 'duration', duration.toFixed(2) + 's');
+          variable(packet, 'delay', (-duration * (i + 0.5) / routes).toFixed(2) + 's');
+          svg.appendChild(packet);
+        });
+      }
+      layer.replaceChildren(svg);
+    }
+    var render = decoration('netsphere', 0, null, function (node) {
+      layer = node;
+      build();
+    });
+    window.addEventListener('resize', function () {
+      if (layer.isConnected && (width !== innerWidth || height !== innerHeight)) build();
+    });
+    return function (show) {
+      if (show && (width !== innerWidth || height !== innerHeight)) build();
+      render(show);
+    };
+  }
+
+  function emitter() {
+    return decoration('emitter', small ? 9 : 17, function (bit, i, count) {
+      var ember = i % 3 === 0;
+      bit.className = ember ? 'emitter-ember' : 'emitter-dust';
+      bit.style.left = ((i + Math.random()) * 90 / count + 5).toFixed(2) + '%';
+      bit.style.top = between(15, 92).toFixed(2) + '%';
+      variable(bit, 'size', between(1.5, ember ? 3.5 : 2.5).toFixed(2) + 'px');
+      variable(bit, 'wind', between(-25, 25).toFixed(0) + 'px');
+      var duration = between(12, 22);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-duration * (i + 0.5) / count).toFixed(2) + 's');
+    });
+  }
+
   function fireworks() {
     var layer = document.createElement('div');
     layer.className = 'sg-season-background sg-fireworks';
@@ -370,6 +456,8 @@
     magic: { create: magic },
     lavender: { create: lavender },
     rabbits: { create: rabbits },
+    netsphere: { create: netsphere },
+    emitter: { create: emitter },
     fireworks: { create: fireworks }
   };
   function update() {

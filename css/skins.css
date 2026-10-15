@@ -481,6 +481,7 @@ html[data-skin="cibo"] {
     --swap-text: #e6e9f3;
     --swap-hover-fill: #5d6a90;
     --skin-logo: url("../skins/cibo.webp");
+    --season-background: netsphere;
     --accent: #c2c8d9;
     --accent-light: #e2e6f0;
     --accent-dark: #5d6a90;
@@ -502,6 +503,7 @@ html[data-skin="killy"] {
     --swap-text: #dfe0e4;
     --swap-hover-fill: #3c4552;
     --skin-logo: url("../skins/killy.webp");
+    --season-background: emitter;
     --accent: #66799b;
     --accent-light: #b9b8bd;
     --accent-dark: #3c4552;

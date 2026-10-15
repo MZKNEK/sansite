@@ -382,6 +382,71 @@ body.seasonal-background { isolation: isolate; }
 .sg-season-background.paused .rabbit-run,
 .sg-season-background.paused .rabbit-run svg { animation-play-state: paused; }
 
+/* Cibo: a barely visible generated mesh carries little lavender signals. */
+.netsphere-mesh {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: none;
+}
+.netsphere-links {
+    stroke: var(--accent-light);
+    stroke-width: 0.6;
+    opacity: 0.045;
+}
+.netsphere-node {
+    fill: var(--accent-light);
+    opacity: 0.14;
+}
+.netsphere-signal,
+.netsphere-trail {
+    stroke: var(--accent-light);
+    stroke-linecap: round;
+    animation: netsphere-transmit var(--season-duration) var(--season-delay) linear infinite;
+}
+.netsphere-signal {
+    stroke-width: 1.8;
+    stroke-dasharray: 0.006 0.994;
+    filter: drop-shadow(0 0 3px rgba(var(--accent-rgb), 0.5));
+}
+.netsphere-trail {
+    --season-packet-from: 1.029;
+    --season-packet-to: 0.029;
+    --season-bright: 0.12;
+    stroke-width: 1;
+    stroke-dasharray: 0.035 0.965;
+}
+@keyframes netsphere-transmit {
+    0% { opacity: 0; stroke-dashoffset: var(--season-packet-from, 1); }
+    8%, 92% { opacity: var(--season-bright, 0.55); }
+    100% { opacity: 0; stroke-dashoffset: var(--season-packet-to, 0); }
+}
+
+/* Killy: steel dust and gently glowing embers drift through the darkness. */
+.emitter-dust,
+.emitter-ember {
+    position: absolute;
+    width: var(--season-size);
+    height: var(--season-size);
+    animation: emitter-ember var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.emitter-dust { --season-bright: 0.25; background: var(--accent); border-radius: 1px; }
+.emitter-ember {
+    border-radius: 50%;
+    background: var(--accent-light);
+    box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
+}
+@keyframes emitter-ember {
+    0% { opacity: 0; transform: translate(0, 16px); }
+    30% { opacity: var(--season-bright, 0.45); }
+    65% { opacity: 0.2; }
+    100% { opacity: 0; transform: translate(var(--season-wind), -65px); }
+}
+.sg-season-background.paused .netsphere-signal,
+.sg-season-background.paused .netsphere-trail,
+.sg-season-background.paused .emitter-dust,
+.sg-season-background.paused .emitter-ember { animation-play-state: paused; }
+
 /* Ayame and Albedo share the event's firework renderer, in a golden
    background layer below the page's content. */
 .sg-fireworks { opacity: 0.8; }
@@ -426,4 +491,8 @@ body.seasonal-background { isolation: isolate; }
     .lavender-mote { animation: none; opacity: 0.3; }
     .rabbit-run { animation: none; left: var(--season-rest-left); transform: translateX(-50%); }
     .rabbit-run svg { animation: none; }
+    .netsphere-signal,
+    .netsphere-trail { animation: none; display: none; }
+    .emitter-dust { animation: none; opacity: 0.15; }
+    .emitter-ember { animation: none; opacity: 0.25; }
 }

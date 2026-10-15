@@ -85,13 +85,13 @@
             'name' => 'Cibo',
             'find' => 'birthday',
             'words' => false,
-            'what' => 'granat i lawendowa biel Cibo, jej logo, bez napisów'
+            'what' => 'granat i lawendowa biel Cibo, jej logo i dyskretna sieć punktów z lawendowym sygnałem w tle, bez napisów'
         ],
         'killy' => [
             'name' => 'Killy',
             'find' => 'birthday',
             'words' => false,
-            'what' => 'stalowy błękit i czerń Killy\'ego, jego logo, bez napisów'
+            'what' => 'stalowy błękit i czerń Killy\'ego, jego logo, stalowy pył i żarzące drobiny w tle, bez napisów'
         ],
         'march7' => [
             'name' => 'March 7th',
