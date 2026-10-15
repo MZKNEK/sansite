@@ -207,7 +207,8 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await target.focus();
     assert.equal(await target.locator('..').evaluate(el => getComputedStyle(el.closest('.seasonal-particle')).opacity), '1');
     await page.keyboard.press('Enter');
-    await page.waitForFunction(key => !!SanakanSafeguard.finds()[key], event.key);
+    // Finish the account write before the next visit replaces its fixtures.
+    await page.waitForFunction(key => JSON.parse(localStorage.getItem('safeguard'))?.sent?.[key], event.key);
     assert.deepEqual(calls, [event.key], 'the event remains keyboard accessible with animations off');
   }, { login: true, animations: false });
 
