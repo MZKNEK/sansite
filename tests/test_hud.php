@@ -57,13 +57,16 @@
         assertTrue(strpos($attrs, 'data-hud-own="') !== false);
     });
 
-    test('snowOff is kept per account and clears when turned back on', function () {
+    test('skin animations preserve the legacy snow preference and stay per account', function () {
         clearData();
-        assertFalse(snowOff('111'));
-        assertTrue(setSnowOff('111', true));
-        assertTrue(snowOff('111'));
-        assertFalse(snowOff('222'), 'one account does not touch another');
-        assertTrue(setSnowOff('111', false));
-        assertFalse(snowOff('111'));
-        assertSame([], readData('snow'), 'snow on keeps no entry');
+        assertFalse(skinAnimationsOff('111'));
+        writeData('snow', ['111' => true]);
+        assertTrue(skinAnimationsOff('111'), 'the former snow setting applies to skin animations');
+        assertContains('data-skin-animations="off"', hudHtmlAttributes(['id' => '111']));
+        assertFalse(skinAnimationsOff('222'), 'one account does not touch another');
+        assertTrue(setSkinAnimationsOff('111', false));
+        assertFalse(skinAnimationsOff('111'));
+        assertSame([], readData('snow'), 'animations on keeps no entry');
+        assertTrue(setSkinAnimationsOff('111', true));
+        assertTrue(skinAnimationsOff('111'));
     });

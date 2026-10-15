@@ -1997,9 +1997,9 @@ a.who-name:hover {
 }
 
 /* Skins supply their own palette. Keep the saved HUD controls in the form,
-   so hiding them never clears the choice or affects the independent snow switch. */
+   so hiding them never clears the choice. Animations belong to the skin form. */
 html[data-skin] [data-default-skin-only],
-html[data-skin] .hud-form [data-snow-pref][hidden] + .admin-btn {
+html[data-skin] .hud-form > .admin-btn {
     display: none;
 }
 
@@ -2074,12 +2074,13 @@ html[data-skin] .hud-form [data-snow-pref][hidden] + .admin-btn {
     margin-top: 16px;
 }
 
-.skin-form .skin-words:not([hidden]) {
+.skin-form .skin-words:not([hidden]),
+.skin-form .skin-animations {
     display: flex;
     margin-top: 14px;
 }
 
-.skin-form .skin-words + .admin-btn {
+.skin-form .skin-animations + .admin-btn {
     margin-top: 10px;
 }
 

@@ -105,7 +105,7 @@
         $badge = roleBadge(siteRoles());
         setcookie('hud', hudMode($user['id']), time() + 31536000, '/');
         setcookie('hudrole', hudColorKey($user['id'], $badge), time() + 31536000, '/');
-        sendSnowCookie($user['id']);
+        sendSkinAnimationsCookie($user['id']);
         sendSkinCookie($user['id']);
     } else {
         forgetHudCookies();
@@ -121,6 +121,7 @@
         'role' => hudColorKey($user['id'], $badge),
         'skin' => skinPref($user['id']),
         'skinwords' => skinWords($user['id']),
+        'skinanimations' => !skinAnimationsOff($user['id']),
         'customskin' => skinPref($user['id']) === 'custom' ? customSkinAppearance($user['id']) : null,
         'flash' => takeFlash()
     ], JSON_UNESCAPED_UNICODE);

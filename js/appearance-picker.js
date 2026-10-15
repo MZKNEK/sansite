@@ -2,6 +2,10 @@
 // distinguishes an unchecked switch from one unavailable for this selection.
 (function () {
   var root = document.documentElement;
+  var animations = document.querySelector('[name=skinanimations]');
+  if (animations) animations.addEventListener('change', function () {
+    SanakanAppearance.previewAnimations(animations.checked);
+  });
   document.querySelectorAll('[data-hud-choice]').forEach(function (field) {
     field.addEventListener('change', function () { root.setAttribute('data-hud', field.value); });
   });

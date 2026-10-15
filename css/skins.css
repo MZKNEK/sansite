@@ -303,6 +303,7 @@ html[data-skin="fauna"] {
     --swap-text: #dff0d4;
     --swap-hover-fill: #4d7a3a;
     --skin-logo: url("../skins/fauna.webp");
+    --season-background: snow;
     --accent: #7cc45e;
     --accent-light: #b3dca1;
     --accent-dark: #4d7a3a;
@@ -324,6 +325,7 @@ html[data-skin="padoru"] {
     --swap-text: #faeec4;
     --swap-hover-fill: #89641d;
     --skin-logo: url("../skins/padoru.webp");
+    --season-background: snow;
     --accent: #dda22e;
     --accent-light: #f1d8a7;
     --accent-dark: #89641d;
@@ -429,6 +431,7 @@ html[data-skin="tomie"] {
     --swap-text: #dcdce2;
     --swap-hover-fill: #2c2c32;
     --skin-logo: url("../skins/tomie.webp");
+    --season-background: ink;
     --accent: #4a4a52;
     --accent-light: #8f8f9a;
     --accent-dark: #2c2c32;
@@ -450,6 +453,7 @@ html[data-skin="lain"] {
     --swap-text: #e6dfe5;
     --swap-hover-fill: #7b6b77;
     --skin-logo: url("../skins/lain.webp");
+    --season-background: wired;
     --accent: #a799a4;
     --accent-light: #c9bdc6;
     --accent-dark: #7b6b77;

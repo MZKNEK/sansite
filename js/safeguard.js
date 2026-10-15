@@ -989,15 +989,11 @@ window.SanakanSafeguard = (function () {
   }
 
   // Snow of glyphs falling over the page, behind its dialogs: at Christmas and
-  // through the calendar winter, from 20 December to 20 March, unless the
-  // account turned it off in its profile (the cookie "snow", inc/auth/preferences.php)
+  // through the calendar winter, from 20 December to 20 March, or with a snow
+  // skin. Both sources share one layer and the profile's animation preference.
   function snowing() {
     var d = today();
     return (d.month === 12 && d.day >= 20) || d.month <= 2 || (d.month === 3 && d.day <= 20);
-  }
-
-  function snowOff() {
-    return /(?:^|; )snow=off(?:;|$)/.test(document.cookie);
   }
 
   var snowLayer = null;
@@ -1011,6 +1007,7 @@ window.SanakanSafeguard = (function () {
     var GLYPHS = ['*', '·', '+', '❄', '*', '·'];
     var layer = document.createElement('div');
     layer.className = 'sg-snow';
+    layer.classList.toggle('paused', document.hidden);
     layer.setAttribute('aria-hidden', 'true');
     for (var i = 0; i < 28; i++) {
       var flake = document.createElement('i');
@@ -1027,17 +1024,12 @@ window.SanakanSafeguard = (function () {
     snowLayer = layer;
   }
 
-  // the switch in the profile shows only while it snows, and shows at once
-  // what it does (saved with the form)
-  function snowSwitch() {
-    Array.prototype.forEach.call(document.querySelectorAll('[data-snow-pref]'), function (field) {
-      field.hidden = false;
-      var box = field.querySelector('input');
-      box.addEventListener('change', function () {
-        if (box.checked) snow();
-        else if (snowLayer) snowLayer.hidden = true;
-      });
-    });
+  function updateSnow() {
+    var skin = getComputedStyle(document.documentElement).getPropertyValue('--season-background').trim();
+    var wanted = snowing() || skin === 'snow';
+    var enabled = window.SanakanAppearance ? SanakanAppearance.animations() : !/(?:^|; )snow=off(?:;|$)/.test(document.cookie);
+    if (wanted && enabled && !still()) snow();
+    else if (snowLayer) snowLayer.hidden = true;
   }
 
   // Easter: an egg sits on the top edge of one of the page's HUD boxes until
@@ -1125,10 +1117,12 @@ window.SanakanSafeguard = (function () {
   }
 
   if (holiday('halloween')) halloween();
-  if (snowing()) {
-    snowSwitch();
-    if (!snowOff()) snow();
-  }
+  new MutationObserver(updateSnow).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-skin-animations'] });
+  if (window.matchMedia) matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', updateSnow);
+  document.addEventListener('visibilitychange', function () {
+    if (snowLayer) snowLayer.classList.toggle('paused', document.hidden);
+  });
+  updateSnow();
   if (holiday('easter')) eggHunt();
   if (holiday('friday13')) fridayThe13th();
   newYearMidnight();

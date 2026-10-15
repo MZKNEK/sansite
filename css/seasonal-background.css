@@ -160,6 +160,108 @@ body.seasonal-background { isolation: isolate; }
     }
 }
 
+/* Tomie: a thin drop lands, then opens into an uneven pool of ink. Each
+   spill has its own position and cycle; only opacity and transforms move. */
+.ink-spill {
+    position: absolute;
+    width: var(--season-size);
+    height: calc(var(--season-size) * 0.6);
+    transform: translateX(-50%) rotate(var(--season-angle));
+}
+.ink-spill::before,
+.ink-spill::after { content: ""; position: absolute; }
+.ink-spill::before {
+    left: 48%;
+    bottom: 65%;
+    width: 4px;
+    height: 15px;
+    border-radius: 70% 35% 60% 40%;
+    background: #030304;
+    box-shadow: 1px 0 rgba(143, 143, 154, 0.12);
+    animation: ink-drip var(--season-duration) var(--season-delay) linear infinite;
+}
+.ink-spill::after {
+    inset: 0;
+    border-radius: 41% 59% 63% 37% / 57% 39% 61% 43%;
+    background: radial-gradient(ellipse at 38% 35%, #020203 20%, #050506 68%, transparent 73%);
+    box-shadow: -9px 6px 0 -5px #030304, 12px -4px 0 -6px #040405;
+    animation: ink-spread var(--season-duration) var(--season-delay) ease-out infinite;
+}
+@keyframes ink-drip {
+    0%, 5% { opacity: 0; transform: translateY(-140px) scaleY(1.4); }
+    12% { opacity: 0.7; }
+    25% { opacity: 0.7; transform: translateY(-5px) scaleY(1); }
+    28%, 100% { opacity: 0; transform: translateY(0) scaleY(0.2); }
+}
+@keyframes ink-spread {
+    0%, 25% { opacity: 0; transform: scale(0.04, 0.1); }
+    36% { opacity: 0.8; transform: scale(0.45, 0.65); }
+    70% { opacity: 0.7; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.2, 1.05); }
+}
+
+/* Lain: dim scan lines and paths through the Wired, with occasional narrow
+   bands of interference. The page's text and controls never glitch with them. */
+.sg-wired::before,
+.sg-wired::after { content: ""; position: absolute; inset: 0; }
+.sg-wired::before {
+    background-image:
+        repeating-linear-gradient(0deg, transparent 0 3px, rgba(var(--accent-rgb), 0.055) 3px 4px),
+        repeating-linear-gradient(93deg, transparent 0 37px, rgba(var(--accent-rgb), 0.025) 38px 39px, transparent 40px 83px);
+}
+.sg-wired::after {
+    bottom: auto;
+    height: 34px;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(var(--accent-rgb), 0.2) 2px 3px, transparent 3px 7px);
+    animation: wired-interference 19s steps(1) infinite;
+}
+.wired-line {
+    position: absolute;
+    width: var(--season-size);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-light-rgb), 0.4), transparent);
+    animation: wired-signal var(--season-duration) var(--season-delay) steps(1) infinite;
+}
+.wired-line::after {
+    content: "";
+    position: absolute;
+    left: 62%;
+    width: 1px;
+    height: var(--season-branch);
+    background: linear-gradient(rgba(var(--accent-light-rgb), 0.25), transparent);
+}
+@keyframes wired-signal {
+    0%, 62% { opacity: 0; transform: translateX(0); }
+    65% { opacity: 0.5; transform: translateX(-8px); }
+    71% { opacity: 0.75; transform: translateX(12px); }
+    74% { opacity: 0.3; transform: translateX(4px); }
+    83%, 100% { opacity: 0; transform: translateX(0); }
+}
+@keyframes wired-interference {
+    0%, 90% { opacity: 0; transform: translateY(18vh); }
+    92% { opacity: 0.3; transform: translate(8px, 18vh); }
+    94% { opacity: 0.2; transform: translate(-6px, 67vh); }
+    96%, 100% { opacity: 0; transform: translateY(67vh); }
+}
+.sg-season-background.paused .ink-spill::before,
+.sg-season-background.paused .ink-spill::after,
+.sg-season-background.paused .wired-line,
+.sg-season-background.paused.sg-wired::after { animation-play-state: paused; }
+
+/* Turning effects off hides decorations. During an event one stationary
+   target remains reachable by keyboard, appearing only when it has focus. */
+:root[data-skin-animations="off"] .sg-season-background .seasonal-particle {
+    top: 18vh;
+    opacity: 0;
+    animation: none;
+}
+:root[data-skin-animations="off"] .sg-season-background .seasonal-particle:focus-within { opacity: 1; }
+:root[data-skin-animations="off"] .sg-season-background .seasonal-particle ~ .seasonal-particle,
+:root[data-skin-animations="off"] .sg-season-background .perseid-star { display: none; }
+:root[data-skin-animations="off"] .sakura-drift,
+:root[data-skin-animations="off"] .sakura-petal,
+:root[data-skin-animations="off"] .sakura-petal svg { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
     .seasonal-particle {
         top: var(--season-rest-top);
@@ -173,4 +275,8 @@ body.seasonal-background { isolation: isolate; }
     .sakura-petal svg { transition: none; }
     .sg-sakura .seasonal-particle:nth-child(n + 9) { display: none; }
     .perseid-star { opacity: 0.35; }
+    .ink-spill::before { display: none; }
+    .ink-spill::after { animation: none; opacity: 0.35; transform: scale(0.7); }
+    .wired-line { animation: none; opacity: 0.15; }
+    .sg-wired::after { animation: none; opacity: 0; }
 }

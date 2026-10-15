@@ -195,7 +195,7 @@
     // The HUD colour kept in cookies for the pages without an account menu
     // (account.php, js/appearance.js) goes with the account, so a logged-out browser
     // shows the site's own purple, like the pages that know the account; the
-    // snow turned off goes too (js/safeguard.js), and the skin with its words
+    // skin animations turned off go too (the legacy snow cookie), with the skin's words
     // (js/skins.js)
     function forgetHudCookies()
     {

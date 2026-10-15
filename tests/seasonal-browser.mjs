@@ -16,7 +16,9 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
   ];
   function fixture(name, change) {
     const file = path.join(site, 'inc/data', name + '.json');
-    const data = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+    // PHP writes an empty map as []; turn it back into an object before
+    // assigning account IDs, which JSON.stringify would drop from an array.
+    const data = existsSync(file) ? { ...JSON.parse(readFileSync(file, 'utf8')) } : {};
     change(data);
     writeFileSync(file, JSON.stringify(data));
   }
@@ -30,7 +32,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.equal(made.status, 0, made.stderr);
     return made.stdout;
   }
-  async function visit(date, run, { login = false, skin = '', finds = [], ...options } = {}) {
+  async function visit(date, run, { login = false, skin = '', finds = [], animations = true, ...options } = {}) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 850 }, ...options });
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
@@ -42,6 +44,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
         delete all[user];
         if (skin) all[user] = skin;
       });
+      fixture('snow', all => { if (animations) delete all[user]; else all[user] = true; });
       if (login) await context.request.get(`${base}/__login?id=${user}`);
       if (skin) await context.request.get(`${base}/account.php`); // seed the saved appearance cookies
       const page = await context.newPage();
@@ -108,6 +111,143 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       return { x, y };
     });
   }
+
+  for (const date of ['2026-06-10', '2026-12-24']) await visit(date, async (page, context, calls) => {
+    const winter = date === '2026-12-24';
+    assert.equal(await page.locator('.sg-snow:visible').count(), 1, 'a saved Christmas skin brings snow');
+    assert.equal(await page.locator('.sg-snow i').count(), 28, 'winter and skin use one snowfall');
+    await page.goto(`${base}/privacy/`);
+    assert.equal(await page.locator('.sg-snow:visible').count(), 1, 'skin snow follows navigation');
+    await page.goto(`${base}/account/`);
+    const animations = page.locator('.skin-form [name=skinanimations]');
+    await page.evaluate(() => { window.originalSnow = document.querySelector('.sg-snow'); });
+    for (const id of ['padoru', 'fauna', 'padoru', '']) {
+      await chooseSkin(page, id);
+      const visible = !!id || winter;
+      assert.equal(await page.locator('.sg-snow:visible').count(), visible ? 1 : 0);
+      assert.equal(await animations.isVisible(), true, 'the animation switch is available for every skin');
+      assert.equal(await page.evaluate(() => document.querySelector('.sg-snow') === window.originalSnow), true,
+        'skin previews reuse the winter snow layer');
+    }
+    // A temporary preview rolls back its snowfall when the picker is cancelled.
+    await page.locator('[data-skin-open]').click();
+    await page.locator('[data-skin-tile=fauna]').click();
+    assert.equal(await page.locator('.sg-snow:visible').count(), 1);
+    await page.getByRole('button', { name: 'Anuluj', exact: true }).click();
+    assert.equal(await page.locator('.sg-snow:visible').count(), winter ? 1 : 0);
+    await chooseSkin(page, 'fauna');
+    await animations.uncheck();
+    assert.equal(await page.locator('.sg-snow:visible').count(), 0, 'the switch stops both sources of snow');
+    await chooseSkin(page, 'padoru');
+    assert.equal(await page.locator('.sg-snow:visible').count(), 0, 'a preview preserves the unsaved snow choice');
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    // The skin form saves the shared preference for subsequent pages too.
+    assert.equal(JSON.parse(readFileSync(path.join(site, 'inc/data/snow.json'), 'utf8'))[user], true);
+    await page.goto(`${base}/`);
+    await page.locator('.account-menu').waitFor();
+    assert.equal(await page.locator('.sg-snow:visible').count(), 0, 'the saved preference stops skin and winter snow');
+    await page.goto(`${base}/account/`);
+    assert.equal(await animations.isChecked(), false, 'the skin form restores the saved animation choice');
+    await animations.check();
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.equal(await page.locator('.sg-snow:visible').count(), 1, 'animations can be enabled again');
+    assert.deepEqual(calls, [], 'snow previews never award a find');
+  }, { login: true, skin: 'fauna', finds: ['xmas'] });
+
+  for (const [date, expected] of [['2026-12-19', 0], ['2026-12-20', 1], ['2026-03-20', 1], ['2026-03-21', 0]]) {
+    await visit(date, async page => {
+      assert.equal(await page.locator('.sg-snow:visible').count(), expected, 'the existing winter boundary on ' + date);
+    });
+  }
+
+  await visit('2026-06-10', async page => {
+    assert.equal(await page.locator('.sg-snow:visible').count(), 1);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForFunction(() => !document.querySelector('.sg-snow:not([hidden])'));
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.locator('.sg-snow').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('.sg-snow').count(), 1, 'changing motion preference reuses the snowfall');
+  }, { login: true, skin: 'padoru', finds: ['xmas'] });
+
+  await visit('2026-06-10', async (page, context, calls) => {
+    assert.equal(await page.locator('.sg-snow:visible').count(), 0, 'the legacy snow setting suppresses the initial snowfall');
+    await page.goto(`${base}/account/`);
+    const toggle = page.getByRole('checkbox', { name: /Animacje skina/ });
+    assert.equal(await toggle.isChecked(), false, 'the old snow preference becomes the animation preference');
+    for (const [skin, effect] of [['fauna', '.sg-snow'], ['padoru', '.sg-snow'], ['tomie', '.sg-ink'],
+      ['lain', '.sg-wired'], ['march7', '.sg-sakura'], ['shogun', '.sg-sakura'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids']]) {
+      await chooseSkin(page, skin);
+      assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);
+      await toggle.check();
+      assert.equal(await page.locator(effect + ':visible').count(), 1, 'the switch enables ' + skin);
+      await toggle.uncheck();
+      assert.equal(await page.locator(effect + ':visible').count(), 0, 'the switch hides ' + skin);
+    }
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.equal(await toggle.isChecked(), false);
+    assert.equal((await (await context.request.get(`${base}/account.php`)).json()).skinanimations, false);
+    await page.goto(`${base}/privacy/`);
+    assert.equal(await page.locator('.sg-season-background').count(), 0, 'the saved switch applies on other pages');
+    // A HUD-only save must keep the independently saved animation preference.
+    const me = await (await context.request.get(`${base}/account.php`)).json();
+    await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'hud', hud: 'default' } });
+    assert.equal((await (await context.request.get(`${base}/account.php`)).json()).skinanimations, false);
+    assert.deepEqual(calls, []);
+  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'sakura', 'perseids'], animations: false });
+
+  for (const event of events) await visit(event.date, async (page, context, calls) => {
+    const layer = page.locator('.sg-' + event.key);
+    assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a instanceof CSSAnimation).length), 0,
+      'turning skin animations off also stops the current event');
+    const target = page.getByRole('button', { name: event.label });
+    await target.focus();
+    assert.equal(await target.locator('..').evaluate(el => getComputedStyle(el.closest('.seasonal-particle')).opacity), '1');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(key => !!SanakanSafeguard.finds()[key], event.key);
+    assert.deepEqual(calls, [event.key], 'the event remains keyboard accessible with animations off');
+  }, { login: true, animations: false });
+
+  for (const date of ['2026-06-10', '2026-11-13', '2026-04-10']) await visit(date, async (page, context, calls) => {
+    const seasonal = date === '2026-04-10' ? 1 : 0;
+    await page.goto(`${base}/account/`);
+    for (const [skin, key] of [['tomie', 'ink'], ['lain', 'wired']]) {
+      await chooseSkin(page, skin);
+      const layer = page.locator('.sg-' + key);
+      await layer.waitFor();
+      assert.equal(await page.locator('.sg-season-background').count(), 1 + seasonal);
+      assert.equal(await layer.getAttribute('aria-hidden'), 'true');
+      assert.equal(await layer.locator('button, [tabindex]').count(), 0, 'skin decorations have no interactive targets');
+      assert.equal(await layer.evaluate(el => getComputedStyle(el).pointerEvents), 'none');
+      assert.ok(await layer.evaluate(el => el.getAnimations({ subtree: true }).length > 0), 'the skin effect is animated');
+      await page.locator('.foot-search').click();
+      await page.getByRole('combobox').waitFor();
+      await page.keyboard.press('Escape');
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a instanceof CSSAnimation).length), 0,
+        'reduced motion leaves a stationary decoration');
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+      await page.goto(`${base}/`);
+      await layer.waitFor();
+      assert.equal(await page.locator('.sg-season-background').count(), 1 + seasonal, 'the saved effect follows navigation');
+      if (date === '2026-06-10') {
+        await page.waitForFunction(() => getComputedStyle(document.querySelector('.links')).opacity === '1');
+        await layer.evaluate((el, key) => el.getAnimations({ subtree: true }).forEach(animation => {
+          animation.pause();
+          const timing = animation.effect.getTiming();
+          animation.currentTime = timing.delay + timing.duration * (key === 'ink' ? 0.6 : 0.71);
+        }), key);
+        await page.screenshot({ path: path.join(process.cwd(), '.preview', skin + '-background-preview.png') });
+      }
+      await page.goto(`${base}/account/`);
+      await page.evaluate(() => { window.originalSkinDecoration = document.querySelector('.sg-ink, .sg-wired'); });
+      await chooseSkin(page, '');
+      assert.equal(await page.locator('.sg-season-background').count(), seasonal, 'removing the skin keeps only the event');
+      await chooseSkin(page, skin);
+      assert.equal(await layer.evaluate(el => el === window.originalSkinDecoration), true, 'previews reuse the decoration');
+    }
+    assert.deepEqual(calls, [], 'skin decorations never request a seasonal discovery');
+  }, { login: true, skin: 'tomie', finds: ['friday13'] });
 
   await visit('2026-06-10', async (page, context, calls) => {
     await page.locator('.sg-sakura').waitFor();

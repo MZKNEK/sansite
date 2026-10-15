@@ -1998,6 +1998,8 @@ html:not([data-skin]) body.idle .logo-eye {
     animation-direction: normal, alternate;
 }
 
+.sg-snow.paused i { animation-play-state: paused; }
+
 @keyframes sg-fall {
     to {
         transform: translateY(calc(100vh + 48px));

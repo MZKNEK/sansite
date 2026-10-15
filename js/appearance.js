@@ -8,6 +8,13 @@ window.SanakanAppearance = (function () {
     var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
     try { return match ? decodeURIComponent(match[1]) : ''; } catch (_) { return ''; }
   }
+  var preferredAnimations = serverAppearance ? root.getAttribute('data-skin-animations') !== 'off' : cookie('snow') !== 'off';
+  var animationPreview = null;
+  function paintAnimations() {
+    var enabled = animationPreview === null ? preferredAnimations : animationPreview;
+    root.setAttribute('data-skin-animations', enabled ? 'on' : 'off');
+  }
+  paintAnimations();
   function customDesign(value) {
     try { if (typeof value === 'string') value = JSON.parse(value); } catch (_) { return null; }
     if (!value || !value.colors) return null;
@@ -89,6 +96,8 @@ window.SanakanAppearance = (function () {
     // Reconcile empty preferences and a vanished account too. A deliberate
     // April override still lasts this visit, independently of the account.
     preferred = { skin: me.skin || '', words: me.skinwords !== false, custom: customDesign(me.customskin) };
+    preferredAnimations = me.skinanimations !== false;
+    paintAnimations();
     apply();
   });
   function paintBar() {
@@ -107,6 +116,8 @@ window.SanakanAppearance = (function () {
   new MutationObserver(paintBar).observe(root, { attributes: true, attributeFilter: ['class', 'data-hud', 'data-skin', 'style'] });
   return {
     current: current,
+    animations: function () { return root.getAttribute('data-skin-animations') !== 'off'; },
+    previewAnimations: function (enabled) { animationPreview = !!enabled; paintAnimations(); },
     preview: paintSkin,
     forVisit: function (id, words) {
       visit = { skin: id, words: words };

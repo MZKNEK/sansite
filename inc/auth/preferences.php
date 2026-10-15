@@ -92,18 +92,16 @@
         });
     }
 
-    // ---- The snow ------------------------------------------------------------
-    // Snow falls on the pages at Christmas and through the calendar winter
-    // (js/safeguard.js); an account may turn it off in its profile. The
-    // accounts that did are kept in inc/data/snow.json, and the browser gets
-    // the cookie "snow" = "off", so the static pages know it at once too.
+    // ---- Skin animations ----------------------------------------------------
+    // Keep the former snow preference's file and cookie so existing choices
+    // also apply to the other skin backgrounds without a data migration.
 
-    function snowOff($id)
+    function skinAnimationsOff($id)
     {
         return !empty(readData('snow')[(string)$id]);
     }
 
-    function setSnowOff($id, $off)
+    function setSkinAnimationsOff($id, $off)
     {
         return updateData('snow', function (&$all) use ($id, $off) {
             if ($off)
@@ -113,10 +111,10 @@
         });
     }
 
-    // the cookie of the snow as the account has it
-    function sendSnowCookie($id)
+    // Static pages read the same preference before their first paint.
+    function sendSkinAnimationsCookie($id)
     {
-        if (snowOff($id))
+        if (skinAnimationsOff($id))
             setcookie('snow', 'off', time() + 31536000, '/');
         else if (isset($_COOKIE['snow']))
             setcookie('snow', '', time() - 3600, '/');
@@ -137,6 +135,8 @@
         $html = ' data-hud="' . htmlspecialchars(hudMode($user['id']), ENT_QUOTES, 'UTF-8') . '"'
             . ' data-hud-own="' . htmlspecialchars((string)($badge['key'] ?? ''), ENT_QUOTES, 'UTF-8') . '"'
             . skinHtmlAttribute($user['id']);
+        if (skinAnimationsOff($user['id']))
+            $html .= ' data-skin-animations="off"';
         if ($key !== '')
             $html .= ' class="role-' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '"';
 

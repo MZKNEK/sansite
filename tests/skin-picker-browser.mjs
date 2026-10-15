@@ -12,7 +12,7 @@ export async function chooseSkin(page, id) {
 export async function testSkinPicker({ browser, base, site, errors }) {
   function update(name, id, value) {
     const file = path.join(site, 'inc/data', name + '.json');
-    const all = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+    const all = existsSync(file) ? { ...JSON.parse(readFileSync(file, 'utf8')) } : {};
     all[id] = value;
     writeFileSync(file, JSON.stringify(all));
   }
@@ -103,7 +103,7 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
     assert.equal(await current.textContent(), 'Miku');
     assert.equal(await variant.isVisible(), false, 'saved skins hide the controls after navigation too');
-    assert.equal(await page.locator('.hud-form button[type=submit]').isVisible(), false, 'no empty HUD save button outside the snow season');
+    assert.equal(await page.locator('.hud-form button[type=submit]').isVisible(), false, 'a skin hides the empty HUD save button');
     await page.setViewportSize({ width: 1280, height: 850 });
     await page.locator('[data-skin-open]').click();
     await dialog.locator('[data-skin-tile=teto]').click();
@@ -117,10 +117,10 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     await page.evaluate(() => localStorage.setItem('safeguard-date', '12-25'));
     await page.reload();
     assert.equal(await variant.isVisible(), false);
-    assert.equal(await page.locator('[data-snow-pref]').isVisible(), true, 'snow remains independent of the skin');
-    await page.locator('[name=snow]').uncheck();
-    await Promise.all([page.waitForNavigation(), page.locator('.hud-form button[type=submit]').click()]);
-    assert.deepEqual(JSON.parse(readFileSync(path.join(site, 'inc/data/hud.json'), 'utf8'))[user], { mode: 'full', color: 'dev' }, 'saving snow preserves the hidden HUD settings');
+    assert.equal(await page.locator('.skin-form [data-skin-animations-pref]').isVisible(), true, 'animations belong to skin settings');
+    await page.locator('[name=skinanimations]').uncheck();
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    assert.deepEqual(JSON.parse(readFileSync(path.join(site, 'inc/data/hud.json'), 'utf8'))[user], { mode: 'full', color: 'dev' }, 'saving skin animations preserves the HUD settings');
     await chooseSkin(page, '');
     assert.equal(await variant.isVisible(), true);
     assert.equal(await color.isVisible(), true);

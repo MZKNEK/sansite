@@ -1,4 +1,4 @@
-// Sakura and Perseids: seasonal backgrounds, also worn by their skins all year.
+// Seasonal backgrounds and skin decorations (snow shares safeguard.js's layer).
 // Decorations never cover controls. A pointer
 // click on empty space may catch a visible petal/comet; one is also reachable
 // by keyboard. The server witnesses the find before anything is remembered.
@@ -191,21 +191,73 @@
     return render;
   }
 
+  // Decorative skins have no targets or finds; their effects stay behind the
+  // content, reusing the same layer when a profile preview is cancelled.
+  function decoration(key, count, particle) {
+    var layer = document.createElement('div');
+    layer.className = 'sg-season-background sg-' + key;
+    layer.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < count; i++) {
+      var bit = document.createElement('i');
+      particle(bit, i, count);
+      layer.appendChild(bit);
+    }
+    function visibility() { layer.classList.toggle('paused', document.hidden); }
+    document.addEventListener('visibilitychange', visibility);
+    visibility();
+    return function (show) {
+      if (show && !layer.isConnected) document.body.appendChild(layer);
+      else if (!show) layer.remove();
+    };
+  }
+
+  function ink() {
+    return decoration('ink', small ? 5 : 9, function (bit, i, count) {
+      bit.className = 'ink-spill';
+      bit.style.left = ((i + 0.5) * 90 / count + 5).toFixed(2) + '%';
+      bit.style.top = between(16, 88).toFixed(2) + '%';
+      variable(bit, 'size', between(65, 145).toFixed(0) + 'px');
+      variable(bit, 'angle', between(-35, 35).toFixed(0) + 'deg');
+      var duration = between(14, 23);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-duration * (i + 0.5) / count).toFixed(2) + 's');
+    });
+  }
+
+  function wired() {
+    return decoration('wired', small ? 7 : 12, function (bit, i, count) {
+      bit.className = 'wired-line';
+      bit.style.left = between(-12, 55).toFixed(2) + '%';
+      bit.style.top = ((i + Math.random()) * 100 / count).toFixed(2) + '%';
+      variable(bit, 'size', between(25, 65).toFixed(2) + 'vw');
+      variable(bit, 'branch', between(18, 90).toFixed(0) + 'px');
+      var duration = between(9, 17);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-between(0, duration)).toFixed(2) + 's');
+    });
+  }
+
   // Lazily create each scene once; profile previews reuse its particles and
   // listeners. CSS declares which background belongs to the active skin.
-  var scenes = { sakura: { create: sakura }, perseids: { create: perseids } };
+  var scenes = {
+    sakura: { create: sakura, seasonal: true },
+    perseids: { create: perseids, seasonal: true },
+    ink: { create: ink },
+    wired: { create: wired }
+  };
   function update() {
     var skin = getComputedStyle(document.documentElement).getPropertyValue('--season-background').trim();
+    var enabled = !window.SanakanAppearance || SanakanAppearance.animations();
     var visible = false;
     Object.keys(scenes).forEach(function (key) {
-      var show = guard.holiday(key) || skin === key;
       var entry = scenes[key];
+      var show = (enabled && skin === key) || (!!entry.seasonal && guard.holiday(key));
       if (show && !entry.render) entry.render = entry.create();
       if (entry.render) entry.render(show);
       if (show) visible = true;
     });
     document.body.classList.toggle('seasonal-background', visible);
   }
-  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin'] });
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-skin-animations'] });
   update();
 })();

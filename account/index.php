@@ -42,22 +42,19 @@
             $mode = (string)($_POST['hud'] ?? '');
             // the colour is picked from the role user up; the others keep their own
             $color = canPickHudColor($user['id'], roleBadge(siteRoles())) ? (string)($_POST['hudcolor'] ?? 'own') : 'own';
-            // the snow's switch shows only while it snows (js/safeguard.js), but
-            // goes with the form all year, so it keeps what was picked
-            $snowOff = !isset($_POST['snow']);
-            $snowChanged = $snowOff !== snowOff($user['id']);
-            if (!setHud($user['id'], $mode, $color) || ($snowChanged && !setSnowOff($user['id'], $snowOff))) {
+            if (!setHud($user['id'], $mode, $color)) {
                 setFlash('Nie udało się zapisać wyglądu, spróbuj później.');
             } else {
                 addHistory('hud', 'Zmieniono wygląd na: ' . HUD_MODES[$mode] . ($mode !== 'default' ? ', ' . lower(HUD_COLORS[$color]) : '') . '.');
-                if ($snowChanged)
-                    addHistory('hud', $snowOff ? 'Wyłączono śnieg.' : 'Włączono śnieg.');
-                sendSnowCookie($user['id']);
                 setFlash('Zapisano wygląd.');
             }
         } else if (($_POST['action'] ?? '') === 'skin') {
             $skin = (string)($_POST['skin'] ?? '');
             $before = skinPrefs($user['id']);
+            // Older clients submitting only a skin keep the animation choice.
+            $animationsOff = isset($_POST['skinanimations_present'])
+                ? !isset($_POST['skinanimations']) : skinAnimationsOff($user['id']);
+            $animationsChanged = $animationsOff !== skinAnimationsOff($user['id']);
             // The picker marks whether the selected skin offers its switch.
             // Without it the stored words preference stays; older forms fall
             // back to the switch the server originally rendered.
@@ -70,6 +67,8 @@
                 setFlash($skin === 'custom' && skinUnlocked('custom', $user['id'])
                     ? 'Nie udało się zapisać skina. Podaj kolory jako #RRGGBB i wybierz dostępny obrazek z własnej galerii.'
                     : 'Ten skin jest jeszcze zablokowany.');
+            } else if ($animationsChanged && !setSkinAnimationsOff($user['id'], $animationsOff)) {
+                setFlash('Nie udało się zapisać ustawień animacji. Spróbuj ponownie.');
             } else {
                 if ($skin === 'custom')
                     addHistory('skin', 'Zapisano własny skin.');
@@ -77,7 +76,10 @@
                     addHistory('skin', $skin === '' ? 'Wyłączono skin.' : 'Zmieniono skin na: ' . SKINS[$skin]['name'] . '.');
                 if ($skin !== '' && $words !== $before['words'])
                     addHistory('skin', $words ? 'Włączono tłumaczenie strony głównej w skinie.' : 'Wyłączono tłumaczenie strony głównej w skinie.');
+                if ($animationsChanged)
+                    addHistory('skin', $animationsOff ? 'Wyłączono animacje skina.' : 'Włączono animacje skina.');
                 sendSkinCookie($user['id']);
+                sendSkinAnimationsCookie($user['id']);
                 setFlash($skin === '' ? 'Wyłączono skin.' : 'Włączono skin ' . SKINS[$skin]['name'] . ' — zobaczysz go na stronie głównej.');
             }
         } else if (($_POST['action'] ?? '') === 'ranking') {
@@ -181,14 +183,14 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=0d6c821266" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=19681cb590" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=08cb01faf8" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=c4ddf09879" type="text/css" rel="stylesheet" />
-  <link href="../css/admin.css?v=76c08c2c33" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=2627f8bdee" type="text/css" rel="stylesheet" />
-  <link href="../css/seasonal-background.css?v=bd96103a30" type="text/css" rel="stylesheet" />
+  <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=ac431f15d7" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=b5d5b2be79" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -375,10 +377,6 @@
             </label>
 <?php endif; ?>
           </div>
-          <label class="admin-check snow-field" data-snow-pref hidden>
-            <input type="checkbox" name="snow" value="on"<?=snowOff($id) ? '' : ' checked'?> />
-            <span>Śnieg na stronie zimą <span class="muted">(od 20 grudnia do 20 marca)</span></span>
-          </label>
           <button type="submit" class="admin-btn primary">Zapisz wygląd</button>
         </form>
         <h3>Skin</h3>
@@ -532,6 +530,11 @@
             <input type="checkbox" name="skinwords" value="on"<?=$skinSwitch ? '' : ' disabled'?><?=skinWords($id) ? ' checked' : ''?> />
             <span>Tłumaczenie strony głównej <span class="muted">(napisy skina; bez tego zostają kolory i logo)</span></span>
           </label>
+          <input type="hidden" name="skinanimations_present" value="on" />
+          <label class="admin-check skin-animations" data-skin-animations-pref>
+            <input type="checkbox" name="skinanimations" value="on"<?=skinAnimationsOff($id) ? '' : ' checked'?> />
+            <span>Animacje skina <span class="muted">(efekty w tle, w tym śnieg zimą)</span></span>
+          </label>
           <button type="submit" class="admin-btn primary">Zapisz skin</button>
         </form>
       </section>
@@ -602,13 +605,13 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/appearance.js?v=c787589afa"></script>
+  <script src="../js/appearance.js?v=035d31fe77"></script>
   <script src="../js/skin-picker.js?v=d04ca5eaa7"></script>
-  <script src="../js/appearance-picker.js?v=cfa79b055d"></script>
+  <script src="../js/appearance-picker.js?v=5ba11428c2"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
-  <script src="../js/safeguard.js?v=060589dc14"></script>
-  <script src="../js/seasonal-background.js?v=07fa3ad00c"></script>
+  <script src="../js/safeguard.js?v=56d4cd03bb"></script>
+  <script src="../js/seasonal-background.js?v=f262c89973"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 

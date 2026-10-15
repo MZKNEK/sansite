@@ -37,13 +37,13 @@
             'name' => 'Ceres Fauna',
             'find' => 'xmas',
             'words' => false,
-            'what' => 'świąteczna zieleń i logo Ceres Fauny, bez napisów'
+            'what' => 'świąteczna zieleń, logo Ceres Fauny i padający śnieg, bez napisów'
         ],
         'padoru' => [
             'name' => 'Padoru',
             'find' => 'xmas',
             'words' => false,
-            'what' => 'świąteczne złoto padoru i jego logo, bez napisów'
+            'what' => 'świąteczne złoto padoru, jego logo i padający śnieg, bez napisów'
         ],
         'reisen' => [
             'name' => 'Reisen',
@@ -73,13 +73,13 @@
             'name' => 'Tomie',
             'find' => 'friday13',
             'words' => false,
-            'what' => 'tusz i czerń Tomie, jej logo, bez napisów'
+            'what' => 'tusz i czerń Tomie, jej logo i rozlewające się krople atramentu, bez napisów'
         ],
         'lain' => [
             'name' => 'Lain',
             'find' => 'friday13',
             'words' => false,
-            'what' => 'śliwkowy fiolet i szaroróż Lain, jej logo, bez napisów'
+            'what' => 'śliwkowy fiolet i szaroróż Lain, jej logo i zakłócenia sygnału w tle, bez napisów'
         ],
         'cibo' => [
             'name' => 'Cibo',
