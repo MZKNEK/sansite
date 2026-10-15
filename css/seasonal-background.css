@@ -630,6 +630,147 @@ body.seasonal-background { isolation: isolate; }
 .sg-fireworks { opacity: 0.8; }
 .sg-fireworks .sg-spark { position: absolute; z-index: auto; }
 
+/* Teto and Miku: an equalizer along the bottom edge. Each bar grows from the
+   floor (scaleY, set by js/seasonal-background.js while the song plays) with
+   its peak line above it; without the song it sways in a slow wave. */
+.sg-equalizer {
+    top: auto;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    height: 22vh;
+    padding: 0 12px;
+    -webkit-mask-image: linear-gradient(to top, #000 55%, transparent);
+    mask-image: linear-gradient(to top, #000 55%, transparent);
+}
+.equalizer-band {
+    position: relative;
+    flex: 1;
+}
+.equalizer-bar,
+.equalizer-peak {
+    position: absolute;
+    inset: 0;
+}
+.equalizer-bar {
+    background: linear-gradient(to top, rgba(var(--accent-rgb), 0.4), rgba(var(--accent-light-rgb), 0.22));
+    transform: scaleY(var(--season-rest));
+    transform-origin: bottom;
+    animation: equalizer-idle var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.equalizer-peak {
+    border-top: 2px solid rgba(var(--accent-light-rgb), 0.75);
+    transform: translateY(calc((1 - var(--season-rest, 0.1)) * 100%));
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+.sg-equalizer.live .equalizer-bar { animation: none; }
+.sg-equalizer.live .equalizer-peak { opacity: 1; }
+@keyframes equalizer-idle {
+    0%, 100% { transform: scaleY(var(--season-rest)); }
+    50% { transform: scaleY(calc(var(--season-rest) * 1.9)); }
+}
+.sg-season-background.paused .equalizer-bar { animation-play-state: paused; }
+@media only screen and (max-width: 760px) {
+    .sg-equalizer { gap: 3px; height: 18vh; padding: 0 6px; }
+}
+
+/* the song's button and its volume, in the bottom left corner while the
+   equalizer is shown */
+.music-control {
+    position: fixed;
+    left: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.music-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    --fill: var(--surface-raised);
+    color: var(--link);
+    cursor: pointer;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+.music-toggle:hover,
+.music-toggle:focus-visible {
+    --arm: 18px;
+    color: var(--text-strong);
+    outline: none;
+}
+.music-toggle:disabled {
+    --arm: 10px;
+    color: var(--text-dim);
+    cursor: default;
+}
+.music-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+/* the browser holds the carried-over song back until a click: the corners
+   blink to say so */
+.music-control.waiting .music-toggle { animation: music-waiting 1.6s ease-in-out infinite; }
+@keyframes music-waiting {
+    0%, 100% { --arm: 10px; color: var(--link); }
+    50% { --arm: 18px; color: var(--text-strong); }
+}
+.music-toggle .music-pause,
+.music-toggle[aria-pressed="true"] .music-play { display: none; }
+.music-toggle[aria-pressed="true"] .music-pause { display: block; }
+
+/* the volume: a thin HUD line filled up to the chosen level, a square thumb */
+.music-volume {
+    width: 96px;
+    height: 24px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.music-volume:disabled { opacity: 0.4; cursor: default; }
+.music-volume::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(to right, var(--accent-light) var(--music-volume), var(--border-strong) var(--music-volume));
+}
+.music-volume::-moz-range-track { height: 2px; background: var(--border-strong); }
+.music-volume::-moz-range-progress { height: 2px; background: var(--accent-light); }
+.music-volume::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    margin-top: -4px;
+    border: 0;
+    background: var(--accent-light);
+    -webkit-appearance: none;
+    appearance: none;
+}
+.music-volume::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 0;
+    background: var(--accent-light);
+}
+.music-volume:focus-visible { outline: 1px dashed var(--accent-light); outline-offset: 2px; }
+@media only screen and (max-width: 760px) {
+    .music-control { left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); }
+    /* the footer's links stay clear of the button */
+    body:has(> .music-control) .site-foot { padding-bottom: 72px; }
+}
+
 /* Turning effects off hides decorations. During an event one stationary
    target remains reachable by keyboard, appearing only when it has focus. */
 :root[data-skin-animations="off"] .sg-season-background .seasonal-particle {
@@ -680,4 +821,6 @@ body.seasonal-background { isolation: isolate; }
     .netsphere-trail { animation: none; display: none; }
     .emitter-dust { animation: none; opacity: 0.15; }
     .emitter-ember { animation: none; opacity: 0.25; }
+    .equalizer-bar { animation: none; }
+    .music-control.waiting .music-toggle { animation: none; --arm: 18px; }
 }

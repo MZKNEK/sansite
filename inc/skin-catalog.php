@@ -11,7 +11,7 @@
             'alt' => 'テト',
             'find' => 'aprilfools',
             'words' => true,
-            'what' => 'japońska strona z 1 kwietnia: czerwień, logo Teto i japońskie napisy'
+            'what' => 'japońska strona z 1 kwietnia: czerwień, logo Teto, japońskie napisy i equalizer z jej piosenką'
         ],
         'miku' => [
             'name' => 'Miku',
@@ -19,7 +19,7 @@
             'alt' => 'ミク',
             'find' => 'aprilfools',
             'words' => true,
-            'what' => 'turkusowa zieleń, logo Miku i japońskie napisy'
+            'what' => 'turkusowa zieleń, logo Miku, japońskie napisy i equalizer z jej piosenką'
         ],
         'echidna' => [
             'name' => 'Echidna',

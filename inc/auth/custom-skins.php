@@ -30,7 +30,9 @@
         'lightning' => 'Pioruny (Raiden Shogun)',
         'perseids' => 'Gwiazdy i komety (Suisei)',
         'idol' => 'Światła sceny i gwiazdki (Hoshino Ai)',
-        'fireflies' => 'Świetliki (Firefly, Yoimiya)'
+        'fireflies' => 'Świetliki (Firefly, Yoimiya)',
+        'tetosong' => 'Equalizer z piosenką Teto',
+        'mikusong' => 'Equalizer z piosenką Miku'
     ];
 
     // The editor starts with the actual site palettes, not a second set of

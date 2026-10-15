@@ -7,9 +7,10 @@
 # their own when they changed since the last deploy, then nginx -t runs and nginx
 # reloads; a configuration that does not pass is rolled back and the deploy stops.
 # The wiki's icons (server/wiki/assets/) go the same way when they changed, with
-# Wiki.js restarted, and Cloudflare is told to forget the pictures and icons that
-# changed (inc/purge-cache.php). Run it from Git Bash or any shell
-# with ssh and tar:
+# Wiki.js restarted. The skins' songs (audio/*.mp3), kept out of git, go when
+# the server has none or another one of the same name. Cloudflare is told to
+# forget the pictures, icons and songs that changed (inc/purge-cache.php). Run
+# it from Git Bash or any shell with ssh, tar and md5sum:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
 #   ./deploy.sh --dry-run sanakan        only show what would be sent, changed
@@ -472,6 +473,27 @@ REMOTE
     fi
 fi
 
+# The skins' songs (audio/*.mp3, js/seasonal-background.js) are kept out of
+# git: one goes when the server has none of its name or another one (by MD5),
+# and Cloudflare forgets it below. One removed here stays on the server.
+changed_audio=()
+if compgen -G 'audio/*.mp3' > /dev/null; then
+    remote_audio=$(ssh "$target" "cd '$root' 2>/dev/null && for file in audio/*.mp3; do [ -f \"\$file\" ] && echo \"\$(md5sum < \"\$file\" | cut -d' ' -f1) \$file\"; done; true")
+    for file in audio/*.mp3; do
+        grep -qxF "$(md5sum < "$file" | cut -d' ' -f1) $file" <<< "$remote_audio" || changed_audio+=("$file")
+    done
+fi
+if [ ${#changed_audio[@]} -gt 0 ]; then
+    echo "Zmienione piosenki skinów, wysyłam do $target:$root/audio:"
+    printf '  %s\n' "${changed_audio[@]}"
+    if [ "$dry_run" -eq 0 ]; then
+        tar -c "${changed_audio[@]}" \
+            | ssh "$target" "mkdir -p '$root/audio' && tar -x -C '$root' --no-same-owner --no-overwrite-dir"
+    else
+        echo "[dry-run] Wysłałbym je."
+    fi
+fi
+
 # Cloudflare forgets the pictures, icons and the like the deploy changed or
 # deleted (the CSS and JS have a new ?v= instead), the wiki's too, so they show
 # at once and not after a day; inc/purge-cache.php on the server does it with
@@ -488,6 +510,9 @@ while IFS= read -r file; do
     purge+=$'\n'"$wiki_url/_assets/${file#server/wiki/assets/}"
     [ "$file" = server/wiki/assets/favicon.ico ] && purge+=$'\n'"$wiki_url/favicon.ico"
 done <<< "$changed_wiki"
+for file in ${changed_audio[@]+"${changed_audio[@]}"}; do
+    purge+=$'\n'"$site_url/$file"
+done
 purge=$(printf '%s\n' "$purge" | sed '/^$/d; s/ /%20/g')
 if [ -n "$purge" ]; then
     echo "Czyszczenie cache Cloudflare:"

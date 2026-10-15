@@ -235,9 +235,11 @@ html[data-skin="custom"]:not([data-skin-base="light"]) {
 }
 
 /* Teto: the Japanese home page of 1 April (inc/skin-catalog.php) — its reds, the
-   logo it wears and the corner of Alter's link. The Japanese fonts of its
-   words are with the language, in css/home-ja.css. */
+   logo it wears, the corner of Alter's link and an equalizer to her song
+   (js/seasonal-background.js). The Japanese fonts of its words are with the
+   language, in css/home-ja.css. */
 html[data-skin="teto"] {
+    --season-background: tetosong;
     --swap-corner: #ffacb4;
     --swap-fill: rgba(92, 22, 32, 0.9);
     --swap-text: #ffd1d6;
@@ -258,9 +260,10 @@ html[data-skin="teto"] {
 }
 
 /* Miku: the teal of the television singer (inc/skin-catalog.php) — its colours, the
-   logo she brings and the corner of Alter's link. Its Japanese words are the
-   same as Teto's (js/home-ja.js). */
+   logo she brings, the corner of Alter's link and an equalizer to her song.
+   Its Japanese words are the same as Teto's (js/home-ja.js). */
 html[data-skin="miku"] {
+    --season-background: mikusong;
     --swap-corner: #a9e8e2;
     --swap-fill: rgba(13, 66, 62, 0.9);
     --swap-text: #bff0eb;

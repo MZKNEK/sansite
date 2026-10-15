@@ -550,6 +550,298 @@
     };
   }
 
+  // The song of Teto and Miku (audio/<song>.mp3, kept out of git and sent by
+  // deploy.sh), one for the whole page. Nothing is downloaded until its button
+  // in the bottom left corner is pressed; it then loops at 40%, or at the
+  // volume of the slider next to it (kept in this browser), routed through an
+  // analyser for the equalizer. The tab remembers whether it played and where,
+  // so the next page carries on, or at the first touch when the browser holds
+  // sound back until then.
+  var SONG_VOLUME = 0.4;
+  var SONG_KEY = 'sanakan-song';
+  var VOLUME_KEY = 'sanakan-song-volume';
+  var songs = null;
+  function songPlayer() {
+    var Context = window.AudioContext || window.webkitAudioContext;
+    var audio = new Audio();
+    audio.preload = 'none';
+    audio.loop = true;
+    var volume = SONG_VOLUME;
+    try {
+      var kept = parseFloat(localStorage.getItem(VOLUME_KEY));
+      if (kept >= 0 && kept <= 1) volume = kept;
+    } catch (_) { /* the default volume */ }
+    audio.volume = volume;
+    var context = null, analyser = null, gain = null, data = null;
+    var song = '', name = '', wanted = false, waiting = false, listeners = [];
+    var control = document.createElement('div');
+    control.className = 'music-control';
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'music-toggle hud-corners';
+    button.innerHTML = '<svg class="music-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'
+      + '<svg class="music-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>';
+    var slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'music-volume';
+    slider.min = '0';
+    slider.max = '100';
+    slider.step = '5';
+    slider.value = String(Math.round(volume * 100));
+    slider.setAttribute('aria-label', 'Głośność piosenki');
+    control.appendChild(button);
+    control.appendChild(slider);
+
+    function recalled() {
+      try {
+        var value = JSON.parse(sessionStorage.getItem(SONG_KEY) || 'null');
+        return value && typeof value === 'object' ? value : null;
+      } catch (_) { return null; }
+    }
+    function remember() {
+      if (!song) return;
+      try {
+        sessionStorage.setItem(SONG_KEY, JSON.stringify({ song: song, on: wanted, time: audio.currentTime || 0 }));
+      } catch (_) { /* the next page starts the song from the top */ }
+    }
+    // a song that failed to load may still read as not paused
+    function playing() {
+      return !audio.paused && !audio.error && !button.disabled;
+    }
+    function paint() {
+      var on = playing();
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.setAttribute('aria-label', button.disabled ? 'Nie udało się wczytać piosenki ' + name
+        : on ? 'Zatrzymaj piosenkę ' + name
+        : waiting ? 'Wznów piosenkę ' + name + ' (przeglądarka czeka na kliknięcie)'
+        : 'Włącz piosenkę ' + name);
+      button.title = button.getAttribute('aria-label');
+      control.classList.toggle('waiting', waiting && !on);
+      slider.disabled = button.disabled;
+      slider.title = 'Głośność ' + slider.value + '%';
+      control.style.setProperty('--music-volume', slider.value + '%');
+      listeners.forEach(function (listener) { listener(); });
+    }
+    // The analyser joins once the context runs: a suspended one would silence
+    // the song. The element plays at full volume into it and the gain takes
+    // the chosen volume, whether or not a browser applies the element's own.
+    function connect() {
+      if (analyser || !Context) return;
+      try {
+        if (!context) {
+          context = new Context();
+          context.addEventListener('statechange', connect);
+        }
+        if (context.state !== 'running') {
+          context.resume().catch(function () {});
+          return;
+        }
+        var source = context.createMediaElementSource(audio);
+        gain = context.createGain();
+        analyser = context.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.minDecibels = -90;
+        analyser.maxDecibels = -20;
+        analyser.smoothingTimeConstant = 0.7;
+        gain.gain.value = volume;
+        source.connect(analyser);
+        analyser.connect(gain);
+        gain.connect(context.destination);
+        audio.volume = 1;
+        data = new Uint8Array(analyser.frequencyBinCount);
+        paint();
+      } catch (_) { /* the song plays on its own, the bars sway idly */ }
+    }
+    // a browser holding sound back until the page is touched: the first touch
+    // anywhere but the button (which starts the song itself) does it
+    function touched(e) {
+      if (e.target && e.target.closest && e.target.closest('.music-control')) return;
+      untouched();
+      if (wanted && song && !playing()) start();
+    }
+    function untouched() {
+      if (!waiting) return;
+      waiting = false;
+      document.removeEventListener('pointerdown', touched, true);
+      document.removeEventListener('keydown', touched, true);
+      paint();
+    }
+    function start() {
+      if (!song || button.disabled) return;
+      wanted = true;
+      connect();
+      var playing = audio.play();
+      if (playing && playing.then) playing.then(function () {
+        untouched();
+        connect();
+      }, function (error) {
+        if (!error || error.name !== 'NotAllowedError' || waiting) return;
+        waiting = true;
+        document.addEventListener('pointerdown', touched, true);
+        document.addEventListener('keydown', touched, true);
+        paint();
+      });
+    }
+    button.addEventListener('click', function () {
+      untouched();
+      if (!playing()) start();
+      else {
+        wanted = false;
+        audio.pause();
+      }
+      remember();
+    });
+    slider.addEventListener('input', function () {
+      volume = Math.max(0, Math.min(100, Number(slider.value) || 0)) / 100;
+      if (gain) gain.gain.value = volume;
+      else audio.volume = volume;
+      paint();
+      try { localStorage.setItem(VOLUME_KEY, String(volume)); } catch (_) { /* this page only */ }
+    });
+    ['play', 'pause'].forEach(function (type) { audio.addEventListener(type, paint); });
+    audio.addEventListener('error', function () {
+      if (!audio.getAttribute('src')) return;
+      wanted = false;
+      button.disabled = true;
+      paint();
+    });
+    window.addEventListener('pagehide', remember);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) remember(); });
+    var last = recalled();
+    wanted = !!(last && last.on);
+
+    return {
+      // the song of a skin, its button in the corner; a song carried over
+      // from the last page continues where it was
+      show: function (next, label) {
+        if (next !== song) {
+          audio.pause();
+          song = next;
+          name = label;
+          button.disabled = false;
+          audio.src = '/audio/' + next + '.mp3';
+          if (last && last.song === next && last.time > 0) audio.currentTime = last.time;
+          last = null;
+          paint();
+        }
+        if (!control.isConnected) document.body.appendChild(control);
+        if (wanted && audio.paused) start();
+      },
+      // a skin without this song: it stops, still wanted for when one returns
+      // (another song's scene may have taken over already)
+      hide: function (which) {
+        if (which !== song) return;
+        untouched();
+        audio.pause();
+        control.remove();
+      },
+      // the analyser's spectrum while the song plays, else null
+      spectrum: function () {
+        if (!analyser || !playing()) return null;
+        analyser.getByteFrequencyData(data);
+        return data;
+      },
+      rate: function () { return context ? context.sampleRate : 44100; },
+      bins: function () { return analyser ? analyser.fftSize : 2048; },
+      listen: function (listener) { listeners.push(listener); }
+    };
+  }
+
+  // Teto and Miku: an equalizer along the bottom edge, low notes in the middle
+  // and high ones toward the sides, with peaks that fall slowly. It follows
+  // the skin's song while it plays and sways idly otherwise.
+  function equalizer(song, label) {
+    if (!songs) songs = songPlayer();
+    var half = small ? 12 : 24;
+    var layer = document.createElement('div');
+    layer.className = 'sg-season-background sg-equalizer sg-' + song + 'song';
+    layer.setAttribute('aria-hidden', 'true');
+    var bars = [], peaks = [], levels = new Float32Array(half), tops = new Float32Array(half);
+    for (var i = 0; i < half * 2; i++) {
+      var band = document.createElement('span');
+      band.className = 'equalizer-band';
+      var bar = document.createElement('i');
+      bar.className = 'equalizer-bar';
+      // the idle sway: a slow wave from the middle out, each bar a little apart
+      var away = Math.abs(i - half + 0.5) / half;
+      variable(bar, 'rest', (0.16 - away * 0.09).toFixed(3));
+      variable(bar, 'duration', between(2.2, 3.4).toFixed(2) + 's');
+      variable(bar, 'delay', (-away * 2.6 - between(0, 0.4)).toFixed(2) + 's');
+      var peak = document.createElement('i');
+      peak.className = 'equalizer-peak';
+      band.appendChild(bar);
+      band.appendChild(peak);
+      layer.appendChild(band);
+      bars.push(bar);
+      peaks.push(peak);
+    }
+    var motion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)');
+    var edges = null, frame = 0;
+    // bands on a logarithmic scale from 45 Hz to 15 kHz, at least a bin each
+    function bandEdges() {
+      var size = songs.bins(), rate = songs.rate(), list = [];
+      for (var b = 0; b <= half; b++) {
+        var bin = Math.round(45 * Math.pow(15000 / 45, b / half) * size / rate);
+        list.push(Math.min(size / 2, b ? Math.max(bin, list[b - 1] + 1) : bin));
+      }
+      return list;
+    }
+    function rest() {
+      layer.classList.remove('live');
+      bars.forEach(function (bar, i) {
+        bar.style.removeProperty('transform');
+        peaks[i].style.removeProperty('transform');
+      });
+      levels.fill(0);
+      tops.fill(0);
+    }
+    function tick() {
+      frame = 0;
+      var data = layer.isConnected && !(motion && motion.matches) ? songs.spectrum() : null;
+      if (!data) {
+        if (layer.classList.contains('live')) rest();
+        return;
+      }
+      if (!edges) edges = bandEdges();
+      layer.classList.add('live');
+      for (var b = 0; b < half; b++) {
+        var loudest = 0;
+        for (var n = edges[b]; n < edges[b + 1]; n++) if (data[n] > loudest) loudest = data[n];
+        // above a floor that sinks toward the treble, which carries less
+        // energy and gets a lift too, so quiet passages fall and loud ones rise
+        var floor = 0.42 - 0.22 * b / half;
+        var level = Math.max(0, (loudest / 255 - floor) / (1 - floor));
+        level = Math.min(1, Math.pow(level, 1.3) * (1 + 0.6 * b / half));
+        levels[b] = level > levels[b] ? level : levels[b] + (level - levels[b]) * 0.3;
+        tops[b] = Math.max(levels[b], tops[b] - 0.01);
+        var scale = 'scaleY(' + Math.max(0.02, levels[b]).toFixed(3) + ')';
+        var drop = 'translateY(' + ((1 - tops[b]) * 100).toFixed(1) + '%)';
+        bars[half - 1 - b].style.transform = bars[half + b].style.transform = scale;
+        peaks[half - 1 - b].style.transform = peaks[half + b].style.transform = drop;
+      }
+      frame = requestAnimationFrame(tick);
+    }
+    function wake() {
+      if (!frame && layer.isConnected) frame = requestAnimationFrame(tick);
+    }
+    songs.listen(wake);
+    if (motion) motion.addEventListener('change', wake);
+    function visibility() { layer.classList.toggle('paused', document.hidden); }
+    document.addEventListener('visibilitychange', visibility);
+    visibility();
+    return function (show) {
+      if (!show) {
+        if (!layer.isConnected) return;
+        layer.remove();
+        songs.hide(song);
+        return;
+      }
+      if (!layer.isConnected) document.body.appendChild(layer);
+      songs.show(song, label);
+      wake();
+    };
+  }
+
   // Lazily create each scene once; profile previews reuse its particles and
   // listeners. CSS declares which background belongs to the active skin.
   var scenes = {
@@ -566,7 +858,9 @@
     rabbits: { create: rabbits },
     netsphere: { create: netsphere },
     emitter: { create: emitter },
-    fireworks: { create: fireworks }
+    fireworks: { create: fireworks },
+    tetosong: { create: function () { return equalizer('teto', 'Teto'); } },
+    mikusong: { create: function () { return equalizer('miku', 'Miku'); } }
   };
   function update() {
     var skin = getComputedStyle(document.documentElement).getPropertyValue('--season-background').trim();

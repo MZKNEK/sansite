@@ -196,9 +196,34 @@
         $types = ['html' => 'text/html; charset=utf-8', 'css' => 'text/css', 'js' => 'text/javascript', 'mjs' => 'text/javascript',
             'json' => 'application/json', 'wasm' => 'application/wasm', 'svg' => 'image/svg+xml', 'png' => 'image/png', 'jpg' => 'image/jpeg',
             'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif', 'ico' => 'image/x-icon',
-            'woff2' => 'font/woff2', 'webm' => 'video/webm', 'mp4' => 'video/mp4', 'txt' => 'text/plain; charset=utf-8', 'xml' => 'application/xml'];
+            'woff2' => 'font/woff2', 'webm' => 'video/webm', 'mp4' => 'video/mp4', 'mp3' => 'audio/mpeg',
+            'txt' => 'text/plain; charset=utf-8', 'xml' => 'application/xml'];
         header('Content-Type: ' . ($types[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? 'application/octet-stream'));
-        header('Content-Length: ' . filesize($file));
+        header('Accept-Ranges: bytes');
+        $size = filesize($file);
+        // one byte range, as nginx answers it, so a skin's song can go on
+        // from the middle on the next page
+        if (preg_match('/^bytes=(\d*)-(\d*)$/', (string)($_SERVER['HTTP_RANGE'] ?? ''), $range) === 1 && $range[1] . $range[2] !== '') {
+            $start = $range[1] === '' ? max(0, $size - (int)$range[2]) : (int)$range[1];
+            $end = $range[1] === '' || $range[2] === '' ? $size - 1 : min((int)$range[2], $size - 1);
+            if ($start > $end) {
+                http_response_code(416);
+                header('Content-Range: bytes */' . $size);
+                return true;
+            }
+            http_response_code(206);
+            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+            header('Content-Length: ' . ($end - $start + 1));
+            $handle = fopen($file, 'rb');
+            fseek($handle, $start);
+            for ($left = $end - $start + 1; $left > 0 && !feof($handle); $left -= strlen($chunk)) {
+                $chunk = (string)fread($handle, min(65536, $left));
+                echo $chunk;
+            }
+            fclose($handle);
+            return true;
+        }
+        header('Content-Length: ' . $size);
         readfile($file);
         return true;
     }

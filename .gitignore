@@ -2,6 +2,9 @@
 /i/*
 !/i/index.php
 
+# The songs of the Teto and Miku skins, sent by deploy.sh on their own
+/audio/
+
 # Discord application secret and the gallery admins, only on the server
 /inc/config.php
 

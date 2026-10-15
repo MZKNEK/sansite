@@ -187,7 +187,8 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       ['reisen', '.sg-lavender'], ['peko', '.sg-rabbits'],
       ['cibo', '.sg-netsphere'], ['killy', '.sg-emitter'],
       ['march7', '.sg-sakura'], ['shogun', '.sg-lightning'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-idol'],
-      ['firefly', '.sg-fireflies'], ['yoimiya', '.sg-fireflies']]) {
+      ['firefly', '.sg-fireflies'], ['yoimiya', '.sg-fireflies'],
+      ['teto', '.sg-tetosong'], ['miku', '.sg-mikusong']]) {
       await chooseSkin(page, skin);
       assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);
       await toggle.check();
@@ -205,7 +206,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'hud', hud: 'default' } });
     assert.equal((await (await context.request.get(`${base}/account.php`)).json()).skinanimations, false);
     assert.deepEqual(calls, []);
-  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'easter', 'birthday', 'sakura', 'perseids', 'fireflies'], animations: false });
+  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'easter', 'birthday', 'sakura', 'perseids', 'fireflies', 'aprilfools'], animations: false });
 
   for (const event of events) await visit(event.date, async (page, context, calls) => {
     const layer = page.locator('.sg-' + event.key);
@@ -671,4 +672,66 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     if (expected) assert.equal(await page.locator('.sg-' + expected).count(), 1);
     assert.deepEqual(calls, [], 'date changes alone never award a find');
   });
+
+  // Teto and Miku: the equalizer and the song's button and volume. The songs
+  // are kept out of git, so a second of a tone stands in for one.
+  function tone() {
+    const rate = 8000, samples = rate;
+    const wav = Buffer.alloc(44 + samples * 2);
+    wav.write('RIFF', 0); wav.writeUInt32LE(36 + samples * 2, 4); wav.write('WAVEfmt ', 8);
+    wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+    wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+    wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
+    for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(Math.sin(i / rate * 2 * Math.PI * 220) * 20000), 44 + i * 2);
+    return wav;
+  }
+  await visit('2026-07-10', async page => {
+    const songs = [];
+    await page.route('**/audio/*.mp3', route => {
+      songs.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ contentType: 'audio/wav', body: tone() });
+    });
+    await page.locator('.sg-tetosong').waitFor();
+    assert.equal(await page.locator('.sg-tetosong .equalizer-bar').count(), 48);
+    const toggle = page.getByRole('button', { name: 'Włącz piosenkę Teto' });
+    const volume = page.getByRole('slider', { name: 'Głośność piosenki' });
+    assert.equal(await volume.inputValue(), '40', 'the song starts at 40%');
+    await page.waitForTimeout(300);
+    assert.deepEqual(songs, [], 'nothing is downloaded before the button');
+    await toggle.click();
+    await page.locator('.sg-equalizer.live').waitFor();
+    assert.equal(await page.locator('.music-toggle').getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(songs.slice(0, 1), ['/audio/teto.mp3']);
+    await volume.fill('70');
+    assert.equal(await page.evaluate(() => localStorage.getItem('sanakan-song-volume')), '0.7');
+    // a reload without a gesture: held back, then the first touch resumes it
+    await page.reload();
+    await page.locator('.sg-tetosong').waitFor();
+    assert.equal(await volume.inputValue(), '70', 'the volume is kept');
+    assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('sanakan-song')).on), true);
+    await page.getByRole('button', { name: /^Wznów piosenkę Teto/ }).waitFor();
+    assert.equal(await page.locator('.music-control.waiting').count(), 1, 'the button shows the song is held back');
+    await page.mouse.click(40, 420);
+    await page.waitForFunction(() => document.querySelector('.music-toggle').getAttribute('aria-pressed') === 'true');
+    // paused, it stays paused on the next page
+    await page.locator('.music-toggle').click();
+    await page.waitForFunction(() => document.querySelector('.music-toggle').getAttribute('aria-pressed') === 'false');
+    await page.reload();
+    await page.locator('.sg-tetosong').waitFor();
+    await page.mouse.click(40, 420);
+    await page.waitForTimeout(300);
+    assert.equal(await page.locator('.music-toggle').getAttribute('aria-pressed'), 'false');
+    // a skin without a song takes the button away
+    await page.evaluate(() => SanakanAppearance.preview('', null));
+    await page.waitForFunction(() => !document.querySelector('.music-control'));
+  }, { login: true, skin: 'teto', finds: ['aprilfools'] });
+
+  await visit('2026-07-10', async page => {
+    await page.route('**/audio/*.mp3', route => route.fulfill({ status: 404, body: '' }));
+    await page.locator('.sg-mikusong').waitFor();
+    await page.getByRole('button', { name: 'Włącz piosenkę Miku' }).click();
+    await page.getByRole('button', { name: 'Nie udało się wczytać piosenki Miku' }).waitFor();
+    assert.equal(await page.locator('.music-toggle').isDisabled(), true, 'a missing song disables the button');
+    await page.waitForFunction(() => !document.querySelector('.sg-equalizer.live'));
+  }, { login: true, skin: 'miku', finds: ['aprilfools'] });
 }
