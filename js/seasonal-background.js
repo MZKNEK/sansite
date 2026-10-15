@@ -271,6 +271,54 @@
     });
   }
 
+  function fireworks() {
+    var layer = document.createElement('div');
+    layer.className = 'sg-season-background sg-fireworks';
+    layer.setAttribute('aria-hidden', 'true');
+    var active = false, timer = null;
+    var motion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)');
+    function stopTimer() {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    }
+    function clear() {
+      stopTimer();
+      layer.getAnimations({ subtree: true }).forEach(function (animation) { animation.cancel(); });
+      layer.replaceChildren();
+    }
+    function schedule() { timer = setTimeout(launch, between(3200, 5200)); }
+    function launch() {
+      timer = null;
+      if (!active || document.hidden || (motion && motion.matches)) return;
+      guard.fireworks(1, null, { layer: layer, colour: '#e9c56b', small: small });
+      schedule();
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (!active) return;
+      stopTimer();
+      layer.getAnimations({ subtree: true }).forEach(function (animation) {
+        if (document.hidden) animation.pause();
+        else animation.play();
+      });
+      if (!document.hidden && !(motion && motion.matches)) schedule();
+    });
+    if (motion) motion.addEventListener('change', function () {
+      clear();
+      if (active) launch();
+    });
+    return function (show) {
+      if (!show) {
+        active = false;
+        clear();
+        layer.remove();
+      } else if (!active) {
+        active = true;
+        document.body.appendChild(layer);
+        launch();
+      }
+    };
+  }
+
   // Lazily create each scene once; profile previews reuse its particles and
   // listeners. CSS declares which background belongs to the active skin.
   var scenes = {
@@ -279,7 +327,8 @@
     ink: { create: ink },
     wired: { create: wired },
     butterflies: { create: butterflies },
-    magic: { create: magic }
+    magic: { create: magic },
+    fireworks: { create: fireworks }
   };
   function update() {
     var skin = getComputedStyle(document.documentElement).getPropertyValue('--season-background').trim();

@@ -61,13 +61,13 @@
             'name' => 'Nakiri Ayame',
             'find' => 'newyear',
             'words' => false,
-            'what' => 'wino i srebro Ayame, jej logo, bez napisów'
+            'what' => 'wino i srebro Ayame, jej logo, złote fajerwerki w tle, bez napisów'
         ],
         'albedo' => [
             'name' => 'Albedo',
             'find' => 'newyear',
             'words' => false,
-            'what' => 'złoto Albedo na fioletowym tle i jej logo, bez napisów'
+            'what' => 'złoto Albedo na fioletowym tle, jej logo, złote fajerwerki w tle, bez napisów'
         ],
         'tomie' => [
             'name' => 'Tomie',

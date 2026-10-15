@@ -41,7 +41,7 @@
     // soon, safeguardHolidayIn()).
     const SAFEGUARD_SEASONAL = [
         'xmas'       => ['Święta w Megastrukturze', 'Czapka Mikołaja strącona z głowy Sanakan. Safeguard nie obchodzi świąt.', 'Wraca co roku od 20 grudnia do Trzech Króli.'],
-        'newyear'    => ['Nowy cykl', 'Fajerwerki z glifów odpalone na Sylwestra.', 'Wraca co roku 31 grudnia i 1 stycznia.'],
+        'newyear'    => ['Nowy cykl', 'Fajerwerki odpalone na Sylwestra.', 'Wraca co roku 31 grudnia i 1 stycznia.'],
         'easter'     => ['Pisanki z Megastruktury', 'Pięć pisanek rozbitych na pięciu stronach w czasie Wielkanocy.', 'Wraca co roku od Niedzieli Palmowej do Poniedziałku Wielkanocnego.'],
         'aprilfools' => ['Zagubiony w tłumaczeniu', 'Zakłócona litera w nazwie strony kliknięta na prima aprilis. Strona główna przemówiła po japońsku.', 'Wraca co roku 1 kwietnia. Przyjrzyj się ostatniej literze nazwy na stronie głównej.'],
         'birthday'   => ['Sto lat', 'Świeczki na torcie zdmuchnięte w urodziny bota.', 'Wraca co roku 13 października, w urodziny bota.'],

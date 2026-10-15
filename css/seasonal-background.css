@@ -324,6 +324,11 @@ body.seasonal-background { isolation: isolate; }
 .sg-season-background.paused .magic-dust,
 .sg-season-background.paused .magic-star { animation-play-state: paused; }
 
+/* Ayame and Albedo share the event's firework renderer, in a golden
+   background layer below the page's content. */
+.sg-fireworks { opacity: 0.8; }
+.sg-fireworks .sg-spark { position: absolute; z-index: auto; }
+
 /* Turning effects off hides decorations. During an event one stationary
    target remains reachable by keyboard, appearing only when it has focus. */
 :root[data-skin-animations="off"] .sg-season-background .seasonal-particle {

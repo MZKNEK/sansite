@@ -176,6 +176,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.equal(await toggle.isChecked(), false, 'the old snow preference becomes the animation preference');
     for (const [skin, effect] of [['fauna', '.sg-snow'], ['padoru', '.sg-snow'], ['tomie', '.sg-ink'],
       ['lain', '.sg-wired'], ['echidna', '.sg-butterflies'], ['marisa', '.sg-magic'],
+      ['ayame', '.sg-fireworks'], ['albedo', '.sg-fireworks'],
       ['march7', '.sg-sakura'], ['shogun', '.sg-sakura'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids']]) {
       await chooseSkin(page, skin);
       assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);
@@ -194,7 +195,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'hud', hud: 'default' } });
     assert.equal((await (await context.request.get(`${base}/account.php`)).json()).skinanimations, false);
     assert.deepEqual(calls, []);
-  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'sakura', 'perseids'], animations: false });
+  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'sakura', 'perseids'], animations: false });
 
   for (const event of events) await visit(event.date, async (page, context, calls) => {
     const layer = page.locator('.sg-' + event.key);
@@ -208,10 +209,12 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.deepEqual(calls, [event.key], 'the event remains keyboard accessible with animations off');
   }, { login: true, animations: false });
 
-  for (const date of ['2026-06-10', '2026-11-13', '2026-10-31', '2026-04-10']) await visit(date, async (page, context, calls) => {
+  for (const date of ['2026-06-10', '2026-11-13', '2026-10-31', '2026-12-31', '2026-04-10']) await visit(date, async (page, context, calls) => {
     const seasonal = date === '2026-04-10' ? 1 : 0;
     await page.goto(`${base}/account/`);
-    for (const [skin, key] of [['tomie', 'ink'], ['lain', 'wired'], ['echidna', 'butterflies'], ['marisa', 'magic']]) {
+    assert.equal(await page.locator('option[value="tomie"]').count(), 1, 'the decorative-skin fixture is unlocked on ' + date);
+    for (const [skin, key] of [['tomie', 'ink'], ['lain', 'wired'], ['echidna', 'butterflies'], ['marisa', 'magic'],
+      ['ayame', 'fireworks'], ['albedo', 'fireworks']]) {
       await chooseSkin(page, skin);
       const layer = page.locator('.sg-' + key);
       await layer.waitFor();
@@ -234,19 +237,26 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       await page.getByRole('combobox').waitFor();
       await page.keyboard.press('Escape');
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a instanceof CSSAnimation).length), 0,
+      if (key === 'fireworks') await page.waitForFunction(() => !document.querySelector('.sg-fireworks').children.length);
+      assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).length), 0,
         'reduced motion leaves a stationary decoration');
       await page.emulateMedia({ reducedMotion: 'no-preference' });
       await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
       await page.goto(`${base}/`);
       await layer.waitFor();
       assert.equal(await page.locator('.sg-season-background').count(), 1 + seasonal, 'the saved effect follows navigation');
+      if (date === '2026-12-31') {
+        assert.equal(await page.locator('.sg-snow').count(), 1, 'skin decorations coexist with one winter snowfall');
+        assert.equal(await page.locator('.ny-rocket').count(), 1, 'the New Year rocket remains available');
+      }
       if (date === '2026-06-10') {
         await page.waitForFunction(() => getComputedStyle(document.querySelector('.links')).opacity === '1');
+        if (key === 'fireworks') await page.waitForFunction(() => document.querySelector('.sg-fireworks').children.length > 1);
         await layer.evaluate((el, key) => el.getAnimations({ subtree: true }).forEach(animation => {
           animation.pause();
           const timing = animation.effect.getTiming();
-          animation.currentTime = timing.delay + timing.duration * (key === 'ink' ? 0.6 : 0.71);
+          const phase = key === 'fireworks' ? 0.45 : key === 'ink' ? 0.6 : 0.71;
+          animation.currentTime = timing.delay + timing.duration * phase;
         }), key);
         await page.screenshot({ path: path.join(process.cwd(), '.preview', skin + '-background-preview.png') });
       }
@@ -258,7 +268,17 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       assert.equal(await layer.evaluate(el => el === window.originalSkinDecoration), true, 'previews reuse the decoration');
     }
     assert.deepEqual(calls, [], 'skin decorations never request a seasonal discovery');
-  }, { login: true, skin: 'tomie', finds: ['friday13', 'halloween'] });
+  }, { login: true, skin: 'tomie', finds: ['friday13', 'halloween', 'newyear'] });
+
+  await visit('2026-12-31', async page => {
+    await page.route('**/megastructure.php*', route => new URL(route.request().url()).searchParams.get('witness') === 'newyear'
+      ? route.fulfill({ json: { proof: proof('newyear') } }) : route.continue());
+    await page.getByRole('button', { name: 'Rakieta noworoczna: odpal' }).click();
+    await page.waitForFunction(() => document.body.querySelectorAll(':scope > .sg-firework-trail').length > 0);
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('safeguard'))?.sent?.newyear);
+    assert.equal(await page.locator('.sg-fireworks').count(), 1, 'the event volley keeps the single skin background');
+    assert.equal(await page.locator('.sg-snow').count(), 1);
+  }, { login: true, skin: 'ayame', finds: ['newyear'] });
 
   await visit('2026-06-10', async page => {
     await page.goto(`${base}/account/`);
@@ -271,7 +291,33 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a instanceof CSSAnimation).length), 0);
       await page.emulateMedia({ reducedMotion: 'no-preference' });
     }
-  }, { login: true, skin: 'echidna', finds: ['halloween'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  }, { login: true, skin: 'echidna', finds: ['halloween', 'newyear'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  await visit('2026-06-10', async page => {
+    await page.goto(`${base}/account/`);
+    await chooseSkin(page, 'ayame');
+    const layer = page.locator('.sg-fireworks');
+    await layer.evaluate(el => { window.originalFireworks = el; });
+    await chooseSkin(page, 'albedo');
+    assert.equal(await layer.evaluate(el => el === window.originalFireworks), true, 'both New Year skins share one live firework layer');
+    assert.equal(await layer.count(), 1);
+    await page.waitForFunction(() => document.querySelector('.sg-fireworks').children.length > 1);
+    const sparks = await layer.locator('.sg-spark').count();
+    assert.ok(sparks >= 26 && sparks <= 29, 'phone bursts use fewer sparks');
+    assert.equal(await layer.locator('.sg-spark').evaluateAll(bits => bits.every(bit =>
+      ['rgb(233, 197, 107)', 'rgb(255, 240, 188)'].includes(getComputedStyle(bit).color))), true, 'all skin sparks are gold');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForFunction(() => !document.querySelector('.sg-fireworks').children.length);
+    assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).length), 0);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.waitForFunction(() => document.querySelector('.sg-fireworks').children.length > 0);
+    const toggle = page.getByRole('checkbox', { name: /Animacje skina/ });
+    await toggle.uncheck();
+    assert.equal(await page.locator('.sg-fireworks').count(), 0);
+    await page.waitForTimeout(5500);
+    assert.equal(await page.locator('.sg-spark').count(), 0, 'disabled backgrounds cancel launches and leave no stray sparks');
+  }, { login: true, skin: 'ayame', finds: ['newyear'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
   await visit('2026-06-10', async (page, context, calls) => {
     await page.locator('.sg-sakura').waitFor();

@@ -391,6 +391,7 @@ html[data-skin="ayame"] {
     --swap-text: #e6d6dc;
     --swap-hover-fill: #491723;
     --skin-logo: url("../skins/ayame.webp");
+    --season-background: fireworks;
     --accent: #752538;
     --accent-light: #ab989d;
     --accent-dark: #491723;
@@ -412,6 +413,7 @@ html[data-skin="albedo"] {
     --swap-text: #f6e8bc;
     --swap-hover-fill: #928663;
     --skin-logo: url("../skins/albedo.webp");
+    --season-background: fireworks;
     --accent: #ecd8a0;
     --accent-light: #f7efd7;
     --accent-dark: #928663;

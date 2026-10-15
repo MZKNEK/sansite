@@ -429,7 +429,7 @@ function homeWitness(key) {
 })();
 
 // New Year's Eve and Day: a rocket stands by Sanakan. A click sends it up and
-// fireworks of glyphs burst over the page (js/safeguard.js); the first time it
+// fireworks burst over the page (js/safeguard.js); the first time it
 // is a seasonal find of the Safeguard's register. It is back after a while,
 // for more.
 (function () {

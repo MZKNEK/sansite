@@ -102,10 +102,10 @@
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link rel="manifest" href="../../site.webmanifest" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=19681cb590" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=81b88abee1" type="text/css" rel="stylesheet" />
   <link href="../../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
   <link href="../../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../../css/skins.css?v=186b4251ab" type="text/css" rel="stylesheet" />
+  <link href="../../css/skins.css?v=04dee0689f" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=08cb01faf8" type="text/css" rel="stylesheet" />
   <link href="../../css/status.css?v=c4ddf09879" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
@@ -116,7 +116,7 @@
 <?php endif; ?>
   <script src="../../js/appearance.js?v=035d31fe77"></script>
   <script src="../../js/versions.js?v=9f931adf42" defer></script>
-  <link href="../../css/seasonal-background.css?v=a5025b691d" type="text/css" rel="stylesheet" />
+  <link href="../../css/seasonal-background.css?v=3a2be466ad" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
@@ -228,8 +228,8 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../../privacy/">Prywatność</a></footer>
   <script src="../../js/account.js?v=9ad24ea77c"></script>
   <script src="../../js/netsphere.js?v=a98676efe2"></script>
-  <script src="../../js/safeguard.js?v=56d4cd03bb"></script>
-  <script src="../../js/seasonal-background.js?v=ccafa4c4a0"></script>
+  <script src="../../js/safeguard.js?v=5303da0ccd"></script>
+  <script src="../../js/seasonal-background.js?v=c638791aba"></script>
   <script src="../../js/palette.js?v=9d395acc33"></script>
 </body>
 

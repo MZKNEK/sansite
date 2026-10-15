@@ -2288,19 +2288,44 @@ html:not([data-skin]) body.idle .logo-eye {
     transition: transform 0.8s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.8s ease-in;
 }
 
-/* the fireworks (js/safeguard.js): sparks moved by their animation, over
+/* The fireworks (js/safeguard.js): luminous trails moved by their animation, over
    the page but under its dialogs */
 .sg-spark {
     position: fixed;
     left: 0;
     top: 0;
     z-index: 940;
-    margin: -8px 0 0 -5px;
-    font: 15px "Sanakan Mono", monospace;
-    font-style: normal;
-    line-height: 1;
+    width: 3px;
+    height: 3px;
+    margin: -1.5px 0 0 -1.5px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 5px currentColor;
     pointer-events: none;
-    text-shadow: 0 0 6px currentColor;
+}
+
+.sg-firework-trail::before,
+.sg-firework-rocket::before {
+    content: "";
+    position: absolute;
+    right: 50%;
+    top: 50%;
+    width: var(--spark-tail, 24px);
+    height: 1px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, transparent, currentColor);
+    transform: translateY(-50%);
+    opacity: 0.7;
+}
+.sg-firework-rocket { box-shadow: 0 0 5px currentColor, 0 0 12px currentColor; }
+.sg-firework-rocket::before { width: 55px; opacity: 0.6; }
+.sg-firework-ember { width: 2px; height: 2px; box-shadow: 0 0 4px currentColor; }
+.sg-firework-flare {
+    width: 32px;
+    height: 32px;
+    margin: -16px 0 0 -16px;
+    background: radial-gradient(circle, currentColor, transparent 70%);
+    box-shadow: none;
 }
 
 /* The secret ping pong game opened by PONG in Morse (js/home.js). */

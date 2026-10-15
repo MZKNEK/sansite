@@ -758,57 +758,94 @@ window.SanakanSafeguard = (function () {
     })();
   }
 
-  // New Year: fireworks of glyphs, rockets that rise from the bottom of the
+  // New Year: luminous fireworks, rockets that rise from the bottom of the
   // window (or from a point given) and burst. js/home.js fires them from its
   // rocket; on 31 December they go off by themselves at midnight on any page
   // open, and on one opened in the first minutes of the year.
-  var SPARKS = ['✦', '✧', '*', '+', '◆', '·', '▪', '❖', '✺'];
   var SPARK_COLOURS = ['#b670d3', '#4fd1c5', '#e86262', '#f0a35e', '#5fd38d', '#e8d36a'];
 
-  function spark(glyph, colour) {
+  function spark(kind, colour, layer) {
     var bit = document.createElement('i');
-    bit.className = 'sg-spark';
+    bit.className = 'sg-spark sg-firework-' + kind;
     bit.setAttribute('aria-hidden', 'true');
-    bit.textContent = glyph;
     bit.style.color = colour;
-    document.body.appendChild(bit);
+    (layer || document.body).appendChild(bit);
     return bit;
   }
 
-  function burst(x, y, colour) {
-    var count = 22 + Math.floor(Math.random() * 10);
+  function animateSpark(bit, frames, timing) {
+    bit.animate(frames, timing).onfinish = function () { bit.remove(); };
+  }
+
+  function burst(x, y, colour, options) {
+    var smallBurst = options && options.small;
+    var layer = options && options.layer;
+    var bright = options && options.colour ? '#fff0bc' : '#fff';
+    var count = (smallBurst ? 20 : 34) + Math.floor(Math.random() * (smallBurst ? 4 : 8));
+    var flash = spark('flare', bright, layer);
+    animateSpark(flash, [
+      { transform: 'translate(' + x + 'px, ' + y + 'px) scale(0.15)', opacity: 0.9 },
+      { transform: 'translate(' + x + 'px, ' + y + 'px) scale(1.7)', opacity: 0 }
+    ], { duration: 500, easing: 'ease-out' });
     for (var i = 0; i < count; i++) {
-      var bit = spark(SPARKS[i % SPARKS.length], Math.random() < 0.2 ? '#fff' : colour);
-      var angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
-      var far = 50 + Math.random() * 90;
+      var bit = spark('trail', Math.random() < 0.25 ? bright : colour, layer);
+      var angle = (i / count) * Math.PI * 2 + Math.random() * 0.12;
+      var far = (smallBurst ? 60 : 90) + Math.random() * (smallBurst ? 50 : 100);
+      if (i % 4 === 0) far *= 0.6;
       var dx = Math.cos(angle) * far, dy = Math.sin(angle) * far;
-      bit.animate([
-        { transform: 'translate(' + x + 'px, ' + y + 'px) scale(0.5)', opacity: 1 },
-        { transform: 'translate(' + (x + dx) + 'px, ' + (y + dy) + 'px) scale(1)', opacity: 1, offset: 0.55 },
-        { transform: 'translate(' + (x + dx * 1.15) + 'px, ' + (y + dy + 50) + 'px) scale(0.8)', opacity: 0 }
-      ], { duration: 1200 + Math.random() * 600, easing: 'cubic-bezier(0.15, 0.7, 0.4, 1)' }).onfinish = (function (node) {
-        return function () { node.remove(); };
-      })(bit);
+      var degrees = angle * 180 / Math.PI;
+      var falling = degrees + ((90 - degrees + 540) % 360 - 180) * 0.8;
+      var drop = 65 + Math.random() * 65;
+      bit.style.setProperty('--spark-tail', (12 + Math.random() * 18).toFixed(1) + 'px');
+      animateSpark(bit, [
+        { transform: 'translate(' + x + 'px, ' + y + 'px) rotate(' + degrees + 'deg) scale(0.3)', opacity: 1,
+          easing: 'cubic-bezier(0.1, 0.75, 0.25, 1)' },
+        { transform: 'translate(' + (x + dx) + 'px, ' + (y + dy) + 'px) rotate(' + degrees + 'deg) scale(1)', opacity: 0.85,
+          offset: 0.35, easing: 'cubic-bezier(0.45, 0, 0.85, 0.7)' },
+        { transform: 'translate(' + (x + dx * 1.15) + 'px, ' + (y + dy + drop) + 'px) rotate(' + falling + 'deg) scale(0.15)', opacity: 0 }
+      ], { duration: 1700 + Math.random() * 700 });
+    }
+    // A few smaller embers remain after the main bloom, falling under gravity.
+    for (var j = 0; j < (smallBurst ? 5 : 9); j++) {
+      var ember = spark('ember', j % 3 ? colour : bright, layer);
+      var ex = x + (Math.random() - 0.5) * (smallBurst ? 100 : 160);
+      var ey = y + (Math.random() - 0.5) * 90;
+      var drift = (Math.random() - 0.5) * 35;
+      animateSpark(ember, [
+        { transform: 'translate(' + ex + 'px, ' + ey + 'px)', opacity: 0 },
+        { transform: 'translate(' + (ex + drift * 0.25) + 'px, ' + (ey + 20) + 'px)', opacity: 0.75, offset: 0.2 },
+        { transform: 'translate(' + (ex + drift) + 'px, ' + (ey + 125) + 'px) scale(0.3)', opacity: 0 }
+      ], { delay: 300 + Math.random() * 200, duration: 1400 + Math.random() * 700, fill: 'backwards', easing: 'ease-in' });
     }
   }
 
-  function rocket(from) {
+  function rocket(from, options) {
     var w = document.documentElement.clientWidth, h = innerHeight;
     var x0 = from ? from.x : w * (0.15 + Math.random() * 0.7), y0 = from ? from.y : h + 10;
-    var x = w * (0.12 + Math.random() * 0.76), y = h * (0.1 + Math.random() * 0.35);
-    var colour = SPARK_COLOURS[Math.floor(Math.random() * SPARK_COLOURS.length)];
-    var head = spark('•', colour);
+    var x = w * (0.18 + Math.random() * 0.64), y = h * (0.18 + Math.random() * 0.25);
+    var colour = options && options.colour || SPARK_COLOURS[Math.floor(Math.random() * SPARK_COLOURS.length)];
+    var head = spark('rocket', colour, options && options.layer);
+    var dx = x - x0, dy = y - y0;
+    var firstAngle = Math.atan2(dy * 0.72, dx * 0.8) * 180 / Math.PI;
+    var lastAngle = Math.atan2(dy * 0.28, dx * 0.2) * 180 / Math.PI;
     head.animate([
-      { transform: 'translate(' + x0 + 'px, ' + y0 + 'px)', opacity: 1 },
-      { transform: 'translate(' + x + 'px, ' + y + 'px)', opacity: 0.9 }
-    ], { duration: 650 + Math.random() * 300, easing: 'cubic-bezier(0.3, 0.6, 0.5, 1)' }).onfinish = function () {
+      { transform: 'translate(' + x0 + 'px, ' + y0 + 'px) rotate(' + firstAngle + 'deg)', opacity: 0.65 },
+      { transform: 'translate(' + (x0 + dx * 0.8) + 'px, ' + (y0 + dy * 0.72) + 'px) rotate(' + lastAngle + 'deg)', opacity: 1, offset: 0.6 },
+      { transform: 'translate(' + x + 'px, ' + y + 'px) rotate(' + lastAngle + 'deg)', opacity: 1 }
+    ], { duration: 950 + Math.random() * 350, easing: 'cubic-bezier(0.15, 0.65, 0.25, 1)' }).onfinish = function () {
       head.remove();
-      burst(x, y, colour);
+      if (!options || !options.layer || (options.layer.isConnected && !document.hidden && !still())) burst(x, y, colour, options);
     };
   }
 
-  function fireworks(rockets, from) {
+  function fireworks(rockets, from, options) {
     if (still() || !document.body.animate) return;
+    // Skin backgrounds own their timing and layer; the event keeps its usual
+    // staggered volley, with the same rocket and burst renderer underneath.
+    if (options && options.layer) {
+      if (options.layer.isConnected) rocket(from, options);
+      return;
+    }
     for (var n = 0; n < rockets; n++) setTimeout(rocket, n * 380 + Math.random() * 250, from);
   }
 
@@ -1163,7 +1200,9 @@ window.SanakanSafeguard = (function () {
   // the server for one first and ticket(kind) for a ticket, names its names, finds() what this browser found
   // today() the day of the year (maybe a pretended one), holiday(key) whether
   // it is that one's (holidays() above), and fireworks(rockets, from) the New
-  // Year's, from a point {x, y} of the window or from its bottom; mega(query)
+  // Year's, from a point {x, y} of the window or from its bottom. An optional
+  // third argument supplies a background layer, colour and smaller bursts.
+  // mega(query)
   // asks megastructure.php (post for a POST), fragment(n, value) keeps a fragment of the gene
   // and fragments() gives those kept
   return {
