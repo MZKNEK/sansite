@@ -30,8 +30,8 @@
     }
 
     // ?login starts the login; Discord comes back to DISCORD_REDIRECT_URI with ?state
-    // and ?code (or ?error). The gallery and the panel both answer that, so either can
-    // be the redirect address. $returnPath is where to go after a login started here.
+    // and ?code (or ?error) at /auth/discord/. The old page callbacks still work
+    // during migration. $returnPath is where to go after a login started here.
     function handleLoginRequest($returnPath)
     {
         if (!authConfigured())

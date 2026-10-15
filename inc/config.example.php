@@ -10,7 +10,7 @@
     // add DISCORD_REDIRECT_URI below to the Redirects list there, exactly the same.
     const DISCORD_CLIENT_ID = '';
     const DISCORD_CLIENT_SECRET = '';
-    const DISCORD_REDIRECT_URI = 'https://sanakan.pl/i/';
+    const DISCORD_REDIRECT_URI = 'https://sanakan.pl/auth/discord/';
 
     // Discord accounts that may open the admin panel (admin/, linked from the home
     // page once logged in). Only here, the panel cannot change it.

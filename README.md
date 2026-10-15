@@ -223,7 +223,7 @@ Fill `inc/config.php` with the Discord application details (https://discord.com/
 | Constant | Meaning |
 |---|---|
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Discord application credentials |
-| `DISCORD_REDIRECT_URI` | Where Discord sends the visitor back after the login, e.g. `https://sanakan.pl/i/`. It must also be listed under Redirects in the application |
+| `DISCORD_REDIRECT_URI` | The shared Discord callback, `https://sanakan.pl/auth/discord/`. Set the same URL in `inc/config.php` and under Redirects in the Discord application, including the trailing slash. The session keeps the page or gallery folder to return to after login |
 | `PANEL_ADMINS` | Accounts that may open the admin panel. This list is changed only in the file |
 | `GALLERY_ADMINS` | Accounts that may view the gallery and manage its files. The panel can add more |
 | `GALLERY_VIEWERS` | Accounts that may only view the gallery. The panel can add more; `true` lets in any Discord account |

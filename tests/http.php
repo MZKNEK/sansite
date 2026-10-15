@@ -139,6 +139,7 @@
         // a thumbnail depends on the session, so no cache may keep it, a refusal neither
         ['/i/?thumb=a.png&v=1&c=2', [403, 404], 'Cache-Control: private, no-store'],
         ['/account/', [200, 503]],
+        ['/auth/discord/', [503], 'Cache-Control: no-store, private'],
         ['/admin/', [200, 503]],
         ['/api/', [200, 503]],
         ['/inc/data/access.json', [403]],

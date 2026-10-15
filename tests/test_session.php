@@ -5,7 +5,7 @@
 
     if (!defined('DISCORD_CLIENT_ID')) define('DISCORD_CLIENT_ID', 'test');
     if (!defined('DISCORD_CLIENT_SECRET')) define('DISCORD_CLIENT_SECRET', 'test');
-    if (!defined('DISCORD_REDIRECT_URI')) define('DISCORD_REDIRECT_URI', 'https://example.test/i/');
+    if (!defined('DISCORD_REDIRECT_URI')) define('DISCORD_REDIRECT_URI', 'https://example.test/auth/discord/');
 
     test('siteUser reads the account of the session', function () {
         sessionFor('sanakan-test-1', ['id' => '111', 'name' => 'Test', 'avatar' => 'a']);
