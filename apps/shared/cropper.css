@@ -27,8 +27,8 @@ body {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: radial-gradient(ellipse at top right, rgba(var(--hud-rgb), 0.18), transparent 55%),
-              linear-gradient(to top right, var(--bg-dark), var(--bg-mid));
+  background: radial-gradient(ellipse at top right, rgba(var(--hud-rgb), var(--page-glow-opacity, 0.18)), transparent 55%),
+              linear-gradient(to top right, var(--bg-dark), var(--page-bg-mid, var(--bg-mid)));
   background-attachment: fixed;
   background-repeat: no-repeat;
   color: var(--text);
@@ -119,7 +119,7 @@ main.content {
   font-weight: 700;
   letter-spacing: 0.38em;
   text-transform: uppercase;
-  text-shadow: 0 0 18px rgba(var(--hud-rgb), 0.7);
+  text-shadow: var(--heading-shadow, 0 0 18px rgba(var(--hud-rgb), 0.7));
 }
 
 .tag,

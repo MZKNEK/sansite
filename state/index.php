@@ -28,12 +28,12 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=81b88abee1" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=8a30720878" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=bb772d5ef3" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=c7740efbef" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=63053ffd67" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=035d31fe77"></script>
   <link href="../css/seasonal-background.css?v=2a539f8ff3" type="text/css" rel="stylesheet" />
 </head>

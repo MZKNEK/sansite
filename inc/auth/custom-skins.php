@@ -26,6 +26,13 @@
             foreach (CUSTOM_SKIN_COLORS as $key => $label) {
                 if ($key === 'home-title')
                     continue;
+                // The light base follows Echidna's displayed page gradient;
+                // her surface palette may intentionally keep a brighter input.
+                if ($base === 'light' && $key === 'bg-mid'
+                    && preg_match('~--page-bg-mid:\s*(#[0-9a-f]{6})\s*;~i', $block[1], $pageColor)) {
+                    $result[$base][$key] = strtolower($pageColor[1]);
+                    continue;
+                }
                 if (!preg_match('~--' . preg_quote($key, '~') . ':\s*(#[0-9a-f]{6})\s*;~i', $block[1], $color))
                     throw new RuntimeException('Missing custom skin colour: ' . $base . '/' . $key);
                 $result[$base][$key] = strtolower($color[1]);

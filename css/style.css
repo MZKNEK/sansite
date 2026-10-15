@@ -15,8 +15,8 @@ body {
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    background: radial-gradient(ellipse at top right, rgba(var(--hud-rgb), 0.18), transparent 55%),
-                linear-gradient(to top right, var(--bg-dark), var(--bg-mid));
+    background: radial-gradient(ellipse at top right, rgba(var(--hud-rgb), var(--page-glow-opacity, 0.18)), transparent 55%),
+                linear-gradient(to top right, var(--bg-dark), var(--page-bg-mid, var(--bg-mid)));
     background-attachment: fixed;
     background-repeat: no-repeat;
     color: var(--text);
@@ -63,7 +63,7 @@ main.hero {
     max-width: 60vw;
     margin: 0 auto;
     border-radius: 50%;
-    box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.4);
+    box-shadow: var(--logo-shadow, 0 0 34px rgba(var(--accent-rgb), 0.4));
     animation: rise-in 0.6s ease-out backwards, glitch-ring 7s steps(1) infinite;
 }
 
@@ -73,7 +73,7 @@ main.hero {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    box-shadow: 0 0 70px 12px rgba(var(--accent-rgb), 0.5);
+    box-shadow: var(--logo-pulse-shadow, 0 0 70px 12px rgba(var(--accent-rgb), 0.5));
     opacity: 0.2;
     animation: logo-glow 4s ease-in-out infinite alternate;
 }
@@ -128,8 +128,8 @@ img.logo {
 }
 
 @keyframes glitch-ring {
-    0%, 92%, 95%, 100% { box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.4); }
-    93%, 94% { box-shadow: -4px 0 0 var(--glitch-pink), 4px 0 0 var(--glitch-cyan), 0 0 34px rgba(var(--accent-rgb), 0.4); }
+    0%, 92%, 95%, 100% { box-shadow: var(--logo-shadow, 0 0 34px rgba(var(--accent-rgb), 0.4)); }
+    93%, 94% { box-shadow: -4px 0 0 var(--glitch-pink), 4px 0 0 var(--glitch-cyan), var(--logo-shadow, 0 0 34px rgba(var(--accent-rgb), 0.4)); }
 }
 
 /* status dot like on Discord, set by the script in index.html from status.php:
@@ -501,7 +501,7 @@ body.gbe-shot main.hero {
     font-weight: 700;
     letter-spacing: 0.38em;
     text-transform: uppercase;
-    text-shadow: 0 0 18px rgba(var(--hud-rgb), 0.7);
+    text-shadow: var(--heading-shadow, 0 0 18px rgba(var(--hud-rgb), 0.7));
 }
 
 .home .hud-title {
@@ -513,8 +513,8 @@ body.gbe-shot main.hero {
     padding-left: 0.6em;
     font: 14px "Sanakan Mono", monospace;
     letter-spacing: 0.6em;
-    color: var(--decoration);
-    opacity: 0.7;
+    color: var(--kana-color, var(--decoration));
+    opacity: var(--kana-opacity, 0.7);
 }
 
 /* the motto in Morse code, barely visible at the very top of the page, in

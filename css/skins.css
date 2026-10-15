@@ -201,6 +201,18 @@ html[data-skin="custom"][data-skin-base="light"] {
     --scheme: light;
 }
 
+/* Light custom designs share Echidna's effects, using their own saved colours. */
+html[data-skin="echidna"],
+html[data-skin="custom"][data-skin-base="light"] {
+    --page-glow-opacity: 0.09;
+    --card-background: color-mix(in srgb, var(--text) 4%, transparent);
+    --logo-shadow: 0 0 22px rgba(var(--accent-rgb), 0.22);
+    --logo-pulse-shadow: 0 0 42px 5px rgba(var(--accent-rgb), 0.25);
+    --heading-shadow: 0 2px 5px color-mix(in srgb, var(--text) 15%, transparent);
+    --kana-color: var(--accent);
+    --kana-opacity: 1;
+}
+
 /* Preserve the dark text hierarchy while allowing the custom text input to
    recolour its descriptions and captions. Default colours match the HUD. */
 html[data-skin="custom"]:not([data-skin-base="light"]) {
@@ -273,6 +285,7 @@ html[data-skin="echidna"] {
     --bg-dark: #e7e3ea;
     --bg-mid: #f8f6fa;
     --text: #1b1a20;
+    --page-bg-mid: #efedf2;
 }
 
 /* Marisa Kirisame: the lime-lemon of her magic and her logo, Halloween's find

@@ -256,6 +256,7 @@
         $palettes = customSkinPalettes();
         assertSame($palettes['dark'], $defaults['colors']);
         assertSame('#e7e3ea', $palettes['light']['bg-dark']);
+        assertSame('#efedf2', $palettes['light']['bg-mid'], 'light defaults follow Echidna\'s displayed page background');
         assertSame('#1b1a20', $palettes['light']['text']);
         // Old light-looking colours still inherit the dark base by default.
         writeData('custom-skins', ['111' => ['colors' => $palettes['light']]]);

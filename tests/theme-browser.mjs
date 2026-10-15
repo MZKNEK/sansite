@@ -33,8 +33,9 @@ async function contrast(page, selector, minimum = 4.5, property = 'color') {
       // Check both ends of the page gradient. Other actual surfaces are
       // composited over them, including HUD fills and modal backgrounds.
       const root = getComputedStyle(document.documentElement);
-      const ratios = ['--bg-dark', '--bg-mid'].map(key => {
-        let bg = rgba(root.getPropertyValue(key));
+      const pageBackgrounds = [root.getPropertyValue('--bg-dark'), root.getPropertyValue('--page-bg-mid').trim() || root.getPropertyValue('--bg-mid')];
+      const ratios = pageBackgrounds.map(background => {
+        let bg = rgba(background);
         const ancestors = [];
         for (let a = e; a; a = a.parentElement) ancestors.unshift(a);
         for (const a of ancestors) bg = over(rgba(getComputedStyle(a).backgroundColor), bg);
@@ -88,6 +89,10 @@ export async function testTheme({ browser, base, site, errors }) {
 
     await page.goto(base + '/');
     await page.locator('.account-menu').waitFor();
+    const echidnaPageEffects = await page.evaluate(() => ({
+      background: getComputedStyle(document.body).backgroundImage,
+      heading: getComputedStyle(document.querySelector('.hud-title')).textShadow
+    }));
     const skins = await page.evaluate(() => ['', ...Object.keys(SanakanSkinCatalog).filter(id => id !== 'custom')]);
     await preview(page, '');
     assert.deepEqual(await page.evaluate(() => ({
@@ -354,6 +359,10 @@ export async function testTheme({ browser, base, site, errors }) {
       await page.goto(`${base}/${app}/`);
       await page.locator('.sel-btn').first().waitFor();
       assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light', app);
+      assert.deepEqual(await page.evaluate(() => ({
+        background: getComputedStyle(document.body).backgroundImage,
+        heading: getComputedStyle(document.querySelector('.hud-title')).textShadow
+      })), echidnaPageEffects, `${app}: Echidna shares the main site's background and heading shadow`);
       await contrast(page, '.hud-title, .field > .label, .sel-value, .link-field input');
       await contrast(page, '.sel-pos');
       await page.locator('.sel-btn').first().click();
@@ -423,6 +432,17 @@ export async function testTheme({ browser, base, site, errors }) {
     // Light custom designs require an explicit base. Background colours alone
     // must not change the dark styles inherited by a legacy design.
     await page.goto(base + '/account/');
+    const lightDefaults = JSON.parse(await page.locator('[data-custom-editor]').getAttribute('data-custom-palettes')).light;
+    const lightDesign = { colors: lightDefaults, image: '', base: 'light' };
+    const cardEffects = () => page.evaluate(() => ({
+      background: getComputedStyle(document.body).backgroundImage,
+      heading: getComputedStyle(document.querySelector('.hud-title')).textShadow,
+      card: getComputedStyle(document.querySelector('.card')).backgroundColor
+    }));
+    await preview(page, 'echidna');
+    const echidnaCards = await cardEffects();
+    await page.evaluate(design => SanakanAppearance.preview('custom', design), lightDesign);
+    assert.deepEqual(await cardEffects(), echidnaCards, 'the light custom base shares Echidna\'s displayed background, heading shadow and cards');
     const colors = { accent: '#426c47', 'accent-light': '#9cb8a2', 'accent-dark': '#29432c', 'bg-dark': '#e7e3ea', 'bg-mid': '#f8f6fa', text: '#1b1a20', 'home-title': '#232721' };
     await page.evaluate(colors => SanakanAppearance.preview('custom', { colors, image: '' }), colors);
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
@@ -435,6 +455,33 @@ export async function testTheme({ browser, base, site, errors }) {
     await preview(page, 'miku');
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
     assert.equal(await page.locator('html').getAttribute('data-skin-base'), null);
+
+    await page.goto(base + '/');
+    const homeEffects = () => page.evaluate(() => ({
+      background: getComputedStyle(document.body).backgroundImage,
+      heading: getComputedStyle(document.querySelector('.hud-title')).textShadow,
+      logo: getComputedStyle(document.querySelector('.logo-wrap')).boxShadow,
+      pulse: getComputedStyle(document.querySelector('.logo-wrap'), '::before').boxShadow,
+      kana: getComputedStyle(document.querySelector('.kana')).color,
+      kanaOpacity: getComputedStyle(document.querySelector('.kana')).opacity
+    }));
+    await preview(page, 'echidna');
+    const echidnaHome = await homeEffects();
+    await page.evaluate(design => SanakanAppearance.preview('custom', design), lightDesign);
+    assert.deepEqual(await homeEffects(), echidnaHome, 'the light custom base shares Echidna\'s logo glow and Japanese subtitle accent');
+    const ownLight = { ...lightDesign, colors: { ...lightDefaults, accent: '#2255aa', text: '#19202a', 'bg-mid': '#dddde3' } };
+    await page.evaluate(design => SanakanAppearance.preview('custom', design), ownLight);
+    const ownEffects = await homeEffects();
+    assert.notEqual(ownEffects.logo, echidnaHome.logo, 'custom light logo effects use the saved accent');
+    assert.notEqual(ownEffects.heading, echidnaHome.heading, 'custom light shadows use the saved text');
+    assert.equal(ownEffects.kana, 'rgb(34, 85, 170)', 'custom light subtitles use the saved accent');
+    assert.match(ownEffects.background, /rgb\(221, 221, 227\)/, 'custom light backgrounds preserve the saved second colour');
+    await preview(page, 'miku');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--heading-shadow').trim()), '', 'leaving a light skin clears its effect roles');
+    await preview(page, 'echidna');
+    await page.locator('.hud-title').evaluate(element => element.classList.add('sg-glitch'));
+    assert.match(await page.locator('.hud-title').evaluate(element => getComputedStyle(element).textShadow), /,.*-2px/, 'the Friday title effect keeps its two coloured shadows');
+    await page.locator('.hud-title').evaluate(element => element.classList.remove('sg-glitch'));
 
     await page.goto(base + '/offline.html');
     await contrast(page, 'p:not(.note), dt, dd:not(.dim)');
