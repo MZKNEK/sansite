@@ -78,7 +78,7 @@
   <link rel="manifest" href="../../site.webmanifest" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../../css/style.css?v=81b88abee1" type="text/css" rel="stylesheet" />
-  <link href="../../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="../../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../../css/skins.css?v=bb772d5ef3" type="text/css" rel="stylesheet" />
   <link href="../style.css?v=a34798408d" type="text/css" rel="stylesheet" />

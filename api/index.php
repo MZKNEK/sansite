@@ -46,10 +46,10 @@
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link href="../css/style.css?v=81b88abee1" type="text/css" rel="stylesheet" />
-  <link href="../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
+  <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=bb772d5ef3" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=08cb01faf8" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=035d31fe77"></script>
   <link href="../css/seasonal-background.css?v=2a539f8ff3" type="text/css" rel="stylesheet" />
 </head>
@@ -124,10 +124,10 @@
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=81b88abee1" />
-  <link rel="stylesheet" type="text/css" href="../css/palette.css?v=3bb1398e4e" />
+  <link rel="stylesheet" type="text/css" href="../css/palette.css?v=94c96c7c93" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=66047e5fc2" />
   <link rel="stylesheet" type="text/css" href="../css/skins.css?v=bb772d5ef3" />
-  <link rel="stylesheet" type="text/css" href="./theme.css?v=1739858b8d" >
+  <link rel="stylesheet" type="text/css" href="./theme.css?v=85dc937fba" >
   <script src="../js/appearance.js?v=035d31fe77"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />

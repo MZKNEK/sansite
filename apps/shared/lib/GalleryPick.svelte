@@ -3,6 +3,7 @@
   // (i/?pick), newest first, to crop one of them. They are on the site itself,
   // so the crop reads them without asking another server. Shown only to an
   // account with a folder of its own.
+  import { tick } from 'svelte';
   import { account } from './account.js';
 
 
@@ -13,11 +14,14 @@
   let loading = $state(false);
   let error = $state('');
   let pictures = $state([]);
+  let dialog = $state();
 
   async function show() {
     open = true;
     loading = true;
     error = '';
+    await tick();
+    dialog.showModal();
     try {
       const res = await fetch('/i/?pick', { credentials: 'same-origin', cache: 'no-store' });
       const answer = await res.json().catch(() => null);
@@ -29,29 +33,43 @@
     loading = false;
   }
 
-  function choose(picture) {
+  function hide() {
+    dialog.close();
     open = false;
+  }
+
+  function choose(picture) {
+    hide();
     onpick?.(picture.url);
   }
 
   function keydown(e) {
-    if (open && e.key === 'Escape') open = false;
+    if (e.key !== 'Tab') return;
+    const controls = dialog.querySelectorAll('button:not(:disabled), a[href]');
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 </script>
-
-<svelte:window onkeydown={keydown} />
 
 {#if $account?.own}
   <button type="button" class="btn-pick" onclick={show}>Z mojej galerii</button>
 {/if}
 
 {#if open}
-  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-  <div class="pick-back" onclick={(e) => { if (e.target === e.currentTarget) open = false; }}>
-    <div class="pick hud-corners" role="dialog" aria-modal="true" aria-label="Obrazek z mojej galerii">
+  <dialog class="pick-back" bind:this={dialog} aria-label="Obrazek z mojej galerii"
+    onclose={() => { open = false; }} onkeydown={keydown}
+    onclick={(e) => { if (e.target === e.currentTarget) hide(); }}>
+    <div class="pick hud-corners">
       <div class="pick-head">
         <span>Moja galeria{pictures.length && !loading ? ` · ${pictures.length}` : ''}</span>
-        <button type="button" class="pick-close" title="Zamknij (Esc)" onclick={() => { open = false; }}>✕</button>
+        <button type="button" class="pick-close" title="Zamknij (Esc)" onclick={hide}>✕</button>
       </div>
       {#if loading}
         <p class="pick-note">Wczytuję…</p>
@@ -70,7 +88,7 @@
         </div>
       {/if}
     </div>
-  </div>
+  </dialog>
 {/if}
 
 <style>
@@ -82,11 +100,22 @@
     position: fixed;
     inset: 0;
     z-index: 50;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
     background: var(--scrim);
+    color: inherit;
+  }
+
+  .pick-back::backdrop {
+    background: transparent;
   }
 
   .pick {

@@ -215,6 +215,13 @@ export async function testTheme({ browser, base, site, errors }) {
     await contrast(page, '.ex-dialog[open] h2, .ex-dialog[open] p, .ex-dialog[open] input');
     await page.keyboard.press('Escape');
 
+    for (const skin of ['', 'echidna']) {
+      await preview(page, skin);
+      await page.setViewportSize({ width: 320, height: 844 });
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'gallery search fits a 320px screen');
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+
     // Files without thumbnails keep dark media surfaces even in a light skin.
     writeFileSync(path.join(site, `i/users/${owner}-User/A/readme.txt`), 'Theme fixture');
     await page.goto(`${base}/i/?p=${encodeURIComponent(login.own + '/A')}&q=readme`);
@@ -366,13 +373,25 @@ export async function testTheme({ browser, base, site, errors }) {
       const overflow = await page.evaluate(() => [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && getComputedStyle(e).position !== 'absolute').slice(0, 8).map(e => `${e.tagName}.${e.className}: ${e.getBoundingClientRect().right}`));
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${app}: ${overflow.join(', ')}`);
       await page.setViewportSize({ width: 1280, height: 900 });
-      await page.locator('.btn-pick').click();
+      const galleryButton = page.locator('.btn-pick');
+      await galleryButton.focus();
+      await page.keyboard.press('Enter');
       await page.locator('.pick-item span').first().waitFor();
+      const galleryDialog = page.getByRole('dialog', { name: 'Obrazek z mojej galerii' });
+      assert.ok(await galleryDialog.evaluate(e => e.contains(document.activeElement)), `${app}: opening the gallery moves focus inside`);
+      await page.locator('.pick-item').last().focus();
+      await page.keyboard.press('Tab');
+      assert.ok(await galleryDialog.evaluate(e => e.contains(document.activeElement)), `${app}: Tab stays inside the gallery`);
+      await page.locator('.pick-close').focus();
+      await page.keyboard.press('Shift+Tab');
+      assert.ok(await galleryDialog.evaluate(e => e.contains(document.activeElement)), `${app}: Shift+Tab stays inside the gallery`);
       await contrast(page, '.pick-head > span, .pick-item span, .pick-close');
       await page.locator('.pick-item').first().hover();
       await page.waitForTimeout(220);
       await contrast(page, '.pick-item:hover span');
       await page.keyboard.press('Escape');
+      assert.equal(await galleryDialog.count(), 0, `${app}: Escape closes the gallery`);
+      assert.ok(await galleryButton.evaluate(e => e === document.activeElement), `${app}: closing the gallery restores focus`);
       await page.getByText('Tryb edycji', { exact: true }).click();
       await contrast(page, '.btn-save, .btn-go');
     }
