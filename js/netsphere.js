@@ -409,7 +409,7 @@
       },
 
       // The Net Terminal Gene (inc/megastructure.php): without a sequence the
-      // fragments this browser has; with one, megastructure.php says whether
+      // fragments the account has earned; with one, megastructure.php says whether
       // it is the gene, the one time the Safeguard lets anyone in
       gen: function (arg, sequence) {
         if (!window.SanakanSafeguard) {
@@ -417,11 +417,18 @@
           return;
         }
         if (!sequence) {
-          var kept = SanakanSafeguard.fragments();
-          [1, 2, 3, 4].forEach(function (n) {
-            row('fragment ' + n + '/4', kept[n] || '????', kept[n] ? 'ok' : 'dim');
+          SanakanSafeguard.mega({ fragments: 1 }).then(function (answer) {
+            if (stranger(answer)) return;
+            if (!answer || !answer.fragments) {
+              say('Rejestr Safeguarda nie odpowiada.', 'bad');
+              return;
+            }
+            var kept = answer.fragments;
+            [1, 2, 3, 4].forEach(function (n) {
+              row('fragment ' + n + '/4', kept[n] || '????', kept[n] ? 'ok' : 'dim');
+            });
+            say('Złożoną sekwencję podaj tak: gen XXXX-XXXX-XXXX-XXXX', 'dim');
           });
-          say('Złożoną sekwencję podaj tak: gen XXXX-XXXX-XXXX-XXXX', 'dim');
           return;
         }
         say('weryfikacja sekwencji…', 'dim');

@@ -1,4 +1,21 @@
 <?php
+    test('gene fragments follow only the requesting account recorded finds', function () {
+        $now = megaAt(12, 0);
+        $query = ['fragments' => '1'];
+        writeData('finds', ['111' => ['builders' => 100, 'maze' => 200], '222' => ['floor0' => 150, 'paper' => 250]]);
+        $read = function ($id) use ($query, $now) {
+            return (array)megastructureAnswer('a', $query, $now, false, $id)['fragments'];
+        };
+        assertSame([1 => geneFragment('a', 1), 3 => geneFragment('a', 3)], $read('111'));
+        assertSame([2 => geneFragment('a', 2), 4 => geneFragment('a', 4)], $read('222'));
+        assertSame([], $read('333'), 'a new account has no fragments');
+        assertSame(['stranger' => true], megastructureAnswer('a', $query, $now));
+        assertSame([], megastructureAnswer('', $query, $now, false, '111'));
+        assertTrue(removeSafeguardFinds('111', ['maze']));
+        assertSame([1 => geneFragment('a', 1)], $read('111'), 'revoked finds no longer reveal their fragments');
+        assertSame([], readData('proofs'), 'reading fragments never awards a find');
+    });
+
     test('fresh proofs of every account step cannot be donated before their first claim', function () {
         $start = megaAt(3, 2);
         $flights = megaFlights('a', '111');

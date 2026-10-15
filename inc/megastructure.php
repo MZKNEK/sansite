@@ -928,6 +928,7 @@
     //                 when that is the terminal
     //   ask=<word>    a word said in the console: the third fragment
     //   paper=<word>  the same word, from a page about to be printed: the fourth
+    //   fragments     the fragments earned by the account's recorded finds
     //   gene=<code>   the sequence given to the terminal: right or not
     //   enter=<code>  the gene given to enter the Netsphere: the archive's address
     //   record=<text> the archive's last record, deciphered: right or not
@@ -950,7 +951,7 @@
         $proof = function ($key) use ($secret, $now, $id) {
             return megaProof($secret, $key, $now->getTimestamp(), null, $id);
         };
-        $way = ['door', 'walk', 'ask', 'paper', 'gene', 'enter', 'record'];
+        $way = ['door', 'walk', 'ask', 'paper', 'fragments', 'gene', 'enter', 'record'];
         if ($id === '' && array_intersect_key($query, array_flip($way)) && !isset($query['at']))
             return ['stranger' => true];
 
@@ -983,6 +984,16 @@
             }
 
             return $answer;
+        }
+
+        if (isset($query['fragments'])) {
+            $finds = safeguardFinds($id);
+            $fragments = [];
+            foreach (['builders', 'floor0', 'maze', 'paper'] as $i => $key)
+                if (isset($finds[$key]))
+                    $fragments[$i + 1] = geneFragment($secret, $i + 1);
+
+            return ['fragments' => (object)$fragments];
         }
 
         if (isset($query['enter']))

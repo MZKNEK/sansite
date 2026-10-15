@@ -22,6 +22,7 @@ export async function testSafeguardSync({ browser, base, site, php, errors }) {
       $legacy[$key] = $time . '.' . $nonce . '.' . substr(megaHash($secret, 'proof:' . $key . ':' . $time . ':' . $nonce), 0, 32);
     }
     echo json_encode(['finds' => $finds, 'proofs' => $proofs, 'legacy' => $legacy,
+      'fragments' => explode('-', geneSequence($secret)),
       'foreign' => megaProof($secret, 'gene', $finds['gene'], null, '900000000000000001'),
       'later' => megaProof($secret, 'builders', $start + 200, null, $id),
       'laterFloor' => megaProof($secret, 'floor0', $start + 231, null, $id)]);
@@ -94,6 +95,43 @@ export async function testSafeguardSync({ browser, base, site, php, errors }) {
     assert.deepEqual(JSON.parse(readFileSync(findsFile, 'utf8'))[id], expected, 'the account keeps the original proof times');
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('safeguard')));
     assert.deepEqual(state.retryProofs || {}, {}, 'confirmed finds no longer keep replacement proofs');
+  }
+
+  // A fresh browser recovers fragments from the account, and stale local
+  // fragments never reveal discoveries the account lacks.
+  for (const keys of [Object.keys(beforeGene), ['builders', 'paper'], []]) {
+    const had = Object.fromEntries(keys.map(key => [key, fixture.finds[key]]));
+    await withRegister({}, had, async page => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto(`${base}/500.html`);
+      if (keys.length !== 4) await page.evaluate(() => {
+        localStorage.setItem('safeguard-gene', JSON.stringify({ 1: 'FFFF', 2: 'FFFF', 3: 'FFFF', 4: 'FFFF' }));
+      });
+      await page.keyboard.type('netsphere');
+      const input = page.locator('.ns-box input');
+      async function command(text) {
+        await input.fill(text);
+        await input.press('Enter');
+      }
+      async function fragments(expected) {
+        await command('wyczysc');
+        await command('gen');
+        await page.waitForFunction(() => document.querySelectorAll('.ns-row').length === 4);
+        assert.deepEqual(await page.locator('.ns-row span').allTextContents(), expected);
+      }
+      const expected = ['builders', 'floor0', 'maze', 'paper'].map((key, i) => keys.includes(key) ? fixture.fragments[i] : '????');
+      await fragments(expected);
+      // Every command reads the current account, even while the terminal stays open.
+      const all = JSON.parse(readFileSync(findsFile, 'utf8'));
+      all[id] = {};
+      writeFileSync(findsFile, JSON.stringify(all));
+      await fragments(['????', '????', '????', '????']);
+      await page.route('**/megastructure.php?fragments=*', route => route.abort('failed'));
+      await command('wyczysc');
+      await command('gen');
+      await page.waitForFunction(() => document.querySelector('.ns-log').textContent.includes('Rejestr Safeguarda nie odpowiada.'));
+      assert.equal(await page.locator('.ns-row').count(), 0, 'a failed request does not fall back to stale local fragments');
+    });
   }
 
   // A replacement collected while logged out must survive navigation and login.
