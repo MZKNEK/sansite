@@ -116,7 +116,8 @@
         assertSame(['easter'], $on('2027-03-21'), 'Palm Sunday, Easter on 28 March 2027');
         assertSame(['easter'], $on('2027-03-29'), 'Easter Monday');
         assertSame([], $on('2027-03-30'));
-        assertSame(['easter', 'aprilfools', 'sakura'], $on('2029-04-01'), 'Sakura overlaps Easter Sunday and April Fools');
+        assertSame(['easter', 'aprilfools'], $on('2029-04-01'), 'Sakura starts after April Fools');
+        assertSame(['easter', 'sakura'], $on('2029-04-02'), 'Sakura overlaps Easter Monday');
         assertSame(['birthday'], $on('2026-10-13'));
         assertSame(['halloween'], $on('2026-10-31'));
         assertSame(['friday13'], $on('2026-11-13'));
@@ -125,7 +126,7 @@
     });
 
     test('seasonal backgrounds honor every day and both boundaries of their events', function () {
-        foreach (['sakura' => ['04-01', 15], 'perseids' => ['08-01', 15], 'fireflies' => ['06-15', 16]] as $key => [$date, $length]) {
+        foreach (['sakura' => ['04-02', 14], 'perseids' => ['08-01', 15], 'fireflies' => ['06-15', 16]] as $key => [$date, $length]) {
             $start = new DateTimeImmutable('2026-' . $date . ' 00:00', new DateTimeZone('Europe/Warsaw'));
             assertFalse(in_array($key, safeguardHolidays($start->modify('-1 day')), true));
             for ($day = 0; $day < $length; $day++) {

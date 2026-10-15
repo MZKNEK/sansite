@@ -780,7 +780,7 @@
             if (($art = loadPicture(__DIR__ . '/i/ss/' . $name . '.' . $ext)) !== null)
                 return $art;
 
-        $source = loadPicture(__DIR__ . '/logo.webp');
+        $source = loadPicture(__DIR__ . '/img/logo.webp');
         if ($source === null)
             return null;
         $sw = imagesx($source);

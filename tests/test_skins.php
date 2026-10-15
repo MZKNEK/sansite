@@ -217,6 +217,30 @@
         }
     });
 
+    test('a custom design picks any skin background animation, validated', function () {
+        // every background a skin wears is offered to the custom design
+        preg_match_all('~--season-background:\s*([a-z]+)\s*;~', (string)file_get_contents(__DIR__ . '/../css/skins.css'), $used);
+        foreach (array_unique($used[1]) as $key)
+            assertTrue(isset(CUSTOM_SKIN_BACKGROUNDS[$key]), 'missing background ' . $key);
+        writeData('finds', ['333' => array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time())]);
+        $input = customSkinPrefs('333');
+        assertSame('', $input['background']);
+        unset($input['background']);
+        assertTrue(setCustomSkin('333', $input), 'an older form without the field saves no animation');
+        assertSame('', customSkinPrefs('333')['background']);
+        $input['background'] = 'fireflies';
+        assertTrue(setCustomSkin('333', $input));
+        assertSame('fireflies', customSkinPrefs('333')['background']);
+        assertSame('fireflies', customSkinAppearance('333')['background']);
+        foreach (['rain', 'Snow', ' snow', ['snow'], 'snow;--x:1'] as $bad) {
+            $input['background'] = $bad;
+            assertFalse(setCustomSkin('333', $input));
+            assertSame('fireflies', customSkinPrefs('333')['background']);
+        }
+        updateData('custom-skins', function (&$all) { $all['333']['background'] = 'gone'; });
+        assertSame('', customSkinPrefs('333')['background'], 'an unknown stored animation reads as none');
+    });
+
     test('custom colours are validated and kept when switching or losing a find', function () {
         $input = customSkinPrefs('111');
         $input['colors']['accent'] = '#12AB34';
@@ -263,7 +287,7 @@
         assertSame('dark', customSkinPrefs('111')['base']);
         assertSame($palettes['light'], customSkinPrefs('111')['colors']);
         writeData('finds', ['111' => array_fill_keys(array_keys(SAFEGUARD_FINDS + SAFEGUARD_SEASONAL), time())]);
-        $design = ['image' => '', 'colors' => $palettes['light'], 'base' => 'light'];
+        $design = ['image' => '', 'colors' => $palettes['light'], 'base' => 'light', 'background' => ''];
         assertTrue(setSkin('111', 'custom', true, $design));
         assertSame($design, customSkinPrefs('111'));
         assertSame('light', customSkinAppearance('111')['base']);

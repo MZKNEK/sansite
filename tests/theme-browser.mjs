@@ -199,6 +199,23 @@ export async function testTheme({ browser, base, site, errors }) {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Mobile overflow: ${url}`);
       await page.setViewportSize({ width: 1280, height: 900 });
     }
+    // The kinds of command changes read as tags on light and dark skins.
+    await page.goto(base + '/cmd/changes/');
+    await page.evaluate(() => document.querySelector('main').insertAdjacentHTML('beforeend', '<ul class="change-list"><li><span class="change-kind added">nowe</span></li><li><span class="change-kind changed">zmienione</span></li><li><span class="change-kind removed">usunięte</span></li></ul>'));
+    for (const skin of ['', 'echidna']) {
+      await preview(page, skin);
+      await contrast(page, '.change-kind');
+    }
+    // Hunter names wear their role's colour on dark skins, a readable mix on light ones.
+    await page.goto(base + '/hunters/');
+    await page.evaluate(() => document.querySelector('main').insertAdjacentHTML('beforeend', '<span class="hunter-name role-admin" id="role-probe">Admin</span>'));
+    for (const [skin, expected] of [['', 'rgb(232, 98, 98)'], ['miku', 'rgb(232, 98, 98)'], ['echidna', null]]) {
+      await preview(page, skin);
+      const color = await page.locator('#role-probe').evaluate(e => getComputedStyle(e).color);
+      if (expected) assert.equal(color, expected, `${skin || 'default'}: a hunter's name takes its role colour`);
+      else assert.notEqual(color, 'rgb(232, 98, 98)', 'light skins mix the role colour with the text');
+      await contrast(page, '#role-probe');
+    }
     await page.goto(base + '/account/');
     await contrast(page, '.hud-select option');
     await contrast(page, '[data-skin-open]');
@@ -249,6 +266,30 @@ export async function testTheme({ browser, base, site, errors }) {
       await preview(page, skin);
       assert.equal(await page.locator('.api-toolbar').evaluate(e => getComputedStyle(e).backgroundColor), overlayColors[skin], 'API search toolbar shares the Ctrl+K surface');
       await contrast(page, '.opblock-tag, .opblock-summary-path, .api-toolbar input, .swagger-ui input, .opblock-summary-method');
+      // API methods have colours of their own, muted on every skin: darker
+      // than the status tone of the same hue on dark skins, paler on light ones.
+      {
+        const methods = await page.locator('.opblock').evaluateAll(elements => {
+          const canvas = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+          const lum = value => {
+            canvas.clearRect(0, 0, 1, 1);
+            canvas.fillStyle = value;
+            canvas.fillRect(0, 0, 1, 1);
+            const c = [...canvas.getImageData(0, 0, 1, 1).data].slice(0, 3).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4);
+            return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+          };
+          const tones = { get: 'info', post: 'success', put: 'warning', delete: 'danger' };
+          const light = getComputedStyle(document.documentElement).colorScheme === 'light';
+          return elements.map(e => {
+            const method = e.querySelector('.opblock-summary-method').textContent.toLowerCase();
+            const tone = tones[method] && getComputedStyle(e).getPropertyValue(`--${tones[method]}-tone`).trim();
+            const badge = lum(getComputedStyle(e.querySelector('.opblock-summary-method')).backgroundColor);
+            return tone ? [method, light ? badge > lum(tone) : badge < lum(tone)] : null;
+          }).filter(Boolean);
+        });
+        assert.ok(methods.length >= 4, 'the API lists several methods');
+        for (const [method, muted] of methods) assert.ok(muted, `${skin || 'default'}: ${method} is muted against its status tone`);
+      }
       const debug = page.locator('.opblock-tag').filter({ hasText: 'Debug' });
       await debug.locator('a').hover();
       await page.waitForTimeout(220);
@@ -268,24 +309,19 @@ export async function testTheme({ browser, base, site, errors }) {
       await contrast(page, '.opblock-tag:hover a');
       await page.mouse.move(0, 0);
     }
-    const methodTones = await page.locator('.opblock').evaluateAll(elements => Object.fromEntries(elements.map(e => {
-      const style = getComputedStyle(e);
-      return [e.querySelector('.opblock-summary-method').textContent.toLowerCase(), style.getPropertyValue('--api-method').trim()];
-    })));
     await page.goto(base + '/state/');
     for (const skin of ['', 'miku', 'tomie', 'echidna']) {
       await preview(page, skin);
-      for (const [status, method, tone] of [['ok', 'post', 'success'], ['warn', 'put', 'warning'], ['fail', 'delete', 'danger'], ['planned', 'get', 'info']]) {
+      for (const [status, tone] of [['ok', 'success'], ['warn', 'warning'], ['fail', 'danger'], ['planned', 'info']]) {
         const result = await page.locator(`.timeline-legend .${status}`).evaluate((e, tone) => {
           const probe = document.createElement('span');
           probe.style.backgroundColor = `color-mix(in srgb, var(--${tone}-tone) 90%, transparent)`;
           e.append(probe);
           const expected = getComputedStyle(probe).backgroundColor;
           probe.remove();
-          return { actual: getComputedStyle(e).backgroundColor, expected, tone: getComputedStyle(e).getPropertyValue(`--${tone}-tone`).trim() };
+          return { actual: getComputedStyle(e).backgroundColor, expected };
         }, tone);
         assert.equal(result.actual, result.expected, `${skin || 'default'}: ${status} bar uses a muted fill`);
-        assert.equal(result.tone, methodTones[method], `${status} status and ${method} method share one colour`);
       }
     }
 

@@ -266,44 +266,42 @@ body {
     text-shadow: none;
 }
 
-.swagger-ui .opblock.opblock-get {
+.swagger-ui .opblock.opblock-get,
+.swagger-ui .opblock.opblock-options {
     --api-method: var(--api-get);
+    --api-method-ink: var(--api-get-ink);
 }
 
 .swagger-ui .opblock.opblock-post {
     --api-method: var(--api-post);
-    --api-method-ink: var(--on-vivid);
+    --api-method-ink: var(--api-post-ink);
 }
 
 .swagger-ui .opblock.opblock-put {
     --api-method: var(--api-put);
-    --api-method-ink: var(--on-vivid);
+    --api-method-ink: var(--api-put-ink);
 }
 
 .swagger-ui .opblock.opblock-delete {
     --api-method: var(--api-delete);
-    --api-method-ink: var(--on-vivid);
+    --api-method-ink: var(--api-delete-ink);
 }
 
-.swagger-ui .opblock.opblock-patch {
-    --api-method: var(--api-patch);
-}
-
-.swagger-ui .opblock.opblock-options {
-    --api-method: var(--api-options);
-}
-
+.swagger-ui .opblock.opblock-patch,
 .swagger-ui .opblock.opblock-head {
-    --api-method: var(--api-head);
+    --api-method: var(--api-patch);
+    --api-method-ink: var(--api-patch-ink);
 }
 
+/* light skins edge a block in its ink, the pastel fill alone would fade */
 .swagger-ui .opblock[class*="opblock-"] {
-    border-color: color-mix(in srgb, var(--api-method) 70%, transparent);
-    background: color-mix(in srgb, var(--api-method) 5%, transparent);
+    --api-method-edge: light-dark(color-mix(in srgb, var(--api-method-ink) 35%, transparent), color-mix(in srgb, var(--api-method) 70%, transparent));
+    border-color: var(--api-method-edge);
+    background: light-dark(color-mix(in srgb, var(--api-method) 25%, transparent), color-mix(in srgb, var(--api-method) 5%, transparent));
 }
 
 .swagger-ui .opblock[class*="opblock-"] .opblock-summary {
-    border-color: color-mix(in srgb, var(--api-method) 70%, transparent);
+    border-color: var(--api-method-edge);
 }
 
 .swagger-ui .opblock[class*="opblock-"] .opblock-summary-method {
@@ -496,6 +494,7 @@ body {
 
 .swagger-ui .opblock.opblock-deprecated {
     --api-method: var(--neutral);
+    --api-method-ink: var(--on-solid);
     opacity: 0.75;
     border-color: var(--text-muted);
     background: color-mix(in srgb, var(--text) 4%, transparent);

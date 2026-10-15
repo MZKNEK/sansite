@@ -19,7 +19,7 @@
         if (!in_array($id, ['900000000000000001', '900000000000000002', '900000000000000003', '900000000000000004'], true)) exit;
         siteSession();
         $_COOKIE[SITE_SESSION] = session_id();
-        $_SESSION['gallery_user'] = ['id' => $id, 'name' => 'User', 'avatar' => '/favicon.svg'];
+        $_SESSION['gallery_user'] = ['id' => $id, 'name' => 'User', 'avatar' => '/img/favicon.svg'];
         $_SESSION['login_time'] = time();
         updateData('roles', function (&$roles) use ($id) { $roles[$id] = ['roles' => ['user' => true, 'onGuild' => true], 'checked' => time()]; });
         updateData('gallery-usage', function (&$data) {

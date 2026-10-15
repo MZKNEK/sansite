@@ -30,10 +30,11 @@
     var image = editor && editor.querySelector('[data-custom-image]');
     var logo = editor && editor.querySelector('[data-custom-logo]');
     var base = editor && editor.querySelector('[data-custom-base]');
+    var background = editor && editor.querySelector('[data-custom-background]');
     var palettes = editor && JSON.parse(editor.getAttribute('data-custom-palettes'));
     var drafts = {};
     var previousBase = base && base.value;
-    var baseLogo = logo && new URL('../logo.webp', location.href).pathname;
+    var baseLogo = logo && new URL('../img/logo.webp', location.href).pathname;
     var panel = null;
     function design() {
       if (!editor) return null;
@@ -42,7 +43,7 @@
         colors[color.getAttribute('data-custom-color')] = color.value;
       });
       var option = image.options[image.selectedIndex];
-      return { colors: colors, image: option.getAttribute('data-image-url') || '', base: base.value };
+      return { colors: colors, image: option.getAttribute('data-image-url') || '', base: base.value, background: background.value };
     }
     function preview() {
       var custom = design();
@@ -79,6 +80,7 @@
         preview();
       });
       image.addEventListener('change', preview);
+      background.addEventListener('change', preview);
       logo.addEventListener('error', function () { if (logo.getAttribute('src') !== baseLogo) logo.src = baseLogo; });
       editor.querySelectorAll('[data-custom-color]').forEach(function (color) {
         var swatch = editor.querySelector('[data-custom-swatch="' + color.getAttribute('data-custom-color') + '"]');

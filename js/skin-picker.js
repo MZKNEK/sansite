@@ -11,17 +11,23 @@ window.SanakanSkinPicker = function (field, design) {
   var filters = Array.from(dialog.querySelectorAll('[data-skin-filter]'));
   var candidate = field.value;
   var filter = 'unlocked';
-  var baseLogo = new URL('../logo.webp', location.href).pathname;
+  var baseLogo = new URL('../img/logo.webp', location.href).pathname;
   var palettes = {};
 
   // Read the actual skin colours so swatches follow css/skins.css changes.
+  // Several rules may set one palette (e.g. a later :root with event colours
+  // only), so a rule fills in what it sets and never blanks the rest.
   Array.from(document.styleSheets).forEach(function (sheet) {
     if (!sheet.href || !/\/css\/skins\.css(?:\?|$)/.test(sheet.href)) return;
     try {
       Array.from(sheet.cssRules).forEach(function (rule) {
         var match = /^html\[data-skin="([a-z0-9-]+)"\]$/.exec(rule.selectorText || '');
-        if (match || rule.selectorText === ':root') palettes[match ? match[1] : ''] = ['--accent', '--bg-dark', '--text'].map(function (key) {
-          return rule.style.getPropertyValue(key).trim();
+        if (!match && rule.selectorText !== ':root') return;
+        var id = match ? match[1] : '';
+        var palette = palettes[id] = palettes[id] || [];
+        ['--accent', '--bg-dark', '--text'].forEach(function (key, i) {
+          var value = rule.style.getPropertyValue(key).trim();
+          if (value) palette[i] = value;
         });
       });
     } catch (_) { /* Default swatches remain if the stylesheet is unavailable. */ }

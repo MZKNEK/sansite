@@ -127,11 +127,13 @@ window.SanakanDiscoveryStorage = (function () {
     } else if (choice === null) prompt();
   }
 
+  // The first login in this browser turns saving on, unless the visitor
+  // already chose; an explicit "no" stays.
   function accountReady() {
     if (signedIn || !document.querySelector('.account-menu')) return;
     signedIn = true;
     try { localStorage.setItem(ACCOUNT, 'yes'); } catch (err) {}
-    setChoice('yes');
+    if (choice === null) setChoice('yes');
   }
 
   document.addEventListener('click', function (event) {

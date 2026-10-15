@@ -62,7 +62,7 @@
                 ? $_POST['skinwords_present'] === 'on'
                 : ($before['skin'] === '' || skinSpeaks($before['skin']));
             $words = $hadSwitch ? isset($_POST['skinwords']) : $before['words'];
-            $custom = $skin === 'custom' ? ['image' => $_POST['customimage'] ?? '', 'colors' => $_POST['customcolors'] ?? null, 'base' => $_POST['custombase'] ?? 'dark'] : null;
+            $custom = $skin === 'custom' ? ['image' => $_POST['customimage'] ?? '', 'colors' => $_POST['customcolors'] ?? null, 'base' => $_POST['custombase'] ?? 'dark', 'background' => $_POST['custombackground'] ?? ''] : null;
             if (!setSkin($user['id'], $skin, $words, $custom)) {
                 setFlash($skin === 'custom' && skinUnlocked('custom', $user['id'])
                     ? 'Nie udało się zapisać skina. Podaj kolory jako #RRGGBB i wybierz dostępny obrazek z własnej galerii.'
@@ -179,18 +179,18 @@
 <?=metaTags('Profil', 'Twoje konto na stronie Sanakan: role, dostęp i urządzenia, na których jesteś zalogowany.', '/account/', 'account')?>
   <title>Profil &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
-  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=16afe109e0" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=e72561c5d0" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=f4c93e901d" type="text/css" rel="stylesheet" />
-  <link href="../css/seasonal-background.css?v=e27ad7f5e7" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=c0597b7253" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=bf74a2129c" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -412,7 +412,7 @@
             </span>
           </label>
           <div class="skin-current" data-skin-current hidden>
-            <img src="../logo.webp" alt="" width="64" height="64" data-skin-current-image />
+            <img src="../img/logo.webp" alt="" width="64" height="64" data-skin-current-image />
             <div class="skin-current-text">
               <span class="hud-field-label">Wybrany skin</span>
               <b data-skin-current-name></b>
@@ -444,7 +444,7 @@
         $name = $unlocked || $key === 'custom' ? $entry['name'] : '???';
         $group = $key === '' ? 'Sanakan' : ($key === 'custom' ? 'Komplet znajdziek' : (SKIN_GROUPS[$entry['find']] ?? ''));
         $description = $unlocked ? $entry['what'] : ($key === 'custom' ? 'Zbierz wszystkie zwykłe i sezonowe znajdźki.' : 'Odkryj: ' . (SAFEGUARD_FINDS[$entry['find']][0] ?? SAFEGUARD_SEASONAL[$entry['find']][0] ?? ''));
-        $thumbnail = $key === '' ? '../logo.webp' : ($key === 'custom' || !$unlocked ? '' : '../skins/' . $key . '.webp');
+        $thumbnail = $key === '' ? '../img/logo.webp' : ($key === 'custom' || !$unlocked ? '' : '../skins/' . $key . '.webp');
 ?>
               <button type="button" class="skin-tile"<?=$unlocked ? '' : ' disabled title="' . e($description) . '"'?><?=$key === 'custom' ? ' data-skin-custom' : ''?><?=$unlocked || $key === 'custom' ? ' data-skin-tile="' . e($key) . '"' : ' data-skin-locked'?> data-skin-name="<?=e($name)?>" data-skin-description="<?=e($description)?>" data-skin-thumbnail="<?=e($thumbnail)?>" aria-pressed="<?=$unlocked && $skinNow === $key ? 'true' : 'false'?>">
                 <span class="skin-tile-art" aria-hidden="true">
@@ -487,7 +487,7 @@
             <legend>Własny skin</legend>
             <p class="hint">Komplet znajdziek odblokował twój własny wygląd. Wpisz kolory w formacie #RRGGBB lub wybierz je próbnikiem. Zmiany podejrzysz od razu; zapisze je przycisk „Zapisz skin”.</p>
             <div class="custom-skin-image">
-              <img src="<?=e($customImage === null ? '../logo.webp' : siteRoot() . 'i/' . fileUrl($customImage))?>" alt="Podgląd obrazka własnego skina" width="112" height="112" data-custom-logo />
+              <img src="<?=e($customImage === null ? '../img/logo.webp' : siteRoot() . 'i/' . fileUrl($customImage))?>" alt="Podgląd obrazka własnego skina" width="112" height="112" data-custom-logo />
               <label class="hud-field">
                 <span class="hud-field-label">Obrazek z własnej galerii</span>
                 <span class="hud-select">
@@ -518,6 +518,17 @@
                   <select name="custombase" data-custom-base>
                     <option value="dark"<?=$customPrefs['base'] === 'dark' ? ' selected' : ''?>>Ciemna</option>
                     <option value="light"<?=$customPrefs['base'] === 'light' ? ' selected' : ''?>>Jasna</option>
+                  </select>
+                  <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+                </span>
+              </label>
+              <label class="hud-field">
+                <span class="hud-field-label">Animacja tła</span>
+                <span class="hud-select">
+                  <select name="custombackground" data-custom-background>
+<?php foreach (CUSTOM_SKIN_BACKGROUNDS as $key => $label): ?>
+                    <option value="<?=e($key)?>"<?=$customPrefs['background'] === $key ? ' selected' : ''?>><?=e($label)?></option>
+<?php endforeach; ?>
                   </select>
                   <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
                 </span>
@@ -605,14 +616,14 @@
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
-  <script src="../js/appearance.js?v=035d31fe77"></script>
-  <script src="../js/discovery-storage.js?v=c5109a613e"></script>
-  <script src="../js/skin-picker.js?v=d04ca5eaa7"></script>
-  <script src="../js/appearance-picker.js?v=5ba11428c2"></script>
+  <script src="../js/appearance.js?v=2e6e831727"></script>
+  <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
+  <script src="../js/skin-picker.js?v=fc70fcbccc"></script>
+  <script src="../js/appearance-picker.js?v=6caf1d1412"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=43a6101b80"></script>
-  <script src="../js/safeguard.js?v=ac3c71dc4a"></script>
-  <script src="../js/seasonal-background.js?v=7a5905514c"></script>
+  <script src="../js/safeguard.js?v=ec477d1123"></script>
+  <script src="../js/seasonal-background.js?v=6f2eb73e26"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 

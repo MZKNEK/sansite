@@ -6,8 +6,8 @@
 // The ?v= below is the hash of each file (tools/asset-versions.php), so a
 // change to the offline page changes this file too; the browser then installs
 // it anew, with a cache of its own, and the old one is removed.
-var OFFLINE = '/offline.html?v=85f0e271fb';
-var FILES = [OFFLINE, '/fonts/sanakan-mono-400.woff2?v=68de4eecad', '/favicon.svg?v=3dcb782c4b'];
+var OFFLINE = '/offline.html?v=c9cbe83f43';
+var FILES = [OFFLINE, '/fonts/sanakan-mono-400.woff2?v=68de4eecad', '/img/favicon.svg?v=3dcb782c4b'];
 var PREFIX = 'sanakan-offline ';
 var CACHE = PREFIX + FILES.join(' ');
 // left behind when the offline page was shown; js/safeguard.js notes it as a

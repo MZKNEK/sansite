@@ -458,7 +458,7 @@
     });
 
     test('seasonal backgrounds need an in-season server witness with the usual timezone slack', function () {
-        foreach (['sakura' => ['04-01', 15], 'perseids' => ['08-01', 15], 'fireflies' => ['06-15', 16]] as $key => [$date, $length]) {
+        foreach (['sakura' => ['04-02', 14], 'perseids' => ['08-01', 15], 'fireflies' => ['06-15', 16]] as $key => [$date, $length]) {
             $start = new DateTimeImmutable('2026-' . $date . ' 12:00', new DateTimeZone('Europe/Warsaw'));
             $end = $start->modify('+' . ($length - 1) . ' days');
             foreach ([$start, $end, $start->modify('-16 hours'), $end->modify('+16 hours')] as $day) {

@@ -32,7 +32,9 @@ window.SanakanAppearance = (function () {
         if (url.origin === location.origin && /\/i\/u\/[0-9a-f]{16}\//.test(url.pathname)) image = url.pathname;
       } catch (_) { /* An unavailable picture falls back to Sanakan. */ }
     }
-    return { colors: colors, image: image, base: value.base === 'light' ? 'light' : 'dark' };
+    // any skin's background animation (CUSTOM_SKIN_BACKGROUNDS), '' for none
+    var background = typeof value.background === 'string' && /^[a-z]+$/.test(value.background) ? value.background : '';
+    return { colors: colors, image: image, base: value.base === 'light' ? 'light' : 'dark', background: background };
   }
   if (!root.hasAttribute('data-hud')) {
     var hud = cookie('hud');
@@ -59,6 +61,8 @@ window.SanakanAppearance = (function () {
   function paintSkin(id, custom) {
     root.style.removeProperty('--scheme');
     root.removeAttribute('data-skin-base');
+    root.removeAttribute('data-skin-background');
+    root.style.removeProperty('--season-background');
     custom = customDesign(custom);
     root.style.removeProperty('--custom-logo');
     ['accent', 'accent-light', 'accent-dark', 'bg-dark', 'bg-mid', 'text', 'home-title',
@@ -77,6 +81,11 @@ window.SanakanAppearance = (function () {
         }
       });
       if (custom.image) root.style.setProperty('--custom-logo', 'url(' + JSON.stringify(custom.image) + ')');
+      // the attribute is what the background scenes watch for a change
+      if (custom.background) {
+        root.style.setProperty('--season-background', custom.background);
+        root.setAttribute('data-skin-background', custom.background);
+      }
     }
     if (id) root.setAttribute('data-skin', id);
     else root.removeAttribute('data-skin');

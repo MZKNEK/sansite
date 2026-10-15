@@ -62,19 +62,19 @@
 <?=metaTags('Łowcy sekretów', 'Kto odkrył najwięcej sekretów strony Sanakan.', '/hunters/', 'home')?>
   <title>Łowcy sekretów &middot; Sanakan</title>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
-  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=16afe109e0" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=e72561c5d0" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=f4c93e901d" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=c0597b7253" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
-  <script src="../js/appearance.js?v=035d31fe77"></script>
-  <script src="../js/discovery-storage.js?v=c5109a613e"></script>
-  <link href="../css/seasonal-background.css?v=e27ad7f5e7" type="text/css" rel="stylesheet" />
+  <script src="../js/appearance.js?v=2e6e831727"></script>
+  <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
+  <link href="../css/seasonal-background.css?v=bf74a2129c" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
@@ -170,8 +170,8 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<?=date('Y')?> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=43a6101b80"></script>
-  <script src="../js/safeguard.js?v=ac3c71dc4a"></script>
-  <script src="../js/seasonal-background.js?v=7a5905514c"></script>
+  <script src="../js/safeguard.js?v=ec477d1123"></script>
+  <script src="../js/seasonal-background.js?v=6f2eb73e26"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
   <script src="../js/hunters.js?v=15d089f4d3"></script>
 </body>

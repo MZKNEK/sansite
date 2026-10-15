@@ -47,7 +47,7 @@
         'birthday'   => ['Sto lat', 'Świeczki na torcie zdmuchnięte w urodziny bota.', 'Wraca co roku 13 października, w urodziny bota.'],
         'halloween'  => ['Noc form krzemowych', 'Forma krzemowa złapana na krawędzi strony w Halloween.', 'Wraca co roku 31 października.'],
         'friday13'   => ['Piątek trzynastego', 'Usterka złapana na stronie w piątek trzynastego.', 'Wraca w każdy piątek trzynastego.'],
-        'sakura'     => ['Sakura', 'Płatek sakury złapany podczas wiosennego kwitnienia w Megastrukturze.', 'Wraca co roku od 1 do 15 kwietnia. Złap jeden ze spadających płatków.'],
+        'sakura'     => ['Sakura', 'Płatek sakury złapany podczas wiosennego kwitnienia w Megastrukturze.', 'Wraca co roku od 2 do 15 kwietnia. Złap jeden ze spadających płatków.'],
         'perseids'   => ['Perseidy', 'Kometa złapana na rozgwieżdżonym niebie Megastruktury.', 'Wraca co roku od 1 do 15 sierpnia. Złap jedną ze spadających komet.'],
         'fireflies'  => ['Światło w Megastrukturze', 'Świetlik złapany podczas czerwcowych nocy w Megastrukturze.', 'Wraca co roku od 15 do 30 czerwca. Złap jednego z pulsujących świetlików.']
     ];
@@ -89,7 +89,8 @@
             $list[] = 'halloween';
         if ($day === 13 && $date->format('N') === '5')
             $list[] = 'friday13';
-        if ($month === 4 && $day <= 15)
+        // from the 2nd, so it never shares a day with April Fools
+        if ($month === 4 && $day >= 2 && $day <= 15)
             $list[] = 'sakura';
         if ($month === 8 && $day <= 15)
             $list[] = 'perseids';

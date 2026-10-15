@@ -292,6 +292,79 @@ body.seasonal-background { isolation: isolate; }
     94% { opacity: 0.2; transform: translate(-6px, 67vh); }
     96%, 100% { opacity: 0; transform: translateY(67vh); }
 }
+/* Raiden Shogun: a violet storm. Darkened clouds at the top, faint rain and
+   long bolts of different strengths: a bright core in a soft glow, branches
+   thinner. A strike flickers twice and lights the sky around it; rare and
+   dim, never a strobe. */
+.sg-lightning { overflow: hidden; }
+.sg-lightning::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(color-mix(in srgb, var(--bg-dark) 55%, transparent), transparent 42%);
+}
+.sg-lightning::after {
+    content: "";
+    position: absolute;
+    top: -120px;
+    left: -10%;
+    width: 120%;
+    height: calc(100% + 240px);
+    background-image:
+        radial-gradient(0.6px 11px at 30% 20%, rgba(var(--accent-light-rgb), 0.28), transparent),
+        radial-gradient(0.6px 9px at 70% 60%, rgba(var(--accent-light-rgb), 0.22), transparent),
+        radial-gradient(0.5px 13px at 45% 85%, rgba(var(--accent-light-rgb), 0.18), transparent);
+    background-size: 53px 120px, 71px 120px, 89px 120px;
+    background-position: 0 0, 17px 40px, 41px 85px;
+    animation: lightning-rain 0.45s linear infinite;
+}
+@keyframes lightning-rain {
+    from { transform: rotate(9deg) translateY(0); }
+    to { transform: rotate(9deg) translateY(120px); }
+}
+.lightning-bolt {
+    position: absolute;
+    width: calc(var(--season-length) * 0.32);
+    height: var(--season-length);
+    opacity: 0;
+    animation: lightning-strike var(--season-duration) var(--season-delay) linear infinite;
+}
+/* the sky lit around the strike */
+.lightning-bolt::before {
+    content: "";
+    position: absolute;
+    left: -80%;
+    right: -80%;
+    top: -12%;
+    height: 75%;
+    background: radial-gradient(ellipse at 50% 25%, rgba(var(--accent-rgb), 0.2), transparent 70%);
+}
+.lightning-bolt svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 3px rgba(var(--accent-rgb), 0.9)) drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.5));
+}
+.lightning-bolt path { vector-effect: non-scaling-stroke; }
+.lightning-glow { stroke: rgba(var(--accent-rgb), 0.35); stroke-width: calc(var(--season-width) * 3.5); }
+.lightning-core { stroke: color-mix(in srgb, rgb(var(--accent-light-rgb)) 55%, #fff); stroke-width: var(--season-width); }
+.lightning-branch { stroke: rgba(var(--accent-light-rgb), 0.75); stroke-width: max(0.7px, calc(var(--season-width) * 0.5)); }
+.lightning-twig { stroke-width: 0.7px; opacity: 0.7; }
+@keyframes lightning-strike {
+    0%, 85% { opacity: 0; }
+    85.5% { opacity: 0.9; }
+    86.3% { opacity: 0.15; }
+    87.1% { opacity: 0.7; }
+    90%, 100% { opacity: 0; }
+}
+.sg-season-background.paused .lightning-bolt,
+.sg-season-background.paused.sg-lightning::after { animation-play-state: paused; }
+
 .sg-season-background.paused .ink-spill::before,
 .sg-season-background.paused .ink-spill::after,
 .sg-season-background.paused .wired-line,
@@ -533,6 +606,9 @@ body.seasonal-background { isolation: isolate; }
     .ink-spill::before { display: none; }
     .ink-spill::after { animation: none; opacity: 0.35; transform: scale(0.7); }
     .wired-line { animation: none; opacity: 0.15; }
+    .lightning-bolt { animation: none; opacity: 0.14; }
+    .lightning-bolt::before { display: none; }
+    .sg-lightning::after { animation: none; opacity: 0; }
     .sg-wired::after { animation: none; opacity: 0; }
     .witch-butterfly { animation: none; opacity: 0.5; }
     .butterfly-wing { animation: none; }

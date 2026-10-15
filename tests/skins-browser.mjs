@@ -54,7 +54,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
   async function defaultHome(page) {
     assert.equal(await page.locator('html').getAttribute('data-skin'), null);
     assert.equal(await language(page), 'pl');
-    assert.match(await page.locator('img.logo').getAttribute('src'), /^\.\/logo\.webp$/);
+    assert.match(await page.locator('img.logo').getAttribute('src'), /^\.\/img\/logo\.webp$/);
     assert.equal(await page.locator('img.logo').getAttribute('alt'), 'Sanakan');
     assert.equal(await page.locator('h1').textContent(), 'Sanakan');
     assert.equal(await page.locator('.kana').getAttribute('aria-hidden'), 'true');

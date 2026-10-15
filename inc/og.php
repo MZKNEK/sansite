@@ -19,7 +19,7 @@
         $file = botFile($name);
         if (!is_file($file) || filemtime($file) < max(time() - $ttl, filemtime(__FILE__))) {
             if (!function_exists('imagettftext') || !is_file(OG_FONTS . 'Lato-Bold.ttf') || !$draw($file)) {
-                header('Location: ' . siteRoot() . 'sanakan-og.png', true, 302);
+                header('Location: ' . siteRoot() . 'img/sanakan-og.png', true, 302);
                 exit;
             }
         }
@@ -272,12 +272,12 @@
             imagefilledrectangle($img, (int)($cx - 0.6 * $r), (int)($cy - 0.2 * $r), (int)($cx + 0.6 * $r), (int)($cy + 0.2 * $r), $background);
     }
 
-    // The logo (logo.webp) in a purple ring with a soft glow, centred at $cx,
+    // The logo (img/logo.webp) in a purple ring with a soft glow, centred at $cx,
     // $cy, and with $status the Discord status dot cut into its lower right edge,
     // as Discord shows it on an avatar
     function ogLogo($img, $cx, $cy, $r, $status = null)
     {
-        $logo = @imagecreatefromwebp(__DIR__ . '/../logo.webp');
+        $logo = @imagecreatefromwebp(__DIR__ . '/../img/logo.webp');
         if ($logo === false)
             return false;
 

@@ -112,6 +112,27 @@ export async function testCustomSkin({ browser, base, site, php, errors }) {
     assert.equal(saved.colors.accent, '#123456');
     assert.equal(saved.colors['bg-dark'], '#010203');
     assert.equal(saved.base, 'dark');
+    assert.equal(saved.background, '', 'a design starts without a background animation');
+    // Any skin's background animation: previewed at once, saved, and worn on
+    // static pages through the appearance cookie.
+    const backgroundField = page.locator('[data-custom-background]');
+    assert.ok((await backgroundField.locator('option').count()) >= 14, 'every skin background is offered');
+    await backgroundField.selectOption('ink');
+    await page.locator('.sg-ink').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('html').getAttribute('data-skin-background'), 'ink');
+    await save();
+    assert.equal(JSON.parse(readFileSync(designFile, 'utf8'))[user].background, 'ink');
+    assert.equal(await backgroundField.inputValue(), 'ink');
+    await page.goto(`${base}/privacy/`);
+    await page.locator('.sg-ink').waitFor({ state: 'attached' });
+    await page.goto(`${base}/account/`);
+    await backgroundField.selectOption('');
+    await page.waitForFunction(() => !document.querySelector('.sg-ink') && !document.documentElement.hasAttribute('data-skin-background'));
+    await chooseSkin(page, 'tomie');
+    assert.equal(await page.locator('.sg-ink').count(), 1, 'a skin keeps its own background');
+    await chooseSkin(page, 'custom');
+    await save();
+    assert.equal(JSON.parse(readFileSync(designFile, 'utf8'))[user].background, '');
     await page.goto(`${base}/`);
     await page.locator('.account-menu').waitFor();
     await page.locator('img.logo').evaluate(img => img.decode());
@@ -146,7 +167,7 @@ export async function testCustomSkin({ browser, base, site, php, errors }) {
     update('custom-skins', all => { all[user].image = `${login.own}/A/deleted.png`; });
     await page.goto(`${base}/`);
     await page.locator('.account-menu').waitFor();
-    assert.equal(await page.locator('img.logo').getAttribute('src'), './logo.webp');
+    assert.equal(await page.locator('img.logo').getAttribute('src'), './img/logo.webp');
     assert.equal(await accent(), '18, 52, 86');
     update('finds', all => { delete all[user][seasonal[0]]; });
     await page.evaluate(async () => {

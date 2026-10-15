@@ -103,7 +103,7 @@
             'name' => 'Raiden Shogun',
             'find' => 'sakura',
             'words' => false,
-            'what' => 'fiolet władczyni Inazumy i logo Raiden Shogun, bez napisów'
+            'what' => 'fiolet władczyni Inazumy, logo Raiden Shogun i fioletowe pioruny w tle, bez napisów'
         ],
         'suisei' => [
             'name' => 'Suisei',

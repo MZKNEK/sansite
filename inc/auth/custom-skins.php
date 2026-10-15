@@ -11,6 +11,27 @@
         'home-title' => 'Tytuł strony głównej'
     ];
 
+    // The background animations of the skins (--season-background in
+    // css/skins.css), any of which a custom design may wear; '' for none.
+    // tests/test_skins.php checks that every one used there is listed here.
+    const CUSTOM_SKIN_BACKGROUNDS = [
+        '' => 'Bez animacji',
+        'snow' => 'Śnieg (Ceres Fauna, Padoru)',
+        'butterflies' => 'Motyle (Echidna)',
+        'magic' => 'Złoty pył i gwiazdy (Marisa Kirisame)',
+        'lavender' => 'Lawendowe drobinki (Reisen)',
+        'rabbits' => 'Króliczki (Pekora)',
+        'fireworks' => 'Fajerwerki (Nakiri Ayame, Albedo)',
+        'ink' => 'Krople atramentu (Tomie)',
+        'wired' => 'Zakłócenia sygnału (Lain)',
+        'netsphere' => 'Sieć punktów (Cibo)',
+        'emitter' => 'Stalowy pył i żar (Killy)',
+        'sakura' => 'Płatki sakury (March 7th)',
+        'lightning' => 'Pioruny (Raiden Shogun)',
+        'perseids' => 'Gwiazdy i komety (Suisei, Hoshino Ai)',
+        'fireflies' => 'Świetliki (Firefly, Yoimiya)'
+    ];
+
     // The editor starts with the actual site palettes, not a second set of
     // colour literals. Read once per request; css/skins.css remains canonical.
     function customSkinPalettes()
@@ -60,7 +81,10 @@
             $colors[$key] = is_string($color) && preg_match('/^#[0-9a-f]{6}$/iD', $color) ? strtolower($color) : $defaults[$key];
         }
 
-        return ['image' => is_string($entry['image'] ?? null) ? $entry['image'] : '', 'colors' => $colors, 'base' => $base];
+        $background = $entry['background'] ?? '';
+        $background = is_string($background) && isset(CUSTOM_SKIN_BACKGROUNDS[$background]) ? $background : '';
+
+        return ['image' => is_string($entry['image'] ?? null) ? $entry['image'] : '', 'colors' => $colors, 'base' => $base, 'background' => $background];
     }
 
     // Resolve only an image in this account's folder, including a converted
@@ -95,6 +119,9 @@
         $designBase = $input['base'] ?? 'dark';
         if (!in_array($designBase, ['dark', 'light'], true))
             return false;
+        $background = $input['background'] ?? '';
+        if (!is_string($background) || !isset(CUSTOM_SKIN_BACKGROUNDS[$background]))
+            return false;
         $colors = [];
         foreach (CUSTOM_SKIN_COLORS as $key => $entry) {
             $color = $input['colors'][$key] ?? null;
@@ -111,8 +138,8 @@
                 return false;
         }
 
-        return updateData('custom-skins', function (&$all) use ($id, $image, $colors, $designBase) {
-            $all[(string)$id] = ['image' => $image, 'colors' => $colors, 'base' => $designBase];
+        return updateData('custom-skins', function (&$all) use ($id, $image, $colors, $designBase, $background) {
+            $all[(string)$id] = ['image' => $image, 'colors' => $colors, 'base' => $designBase, 'background' => $background];
         });
     }
 

@@ -11,7 +11,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
   const user = '900000000000000002';
   const events = [
     { key: 'sakura', date: '2026-04-10', label: 'Złap płatek sakury', group: 'Sakura',
-      skins: [['march7', 'March 7th', '245, 179, 206'], ['shogun', 'Raiden Shogun', '110, 82, 196']] },
+      skins: [['march7', 'March 7th', '245, 179, 206'], ['shogun', 'Raiden Shogun', '110, 82, 196', 'lightning']] },
     { key: 'perseids', date: '2026-08-10', label: 'Złap kometę', group: 'Perseidy',
       skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '199, 63, 144']] },
     { key: 'fireflies', date: '2026-06-21', label: 'Złap świetlika', group: 'Noc świetlików',
@@ -186,7 +186,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       ['ayame', '.sg-fireworks'], ['albedo', '.sg-fireworks'],
       ['reisen', '.sg-lavender'], ['peko', '.sg-rabbits'],
       ['cibo', '.sg-netsphere'], ['killy', '.sg-emitter'],
-      ['march7', '.sg-sakura'], ['shogun', '.sg-sakura'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids'],
+      ['march7', '.sg-sakura'], ['shogun', '.sg-lightning'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids'],
       ['firefly', '.sg-fireflies'], ['yoimiya', '.sg-fireflies']]) {
       await chooseSkin(page, skin);
       assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);
@@ -404,7 +404,8 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     for (const event of events) {
-      for (const [id] of event.skins) {
+      // a skin with a background of its own (Raiden Shogun's lightning) has no event targets
+      for (const [id] of event.skins.filter(skin => !skin[3])) {
         await chooseSkin(page, id);
         const layer = page.locator('.sg-' + event.key);
         await layer.waitFor();
@@ -437,6 +438,10 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await chooseSkin(page, 'suisei');
     await page.locator('.sg-perseids').waitFor();
     await chooseSkin(page, 'shogun');
+    await page.locator('.sg-lightning').waitFor();
+    assert.equal(await page.locator('.sg-sakura').count(), 0, 'Raiden Shogun wears lightning, not petals');
+    assert.ok(await page.locator('.lightning-bolt').count() >= 3);
+    await chooseSkin(page, 'march7');
     await page.locator('.sg-sakura').waitFor();
     assert.equal(await page.evaluate(() => document.querySelector('.sg-sakura') === window.originalPetals), true);
     await chooseSkin(page, '');
@@ -607,13 +612,23 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       assert.equal(await page.evaluate(key => !!SanakanSafeguard.finds()[key], event.key), false, 'a lost witness gives no find');
       assert.equal(await layer.getAttribute('aria-busy'), null, 'the failed click is retryable');
       network.fail = false;
+      // the notice may cover the held target; a toast is a control, never a catch
+      await page.evaluate(() => document.querySelector('.sg-toast')?.remove());
       await page.mouse.click(point.x, point.y);
       await page.waitForFunction(key => JSON.parse(localStorage.getItem('safeguard'))?.sent?.[key], event.key);
       assert.deepEqual(calls, [event.key, event.key]);
       const finds = JSON.parse(readFileSync(path.join(site, 'inc/data/finds.json'), 'utf8'))[user];
       assert.ok(finds[event.key], 'the server account receives the witnessed discovery');
       assert.equal(await layer.locator('.seasonal-catch:not(:disabled)').count(), 0);
-      for (const [id, name, rgb] of event.skins) {
+      const again = await backgroundTarget(page, event.key);
+      assert.ok(again, 'a caught target stays visible: ' + event.key);
+      await page.mouse.click(again.x, again.y);
+      const already = page.locator('.sg-toast').filter({ hasText: 'Ten wpis jest już w rejestrze' });
+      await already.waitFor();
+      assert.deepEqual(calls, [event.key, event.key], 'a catch already in the register asks the server for nothing');
+      const box = await already.boundingBox();
+      assert.ok(Math.round(box.x) === 16 && Math.abs(box.y + box.height / 2 - page.viewportSize().height / 2) < 2, 'every Safeguard notice shares one place');
+      for (const [id, name, rgb, own] of event.skins) {
         await page.goto(`${base}/account/`);
         assert.ok((await select.locator(`option[value="${id}"]`).textContent()).includes(name));
         await chooseSkin(page, id);
@@ -622,7 +637,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
         await page.locator('.account-menu').waitFor();
         await page.waitForFunction(id => { const logo = document.querySelector('img.logo'); return logo.complete && logo.naturalWidth > 0 && logo.src.endsWith('/skins/' + id + '.webp'); }, id);
         assert.equal(await page.locator('html').getAttribute('data-skin'), id);
-        assert.equal(await page.locator('.sg-season-background').count(), 1, 'a skin and its current season share one background');
+        assert.equal(await page.locator('.sg-season-background').count(), own ? 2 : 1, 'a skin and its current season share one background, or keep their own beside it');
         assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
         assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()), rgb);
         assert.match(await page.locator('.logo-slice').first().evaluate(el => getComputedStyle(el).backgroundImage), new RegExp(id + '\\.webp'));
@@ -648,7 +663,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
   }
 
   for (const [date, expected] of [
-    ['2026-03-31', null], ['2026-04-01', 'sakura'], ['2026-04-15', 'sakura'], ['2026-04-16', null],
+    ['2026-04-01', null], ['2026-04-02', 'sakura'], ['2026-04-15', 'sakura'], ['2026-04-16', null],
     ['2026-06-14', null], ['2026-06-15', 'fireflies'], ['2026-06-30', 'fireflies'], ['2026-07-01', null],
     ['2026-07-31', null], ['2026-08-01', 'perseids'], ['2026-08-15', 'perseids'], ['2026-08-16', null]
   ]) await visit(date, async (page, context, calls) => {

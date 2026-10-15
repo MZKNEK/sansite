@@ -62,6 +62,7 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     assert.equal(await dialog.locator('[data-skin-tile=miku] .skin-swatches i').first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(57, 197, 187)', 'swatches use the skin CSS, independently of the current skin');
     await dialog.locator('[data-skin-tile=miku]').click();
     assert.equal(await accent(), '57, 197, 187');
+    assert.equal(await dialog.locator('[data-skin-tile=""] .skin-swatches i').first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(155, 89, 182)', 'the default swatch keeps its own accent while another skin is previewed');
     assert.equal(await variant.isVisible(), false, 'a skin preview hides the default HUD controls');
     assert.equal(await color.isVisible(), false);
     assert.equal(await select.inputValue(), '', 'a preview does not change the form');

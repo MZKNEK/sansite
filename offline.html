@@ -11,7 +11,7 @@
        address asked for, when the browser cannot reach the site. Everything it
        needs is here or in sw.js's list, as nothing else can be fetched then;
        every link starts at the root, and there is no script. -->
-  <link rel="icon" href="/favicon.svg?v=3dcb782c4b" type="image/svg+xml" />
+  <link rel="icon" href="/img/favicon.svg?v=3dcb782c4b" type="image/svg+xml" />
   <style>
     @font-face {
       font-family: "Sanakan Mono";
@@ -66,14 +66,19 @@
     --search-selected: color-mix(in srgb, var(--overlay-panel) 84%, var(--accent));
     --search-field: color-mix(in srgb, var(--overlay-panel) 95%, var(--accent));
     --api-tag-hover: color-mix(in srgb, var(--accent) 10%, transparent);
-    --api-get: var(--info-tone);
-    --api-post: var(--success-tone);
-    --api-put: var(--warning-tone);
-    --api-delete: var(--danger-tone);
-    --api-patch: var(--streaming-tone);
-    --api-options: var(--info-tone);
-    --api-head: var(--streaming-tone);
-    --api-method-ink: var(--on-solid);
+    /* API methods have their own colours, apart from the status tones, muted
+       on every skin: pastel badges with dark ink of the same hue on light
+       skins, dimmed badges with light ink on dark ones. */
+    --api-get: light-dark(#d2d5f5, #474d8e);
+    --api-get-ink: light-dark(#282d5c, #f2f3f5);
+    --api-post: light-dark(#c7e4d3, #2f6a4a);
+    --api-post-ink: light-dark(#174229, #f2f3f5);
+    --api-put: light-dark(#f5e7ca, #826936);
+    --api-put-ink: light-dark(#5c471c, #f2f3f5);
+    --api-delete: light-dark(#f5cdce, #8c3c3f);
+    --api-delete-ink: light-dark(#5c2021, #f2f3f5);
+    --api-patch: light-dark(#d3cbe0, #473864);
+    --api-patch-ink: light-dark(#291d3d, #f2f3f5);
     --heading: color-mix(in srgb, var(--text) 92%, var(--accent-light));
     --text-muted: color-mix(in srgb, var(--text) 78%, var(--surface));
     --text-subtle: color-mix(in srgb, var(--text) 65%, var(--surface));
@@ -99,7 +104,7 @@
     --border: color-mix(in srgb, var(--text) 28%, var(--surface));
     --border-strong: color-mix(in srgb, var(--link) 70%, var(--surface));
     --focus: var(--link);
-    /* Discord's status palette, shared by API methods, charts and dots.
+    /* Discord's status palette, shared by charts and dots.
        Text gets readable variants; vivid badges have contrasting ink. */
     --success-tone: #23a55a;
     --danger-tone: #f23f43;
@@ -135,7 +140,7 @@
     --glitch-pink: #ff2a6d;
     --utility-tone: light-dark(var(--info-tone), var(--glitch-cyan));
     --utility-ink: light-dark(var(--info), #b8f3f7);
-    --skin-logo: url("../logo.webp");
+    --skin-logo: url("../img/logo.webp");
     --game-grid: color-mix(in srgb, var(--text) 14%, transparent);
 }
 

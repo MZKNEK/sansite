@@ -345,22 +345,30 @@ code {
     border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
 }
 
+/* the kind of a change as a tag in its colour, like .cmd-mark, so it reads
+   at a glance on light skins too */
 .change-kind {
-    font: 11px/22px "Sanakan Mono", monospace;
+    justify-self: start;
+    align-self: start;
+    padding: 0 7px;
+    border: 1px solid color-mix(in srgb, var(--kind) 55%, transparent);
+    background: color-mix(in srgb, var(--kind) 10%, transparent);
+    color: color-mix(in srgb, var(--kind) 80%, var(--text));
+    font: 11px/20px "Sanakan Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
 .change-kind.added {
-    color: var(--success);
+    --kind: var(--success);
 }
 
 .change-kind.changed {
-    color: var(--warning);
+    --kind: var(--warning);
 }
 
 .change-kind.removed {
-    color: var(--danger);
+    --kind: var(--danger);
 }
 
 .change-name code {

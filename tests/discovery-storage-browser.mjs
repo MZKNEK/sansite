@@ -121,4 +121,20 @@ export async function testDiscoveryStorage({ browser, base, errors }) {
     await page.locator('.account-menu').waitFor();
     assert.equal(await page.evaluate(() => SanakanDiscoveryStorage.choice()), 'no', 'a later login respects an explicit opt-out');
   } finally { await member.close(); }
+
+  // An opt-out made before the first login in this browser survives it too.
+  const declined = await browser.newContext();
+  try {
+    await declined.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
+    const page = await declined.newPage();
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`${base}/privacy/`);
+    await page.locator('[data-discovery-choice="no"]').click();
+    await declined.request.get(`${base}/__login?id=900000000000000002`);
+    await page.reload();
+    await page.locator('.account-menu').waitFor();
+    await page.waitForFunction(() => localStorage.getItem('sanakan-discovery-account') === 'yes');
+    assert.equal(await page.evaluate(() => SanakanDiscoveryStorage.choice()), 'no', 'the first login keeps an earlier opt-out');
+    assert.equal(await page.locator('[data-discovery-choice="no"]').getAttribute('aria-pressed'), 'true');
+  } finally { await declined.close(); }
 }

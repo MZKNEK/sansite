@@ -19,12 +19,12 @@ const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
 const site = mkdtempSync(path.join(tmpdir(), 'sanakan-browser-'));
-for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', 'terms', 'hunters', 'state', 'cmd', 'api', 'skalpel', 'uskalpel']) {
+for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'img', 'privacy', 'terms', 'hunters', 'state', 'cmd', 'api', 'skalpel', 'uskalpel']) {
   cpSync(path.join(root, dir), path.join(site, dir), { recursive: true, filter: p => p !== path.join(root, 'inc/data') && p !== path.join(root, 'inc/config.php') });
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['index.html', 'logo.webp', 'status.php', 'account.php', 'megastructure.php', 'palette.php', 'offline.html', 'sw.js', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['index.html', 'status.php', 'account.php', 'megastructure.php', 'palette.php', 'offline.html', 'sw.js', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
 // the logos of the skins, in the folder the site keeps them (skins/)
 mkdirSync(path.join(site, 'skins'));
 cpSync(path.join(root, 'skins'), path.join(site, 'skins'), { recursive: true });
@@ -47,7 +47,7 @@ server.stderr.on('data', data => { log += data; });
 let browser;
 try {
   for (let i = 0; i < 60; i++) {
-    try { await fetch(`${base}/favicon.svg`); break; } catch { await new Promise(resolve => setTimeout(resolve, 100)); }
+    try { await fetch(`${base}/img/favicon.svg`); break; } catch { await new Promise(resolve => setTimeout(resolve, 100)); }
   }
   const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
   // Use Playwright's Chromium, as CI does; Edge is a fallback on unprepared PCs.

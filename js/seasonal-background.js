@@ -23,7 +23,12 @@
     if (decorate) decorate(layer);
 
     function catchTarget(button) {
-      if (pending || guard.finds()[key] || !guard.holiday(key)) return;
+      if (pending || !guard.holiday(key)) return;
+      // a catch already in the register answers too, rather than nothing
+      if (guard.finds()[key]) {
+        guard.notice(name, 'Ten wpis jest już w rejestrze', 'Wpis sezonowy złapany wcześniej.', null);
+        return;
+      }
       pending = true;
       layer.setAttribute('aria-busy', 'true');
       button.classList.add('catching');
@@ -241,6 +246,56 @@
       var duration = between(14, 23);
       variable(bit, 'duration', duration.toFixed(2) + 's');
       variable(bit, 'delay', (-duration * (i + 0.5) / count).toFixed(2) + 's');
+    });
+  }
+
+  // Raiden Shogun: a violet storm of the Electro Archon. Long bolts of
+  // different strengths fall from darkened clouds through faint rain, each
+  // along its own random path with branches; a strike flickers twice and
+  // lights the sky around it. Strikes stay rare and dim, never a strobe.
+  function lightning() {
+    // a path down a 40 x 100 box from (x, y), drifting sideways with momentum
+    function path(x, y, steps, height, spread) {
+      var points = [[x, y]], drift = 0;
+      for (var s = 0; s < steps && y < 100; s++) {
+        drift = drift * 0.45 + between(-spread, spread);
+        x = Math.max(2, Math.min(38, x + drift));
+        y = Math.min(100, y + height / steps * between(0.6, 1.4));
+        points.push([x, y]);
+      }
+      return points;
+    }
+    function line(points) {
+      return 'M' + points.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join('L');
+    }
+    return decoration('lightning', small ? 3 : 5, function (bit, i, count) {
+      bit.className = 'lightning-bolt';
+      bit.style.left = ((i + Math.random() * 0.8) * 92 / count + 2).toFixed(2) + '%';
+      bit.style.top = between(-6, 3).toFixed(2) + '%';
+      // usually long, now and then a shorter one that dies out mid-air
+      variable(bit, 'length', (Math.random() < 0.75 ? between(62, 96) : between(35, 55)).toFixed(1) + 'vh');
+      variable(bit, 'width', between(0.9, 3.4).toFixed(2) + 'px');
+      var duration = between(6, 13);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-between(0, duration)).toFixed(2) + 's');
+      var main = path(between(14, 26), 0, Math.round(between(14, 22)), 100, 4.5);
+      var svg = '<svg viewBox="0 0 40 100" preserveAspectRatio="none" aria-hidden="true">'
+        + '<path class="lightning-glow" d="' + line(main) + '"/><path class="lightning-core" d="' + line(main) + '"/>';
+      var branches = Math.round(between(2, 4));
+      for (var b = 0; b < branches; b++) {
+        var from = main[1 + Math.floor(Math.random() * Math.max(1, Math.floor(main.length * 0.7) - 1))];
+        var side = Math.random() < 0.5 ? -1 : 1;
+        var arm = path(from[0], from[1], Math.round(between(3, 7)), between(14, 34), 3);
+        // lean the branch away from the main channel
+        arm.forEach(function (p, n) { p[0] = Math.max(1, Math.min(39, p[0] + side * n * between(1.2, 2.6))); });
+        svg += '<path class="lightning-branch" d="' + line(arm) + '"/>';
+        if (Math.random() < 0.4 && arm.length > 2) {
+          var twig = path(arm[2][0], arm[2][1], 3, between(8, 14), 2.5);
+          twig.forEach(function (p, n) { p[0] = Math.max(1, Math.min(39, p[0] + side * n * 1.5)); });
+          svg += '<path class="lightning-branch lightning-twig" d="' + line(twig) + '"/>';
+        }
+      }
+      bit.innerHTML = svg + '</svg>';
     });
   }
 
@@ -472,6 +527,7 @@
     fireflies: { create: fireflies, seasonal: true },
     ink: { create: ink },
     wired: { create: wired },
+    lightning: { create: lightning },
     butterflies: { create: butterflies },
     magic: { create: magic },
     lavender: { create: lavender },
@@ -493,6 +549,6 @@
     });
     document.body.classList.toggle('seasonal-background', visible);
   }
-  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-skin-animations'] });
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-skin-animations', 'data-skin-background'] });
   update();
 })();

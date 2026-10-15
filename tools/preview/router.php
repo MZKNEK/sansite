@@ -31,24 +31,53 @@
         return true;
     }
 
+    // the next day of a seasonal event within 430 days (the longest wait, for
+    // a Friday the 13th), as "Y-m-d"; a day without other events when there is
+    // one, so the preview shows that event alone
+    function previewEventDay($event)
+    {
+        $day = new DateTimeImmutable('today 12:00', new DateTimeZone('Europe/Warsaw'));
+        $best = null;
+        for ($in = 0; $in <= 430; $in++) {
+            $date = $day->modify('+' . $in . ' days');
+            $list = safeguardHolidays($date);
+            if (in_array($event, $list, true) && ($best === null || count($list) < $best[1]))
+                $best = [$date->format('Y-m-d'), count($list)];
+        }
+        return $best[0];
+    }
+
+    // the site's pictures moved to img/, as nginx redirects them (sanakan.conf)
+    if (preg_match('~^/(logo\.webp|favicon\.svg|favicon-(?:192x192|256x256|512x512)\.png|sanakan-og\.png|wiki-og\.png)$~', $path, $moved) === 1) {
+        header('Location: /img/' . $moved[1], true, 301);
+        return true;
+    }
+
     $app = preg_match('~^/u?skalpel/~', $path) === 1;
     previewHeaders($root . '/server/nginx/' . ($app ? 'sanakan-app-headers.conf' : 'sanakan-headers.conf'), $path);
 
-    // Direct links to the two seasonal previews. Keep them on separate hosts
-    // (127.0.0.1 and localhost) so their localStorage dates stay independent.
-    // A skin override lasts this page visit, leaving account preferences alone.
+    // Direct links to every seasonal event (?event=<key of SAFEGUARD_SEASONAL>,
+    // ?event=none back to today) and skin (?skin=<key of SKINS>), no login
+    // needed. The simulated date stays in the host's localStorage; different
+    // hosts (127.0.0.1, localhost) keep separate dates, so two events can stay
+    // open at once. A skin override lasts this page visit, leaving account
+    // preferences alone.
     require_once $root . '/inc/skin-catalog.php';
-    $eventDays = ['sakura' => '04-10', 'perseids' => '08-10'];
     $event = is_string($_GET['event'] ?? null) ? $_GET['event'] : '';
     $skin = is_string($_GET['skin'] ?? null) ? $_GET['skin'] : '';
-    $event = isset($eventDays[$event]) ? $event : '';
     $skin = isset(SKINS[$skin]) ? $skin : '';
+    if ($event !== '' && $event !== 'none') {
+        require_once $root . '/inc/auth/finds.php';
+        $event = isset(SAFEGUARD_SEASONAL[$event]) ? $event : '';
+    }
     if (($event !== '' || $skin !== '') && ($path === '/' || $path === '/__event.js')) {
         header('Cache-Control: no-store');
         if ($path === '/__event.js') {
             header('Content-Type: text/javascript; charset=utf-8');
-            if ($event !== '')
-                echo 'localStorage.setItem("safeguard-date", ' . json_encode($eventDays[$event]) . ');';
+            if ($event === 'none')
+                echo 'localStorage.removeItem("safeguard-date");';
+            elseif ($event !== '')
+                echo 'localStorage.setItem("safeguard-date", ' . json_encode(previewEventDay($event)) . ');';
             if ($skin !== '') {
                 echo 'document.documentElement.setAttribute("data-skin", ' . json_encode($skin) . ');';
                 echo 'document.addEventListener("DOMContentLoaded", function () {'
