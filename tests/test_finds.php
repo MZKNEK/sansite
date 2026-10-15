@@ -124,16 +124,16 @@
         assertSame([], $on('2026-10-12'));
     });
 
-    test('Sakura and Perseids last the first fifteen days of their months', function () {
-        foreach (['sakura' => 4, 'perseids' => 8] as $key => $month) {
-            $start = new DateTimeImmutable(sprintf('2026-%02d-01 00:00', $month), new DateTimeZone('Europe/Warsaw'));
+    test('seasonal backgrounds honor every day and both boundaries of their events', function () {
+        foreach (['sakura' => ['04-01', 15], 'perseids' => ['08-01', 15], 'fireflies' => ['06-15', 16]] as $key => [$date, $length]) {
+            $start = new DateTimeImmutable('2026-' . $date . ' 00:00', new DateTimeZone('Europe/Warsaw'));
             assertFalse(in_array($key, safeguardHolidays($start->modify('-1 day')), true));
-            for ($day = 0; $day < 15; $day++) {
+            for ($day = 0; $day < $length; $day++) {
                 $date = $start->modify('+' . $day . ' days');
                 assertTrue(in_array($key, safeguardHolidays($date), true), $key . ' on ' . $date->format('Y-m-d'));
                 assertSame(0, safeguardHolidayIn($key, $date));
             }
-            assertFalse(in_array($key, safeguardHolidays($start->modify('+15 days')), true));
+            assertFalse(in_array($key, safeguardHolidays($start->modify('+' . $length . ' days')), true));
             assertSame(1, safeguardHolidayIn($key, $start->modify('-1 day')));
             assertTrue(isset(SAFEGUARD_SEASONAL[$key]));
             assertFalse(isset(SAFEGUARD_FINDS[$key]), 'the event stays outside the permanent count');

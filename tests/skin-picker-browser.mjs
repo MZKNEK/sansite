@@ -87,7 +87,7 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     await dialog.getByRole('button', { name: 'Anuluj', exact: true }).click();
     await page.locator('[data-skin-open]').click();
     await page.locator('[data-skin-filter=all]').click();
-    assert.equal(await dialog.locator('.skin-tile:visible').count(), 20);
+    assert.equal(await dialog.locator('.skin-tile:visible').count(), 22);
     assert.equal(await dialog.locator('[data-skin-locked] img').count(), 0, 'locked skins do not expose their artwork');
     assert.ok((await dialog.locator('[data-skin-locked]').allTextContents()).every(text => text.includes('???')));
     await page.setViewportSize({ width: 390, height: 844 });

@@ -90,6 +90,16 @@ window.SanakanSkinCatalog = {
         "lang": null,
         "alt": "Hoshino Ai"
     },
+    "firefly": {
+        "name": "Firefly",
+        "lang": null,
+        "alt": "Firefly"
+    },
+    "yoimiya": {
+        "name": "Yoimiya",
+        "lang": null,
+        "alt": "Yoimiya"
+    },
     "custom": {
         "name": "Własny skin",
         "lang": null,

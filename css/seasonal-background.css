@@ -111,6 +111,55 @@ body.seasonal-background { isolation: isolate; }
 .perseid-comet.catching::after { box-shadow: 0 0 18px #eff8ff; }
 .perseid-comet.catching::before { opacity: 1; }
 
+/* Small wandering insects pulse independently; they have neither meteor
+   trails nor the straight falling paths of petals. */
+.firefly-wander {
+    top: var(--season-rest-top);
+    animation: firefly-wander var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.firefly-body {
+    position: relative;
+    width: var(--season-size);
+    height: calc(var(--season-size) * 1.65);
+    color: var(--season-color);
+    transform: rotate(-20deg);
+}
+.firefly-wings {
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 180%;
+    height: 65%;
+    border-radius: 70% 70% 40% 40%;
+    background: currentColor;
+    opacity: 0.24;
+    transform: rotate(15deg);
+}
+.firefly-light {
+    position: absolute;
+    inset: 35% 0 0;
+    border-radius: 45% 45% 65% 65%;
+    background: currentColor;
+    box-shadow: 0 0 7px currentColor, 0 0 17px color-mix(in srgb, currentColor 55%, transparent);
+    animation: firefly-pulse var(--season-pulse) var(--season-pulse-delay) ease-in-out infinite;
+}
+.firefly-catch.catching .firefly-light,
+.firefly-catch:focus-visible .firefly-light { animation: none; opacity: 1; }
+.sg-season-background.paused .firefly-light { animation-play-state: paused; }
+@keyframes firefly-wander {
+    0%, 100% { transform: translate(0, 0) rotate(-8deg); }
+    19% { transform: translate(var(--season-wind), calc(var(--season-rise) * -0.45)) rotate(14deg); }
+    43% { transform: translate(calc(var(--season-wind) * 0.3), calc(var(--season-rise) * -1)) rotate(-18deg); }
+    68% { transform: translate(calc(var(--season-wind) * -0.6), calc(var(--season-rise) * -0.3)) rotate(9deg); }
+    86% { transform: translate(calc(var(--season-wind) * -0.2), calc(var(--season-rise) * 0.4)) rotate(-4deg); }
+}
+@keyframes firefly-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    38% { opacity: 0.65; transform: scale(1); }
+    57% { opacity: 1; transform: scale(1.12); }
+    74% { opacity: 0.5; transform: scale(0.95); }
+}
+
 @keyframes sakura-fall {
     0% {
         transform: translate(var(--season-lean, 0px), 0);
@@ -465,6 +514,7 @@ body.seasonal-background { isolation: isolate; }
 :root[data-skin-animations="off"] .sakura-drift,
 :root[data-skin-animations="off"] .sakura-petal,
 :root[data-skin-animations="off"] .sakura-petal svg { animation: none; }
+:root[data-skin-animations="off"] .firefly-light { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
     .seasonal-particle {
@@ -479,6 +529,7 @@ body.seasonal-background { isolation: isolate; }
     .sakura-petal svg { transition: none; }
     .sg-sakura .seasonal-particle:nth-child(n + 9) { display: none; }
     .perseid-star { opacity: 0.35; }
+    .firefly-light { animation: none; opacity: 0.8; }
     .ink-spill::before { display: none; }
     .ink-spill::after { animation: none; opacity: 0.35; transform: scale(0.7); }
     .wired-line { animation: none; opacity: 0.15; }

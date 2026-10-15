@@ -224,12 +224,13 @@
     pisanka: ['Kury wyginęły w Megastrukturze kilka tysięcy pięter temu.', 'Na Wielkanoc Safeguard i tak chowa pisanki na stronach. Ma swoje powody.'],
     urodziny: ['Sanakan uruchomiono 13 października 2017 roku.', 'Safeguard nie liczy lat. W ten dzień na stronie głównej i tak stoi tort.'],
     halloween: ['31 października formy krzemowe wychodzą na krawędzie strony.', 'Safeguard odnotowuje każdą złapaną. Cukierków nie rozdaje.'],
+    swietliki: ['Od 15 do 30 czerwca w Megastrukturze pojawiają się pulsujące świetliki.', 'Wykryto bioluminescencję. Źródło nie figuruje w rejestrze. Złap jeden sygnał.'],
     sylwester: ['Megastruktura nie zna lat, tylko cykle Budowniczych.', 'W Sylwestra Safeguard i tak zostawia przy logo rakietę.'],
     pingpong: ['Safeguard odpowiada na PING. Odeślij mu odpowiedź Morse\'em na stronie głównej.', 'Do pięciu punktów. Safeguard przyjmuje wyzwania przez cały rok.'],
     piatek: ['W piątek trzynastego usterek w Megastrukturze jest więcej.', 'Safeguard je łapie. Ty też możesz spróbować.'],
     zero: ['Mówią, że pod najniższym piętrem jest jeszcze jedno, piętro zero.', 'Prowadzi tam tylko korytarz Budowniczych, a ich drzwi otwierają się o trzeciej.']
   };
-  var LORE_ALIASES = { 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', dynia: 'halloween', psikus: 'halloween', nowyrok: 'sylwester', fajerwerki: 'sylwester', 'ping-pong': 'pingpong', ping_pong: 'pingpong', prima: 'pingpong', aprilis: 'pingpong', 'piątek': 'piatek', trzynasty: 'piatek', usterka: 'piatek', 'piętro': 'zero', pietro: 'zero', drzwi: 'zero', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
+  var LORE_ALIASES = { 'świetliki': 'swietliki', 'świetlik': 'swietliki', swietlik: 'swietliki', fireflies: 'swietliki', 'święta': 'swieta', 'mikołaj': 'swieta', mikolaj: 'swieta', jajko: 'pisanka', pisanki: 'pisanka', tort: 'urodziny', birthday: 'urodziny', dynia: 'halloween', psikus: 'halloween', nowyrok: 'sylwester', fajerwerki: 'sylwester', 'ping-pong': 'pingpong', ping_pong: 'pingpong', prima: 'pingpong', aprilis: 'pingpong', 'piątek': 'piatek', trzynasty: 'piatek', usterka: 'piatek', 'piętro': 'zero', pietro: 'zero', drzwi: 'zero', gbe: 'emiter', budowniczowie: 'budowniczy', 'formy': 'silikon', krzem: 'silikon', zarzad: 'administracja', 'zarząd': 'administracja' };
   var LORE_FIND = 5;
   var LORE_STORE = 'safeguard-lore';
 

@@ -117,6 +117,18 @@
             'words' => false,
             'what' => 'magenta i ciemny fiolet Hoshino Ai, jej logo, bez napisów'
         ],
+        'firefly' => [
+            'name' => 'Firefly',
+            'find' => 'fireflies',
+            'words' => false,
+            'what' => 'perłowy seledyn na ciemnej zieleni, logo Firefly i pulsujące świetliki w tle, bez napisów'
+        ],
+        'yoimiya' => [
+            'name' => 'Yoimiya',
+            'find' => 'fireflies',
+            'words' => false,
+            'what' => 'mandarynkowy pomarańcz i brzoskwinia na ciepłym brązie, logo Yoimiyi i pulsujące świetliki w tle, bez napisów'
+        ],
         'custom' => [
             'name' => 'Własny skin',
             'find' => 'all',
@@ -138,6 +150,7 @@
         'birthday' => 'Urodziny',
         'sakura' => 'Sakura',
         'perseids' => 'Perseidy',
+        'fireflies' => 'Noc świetlików',
         'all' => 'Wszystkie zwykłe i sezonowe znajdźki'
     ];
 

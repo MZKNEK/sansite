@@ -61,12 +61,12 @@
     });
 
     test('one seasonal find unlocks both of its new skins and no skins from the other event', function () {
-        foreach (['sakura' => ['march7', 'shogun'], 'perseids' => ['suisei', 'hoshino']] as $find => $keys) {
+        foreach (['sakura' => ['march7', 'shogun'], 'perseids' => ['suisei', 'hoshino'], 'fireflies' => ['firefly', 'yoimiya']] as $find => $keys) {
             clearData();
-            foreach (['march7', 'shogun', 'suisei', 'hoshino'] as $key)
+            foreach (['march7', 'shogun', 'suisei', 'hoshino', 'firefly', 'yoimiya'] as $key)
                 assertFalse(skinUnlocked($key, '111'));
             writeData('finds', ['111' => [$find => time()]]);
-            foreach (['march7', 'shogun', 'suisei', 'hoshino'] as $key) {
+            foreach (['march7', 'shogun', 'suisei', 'hoshino', 'firefly', 'yoimiya'] as $key) {
                 assertSame(in_array($key, $keys, true), skinUnlocked($key, '111'));
                 assertFalse(skinSpeaks($key));
             }

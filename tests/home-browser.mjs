@@ -295,11 +295,12 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     assert.equal(await select.inputValue(), '', 'nothing picked yet');
-    assert.equal(await select.locator('optgroup').count(), 10, 'the picker groups the skins by their find');
+    assert.equal(await select.locator('optgroup').count(), 11, 'the picker groups the skins by their find');
     assert.equal(await select.locator('optgroup[label="Prima aprilis"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Nowy rok"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Piątek trzynastego"] option').count(), 2);
     assert.equal(await select.locator('optgroup[label="Urodziny"] option').count(), 2);
+    assert.equal(await select.locator('optgroup[label="Noc świetlików"] option').count(), 2);
     assert.equal(await page.locator('.skin-form button[type=submit]').evaluate(node => node.classList.contains('primary')), true,
       'the save button looks like the one of the HUD');
     for (const key of ['teto', 'miku'])
@@ -387,13 +388,14 @@ export async function testHome({ browser, base, site, php, errors }) {
     await page.goto(`${base}/account/`);
     const select = page.locator('select[name=skin]');
     const locked = select.locator('option:disabled:not([value=custom])');
-    assert.equal(await locked.count(), 18, 'all seasonal skins are locked without finds');
+    assert.equal(await locked.count(), 20, 'all seasonal skins are locked without finds');
     assert.equal(await select.locator('option[value=custom]').evaluate(option => option.disabled), true);
     assert.ok((await select.locator('option[value=custom]').textContent()).includes('Własny skin'));
     for (const [group, hint] of [
       ['Prima aprilis', 'Zagubiony w tłumaczeniu'], ['Halloween', 'Noc form krzemowych'],
       ['Święta', 'Święta w Megastrukturze'], ['Wielkanoc', 'Pisanki z Megastruktury'],
-      ['Nowy rok', 'Nowy cykl'], ['Piątek trzynastego', 'Piątek trzynastego'], ['Urodziny', 'Sto lat'], ['Sakura', 'Sakura'], ['Perseidy', 'Perseidy']
+      ['Nowy rok', 'Nowy cykl'], ['Piątek trzynastego', 'Piątek trzynastego'], ['Urodziny', 'Sto lat'], ['Sakura', 'Sakura'], ['Perseidy', 'Perseidy'],
+      ['Noc świetlików', 'Światło w Megastrukturze']
     ]) {
       const options = select.locator(`optgroup[label="${group}"] option:disabled`);
       assert.equal(await options.count(), 2);
@@ -403,7 +405,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     assert.equal(await locked.evaluateAll(options => options.every(option => option.value === '' && !option.hasAttribute('data-skin-words'))), true,
       'locked options expose neither identifiers nor language metadata');
     const form = await page.locator('.skin-form').textContent();
-    for (const name of ['Teto', 'Miku', 'Echidna', 'Marisa Kirisame', 'Ceres Fauna', 'Padoru', 'Reisen', 'Pekora', 'Nakiri Ayame', 'Albedo', 'Tomie', 'Lain', 'Cibo', 'Killy', 'March 7th', 'Raiden Shogun', 'Suisei', 'Hoshino Ai'])
+    for (const name of ['Teto', 'Miku', 'Echidna', 'Marisa Kirisame', 'Ceres Fauna', 'Padoru', 'Reisen', 'Pekora', 'Nakiri Ayame', 'Albedo', 'Tomie', 'Lain', 'Cibo', 'Killy', 'March 7th', 'Raiden Shogun', 'Suisei', 'Hoshino Ai', 'Firefly', 'Yoimiya'])
       assert.equal(form.includes(name), false, 'the form keeps the name hidden: ' + name);
     // a form sent by hand cannot talk the server into a locked skin
     const me = await (await context.request.get(`${base}/account.php?finds`)).json();

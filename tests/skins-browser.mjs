@@ -216,7 +216,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     assert.equal(preview.status(), 200);
     await page.reload();
     assert.equal(await page.locator('.test-bar').count(), 1);
-    assert.equal(await select.locator('option:disabled').count(), 19, 'the preview has no owner bonus');
+    assert.equal(await select.locator('option:disabled').count(), 21, 'the preview has no owner bonus');
     assert.equal(await select.locator('option[value=teto]').count(), 0, 'locked options do not expose identifiers');
     assert.equal(await page.locator('html').getAttribute('data-skin'), null, 'the server-rendered empty pick beats the old cookie');
     const refused = await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'skin', skin: 'echidna' } });
@@ -227,7 +227,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     await defaultHome(page);
     update('finds', all => { all[owner] = { aprilfools: Math.floor(Date.now() / 1000) }; });
     await page.goto(`${base}/account/`);
-    assert.equal(await select.locator('option:disabled').count(), 17, 'only earned skins are exposed in the preview');
+    assert.equal(await select.locator('option:disabled').count(), 19, 'only earned skins are exposed in the preview');
     assert.ok((await select.locator('option[value=teto]').textContent()).includes('Teto'));
     assert.ok((await select.locator('option[value=miku]').textContent()).includes('Miku'));
     await Promise.all([page.waitForNavigation(), page.getByRole('button', { name: 'Wróć do swoich' }).click()]);

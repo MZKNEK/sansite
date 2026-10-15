@@ -1,6 +1,6 @@
 // Seasonal backgrounds and skin decorations (snow shares safeguard.js's layer).
 // Decorations never cover controls. A pointer
-// click on empty space may catch a visible petal/comet; one is also reachable
+// click on empty space may catch a visible petal/comet/firefly; one is also reachable
 // by keyboard. The server witnesses the find before anything is remembered.
 (function () {
   var guard = window.SanakanSafeguard;
@@ -189,6 +189,25 @@
       headings.forEach(function (heading) { heading(); });
     });
     return render;
+  }
+
+  function fireflies() {
+    return scene('fireflies', 'Noc świetlików', 'Złap świetlika', small ? 8 : 14, null, function (mover, button, i, count) {
+      mover.classList.add('firefly-wander');
+      mover.style.left = ((i + 0.5) * 88 / count + 4).toFixed(2) + '%';
+      variable(mover, 'rest-top', between(18, 84).toFixed(2) + 'vh');
+      variable(mover, 'duration', between(9, 17).toFixed(2) + 's');
+      variable(mover, 'delay', (-between(0, 17)).toFixed(2) + 's');
+      variable(mover, 'wind', between(-24, 24).toFixed(2) + 'px');
+      variable(mover, 'rise', between(12, 30).toFixed(2) + 'px');
+      variable(mover, 'pulse', between(2.3, 4.8).toFixed(2) + 's');
+      variable(mover, 'pulse-delay', (-between(0, 5)).toFixed(2) + 's');
+      variable(mover, 'size', between(5, 8).toFixed(2) + 'px');
+      variable(mover, 'color', i % 2 ? 'var(--firefly-peach)' : 'var(--firefly-mint)');
+      button.classList.add('firefly-catch');
+      button.innerHTML = '<span class="firefly-body" aria-hidden="true"><i class="firefly-wings"></i><i class="firefly-light"></i></span>';
+      mover.appendChild(button);
+    });
   }
 
   // Decorative skins have no targets or finds; their effects stay behind the
@@ -450,6 +469,7 @@
   var scenes = {
     sakura: { create: sakura, seasonal: true },
     perseids: { create: perseids, seasonal: true },
+    fireflies: { create: fireflies, seasonal: true },
     ink: { create: ink },
     wired: { create: wired },
     butterflies: { create: butterflies },

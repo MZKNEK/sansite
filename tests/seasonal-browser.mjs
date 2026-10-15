@@ -13,7 +13,9 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     { key: 'sakura', date: '2026-04-10', label: 'Złap płatek sakury', group: 'Sakura',
       skins: [['march7', 'March 7th', '245, 179, 206'], ['shogun', 'Raiden Shogun', '110, 82, 196']] },
     { key: 'perseids', date: '2026-08-10', label: 'Złap kometę', group: 'Perseidy',
-      skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '199, 63, 144']] }
+      skins: [['suisei', 'Suisei', '112, 151, 227'], ['hoshino', 'Hoshino Ai', '199, 63, 144']] },
+    { key: 'fireflies', date: '2026-06-21', label: 'Złap świetlika', group: 'Noc świetlików',
+      skins: [['firefly', 'Firefly', '168, 230, 207'], ['yoimiya', 'Yoimiya', '245, 130, 69']] }
   ];
   function fixture(name, change) {
     const file = path.join(site, 'inc/data', name + '.json');
@@ -184,7 +186,8 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       ['ayame', '.sg-fireworks'], ['albedo', '.sg-fireworks'],
       ['reisen', '.sg-lavender'], ['peko', '.sg-rabbits'],
       ['cibo', '.sg-netsphere'], ['killy', '.sg-emitter'],
-      ['march7', '.sg-sakura'], ['shogun', '.sg-sakura'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids']]) {
+      ['march7', '.sg-sakura'], ['shogun', '.sg-sakura'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids'],
+      ['firefly', '.sg-fireflies'], ['yoimiya', '.sg-fireflies']]) {
       await chooseSkin(page, skin);
       assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);
       await toggle.check();
@@ -202,7 +205,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'hud', hud: 'default' } });
     assert.equal((await (await context.request.get(`${base}/account.php`)).json()).skinanimations, false);
     assert.deepEqual(calls, []);
-  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'easter', 'birthday', 'sakura', 'perseids'], animations: false });
+  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'easter', 'birthday', 'sakura', 'perseids', 'fireflies'], animations: false });
 
   for (const event of events) await visit(event.date, async (page, context, calls) => {
     const layer = page.locator('.sg-' + event.key);
@@ -410,7 +413,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
         assert.equal(await layer.locator('.seasonal-catch:not(:disabled)').count(), 0);
         assert.equal(await page.getByRole('button', { name: event.label }).count(), 0, 'decorations add no keyboard stop');
         assert.equal(await layer.locator('.seasonal-particle').first().evaluate(el => getComputedStyle(el).animationName),
-          event.key === 'sakura' ? 'sakura-fall' : 'perseid-flight');
+          { sakura: 'sakura-fall', perseids: 'perseid-flight', fireflies: 'firefly-wander' }[event.key]);
         if (event.key === 'perseids') {
           assert.equal(await layer.locator('.perseid-star').count(), 56);
           assert.equal(await layer.locator('.perseid-star').first().evaluate(el => getComputedStyle(el).animationName), 'perseid-twinkle');
@@ -439,15 +442,15 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await chooseSkin(page, '');
     await page.waitForFunction(() => !document.querySelector('.sg-season-background'));
     assert.equal(await page.locator('body').evaluate(el => el.classList.contains('seasonal-background')), false);
-    // The last saved skin is still Hoshino; losing its find removes the background too.
+    // Losing the last saved skin's find removes its background too.
     fixture('finds', all => { delete all[user]; });
     await page.goto(`${base}/`);
     await page.locator('.account-menu').waitFor();
     await page.waitForFunction(() => !document.documentElement.hasAttribute('data-skin'));
     assert.equal(await page.locator('.sg-season-background').count(), 0, 'an account reply removes a revoked skin background');
-  }, { login: true, skin: 'march7', finds: ['sakura', 'perseids'] });
+  }, { login: true, skin: 'march7', finds: ['sakura', 'perseids', 'fireflies'] });
 
-  for (const [event, skin, find] of [[events[0], 'suisei', 'perseids'], [events[1], 'march7', 'sakura']]) {
+  for (const [event, skin, find] of [[events[0], 'suisei', 'perseids'], [events[1], 'march7', 'sakura'], [events[2], 'suisei', 'perseids']]) {
     await visit(event.date, async (page, context, calls) => {
       await page.locator('.sg-' + event.key).waitFor();
       assert.equal(await page.locator('.sg-season-background').count(), 2, 'the seasonal event stays alongside another skin background');
@@ -646,6 +649,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
 
   for (const [date, expected] of [
     ['2026-03-31', null], ['2026-04-01', 'sakura'], ['2026-04-15', 'sakura'], ['2026-04-16', null],
+    ['2026-06-14', null], ['2026-06-15', 'fireflies'], ['2026-06-30', 'fireflies'], ['2026-07-01', null],
     ['2026-07-31', null], ['2026-08-01', 'perseids'], ['2026-08-15', 'perseids'], ['2026-08-16', null]
   ]) await visit(date, async (page, context, calls) => {
     assert.equal(await page.locator('.sg-season-background').count(), expected ? 1 : 0, 'the event boundary on ' + date);

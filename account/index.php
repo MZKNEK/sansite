@@ -189,8 +189,8 @@
   <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=c7740efbef" type="text/css" rel="stylesheet" />
-  <link href="../css/seasonal-background.css?v=2a539f8ff3" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=f4c93e901d" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=e27ad7f5e7" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="admin-page own-profile">
@@ -610,9 +610,9 @@
   <script src="../js/skin-picker.js?v=d04ca5eaa7"></script>
   <script src="../js/appearance-picker.js?v=5ba11428c2"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
-  <script src="../js/netsphere.js?v=8c6bb3e460"></script>
-  <script src="../js/safeguard.js?v=37e6cf91b4"></script>
-  <script src="../js/seasonal-background.js?v=c8015c6690"></script>
+  <script src="../js/netsphere.js?v=43a6101b80"></script>
+  <script src="../js/safeguard.js?v=ac3c71dc4a"></script>
+  <script src="../js/seasonal-background.js?v=7a5905514c"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 

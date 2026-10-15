@@ -48,7 +48,8 @@
         'halloween'  => ['Noc form krzemowych', 'Forma krzemowa złapana na krawędzi strony w Halloween.', 'Wraca co roku 31 października.'],
         'friday13'   => ['Piątek trzynastego', 'Usterka złapana na stronie w piątek trzynastego.', 'Wraca w każdy piątek trzynastego.'],
         'sakura'     => ['Sakura', 'Płatek sakury złapany podczas wiosennego kwitnienia w Megastrukturze.', 'Wraca co roku od 1 do 15 kwietnia. Złap jeden ze spadających płatków.'],
-        'perseids'   => ['Perseidy', 'Kometa złapana na rozgwieżdżonym niebie Megastruktury.', 'Wraca co roku od 1 do 15 sierpnia. Złap jedną ze spadających komet.']
+        'perseids'   => ['Perseidy', 'Kometa złapana na rozgwieżdżonym niebie Megastruktury.', 'Wraca co roku od 1 do 15 sierpnia. Złap jedną ze spadających komet.'],
+        'fireflies'  => ['Światło w Megastrukturze', 'Świetlik złapany podczas czerwcowych nocy w Megastrukturze.', 'Wraca co roku od 15 do 30 czerwca. Złap jednego z pulsujących świetlików.']
     ];
 
     // Easter Sunday of a year (the Gregorian computus), as "Y-m-d"
@@ -92,6 +93,8 @@
             $list[] = 'sakura';
         if ($month === 8 && $day <= 15)
             $list[] = 'perseids';
+        if ($month === 6 && $day >= 15)
+            $list[] = 'fireflies';
 
         return $list;
     }

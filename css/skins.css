@@ -617,3 +617,57 @@ html[data-skin="hoshino"] {
     --bg-mid: #40113d;
     --text: #f0dce9;
 }
+
+/* June's fireflies use the same two lights with every skin. Darker lights
+   remain visible when the event accompanies a light palette. */
+:root {
+    --firefly-mint: #a8e6cf;
+    --firefly-peach: #ffd0a3;
+}
+html[data-skin="echidna"],
+html[data-skin="custom"][data-skin-base="light"] {
+    --firefly-mint: #267b69;
+    --firefly-peach: #b65328;
+}
+
+/* Firefly: pale celadon and pearl on a deep green night. */
+html[data-skin="firefly"] {
+    --swap-corner: #e9fff4;
+    --swap-fill: rgba(24, 60, 51, 0.9);
+    --swap-text: #e9fff4;
+    --swap-hover-fill: #4e9c80;
+    --skin-logo: url("../skins/firefly.webp");
+    --season-background: fireflies;
+    --accent: #a8e6cf;
+    --accent-light: #e9fff4;
+    --accent-dark: #4e9c80;
+    --accent-rgb: 168, 230, 207;
+    --accent-light-rgb: 233, 255, 244;
+    --accent-dark-rgb: 78, 156, 128;
+    --hud-rgb: 168, 230, 207;
+    --hud-light-rgb: 233, 255, 244;
+    --bg-dark: #091a17;
+    --bg-mid: #183c33;
+    --text: #e4f3ec;
+}
+
+/* Yoimiya: tangerine and peach on warm brown, distinct from Christmas gold. */
+html[data-skin="yoimiya"] {
+    --swap-corner: #ffd0a3;
+    --swap-fill: rgba(66, 37, 26, 0.9);
+    --swap-text: #ffe5ce;
+    --swap-hover-fill: #a84620;
+    --skin-logo: url("../skins/yoimiya.webp");
+    --season-background: fireflies;
+    --accent: #f58245;
+    --accent-light: #ffd0a3;
+    --accent-dark: #a84620;
+    --accent-rgb: 245, 130, 69;
+    --accent-light-rgb: 255, 208, 163;
+    --accent-dark-rgb: 168, 70, 32;
+    --hud-rgb: 245, 130, 69;
+    --hud-light-rgb: 255, 208, 163;
+    --bg-dark: #21120d;
+    --bg-mid: #42251a;
+    --text: #f6e6dc;
+}

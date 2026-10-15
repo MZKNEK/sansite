@@ -62,7 +62,8 @@ window.SanakanSafeguard = (function () {
     halloween: 'Noc form krzemowych',
     friday13: 'Piątek trzynastego',
     sakura: 'Sakura',
-    perseids: 'Perseidy'
+    perseids: 'Perseidy',
+    fireflies: 'Światło w Megastrukturze'
   };
   var NAMES = {};
   [FINDS, SEASONAL].forEach(function (list) {
@@ -628,7 +629,8 @@ window.SanakanSafeguard = (function () {
   // January), "newyear" on 31 December and 1 January, "easter" from Palm
   // Sunday to Easter Monday, "aprilfools" on 1 April, "birthday" on the bot's,
   // 13 October, "halloween" on 31 October and "friday13" on every Friday the
-  // 13th, "sakura" from 1 to 15 April and "perseids" from 1 to 15 August
+  // 13th, "sakura" from 1 to 15 April, "perseids" from 1 to 15 August and
+  // "fireflies" from 15 to 30 June
   // (the same as safeguardHolidays() in inc/auth/finds.php; backgrounds in
   // js/seasonal-background.js).
   function holidays(d) {
@@ -645,6 +647,7 @@ window.SanakanSafeguard = (function () {
     if (d.day === 13 && date.getDay() === 5) list.push('friday13');
     if (d.month === 4 && d.day <= 15) list.push('sakura');
     if (d.month === 8 && d.day <= 15) list.push('perseids');
+    if (d.month === 6 && d.day >= 15) list.push('fireflies');
     return list;
   }
 
