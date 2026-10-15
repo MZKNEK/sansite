@@ -248,6 +248,82 @@ body.seasonal-background { isolation: isolate; }
 .sg-season-background.paused .wired-line,
 .sg-season-background.paused.sg-wired::after { animation-play-state: paused; }
 
+/* Echidna: green butterflies turn their wings while following separate
+   wandering paths. The palette keeps them visible against her light skin. */
+.witch-butterfly {
+    position: absolute;
+    width: var(--season-size);
+    color: var(--accent-dark);
+    animation: butterfly-flight var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.witch-butterfly svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    fill: var(--accent);
+    filter: drop-shadow(0 0 3px rgba(var(--accent-rgb), 0.2));
+}
+.butterfly-wing {
+    transform-box: view-box;
+    transform-origin: 50% 53%;
+    animation: butterfly-flutter var(--season-flutter) var(--season-delay) ease-in-out infinite;
+}
+.butterfly-body { fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linecap: round; }
+@keyframes butterfly-flight {
+    0%, 100% { opacity: 0.45; transform: translate(0, 12px) rotate(-12deg); }
+    23% { opacity: 0.7; transform: translate(calc(var(--season-wind) * 0.7), -24px) rotate(16deg); }
+    51% { opacity: 0.6; transform: translate(var(--season-wind), -65px) rotate(-8deg); }
+    77% { opacity: 0.5; transform: translate(calc(var(--season-wind) * -0.4), -16px) rotate(10deg); }
+}
+@keyframes butterfly-flutter {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.18); }
+}
+
+/* Marisa: drifting gold dust and occasional little stars, each with a short
+   trail pointing back along its own flight rather than across the text. */
+.magic-dust,
+.magic-star { position: absolute; width: var(--season-size); height: var(--season-size); }
+.magic-dust {
+    border-radius: 50%;
+    background: var(--accent-light);
+    box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.45);
+    animation: magic-drift var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+.magic-star {
+    color: var(--accent);
+    font: var(--season-size)/1 "Sanakan Mono", monospace;
+    font-style: normal;
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
+    animation: magic-flight var(--season-duration) var(--season-delay) linear infinite;
+}
+.magic-star::before {
+    content: "";
+    position: absolute;
+    right: calc(100% - 2px);
+    top: 50%;
+    width: var(--season-tail);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, currentColor);
+    opacity: 0.4;
+}
+@keyframes magic-drift {
+    0% { opacity: 0; transform: translate(-12px, 25px); }
+    24% { opacity: 0.35; }
+    63% { opacity: 0.6; }
+    100% { opacity: 0; transform: translate(30px, -60px); }
+}
+@keyframes magic-flight {
+    0%, 55% { opacity: 0; transform: rotate(var(--season-angle)) translateX(-45px); }
+    66% { opacity: 0.7; }
+    88% { opacity: 0.5; }
+    100% { opacity: 0; transform: rotate(var(--season-angle)) translateX(85px); }
+}
+.sg-season-background.paused .witch-butterfly,
+.sg-season-background.paused .butterfly-wing,
+.sg-season-background.paused .magic-dust,
+.sg-season-background.paused .magic-star { animation-play-state: paused; }
+
 /* Turning effects off hides decorations. During an event one stationary
    target remains reachable by keyboard, appearing only when it has focus. */
 :root[data-skin-animations="off"] .sg-season-background .seasonal-particle {
@@ -279,4 +355,9 @@ body.seasonal-background { isolation: isolate; }
     .ink-spill::after { animation: none; opacity: 0.35; transform: scale(0.7); }
     .wired-line { animation: none; opacity: 0.15; }
     .sg-wired::after { animation: none; opacity: 0; }
+    .witch-butterfly { animation: none; opacity: 0.5; }
+    .butterfly-wing { animation: none; }
+    .magic-dust { animation: none; opacity: 0.3; }
+    .magic-star { animation: none; opacity: 0.5; }
+    .magic-star::before { display: none; }
 }

@@ -25,13 +25,13 @@
             'name' => 'Echidna',
             'find' => 'halloween',
             'words' => false,
-            'what' => 'czerń sukni i zieleń motyla Echidny, jej logo, bez napisów'
+            'what' => 'jasne tło, zielone motyle Echidny i jej logo, bez napisów'
         ],
         'marisa' => [
             'name' => 'Marisa Kirisame',
             'find' => 'halloween',
             'words' => false,
-            'what' => 'limonkowa żółć wiedźmy i jej logo, bez napisów'
+            'what' => 'limonkowa żółć wiedźmy, jej logo, złoty pył i gwiazdy w tle, bez napisów'
         ],
         'fauna' => [
             'name' => 'Ceres Fauna',

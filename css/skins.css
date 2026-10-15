@@ -260,6 +260,7 @@ html[data-skin="miku"] {
    Halloween find (inc/skin-catalog.php). No words: the page keeps its own. */
 html[data-skin="echidna"] {
     --skin-logo: url("../skins/echidna.webp");
+    --season-background: butterflies;
     --scheme: light;
     --accent: #426c47;
     --accent-light: #9cb8a2;
@@ -282,6 +283,7 @@ html[data-skin="marisa"] {
     --swap-text: #f7f4c4;
     --swap-hover-fill: #8f812a;
     --skin-logo: url("../skins/marisa.webp");
+    --season-background: magic;
     --accent: #e6d044;
     --accent-light: #eef2a4;
     --accent-dark: #8f812a;

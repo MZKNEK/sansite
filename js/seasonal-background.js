@@ -237,13 +237,49 @@
     });
   }
 
+  function butterflies() {
+    return decoration('butterflies', small ? 4 : 7, function (bit, i, count) {
+      bit.className = 'witch-butterfly';
+      bit.style.left = ((i + 0.5) * 84 / count + 8).toFixed(2) + '%';
+      bit.style.top = between(20, 84).toFixed(2) + '%';
+      variable(bit, 'size', between(22, 37).toFixed(0) + 'px');
+      variable(bit, 'wind', between(-65, 65).toFixed(0) + 'px');
+      variable(bit, 'flutter', between(0.7, 1.3).toFixed(2) + 's');
+      var duration = between(13, 23);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-duration * (i + 0.5) / count).toFixed(2) + 's');
+      bit.innerHTML = '<svg viewBox="0 0 40 34" aria-hidden="true">'
+        + '<g class="butterfly-wing"><path d="M20 18C18 9 10 1 5 3C-1 8 6 20 18 19C7 13 3 21 8 27C13 34 20 25 20 18Z"/></g>'
+        + '<g class="butterfly-wing"><path d="M20 18C22 9 30 1 35 3C41 8 34 20 22 19C33 13 37 21 32 27C27 34 20 25 20 18Z"/></g>'
+        + '<path class="butterfly-body" d="M20 12v14m0-14-3-4m3 4 3-4"/></svg>';
+    });
+  }
+
+  function magic() {
+    return decoration('magic', small ? 14 : 24, function (bit, i, count) {
+      var star = i % 4 === 0;
+      bit.className = star ? 'magic-star' : 'magic-dust';
+      bit.style.left = ((i + Math.random()) * 100 / count).toFixed(2) + '%';
+      bit.style.top = between(12, 92).toFixed(2) + '%';
+      variable(bit, 'size', between(star ? 11 : 1.5, star ? 17 : 3).toFixed(2) + 'px');
+      variable(bit, 'angle', between(-35, -12).toFixed(0) + 'deg');
+      variable(bit, 'tail', between(24, 48).toFixed(0) + 'px');
+      var duration = between(10, 19);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-between(0, duration)).toFixed(2) + 's');
+      if (star) bit.textContent = i % 8 === 0 ? '✧' : '✦';
+    });
+  }
+
   // Lazily create each scene once; profile previews reuse its particles and
   // listeners. CSS declares which background belongs to the active skin.
   var scenes = {
     sakura: { create: sakura, seasonal: true },
     perseids: { create: perseids, seasonal: true },
     ink: { create: ink },
-    wired: { create: wired }
+    wired: { create: wired },
+    butterflies: { create: butterflies },
+    magic: { create: magic }
   };
   function update() {
     var skin = getComputedStyle(document.documentElement).getPropertyValue('--season-background').trim();
