@@ -31,7 +31,7 @@
   function best() {
     if (serverBest !== null) return serverBest;
     try {
-      return parseInt(localStorage.getItem(BEST), 10) || 0;
+      return parseInt(SanakanDiscoveryStorage.getItem(BEST), 10) || 0;
     } catch (err) {
       return 0;
     }
@@ -40,7 +40,7 @@
   function keepBest(n) {
     if (serverBest !== null) return;  // the server keeps it
     try {
-      if (n > best()) localStorage.setItem(BEST, String(n));
+      if (n > best()) SanakanDiscoveryStorage.setItem(BEST, String(n));
     } catch (err) {
       // remembered for this game only
     }

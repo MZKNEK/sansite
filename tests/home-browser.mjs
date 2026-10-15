@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 import { chooseSkin } from './skin-picker-browser.mjs';
 // Exercise the real Morse input, register synchronization and home-only locale.
 import assert from 'node:assert/strict';
@@ -24,7 +25,7 @@ export async function testHome({ browser, base, site, php, errors }) {
   }
 
   async function visit(date, run, loggedIn = false, options = {}) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 850 }, ...options });
+    const context = await discoveryContext(browser, { viewport: { width: 1280, height: 850 }, ...options });
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
       // true = the ordinary User; an id = that account (the owner is ...0001)

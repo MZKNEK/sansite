@@ -265,7 +265,7 @@ function homeWitness(key) {
   var holidays = String(day.month === 1 ? day.year - 1 : day.year);
   var STORE = 'safeguard-hat';
   try {
-    if (localStorage.getItem(STORE) === holidays && homeHasFind('xmas')) return;
+    if (SanakanDiscoveryStorage.getItem(STORE) === holidays && homeHasFind('xmas')) return;
   } catch (err) {
     // no storage: the hat is back on every visit
   }
@@ -293,7 +293,7 @@ function homeWitness(key) {
     homeWitness('xmas').then(function (noted) {
       if (noted) {
         try {
-          localStorage.setItem(STORE, holidays);
+          SanakanDiscoveryStorage.setItem(STORE, holidays);
         } catch (err) {
           // the same
         }
@@ -326,7 +326,7 @@ function homeWitness(key) {
   var year = String(day.year);
   var blown = false;
   try {
-    blown = localStorage.getItem(STORE) === year && homeHasFind('birthday');
+    blown = SanakanDiscoveryStorage.getItem(STORE) === year && homeHasFind('birthday');
   } catch (err) {
     // no storage: the candles burn again on every visit
   }
@@ -409,7 +409,7 @@ function homeWitness(key) {
     homeWitness('birthday').then(function (noted) {
       if (noted) {
         try {
-          localStorage.setItem(STORE, year);
+          SanakanDiscoveryStorage.setItem(STORE, year);
         } catch (err) {
           // the same
         }

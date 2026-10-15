@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 // Register migration and synchronization races, with the shipped JS and real PHP.
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -39,7 +40,7 @@ export async function testSafeguardSync({ browser, base, site, php, errors }) {
     const all = existsSync(findsFile) ? JSON.parse(readFileSync(findsFile, 'utf8')) : {};
     all[id] = had;
     writeFileSync(findsFile, JSON.stringify(all));
-    const context = await browser.newContext();
+    const context = await discoveryContext(browser);
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
       if (loggedIn) assert.equal((await context.request.get(`${base}/__login?id=${id}`)).status(), 200);

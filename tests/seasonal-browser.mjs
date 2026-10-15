@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 import { chooseSkin } from './skin-picker-browser.mjs';
 // Seasonal background finds: real pointer/keyboard input, server-signed proof
 // fixtures for the pretend browser date, and real PHP account synchronization.
@@ -33,7 +34,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     return made.stdout;
   }
   async function visit(date, run, { login = false, skin = '', finds = [], animations = true, ...options } = {}) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 850 }, ...options });
+    const context = await discoveryContext(browser, { viewport: { width: 1280, height: 850 }, ...options });
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
       fixture('finds', all => {
@@ -92,7 +93,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     return null;
   }
   async function movingComet(page) {
-    return page.locator('.perseid-flight').first().evaluate(mover => {
+    return page.locator('.perseid-flight').first().evaluate(async mover => {
       // A known, fast flight in the left margin, away from the page's controls.
       mover.style.cssText = 'left:4vw;top:0';
       mover.style.setProperty('--season-angle', '0deg');
@@ -101,8 +102,12 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       mover.style.setProperty('--season-bright', '1');
       mover.style.animation = 'perseid-flight 4s -1.8s linear infinite';
       const animation = mover.getAnimations()[0];
+      // Keep the sampled position until input actually reaches the document.
+      // Resume after the scene's hit test, so the held gesture still moves.
+      animation.pause();
       animation.currentTime = 0;
-      if (animation.playState !== 'running') throw new Error('The comet must keep moving during the gesture');
+      await animation.ready;
+      document.addEventListener('pointerdown', () => animation.play(), { once: true });
       const r = mover.querySelector('button').getBoundingClientRect();
       const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
       const below = document.elementFromPoint(x, y);
@@ -507,6 +512,8 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.deepEqual(calls, [], 'dragging away and back cancels the catch');
 
     point = await movingComet(page);
+    // A busy CI runner may deliver input well after the coordinates were read.
+    await page.waitForTimeout(200);
     await page.mouse.move(point.x, point.y);
     await page.mouse.down();
     assert.deepEqual(calls, [], 'pressing alone does not award the find');
@@ -547,6 +554,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.deepEqual(calls, [], 'a cancelled touch gives no find');
 
     point = await movingComet(page);
+    await page.waitForTimeout(200);
     await start(point);
     assert.deepEqual(calls, [], 'a finger still held down gives no find');
     await page.waitForTimeout(180);

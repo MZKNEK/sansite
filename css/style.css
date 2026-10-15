@@ -1636,7 +1636,7 @@ body.ns-open {
     }
 }
 
-/* The Safeguard's register (js/safeguard.js): a new find, in the corner */
+/* The Safeguard's discovery notices and browser saving controls. */
 .sg-toast {
     position: fixed;
     left: 16px;
@@ -1676,6 +1676,128 @@ a.sg-toast:hover {
     color: var(--text-muted);
 }
 
+.discovery-prompt {
+    position: fixed;
+    right: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    z-index: 1200;
+    box-sizing: border-box;
+    width: min(360px, calc(100vw - 32px));
+    padding: 22px;
+    --fill: var(--panel-surface);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 12px 40px var(--shadow);
+    color: var(--text-body);
+    text-align: left;
+    animation: ns-in 0.2s ease-out;
+}
+
+.discovery-label {
+    display: block;
+    margin-bottom: 12px;
+    font: 10px "Sanakan Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--link);
+}
+
+.discovery-prompt h2 {
+    margin: 0 0 8px;
+    font-size: 23px;
+    font-weight: 400;
+    color: var(--heading);
+}
+
+.discovery-prompt p {
+    margin: 0 0 18px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.discovery-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.discovery-actions button {
+    flex: 1;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 3px;
+    background: var(--surface-input);
+    color: var(--text-body);
+    font: 12px "Sanakan Mono", monospace;
+    cursor: pointer;
+}
+
+.discovery-actions button:hover,
+.discovery-actions button[aria-pressed="true"] {
+    border-color: var(--link);
+    background: var(--surface-selected);
+    color: var(--heading);
+}
+
+.discovery-actions button:focus-visible,
+.discovery-privacy:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 3px;
+}
+
+.discovery-privacy {
+    display: block;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.discovery-privacy span {
+    float: right;
+    color: var(--link);
+}
+
+.discovery-settings {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid var(--panel-border);
+    border-radius: 3px;
+    background: var(--panel-surface);
+}
+
+.discovery-settings h3 {
+    margin: 0 0 10px;
+    font: 13px "Sanakan Mono", monospace;
+    color: var(--heading);
+}
+
+.discovery-settings [data-discovery-status] {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.sg-toast.sg-find-toast {
+    box-sizing: border-box;
+    top: 50%;
+    left: 16px;
+    bottom: auto;
+    width: max-content;
+    padding: 16px 20px;
+    translate: 0 -50%;
+}
+
+@media (max-width: 480px) {
+    .discovery-prompt {
+        right: 16px;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        padding: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .discovery-prompt { animation: none; }
+}
+
 @keyframes sg-toast-glitch {
     50% {
         transform: translateX(3px);
@@ -1685,7 +1807,7 @@ a.sg-toast:hover {
 
 /* The Konami code: a Silicon Creature turns the page a sick green and shakes
    it (everything but its own box), until the Safeguard sweeps it clean */
-html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
+html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast):not(.discovery-prompt) {
     filter: hue-rotate(185deg) saturate(1.6) contrast(1.05);
     animation: sg-jitter 0.24s steps(2) infinite;
 }
@@ -1794,7 +1916,7 @@ html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
     .sg-toast,
     .sg-silicon,
     .sg-silicon b,
-    html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast) {
+    html.silicon body > :not(.sg-silicon):not(.sg-sweep):not(.sg-toast):not(.discovery-prompt) {
         animation: none;
     }
 

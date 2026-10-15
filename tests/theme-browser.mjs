@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 // Theme regressions use real computed colours, including inherited surfaces,
 // native options, modal content and the production builds of both croppers.
 import assert from 'node:assert/strict';
@@ -58,7 +59,7 @@ export async function testTheme({ browser, base, site, errors }) {
     all[owner] = skin;
     writeFileSync(prefs, JSON.stringify(all));
   };
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const context = await discoveryContext(browser, { viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
   try {
     await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     const login = await (await context.request.get(`${base}/__login?id=${owner}`)).json();

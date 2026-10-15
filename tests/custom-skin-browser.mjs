@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 import { chooseSkin } from './skin-picker-browser.mjs';
 // Completion reward: real profile forms, private gallery media and stale cookies.
 import assert from 'node:assert/strict';
@@ -17,7 +18,7 @@ export async function testCustomSkin({ browser, base, site, php, errors }) {
     change(all);
     writeFileSync(file, JSON.stringify(all));
   }
-  const context = await browser.newContext({ viewport: { width: 1280, height: 850 } });
+  const context = await discoveryContext(browser, { viewport: { width: 1280, height: 850 } });
   try {
     await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     const login = await (await context.request.get(`${base}/__login?id=${user}`)).json();

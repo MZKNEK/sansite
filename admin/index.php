@@ -130,7 +130,7 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=8a30720878" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=16afe109e0" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=c7740efbef" type="text/css" rel="stylesheet" />
@@ -138,6 +138,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=035d31fe77"></script>
+  <script src="../js/discovery-storage.js?v=c5109a613e"></script>
   <link href="../css/seasonal-background.css?v=2a539f8ff3" type="text/css" rel="stylesheet" />
 </head>
 
@@ -215,9 +216,9 @@
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
-  <script src="../js/netsphere.js?v=8517a9ef25"></script>
-  <script src="../js/safeguard.js?v=d0f347f6fa"></script>
-  <script src="../js/seasonal-background.js?v=50f1ef0470"></script>
+  <script src="../js/netsphere.js?v=8c6bb3e460"></script>
+  <script src="../js/safeguard.js?v=37e6cf91b4"></script>
+  <script src="../js/seasonal-background.js?v=c8015c6690"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 <?php if ($allowed): ?>
   <script src="../js/admin.js?v=7a08a49a3c"></script>

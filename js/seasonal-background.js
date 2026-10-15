@@ -7,7 +7,7 @@
   if (!guard) return;
   var small = innerWidth < 600;
   var protectedArea = 'a, button, input, select, textarea, [contenteditable], [role="button"], [role="dialog"], '
-    + '.logo-wrap, .card, .notice-bar, .test-bar, .account-menu, .sg-toast, .sg-silicon, .ns-overlay, .pl-overlay, .pp-overlay, article.cmd';
+    + '.logo-wrap, .card, .notice-bar, .test-bar, .account-menu, .sg-toast, .discovery-prompt, .discovery-settings, .sg-silicon, .ns-overlay, .pl-overlay, .pp-overlay, article.cmd';
   var PETAL = '<svg viewBox="0 0 34 40" aria-hidden="true"><path d="M13.1 38.8C12.2 37.9 9.1 35.4 7.7 33.6C6.3 31.8 5.3 29.8 4.6 27.8C3.9 25.9 3.6 23.8 3.5 21.9C3.5 19.9 3.9 18 4.4 16.1C4.9 14.2 5.8 12.1 6.5 10.3C7.2 8.5 8.1 6.4 8.7 5.3C9.2 4.2 9.2 4 10 3.6C10.8 3.2 12.2 2.5 13.3 3C14.4 3.5 16.1 5.8 16.7 6.3C17.4 5.8 19.6 3.5 20.9 3.1C22.2 2.7 23.5 3.5 24.3 3.9C25.1 4.3 25.1 4.5 25.6 5.6C26.1 6.7 26.8 8.6 27.5 10.3C28.2 12.1 29.1 14.2 29.6 16.1C30.1 18 30.5 19.9 30.4 21.9C30.4 23.8 30.1 25.9 29.4 27.8C28.7 29.8 27.7 31.8 26.3 33.6C24.9 35.4 21.8 37.9 20.9 38.8Z" /></svg>';
 
   function between(min, max) { return min + Math.random() * (max - min); }

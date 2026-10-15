@@ -1,3 +1,5 @@
+import { testDiscoveryStorage } from './discovery-storage-browser.mjs';
+import { discoveryContext } from './browser-context.mjs';
 // Real browser + real PHP, entirely disposable data and gallery. Run after
 // installing playwright in .preview/browser (see CI). No Discord or server.
 import { createRequire } from 'node:module';
@@ -22,7 +24,7 @@ for (const dir of ['inc', 'admin', 'account', 'js', 'css', 'fonts', 'privacy', '
 }
 mkdirSync(path.join(site, 'i'));
 cpSync(path.join(root, 'i/index.php'), path.join(site, 'i/index.php'));
-for (const file of ['index.html', 'logo.webp', 'status.php', 'account.php', 'megastructure.php', 'palette.php', 'offline.html', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
+for (const file of ['index.html', 'logo.webp', 'status.php', 'account.php', 'megastructure.php', 'palette.php', 'offline.html', 'sw.js', 'favicon.svg', '401.html', '403.html', '404.html', '500.html']) cpSync(path.join(root, file), path.join(site, file));
 // the logos of the skins, in the folder the site keeps them (skins/)
 mkdirSync(path.join(site, 'skins'));
 cpSync(path.join(root, 'skins'), path.join(site, 'skins'), { recursive: true });
@@ -50,7 +52,10 @@ try {
   const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
   // Use Playwright's Chromium, as CI does; Edge is a fallback on unprepared PCs.
   browser = await chromium.launch({ headless: true, ...(!existsSync(chromium.executablePath()) && existsSync(edge) ? { executablePath: edge } : {}) });
-  const context = await browser.newContext();
+  const storageErrors = [];
+  await testDiscoveryStorage({ browser, base, errors: storageErrors });
+  assert.deepEqual(storageErrors, []);
+  const context = await discoveryContext(browser);
   await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
   const page = await context.newPage();
   const errors = [];
@@ -61,7 +66,7 @@ try {
   assert.match(await anonymous.text(), /Identyfikacja wymagana/, 'the 401 page');
   // Exercise the shipped client: concurrent anonymous redemptions share the
   // first CSRF session, and a reply lost after the write can be retried safely.
-  const registerContext = await browser.newContext();
+  const registerContext = await discoveryContext(browser);
   try {
     await registerContext.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     const registerPage = await registerContext.newPage();
@@ -181,7 +186,7 @@ try {
   assert.equal(privateShare.status(), 200, 'an authorized admin can still share a private folder');
   const { token } = await privateShare.json();
   assert.ok(token);
-  const guest = await browser.newContext();
+  const guest = await discoveryContext(browser);
   try {
     assert.equal((await guest.request.get(`${base}/i/private/sub/secret.png`)).status(), 404);
     assert.equal((await guest.request.get(`${base}/i/?s=${token}`)).status(), 200);

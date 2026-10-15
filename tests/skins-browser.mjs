@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 import { chooseSkin } from './skin-picker-browser.mjs';
 // Regression cases for account/cookie disagreement, delayed responses and the
 // profile's selection. All requests use the disposable PHP site of browser.mjs.
@@ -21,7 +22,7 @@ export async function testSkinChanges({ browser, base, site, errors }) {
     });
   }
   async function visit({ skin = 'teto', words = true, cookieSkin = skin, cookieWords = words, date = '2026-07-15', delayed = false, pathname = '/', id = owner, finds = null, expired = false }, run) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 850 } });
+    const context = await discoveryContext(browser, { viewport: { width: 1280, height: 850 } });
     let release = () => {};
     try {
       await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());

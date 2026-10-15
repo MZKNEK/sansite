@@ -22,12 +22,13 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=8a30720878" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=16afe109e0" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=c7740efbef" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=035d31fe77"></script>
+  <script src="../js/discovery-storage.js?v=c5109a613e"></script>
   <link href="../css/seasonal-background.css?v=2a539f8ff3" type="text/css" rel="stylesheet" />
 </head>
 
@@ -62,7 +63,16 @@
       <h2>4. Przechowywanie danych</h2>
       <p>Adresy IP i informacje techniczne są przechowywane nie dłużej niż 30 dni, z wyjątkiem danych związanych z bezpieczeństwem serwisu, w szczególności dotyczących ataków lub prób ataków.</p>
       <p>Po opuszczeniu serwera Discord usuwamy dane konta bota, z wyjątkiem logów zdarzeń moderacyjnych. Dane konta strony i zapisane pliki przechowujemy przez okres korzystania z tych funkcji lub do ich usunięcia. Pliki w koszu są usuwane po 30 dniach, a wcześniej na żądanie użytkownika lub po zapełnieniu kosza.</p>
-      <p>Cookies utrzymują sesję i ustawienia strony. Wygląd, szkice Skalpelatorów, odkrycia sprzed logowania i strona offline są zapisywane na urządzeniu. Można je usunąć w ustawieniach przeglądarki; usunięcie sesji wyloguje użytkownika.</p>
+      <p>Cookies utrzymują sesję i ustawienia strony. Wygląd, szkice Skalpelatorów i strona offline są zapisywane na urządzeniu. Postęp odkryć zapisujemy w przeglądarce i synchronizujemy z kontem po włączeniu zapisywania. Pierwsze logowanie w tej przeglądarce włącza zapisywanie także po wylogowaniu; można je później wyłączyć poniżej. Bez zapisywania postęp pozostaje tylko na bieżącej stronie. Dane witryny można usunąć w ustawieniach przeglądarki; usunięcie sesji wyloguje użytkownika.</p>
+      <section class="discovery-settings" id="odkrycia" aria-labelledby="discovery-settings-title">
+        <h3 id="discovery-settings-title">Zapisywanie odkryć</h3>
+        <p>Wyłączenie usuwa zapisany w tej przeglądarce postęp. Nie usuwa wpisów zapisanych wcześniej na koncie.</p>
+        <div class="discovery-actions" role="group" aria-label="Zapisywanie odkryć">
+          <button type="button" data-discovery-choice="yes" aria-pressed="false">Zapisuj</button>
+          <button type="button" data-discovery-choice="no" aria-pressed="false">Nie zapisuj</button>
+        </div>
+        <p data-discovery-status role="status">Do zmiany wyboru potrzebny jest JavaScript.</p>
+      </section>
 
       <h2>5. Dostęp do danych</h2>
       <p>Dostęp do danych mają upoważnione osoby obsługujące usługę i moderację oraz dostawcy niezbędnych usług technicznych. Korzystamy z Discorda, Shinden i Cloudflare (ochrona i obsługa ruchu).</p>
@@ -80,9 +90,9 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="./">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
   <script src="../js/year.js?v=27252b35ac"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
-  <script src="../js/netsphere.js?v=8517a9ef25"></script>
-  <script src="../js/safeguard.js?v=d0f347f6fa"></script>
-  <script src="../js/seasonal-background.js?v=50f1ef0470"></script>
+  <script src="../js/netsphere.js?v=8c6bb3e460"></script>
+  <script src="../js/safeguard.js?v=37e6cf91b4"></script>
+  <script src="../js/seasonal-background.js?v=c8015c6690"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 

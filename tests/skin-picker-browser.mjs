@@ -1,3 +1,4 @@
+import { discoveryContext } from './browser-context.mjs';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -16,7 +17,7 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     all[id] = value;
     writeFileSync(file, JSON.stringify(all));
   }
-  const context = await browser.newContext({ viewport: { width: 1280, height: 850 } });
+  const context = await discoveryContext(browser, { viewport: { width: 1280, height: 850 } });
   try {
     await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     const user = '900000000000000002';
@@ -130,7 +131,7 @@ export async function testSkinPicker({ browser, base, site, errors }) {
     await context.close();
   }
   // The original select remains usable if JavaScript is disabled.
-  const plain = await browser.newContext({ javaScriptEnabled: false });
+  const plain = await discoveryContext(browser, { javaScriptEnabled: false });
   try {
     await plain.request.get(`${base}/__login?id=900000000000000002`);
     const page = await plain.newPage();

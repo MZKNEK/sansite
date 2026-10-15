@@ -237,14 +237,14 @@
   function readLore(key) {
     var read = [];
     try {
-      read = JSON.parse(localStorage.getItem(LORE_STORE)) || [];
+      read = JSON.parse(SanakanDiscoveryStorage.getItem(LORE_STORE)) || [];
     } catch (err) {
       // private mode: only this visit counts
     }
     if (!Array.isArray(read)) read = [];
     if (read.indexOf(key) < 0) read.push(key);
     try {
-      localStorage.setItem(LORE_STORE, JSON.stringify(read));
+      SanakanDiscoveryStorage.setItem(LORE_STORE, JSON.stringify(read));
     } catch (err) {
       // the same
     }

@@ -1,6 +1,6 @@
 // The Safeguard's register: the easter eggs of the site a visitor has found
-// (inc/auth/finds.php, the card in /account/). A find is kept in the browser
-// first, so it counts without a login too, and goes to the account through
+// (inc/auth/finds.php, the card in /account/). A find stays in memory until
+// saving is enabled. It then persists in this browser and goes to the account through
 // account.php?finds once there is one: at once, or on the next page that shows
 // the account. Every find needs a proof from the server (megastructure.php),
 // which the browser keeps with it and the account asks for; the other scripts
@@ -24,6 +24,7 @@ window.SanakanSafeguard = (function () {
   // the site's root, from this script's own address (js/safeguard.js)
   var ROOT = new URL('../', document.currentScript.src).pathname;
   var STORE = 'safeguard';
+  var storage = window.SanakanDiscoveryStorage;
   // the same keys as SAFEGUARD_FINDS in inc/auth/finds.php, with their names
   var FINDS = {
     netsphere: 'Nielegalny mieszkaniec',
@@ -87,7 +88,7 @@ window.SanakanSafeguard = (function () {
   function load() {
     var state = null;
     try {
-      state = JSON.parse(localStorage.getItem(STORE));
+      state = JSON.parse(storage.getItem(STORE));
     } catch (err) {
       // private mode or a broken entry: start empty
     }
@@ -101,7 +102,7 @@ window.SanakanSafeguard = (function () {
 
   function save(state) {
     try {
-      localStorage.setItem(STORE, JSON.stringify(state));
+      storage.setItem(STORE, JSON.stringify(state));
     } catch (err) {
       // nothing kept, the find still counts on the account
     }
@@ -136,15 +137,17 @@ window.SanakanSafeguard = (function () {
     box.append(head, name, note);
     document.body.appendChild(box);
     toastTimer = setTimeout(function () { box.remove(); }, 6000);
+    return box;
   }
 
   // "Nowy wpis", a link to the register once there is an account
   function toast(key, state) {
     var count = Object.keys(state.finds).filter(function (found) { return FINDS[found]; }).length;
-    notice('Rejestr Safeguarda · nowy wpis', NAMES[key],
+    var box = notice('Rejestr Safeguarda · nowy wpis', NAMES[key],
       (SEASONAL[key] ? 'wpis sezonowy' : count + ' z ' + TOTAL)
-        + (loggedIn() ? ' · rejestr w profilu' : ' · zapisane w tej przeglądarce, po zalogowaniu trafi do profilu'),
+        + (storage.choice() !== 'yes' ? ' · na bieżącej stronie' : loggedIn() ? ' · rejestr w profilu' : ' · zapisane w tej przeglądarce, po zalogowaniu trafi do profilu'),
       loggedIn() ? ROOT + 'account/#rejestr' : null);
+    box.classList.add('sg-find-toast');
   }
 
   // Notes a find with the proof megastructure.php gave; the first time it
@@ -181,6 +184,7 @@ window.SanakanSafeguard = (function () {
   // the ones it lacks. The profile shows them only
   // after a reload, so its register is reloaded once when it gained some.
   function sync() {
+    if (storage.choice() !== 'yes') return;
     if (syncing) {
       again = true;
       return;
@@ -202,7 +206,7 @@ window.SanakanSafeguard = (function () {
     fetch(ROOT + 'account.php?finds', { credentials: 'same-origin', cache: 'no-store' })
       .then(json)
       .then(function (me) {
-        if (!me || !me.login) return null;
+        if (!me || !me.login || storage.choice() !== 'yes') return null;
         var state = load();
         // what the account had and has no more, an admin took back: gone here too
         Object.keys(state.sent).forEach(function (key) {
@@ -230,7 +234,7 @@ window.SanakanSafeguard = (function () {
         return fetch(ROOT + 'account.php', { method: 'POST', body: body, credentials: 'same-origin' })
           .then(json)
           .then(function (answer) {
-            if (!answer || !answer.finds) return;
+            if (!answer || !answer.finds || storage.choice() !== 'yes') return;
             var state = load();
             // Register order puts prerequisites before their following steps.
             var rejected = Object.keys(NAMES).filter(function (key) {
@@ -287,6 +291,7 @@ window.SanakanSafeguard = (function () {
   }
   syncWaiting();
   document.addEventListener('sanakan:account', syncWaiting);
+  document.addEventListener('sanakan:discovery-storage', syncWaiting);
 
   // ---- The console ------------------------------------------------------------
 
@@ -408,7 +413,7 @@ window.SanakanSafeguard = (function () {
 
   function fragments() {
     try {
-      var kept = JSON.parse(localStorage.getItem(GENE_STORE));
+      var kept = JSON.parse(storage.getItem(GENE_STORE));
       return kept && typeof kept === 'object' ? kept : {};
     } catch (err) {
       return {};
@@ -419,7 +424,7 @@ window.SanakanSafeguard = (function () {
     var kept = fragments();
     kept[n] = String(value).toUpperCase();
     try {
-      localStorage.setItem(GENE_STORE, JSON.stringify(kept));
+      storage.setItem(GENE_STORE, JSON.stringify(kept));
     } catch (err) {
       // remembered by whoever wrote it down
     }
@@ -1092,7 +1097,7 @@ window.SanakanSafeguard = (function () {
     var year = today().year;
     var got = { year: year, pages: [] };
     try {
-      var kept = JSON.parse(localStorage.getItem(EGG_STORE));
+      var kept = JSON.parse(storage.getItem(EGG_STORE));
       if (kept && kept.year === year && Array.isArray(kept.pages)) got = kept;
     } catch (err) {
       // no storage: the eggs of this visit only
@@ -1141,9 +1146,14 @@ window.SanakanSafeguard = (function () {
         egg.classList.add('broken');
         window.removeEventListener('resize', place);
         setTimeout(function () { egg.remove(); }, 900);
-        got.pages.push(page);
         try {
-          localStorage.setItem(EGG_STORE, JSON.stringify(got));
+          var saved = JSON.parse(storage.getItem(EGG_STORE));
+          if (saved && saved.year === year && Array.isArray(saved.pages))
+            got.pages = Array.from(new Set(got.pages.concat(saved.pages)));
+        } catch (err) {}
+        if (got.pages.indexOf(page) < 0) got.pages.push(page);
+        try {
+          storage.setItem(EGG_STORE, JSON.stringify(got));
         } catch (err) {
           // counted for this visit only
         }
@@ -1184,13 +1194,16 @@ window.SanakanSafeguard = (function () {
 
   // sw.js shows offline.html when a page cannot be reached and leaves a cache
   // behind to say so; the next page that loads notes the find
-  if (window.caches && caches.has) {
+  function offlineFind() {
+    if (storage.choice() !== 'yes' || !window.caches || !caches.has) return;
     caches.has(OFFLINE_SEEN).then(function (seen) {
-      if (!seen) return;
+      if (!seen || storage.choice() !== 'yes') return;
       caches.delete(OFFLINE_SEEN);
       witness('offline');
     }).catch(function () {});
   }
+  offlineFind();
+  document.addEventListener('sanakan:discovery-storage', offlineFind);
 
   if ('serviceWorker' in navigator && window.isSecureContext) {
     window.addEventListener('load', function () {

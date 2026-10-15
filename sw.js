@@ -13,6 +13,22 @@ var CACHE = PREFIX + FILES.join(' ');
 // left behind when the offline page was shown; js/safeguard.js notes it as a
 // find of the Safeguard's register on the next page and removes it
 var SEEN = 'sanakan-offline-seen';
+var CHOICE_CACHE = 'sanakan-discovery-choice';
+var CHOICE_URL = new URL('sw.js?discovery-choice', self.registration.scope).href;
+var discoveryPermission = caches.match(CHOICE_URL, { cacheName: CHOICE_CACHE })
+  .then(function (response) { return response ? response.text().then(function (value) { return value === 'yes'; }) : false; })
+  .catch(function () { return false; });
+var permissionWrites = Promise.resolve();
+
+self.addEventListener('message', function (event) {
+  if (!event.data || event.data.type !== 'sanakan-discovery-storage') return;
+  var allowed = event.data.enabled === true;
+  discoveryPermission = Promise.resolve(allowed);
+  permissionWrites = permissionWrites.catch(function () {}).then(function () {
+    return caches.open(CHOICE_CACHE).then(function (cache) { return cache.put(CHOICE_URL, new Response(allowed ? 'yes' : 'no')); });
+  });
+  event.waitUntil(Promise.all([permissionWrites, allowed ? Promise.resolve() : caches.delete(SEEN)]));
+});
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(CACHE)
@@ -41,7 +57,10 @@ self.addEventListener('fetch', function (event) {
     event.respondWith(fetch(request).catch(function () {
       return caches.match(OFFLINE).then(function (page) {
         if (!page) return Response.error();
-        return caches.open(SEEN).then(function () { return page; }, function () { return page; });
+        return discoveryPermission.then(function (allowed) {
+          if (!allowed) return page;
+          return caches.open(SEEN).then(function () { return page; }, function () { return page; });
+        });
       });
     }));
     return;
