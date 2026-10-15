@@ -177,6 +177,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     for (const [skin, effect] of [['fauna', '.sg-snow'], ['padoru', '.sg-snow'], ['tomie', '.sg-ink'],
       ['lain', '.sg-wired'], ['echidna', '.sg-butterflies'], ['marisa', '.sg-magic'],
       ['ayame', '.sg-fireworks'], ['albedo', '.sg-fireworks'],
+      ['reisen', '.sg-lavender'], ['peko', '.sg-rabbits'],
       ['march7', '.sg-sakura'], ['shogun', '.sg-sakura'], ['suisei', '.sg-perseids'], ['hoshino', '.sg-perseids']]) {
       await chooseSkin(page, skin);
       assert.equal(await page.locator(effect + ':visible').count(), 0, 'effects stay off after previewing ' + skin);
@@ -195,7 +196,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await context.request.post(`${base}/account/`, { form: { csrf: me.csrf, action: 'hud', hud: 'default' } });
     assert.equal((await (await context.request.get(`${base}/account.php`)).json()).skinanimations, false);
     assert.deepEqual(calls, []);
-  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'sakura', 'perseids'], animations: false });
+  }, { login: true, skin: 'fauna', finds: ['xmas', 'friday13', 'halloween', 'newyear', 'easter', 'sakura', 'perseids'], animations: false });
 
   for (const event of events) await visit(event.date, async (page, context, calls) => {
     const layer = page.locator('.sg-' + event.key);
@@ -209,12 +210,12 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     assert.deepEqual(calls, [event.key], 'the event remains keyboard accessible with animations off');
   }, { login: true, animations: false });
 
-  for (const date of ['2026-06-10', '2026-11-13', '2026-10-31', '2026-12-31', '2026-04-10']) await visit(date, async (page, context, calls) => {
+  for (const date of ['2026-06-10', '2026-11-13', '2026-10-31', '2026-12-31', '2027-03-28', '2026-04-10']) await visit(date, async (page, context, calls) => {
     const seasonal = date === '2026-04-10' ? 1 : 0;
     await page.goto(`${base}/account/`);
     assert.equal(await page.locator('option[value="tomie"]').count(), 1, 'the decorative-skin fixture is unlocked on ' + date);
     for (const [skin, key] of [['tomie', 'ink'], ['lain', 'wired'], ['echidna', 'butterflies'], ['marisa', 'magic'],
-      ['ayame', 'fireworks'], ['albedo', 'fireworks']]) {
+      ['ayame', 'fireworks'], ['albedo', 'fireworks'], ['reisen', 'lavender'], ['peko', 'rabbits']]) {
       await chooseSkin(page, skin);
       const layer = page.locator('.sg-' + key);
       await layer.waitFor();
@@ -255,8 +256,10 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
         await layer.evaluate((el, key) => el.getAnimations({ subtree: true }).forEach(animation => {
           animation.pause();
           const timing = animation.effect.getTiming();
-          const phase = key === 'fireworks' ? 0.45 : key === 'ink' ? 0.6 : 0.71;
-          animation.currentTime = timing.delay + timing.duration * phase;
+          if (animation.animationName !== 'rabbit-cross') {
+            const phase = key === 'fireworks' ? 0.45 : key === 'ink' ? 0.6 : 0.71;
+            animation.currentTime = timing.delay + timing.duration * phase;
+          }
         }), key);
         await page.screenshot({ path: path.join(process.cwd(), '.preview', skin + '-background-preview.png') });
       }
@@ -268,7 +271,24 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       assert.equal(await layer.evaluate(el => el === window.originalSkinDecoration), true, 'previews reuse the decoration');
     }
     assert.deepEqual(calls, [], 'skin decorations never request a seasonal discovery');
-  }, { login: true, skin: 'tomie', finds: ['friday13', 'halloween', 'newyear'] });
+  }, { login: true, skin: 'tomie', finds: ['friday13', 'halloween', 'newyear', 'easter'] });
+
+  for (const skin of ['reisen', 'peko']) await visit('2027-03-28', async page => {
+    // Use public pages with HUD boxes that can host the event's egg.
+    await page.goto(`${base}/privacy/`);
+    const egg = page.getByRole('button', { name: 'Pisanka', exact: true });
+    await egg.click();
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('safeguard-easter')).pages.includes('/privacy/')), true,
+      'the skin background keeps the Easter egg clickable');
+    await page.goto(`${base}/account/`);
+    await page.getByRole('checkbox', { name: /Animacje skina/ }).uncheck();
+    await Promise.all([page.waitForNavigation(), page.locator('.skin-form button[type=submit]').click()]);
+    await page.goto(`${base}/cmd/`);
+    assert.equal(await page.locator('.sg-season-background').count(), 0, 'disabling animations hides the Easter skin decoration');
+    await egg.click();
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('safeguard-easter')).pages.includes('/cmd/')), true,
+      'Easter eggs remain available with skin animations off');
+  }, { login: true, skin, finds: ['easter'] });
 
   await visit('2026-12-31', async page => {
     await page.route('**/megastructure.php*', route => new URL(route.request().url()).searchParams.get('witness') === 'newyear'
@@ -282,7 +302,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
 
   await visit('2026-06-10', async page => {
     await page.goto(`${base}/account/`);
-    for (const [skin, key, count] of [['echidna', 'butterflies', 4], ['marisa', 'magic', 14]]) {
+    for (const [skin, key, count] of [['echidna', 'butterflies', 4], ['marisa', 'magic', 14], ['reisen', 'lavender', 12], ['peko', 'rabbits', 2]]) {
       await chooseSkin(page, skin);
       const layer = page.locator('.sg-' + key);
       assert.equal(await layer.locator(':scope > i').count(), count, 'phones use fewer particles');
@@ -291,7 +311,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
       assert.equal(await layer.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a instanceof CSSAnimation).length), 0);
       await page.emulateMedia({ reducedMotion: 'no-preference' });
     }
-  }, { login: true, skin: 'echidna', finds: ['halloween', 'newyear'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  }, { login: true, skin: 'echidna', finds: ['halloween', 'newyear', 'easter'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
   await visit('2026-06-10', async page => {
     await page.goto(`${base}/account/`);

@@ -271,6 +271,46 @@
     });
   }
 
+  function lavender() {
+    return decoration('lavender', small ? 12 : 20, function (bit, i, count) {
+      bit.className = 'lavender-mote';
+      bit.style.left = ((i + Math.random()) * 94 / count + 3).toFixed(2) + '%';
+      bit.style.top = between(12, 92).toFixed(2) + '%';
+      variable(bit, 'size', between(1.8, 4.2).toFixed(2) + 'px');
+      variable(bit, 'wind', between(-32, 32).toFixed(0) + 'px');
+      var duration = between(12, 24);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-duration * (i + 0.5) / count).toFixed(2) + 's');
+    });
+  }
+
+  function rabbits() {
+    return decoration('rabbits', small ? 2 : 4, function (bit, i, count) {
+      bit.className = 'rabbit-run';
+      bit.style.bottom = (14 + i % 2 * 17) + 'px';
+      variable(bit, 'size', between(38, 50).toFixed(2) + 'px');
+      variable(bit, 'direction', i % 2 ? -1 : 1);
+      variable(bit, 'route', i % 2 ? 'reverse' : 'normal');
+      variable(bit, 'hop', between(1, 1.4).toFixed(2) + 's');
+      variable(bit, 'height', between(12, 21).toFixed(2) + 'px');
+      variable(bit, 'rest-left', ((i + 0.5) * 84 / count + 8).toFixed(2) + '%');
+      var duration = between(small ? 22 : 32, small ? 30 : 44);
+      variable(bit, 'duration', duration.toFixed(2) + 's');
+      variable(bit, 'delay', (-duration * (i + 0.5) / count).toFixed(2) + 's');
+      // Keep facing separate from the hop so reverse runners land feet first.
+      bit.innerHTML = '<span class="rabbit-facing"><svg viewBox="0 0 60 52" aria-hidden="true">'
+        + '<g class="rabbit-coat"><circle cx="8" cy="33" r="5"/>'
+        + '<ellipse cx="25" cy="35" rx="16" ry="12"/>'
+        + '<ellipse cx="40" cy="13" rx="4" ry="12" transform="rotate(-12 40 13)"/>'
+        + '<ellipse cx="48" cy="13" rx="3.6" ry="12" transform="rotate(10 48 13)"/>'
+        + '<ellipse cx="44" cy="28" rx="11" ry="9"/>'
+        + '<ellipse cx="28" cy="45" rx="12" ry="4"/>'
+        + '<ellipse cx="46" cy="44" rx="7" ry="3"/></g>'
+        + '<path class="rabbit-ear" d="m40 6 2 13m7-13-2 13"/>'
+        + '<circle class="rabbit-eye" cx="49" cy="26" r="1.2"/></svg></span>';
+    });
+  }
+
   function fireworks() {
     var layer = document.createElement('div');
     layer.className = 'sg-season-background sg-fireworks';
@@ -328,6 +368,8 @@
     wired: { create: wired },
     butterflies: { create: butterflies },
     magic: { create: magic },
+    lavender: { create: lavender },
+    rabbits: { create: rabbits },
     fireworks: { create: fireworks }
   };
   function update() {

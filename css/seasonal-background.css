@@ -324,6 +324,64 @@ body.seasonal-background { isolation: isolate; }
 .sg-season-background.paused .magic-dust,
 .sg-season-background.paused .magic-star { animation-play-state: paused; }
 
+/* Reisen: softly glowing lavender motes drifting through the night. */
+.lavender-mote {
+    position: absolute;
+    width: var(--season-size);
+    height: var(--season-size);
+    border-radius: 50%;
+    background: var(--accent-light);
+    box-shadow: 0 0 7px rgba(var(--accent-rgb), 0.5);
+    animation: lavender-drift var(--season-duration) var(--season-delay) ease-in-out infinite;
+}
+@keyframes lavender-drift {
+    0% { opacity: 0; transform: translate(-10px, 20px); }
+    28% { opacity: 0.55; }
+    72% { opacity: 0.35; }
+    100% { opacity: 0; transform: translate(var(--season-wind), -60px); }
+}
+
+/* Pekora: little rabbits cross the lower edge in both directions. Their hop
+   stretches on takeoff, arcs through the air and squashes on landing. */
+.rabbit-run {
+    position: absolute;
+    left: -70px;
+    width: var(--season-size);
+    opacity: 0.55;
+    animation: rabbit-cross var(--season-duration) var(--season-delay) linear infinite;
+    animation-direction: var(--season-route);
+}
+.rabbit-facing { display: block; transform: scaleX(var(--season-direction)); }
+.rabbit-run svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform-origin: 50% 92%;
+    animation: rabbit-hop var(--season-hop) var(--season-delay) linear infinite;
+}
+.rabbit-coat { fill: var(--accent-light); }
+.rabbit-ear { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.rabbit-eye { fill: var(--accent-dark); }
+@keyframes rabbit-cross {
+    to { transform: translateX(calc(100vw + 140px)); }
+}
+@keyframes rabbit-hop {
+    0%, 100% { transform: translateY(0) scale(1.08, 0.9); }
+    12% {
+        transform: translateY(-2px) rotate(-9deg) scale(0.93, 1.08);
+        animation-timing-function: ease-out;
+    }
+    43% {
+        transform: translateY(calc(var(--season-height) * -1)) rotate(-4deg) scale(1);
+        animation-timing-function: ease-in;
+    }
+    78% { transform: translateY(0) rotate(5deg) scale(1.1, 0.87); }
+    90% { transform: translateY(0) scale(1); }
+}
+.sg-season-background.paused .lavender-mote,
+.sg-season-background.paused .rabbit-run,
+.sg-season-background.paused .rabbit-run svg { animation-play-state: paused; }
+
 /* Ayame and Albedo share the event's firework renderer, in a golden
    background layer below the page's content. */
 .sg-fireworks { opacity: 0.8; }
@@ -365,4 +423,7 @@ body.seasonal-background { isolation: isolate; }
     .magic-dust { animation: none; opacity: 0.3; }
     .magic-star { animation: none; opacity: 0.5; }
     .magic-star::before { display: none; }
+    .lavender-mote { animation: none; opacity: 0.3; }
+    .rabbit-run { animation: none; left: var(--season-rest-left); transform: translateX(-50%); }
+    .rabbit-run svg { animation: none; }
 }

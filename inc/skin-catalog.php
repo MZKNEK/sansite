@@ -49,13 +49,13 @@
             'name' => 'Reisen',
             'find' => 'easter',
             'words' => false,
-            'what' => 'lawendowy fiolet i logo Reisen, bez napisów'
+            'what' => 'lawendowy fiolet, logo Reisen, delikatne drobinki w tle, bez napisów'
         ],
         'peko' => [
             'name' => 'Pekora',
             'find' => 'easter',
             'words' => false,
-            'what' => 'błękit Pekory i jej logo, bez napisów'
+            'what' => 'błękit Pekory, jej logo, małe króliczki kicające przy dolnej krawędzi, bez napisów'
         ],
         'ayame' => [
             'name' => 'Nakiri Ayame',

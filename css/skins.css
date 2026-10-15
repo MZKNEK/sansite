@@ -349,6 +349,7 @@ html[data-skin="reisen"] {
     --swap-text: #f0defc;
     --swap-hover-fill: #6f41a3;
     --skin-logo: url("../skins/reisen.webp");
+    --season-background: lavender;
     --accent: #b285de;
     --accent-light: #dcc2f4;
     --accent-dark: #6f41a3;
@@ -370,6 +371,7 @@ html[data-skin="peko"] {
     --swap-text: #d5e5f8;
     --swap-hover-fill: #4d7789;
     --skin-logo: url("../skins/peko.webp");
+    --season-background: rabbits;
     --accent: #7cc0dd;
     --accent-light: #c8e5f1;
     --accent-dark: #4d7789;

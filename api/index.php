@@ -48,10 +48,10 @@
   <link href="../css/style.css?v=81b88abee1" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=3bb1398e4e" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=04dee0689f" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=ac23a36a71" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=08cb01faf8" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=035d31fe77"></script>
-  <link href="../css/seasonal-background.css?v=3a2be466ad" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=9d3d6f43e2" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -104,7 +104,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=a98676efe2"></script>
   <script src="../js/safeguard.js?v=5303da0ccd"></script>
-  <script src="../js/seasonal-background.js?v=c638791aba"></script>
+  <script src="../js/seasonal-background.js?v=03b079c198"></script>
   <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 
@@ -126,7 +126,7 @@
   <link rel="stylesheet" type="text/css" href="../css/style.css?v=81b88abee1" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=3bb1398e4e" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=66047e5fc2" />
-  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=04dee0689f" />
+  <link rel="stylesheet" type="text/css" href="../css/skins.css?v=ac23a36a71" />
   <link rel="stylesheet" type="text/css" href="./theme.css?v=1739858b8d" >
   <script src="../js/appearance.js?v=035d31fe77"></script>
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
@@ -151,7 +151,7 @@
       margin:0;
     }
   </style>
-  <link href="../css/seasonal-background.css?v=3a2be466ad" type="text/css" rel="stylesheet" />
+  <link href="../css/seasonal-background.css?v=9d3d6f43e2" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
@@ -232,7 +232,7 @@
 <script src="../js/to-top.js?v=6ce6e2481f"></script>
 <script src="../js/netsphere.js?v=a98676efe2"></script>
 <script src="../js/safeguard.js?v=5303da0ccd"></script>
-<script src="../js/seasonal-background.js?v=c638791aba"></script>
+<script src="../js/seasonal-background.js?v=03b079c198"></script>
 <script src="../js/palette.js?v=9d395acc33"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
