@@ -40,8 +40,8 @@ const loaded = spawnSync(php, ['-r', 'echo json_encode([extension_loaded("gd"), 
 assert.equal(loaded.status, 0, loaded.stderr);
 const [hasGd, hasZip] = JSON.parse(loaded.stdout);
 const extensions = [...(hasGd ? [] : ['-d', 'extension=gd']), ...(hasZip ? [] : ['-d', 'extension=zip'])];
-// The transport limits of the README's server, as the test uploads a file over
-// PHP's default 2M.
+// The transport limits of the server in docs/server.md, as the test uploads a
+// file over PHP's default 2M.
 const limits = ['-d', 'upload_max_filesize=64M', '-d', 'post_max_size=64M'];
 const server = spawn(php, [...extensions, ...limits, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-S', `127.0.0.1:${port}`, path.join(root, 'tests/browser-router.php')],
   { cwd: site, env: { ...process.env, SANAKAN_BROWSER_ROOT: site.replaceAll('\\', '/') }, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });

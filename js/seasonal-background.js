@@ -550,8 +550,10 @@
     };
   }
 
-  // The song of Teto and Miku (audio/<song>.mp3, kept out of git and sent by
-  // deploy.sh), one for the whole page. Nothing is downloaded until its button
+  // The song of Teto and Miku (audio/<song>.webm in Opus, half the MP3's size
+  // at the same quality, or audio/<song>.mp3 for a browser without Opus such as
+  // an older Safari; kept out of git and sent by deploy.sh), one for the whole
+  // page. Nothing is downloaded until its button
   // in the bottom left corner is pressed; it then loops at 40%, or at the
   // volume of the slider next to it (kept in this browser), routed through an
   // analyser for the equalizer. The tab remembers whether it played and where,
@@ -564,6 +566,7 @@
   function songPlayer() {
     var Context = window.AudioContext || window.webkitAudioContext;
     var audio = new Audio();
+    var type = audio.canPlayType('audio/webm; codecs="opus"') ? '.webm' : '.mp3';
     audio.preload = 'none';
     audio.loop = true;
     var volume = SONG_VOLUME;
@@ -620,6 +623,7 @@
       slider.disabled = button.disabled;
       slider.title = 'Głośność ' + slider.value + '%';
       control.style.setProperty('--music-volume', slider.value + '%');
+      if (media && control.isConnected) media.playbackState = on ? 'playing' : 'paused';
       listeners.forEach(function (listener) { listener(); });
     }
     // The analyser joins once the context runs: a suspended one would silence
@@ -682,15 +686,35 @@
         paint();
       });
     }
+    function stop() {
+      wanted = false;
+      audio.pause();
+    }
     button.addEventListener('click', function () {
       untouched();
       if (!playing()) start();
-      else {
-        wanted = false;
-        audio.pause();
-      }
+      else stop();
       remember();
     });
+    // The lock screen, headphones and media keys: the song's name with the
+    // skin's logo, and play and pause doing what the button does
+    var media = navigator.mediaSession && window.MediaMetadata ? navigator.mediaSession : null;
+    function described() {
+      if (!media) return;
+      media.metadata = new MediaMetadata({
+        title: name,
+        artist: 'Sanakan',
+        album: 'sanakan.pl',
+        artwork: [{ src: '/skins/' + song + '.webp', sizes: '1254x1254', type: 'image/webp' }]
+      });
+    }
+    if (media) {
+      [['play', function () { untouched(); start(); remember(); }],
+        ['pause', function () { stop(); remember(); }],
+        ['stop', function () { stop(); remember(); }]].forEach(function (action) {
+        try { media.setActionHandler(action[0], action[1]); } catch (_) { /* an action this browser lacks */ }
+      });
+    }
     slider.addEventListener('input', function () {
       volume = Math.max(0, Math.min(100, Number(slider.value) || 0)) / 100;
       if (gain) gain.gain.value = volume;
@@ -719,9 +743,10 @@
           song = next;
           name = label;
           button.disabled = false;
-          audio.src = '/audio/' + next + '.mp3';
+          audio.src = '/audio/' + next + type;
           if (last && last.song === next && last.time > 0) audio.currentTime = last.time;
           last = null;
+          described();
           paint();
         }
         if (!control.isConnected) document.body.appendChild(control);
@@ -734,6 +759,10 @@
         untouched();
         audio.pause();
         control.remove();
+        if (media) {
+          media.metadata = null;
+          media.playbackState = 'none';
+        }
       },
       // the analyser's spectrum while the song plays, else null
       spectrum: function () {

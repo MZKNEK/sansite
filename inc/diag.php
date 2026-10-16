@@ -124,7 +124,7 @@
         return diagSetting('DIAG_ACCESS_LOG', '/var/log/nginx/sanakan-access.log');
     }
 
-    // by default the path of the README, for the PHP version the site runs on
+    // by default the path of docs/server.md, for the PHP version the site runs on
     function diagSlowLog()
     {
         return diagSetting('DIAG_SLOW_LOG', '/var/log/' . PHP_PACKAGE . '-fpm.slow.log');

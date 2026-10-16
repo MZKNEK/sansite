@@ -69,7 +69,7 @@
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=adf9386966"></script>
   <script src="../js/safeguard.js?v=ec477d1123"></script>
-  <script src="../js/seasonal-background.js?v=2ab3aebbb9"></script>
+  <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 

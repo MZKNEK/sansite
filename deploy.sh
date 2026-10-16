@@ -7,9 +7,10 @@
 # their own when they changed since the last deploy, then nginx -t runs and nginx
 # reloads; a configuration that does not pass is rolled back and the deploy stops.
 # The wiki's icons (server/wiki/assets/) go the same way when they changed, with
-# Wiki.js restarted. The skins' songs (audio/*.mp3), kept out of git, go when
-# the server has none or another one of the same name. Cloudflare is told to
-# forget the pictures, icons and songs that changed (inc/purge-cache.php). Run
+# Wiki.js restarted. The skins' songs (audio/*.webm, audio/*.mp3), kept out of
+# git, go when the server has none or another one of the same name. Cloudflare
+# is told to forget the pictures, icons and songs that changed
+# (inc/purge-cache.php). Run
 # it from Git Bash or any shell with ssh, tar and md5sum:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
@@ -29,9 +30,10 @@
 #                                        for the gallery (rights, cron, journal,
 #                                        upload limits, tools, inc/ closed)
 # sanakan.pl goes through Cloudflare, which lets no SSH through, so the target
-# is the server's own address, best as a host alias in ~/.ssh/config (see the
-# README). With an SSH key there is no password prompt; without one ssh asks a
-# few times, and a few wrong passwords in a row can get the address banned.
+# is the server's own address, best as a host alias in ~/.ssh/config (see
+# docs/server.md). With an SSH key there is no password prompt; without one
+# ssh asks a few times, and a few wrong passwords in a row can get the address
+# banned.
 set -euo pipefail
 
 dry_run=0
@@ -56,7 +58,7 @@ target=${1:?"Użycie: ./deploy.sh [--dry-run] [--offline [--yes] | --resume | --
 root=${2:-/var/www/html}
 cd "$(dirname "$0")"
 
-# The writers an --offline deploy stops: the cron jobs of the README (taken out
+# The writers an --offline deploy stops: the cron jobs of docs/server.md (taken out
 # of /etc/cron.d into $paused, which cron does not read) and PHP-FPM. $paused
 # also keeps the name of the PHP-FPM service and the backup's path, so --resume
 # knows what to bring back.
@@ -268,7 +270,7 @@ for job in "$@"; do
         echo "  cron $job wyłączony"
     fi
 done
-# the cleanup's own cron job, as the README has it, when the server has none
+# the cleanup's own cron job, as docs/server.md has it, when the server has none
 # yet: it goes in with the others when they are resumed
 if [ ! -f "$paused/sanakan-maintenance" ]; then
     echo "*/10 * * * * www-data /usr/bin/systemd-cat -t sanakan-maintenance php $root/inc/run-maintenance.php" > "$paused/sanakan-maintenance"
@@ -473,22 +475,24 @@ REMOTE
     fi
 fi
 
-# The skins' songs (audio/*.mp3, js/seasonal-background.js) are kept out of
-# git: one goes when the server has none of its name or another one (by MD5),
-# and Cloudflare forgets it below. One removed here stays on the server.
+# The skins' songs (audio/*.webm in Opus and audio/*.mp3 for the browsers
+# without it, js/seasonal-background.js) are kept out of git: one goes when the
+# server has none of its name or another one (by MD5), and Cloudflare forgets
+# it below. One removed here stays on the server.
 changed_audio=()
-if compgen -G 'audio/*.mp3' > /dev/null; then
+if compgen -G 'audio/*.webm' > /dev/null || compgen -G 'audio/*.mp3' > /dev/null; then
     # in bash, as the server's login shell (zsh) stops at a pattern that
     # matches nothing, before there is any audio/ there
     remote_audio=$(ssh "$target" "bash -s -- '$root'" <<'REMOTE'
 cd "$1" 2>/dev/null || exit 0
-for file in audio/*.mp3; do
+for file in audio/*.webm audio/*.mp3; do
     [ -f "$file" ] && echo "$(md5sum < "$file" | cut -d' ' -f1) $file"
 done
 exit 0
 REMOTE
 )
-    for file in audio/*.mp3; do
+    for file in audio/*.webm audio/*.mp3; do
+        [ -f "$file" ] || continue
         grep -qxF "$(md5sum < "$file" | cut -d' ' -f1) $file" <<< "$remote_audio" || changed_audio+=("$file")
     done
 fi

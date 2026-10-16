@@ -79,7 +79,7 @@
     // const BOT_REPO_VERDIFF_URL = '';
 
     // Optional: blocking addresses in Cloudflare from the panel (inc/cloudflare.php,
-    // README). A token with Account Filter Lists: Edit, the account ID (domain
+    // docs/server.md). A token with Account Filter Lists: Edit, the account ID (domain
     // overview in Cloudflare, right column) and the name of the IP list that a
     // custom rule blocks: (ip.src in $sanakan_blokada).
     // const CLOUDFLARE_API_TOKEN = '';

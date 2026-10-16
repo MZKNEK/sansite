@@ -687,7 +687,7 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
   }
   await visit('2026-07-10', async page => {
     const songs = [];
-    await page.route('**/audio/*.mp3', route => {
+    await page.route('**/audio/*', route => {
       songs.push(new URL(route.request().url()).pathname);
       return route.fulfill({ contentType: 'audio/wav', body: tone() });
     });
@@ -701,10 +701,28 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await toggle.click();
     await page.locator('.sg-equalizer.live').waitFor();
     assert.equal(await page.locator('.music-toggle').getAttribute('aria-pressed'), 'true');
-    assert.deepEqual(songs.slice(0, 1), ['/audio/teto.mp3']);
+    assert.deepEqual(songs.slice(0, 1), ['/audio/teto.webm'], 'Opus where the browser plays it');
+    assert.deepEqual(await page.evaluate(() => {
+      const { metadata, playbackState } = navigator.mediaSession;
+      return { title: metadata.title, artwork: new URL(metadata.artwork[0].src).pathname, playbackState };
+    }), { title: 'Teto', artwork: '/skins/teto.webp', playbackState: 'playing' }, 'the lock screen shows the song');
     await volume.fill('70');
     assert.equal(await page.evaluate(() => localStorage.getItem('sanakan-song-volume')), '0.7');
-    // a reload without a gesture: held back, then the first touch resumes it
+    // a reload without a gesture: held back, then the first touch resumes it.
+    // Chromium sometimes lets a reloaded page play after a click on the one
+    // before, so play() refuses until a touch here as a strict browser does
+    // (the media keys' handlers kept too, to press them below)
+    await page.addInitScript(() => {
+      let touched = false;
+      addEventListener('pointerdown', () => { touched = true; }, true);
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        return touched ? play.call(this) : Promise.reject(new DOMException('No gesture yet', 'NotAllowedError'));
+      };
+      window.mediaActions = {};
+      const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+      navigator.mediaSession.setActionHandler = (action, handler) => { window.mediaActions[action] = handler; set(action, handler); };
+    });
     await page.reload();
     await page.locator('.sg-tetosong').waitFor();
     assert.equal(await volume.inputValue(), '70', 'the volume is kept');
@@ -712,6 +730,13 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     await page.getByRole('button', { name: /^Wznów piosenkę Teto/ }).waitFor();
     assert.equal(await page.locator('.music-control.waiting').count(), 1, 'the button shows the song is held back');
     await page.mouse.click(40, 420);
+    await page.waitForFunction(() => document.querySelector('.music-toggle').getAttribute('aria-pressed') === 'true');
+    // the media keys pause and play it as the button does
+    await page.evaluate(() => mediaActions.pause());
+    await page.waitForFunction(() => document.querySelector('.music-toggle').getAttribute('aria-pressed') === 'false');
+    assert.equal(await page.evaluate(() => navigator.mediaSession.playbackState), 'paused');
+    assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('sanakan-song')).on), false);
+    await page.evaluate(() => mediaActions.play());
     await page.waitForFunction(() => document.querySelector('.music-toggle').getAttribute('aria-pressed') === 'true');
     // paused, it stays paused on the next page
     await page.locator('.music-toggle').click();
@@ -724,14 +749,26 @@ export async function testSeasonalBackground({ browser, base, site, php, errors 
     // a skin without a song takes the button away
     await page.evaluate(() => SanakanAppearance.preview('', null));
     await page.waitForFunction(() => !document.querySelector('.music-control'));
+    assert.equal(await page.evaluate(() => navigator.mediaSession.metadata), null, 'nor is it on the lock screen');
   }, { login: true, skin: 'teto', finds: ['aprilfools'] });
 
   await visit('2026-07-10', async page => {
-    await page.route('**/audio/*.mp3', route => route.fulfill({ status: 404, body: '' }));
+    const songs = [];
+    await page.route('**/audio/*', route => {
+      songs.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ status: 404, body: '' });
+    });
+    // a browser without Opus (an older Safari) gets the MP3
+    await page.addInitScript(() => {
+      const canPlay = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function (type) { return /opus/.test(type) ? '' : canPlay.call(this, type); };
+    });
+    await page.reload();
     await page.locator('.sg-mikusong').waitFor();
     await page.getByRole('button', { name: 'Włącz piosenkę Miku' }).click();
     await page.getByRole('button', { name: 'Nie udało się wczytać piosenki Miku' }).waitFor();
     assert.equal(await page.locator('.music-toggle').isDisabled(), true, 'a missing song disables the button');
+    assert.deepEqual(songs.slice(0, 1), ['/audio/miku.mp3']);
     await page.waitForFunction(() => !document.querySelector('.sg-equalizer.live'));
   }, { login: true, skin: 'miku', finds: ['aprilfools'] });
 }

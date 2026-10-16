@@ -180,7 +180,7 @@
 
           <dt>Dziennik nginx</dt>
           <dd><?=!$logReadable
-              ? '<b class="warn">nie można czytać</b> <code>' . e(diagAccessLog()) . '</code>: <code>server/nginx/sanakan-log.conf</code> do <code>/etc/nginx/conf.d/</code> i nowy <code>sanakan.conf</code> (README)'
+              ? '<b class="warn">nie można czytać</b> <code>' . e(diagAccessLog()) . '</code>: <code>server/nginx/sanakan-log.conf</code> do <code>/etc/nginx/conf.d/</code> i nowy <code>sanakan.conf</code> (docs/server.md)'
               : 'czytany: <code>' . e(diagAccessLog()) . '</code>' . ($cloudflareInLog ? ' · <b class="warn">pokazuje adresy Cloudflare</b>: brak <code>set_real_ip_from</code> z <code>sanakan.conf</code>' : '')?></dd>
 
           <dt>Stan nginx</dt>
@@ -191,12 +191,12 @@
 
           <dt>Wolne zapytania</dt>
           <dd><?=$diagSlow === null
-              ? '<b class="warn">nie można czytać</b> <code>' . e(diagSlowLog()) . '</code>: <code>request_slowlog_timeout = 5s</code> i <code>slowlog</code> w puli PHP-FPM (README)'
+              ? '<b class="warn">nie można czytać</b> <code>' . e(diagSlowLog()) . '</code>: <code>request_slowlog_timeout = 5s</code> i <code>slowlog</code> w puli PHP-FPM (docs/server.md)'
               : 'dziennik <code>' . e(diagSlowLog()) . '</code>' . ($diagSlow ? '' : ', pusty')?></dd>
 
           <dt>Blokowanie w Cloudflare</dt>
           <dd><?=!cloudflareConfigured()
-              ? 'wyłączone: <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code> i <code>CLOUDFLARE_LIST</code> w <code>inc/config.php</code> (README)'
+              ? 'wyłączone: <code>CLOUDFLARE_API_TOKEN</code>, <code>CLOUDFLARE_ACCOUNT_ID</code> i <code>CLOUDFLARE_LIST</code> w <code>inc/config.php</code> (docs/server.md)'
               : ($cfError !== null ? '<b class="warn">' . e($cfError) . '</b>' : 'lista <code>' . e(CLOUDFLARE_LIST) . '</code>, ' . count($cfItems) . ' ' . plural(count($cfItems), 'pozycja', 'pozycje', 'pozycji'))?></dd>
         </dl>
       </section>
