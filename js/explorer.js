@@ -100,7 +100,7 @@ window.SanakanGallery = (function () {
 
   // Sorting: folders always first; names A-Z, newest first, biggest first
   var collator = new Intl.Collator('pl', { numeric: true, sensitivity: 'base' });
-  var sortButtons = document.querySelectorAll('.sort button');
+  var sortButtons = document.querySelectorAll('.sort button[data-sort]');
   var sortKey = 'name';
 
   function sortBy(key) {
@@ -124,6 +124,22 @@ window.SanakanGallery = (function () {
   sortButtons.forEach(function (button) {
     button.addEventListener('click', function () {
       sortBy(button.dataset.sort);
+    });
+  });
+
+  // Layout: small thumbnails, normal ones or a list; the page comes in the
+  // one picked last, which a cookie tells the server (i/index.php)
+  var layoutButtons = document.querySelectorAll('.layout button[data-layout]');
+
+  layoutButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      var layout = button.dataset.layout;
+      grid.classList.remove('layout-small', 'layout-list');
+      if (layout !== 'normal') grid.classList.add('layout-' + layout);
+      layoutButtons.forEach(function (other) {
+        other.setAttribute('aria-pressed', other === button ? 'true' : 'false');
+      });
+      document.cookie = 'gallery-layout=' + layout + '; path=' + location.pathname.replace(/[^/]*$/, '') + '; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
     });
   });
 

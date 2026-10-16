@@ -106,7 +106,7 @@
   <link href="../../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../../css/skins.css?v=e7e220aaa9" type="text/css" rel="stylesheet" />
-  <link href="../../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
+  <link href="../../css/explorer.css?v=b8057cb484" type="text/css" rel="stylesheet" />
   <link href="../../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
   <link rel="prev" href="?v=<?=e(rawurlencode($around['older']['version']))?>" />

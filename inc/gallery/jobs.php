@@ -200,14 +200,15 @@
         return true;
     }
 
-    // the background job's version: it finishes the job with the outcome
+    // the background job's version: it finishes the job with the outcome; a
+    // job queued by no account (inc/gallery-import.php) has no rights to lose
     function replaceWithConverted($full, $rel, $targetFull, $targetRel, $sizeFrom, $sizeTo, $job)
     {
         $candidate = $targetFull;
         $full = $job['originalFull'] ?? $full;
         $wanted = dirname($full) . '/' . pathinfo(basename($rel), PATHINFO_FILENAME) . '.' . (($job['kind'] ?? '') === 'webm' ? 'webm' : 'webp');
         $format = ($job['kind'] ?? 'webm') === 'webm' ? 'WebM' : 'WebP';
-        if (!swapInConverted($full, $rel, $candidate, $wanted, $targetRel, $sizeFrom, $sizeTo, $format, (string)($job['byName'] ?? ''), true, $why, $job['fingerprint'] ?? null, $job['by'] ?? null))
+        if (!swapInConverted($full, $rel, $candidate, $wanted, $targetRel, $sizeFrom, $sizeTo, $format, (string)($job['byName'] ?? ''), true, $why, $job['fingerprint'] ?? null, ($job['by'] ?? '') === '' ? null : $job['by']))
             finishMediaJob($job, 'failed', $why ?? 'nie udało się zatwierdzić konwersji', ['sizeFrom' => $sizeFrom]);
         else
             finishMediaJob($job, 'done', '', ['targetRel' => $targetRel, 'sizeFrom' => $sizeFrom, 'sizeTo' => $sizeTo]);

@@ -136,6 +136,18 @@ main.content {
     color: var(--text-strong);
 }
 
+/* the layout's buttons: icons as tall as the sorting's words */
+.layout button {
+    padding: 8px 10px;
+}
+
+.layout svg {
+    display: block;
+    width: 1.5em;
+    height: 1.5em;
+    fill: currentColor;
+}
+
 .toolbar .search-info {
     flex-basis: 100%;
     margin-top: 0;
@@ -503,6 +515,116 @@ main.content {
     white-space: nowrap;
 }
 
+/* the date of a tile, shown only in the list */
+.date {
+    display: none;
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+/* Small thumbnails: more of them in a row, only the names under them */
+.grid.layout-small {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+}
+
+.layout-small .tile {
+    padding: 5px;
+}
+
+.layout-small .label {
+    padding-top: 5px;
+}
+
+.layout-small .name {
+    font-size: 12px;
+}
+
+.layout-small .info {
+    display: none;
+}
+
+/* List: a row each, with a small thumbnail, the name, the details and the date */
+.grid.layout-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+}
+
+.layout-list .tile {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 10px 4px 4px;
+}
+
+.layout-list .thumb {
+    flex: none;
+    width: 52px;
+    aspect-ratio: 1;
+}
+
+.layout-list .label {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 18px;
+    padding: 0;
+}
+
+.layout-list .name {
+    flex: 1 1 auto;
+}
+
+.layout-list .info {
+    flex: none;
+    white-space: nowrap;
+}
+
+.layout-list .where {
+    flex: 0 1 30%;
+}
+
+.layout-list .date {
+    display: block;
+    flex: none;
+    min-width: 8.5em;
+    text-align: right;
+}
+
+.layout-list .placeholder {
+    font-size: 0;
+}
+
+.layout-list .placeholder b {
+    font-size: 11px;
+}
+
+.layout-list .badge {
+    display: none;
+}
+
+/* the conversion's badge as a dot, its words in the title and the status line */
+.layout-list .job-badge {
+    left: 3px;
+    bottom: 3px;
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--warning);
+    font-size: 0;
+}
+
+.layout-list .job-badge.failed {
+    background: var(--danger);
+}
+
+.layout-list .check {
+    top: 4px;
+    left: 4px;
+}
+
 .empty {
     margin-top: 48px;
     text-align: center;
@@ -674,6 +796,23 @@ body.viewer-open {
     .grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 10px;
+    }
+
+    .grid.layout-small {
+        grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+        gap: 6px;
+    }
+
+    /* the list's name over its details and date */
+    .layout-list .label {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+    }
+
+    .layout-list .date {
+        min-width: 0;
+        text-align: left;
     }
 
     .viewer-stage {

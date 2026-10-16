@@ -47,3 +47,4 @@
     require_once __DIR__ . '/gallery/trash.php';
     require_once __DIR__ . '/gallery/operations.php';
     require_once __DIR__ . '/gallery/uploads.php';
+    require_once __DIR__ . '/gallery/import.php';

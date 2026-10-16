@@ -208,6 +208,9 @@
     $query = trim((string)($_GET['q'] ?? ''));
     $searching = !$locked && $query !== '';
     $moreFound = false;
+    // the layout picked in the toolbar (js/explorer.js): small thumbnails,
+    // normal ones or a list, kept in a cookie so the page comes in it at once
+    $layout = in_array($_COOKIE['gallery-layout'] ?? '', ['small', 'list'], true) ? $_COOKIE['gallery-layout'] : 'normal';
 
     $folders = [];
     $files = [];
@@ -285,7 +288,7 @@
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=e7e220aaa9" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=68325e7476" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=b8057cb484" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -445,6 +448,11 @@
         <button type="button" data-sort="date" aria-pressed="false">Data</button>
         <button type="button" data-sort="size" aria-pressed="false">Rozmiar</button>
       </div>
+      <div class="sort layout" role="group" aria-label="Widok">
+        <button type="button" data-layout="small" aria-pressed="<?=$layout === 'small' ? 'true' : 'false'?>" title="Małe miniatury" aria-label="Małe miniatury"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM16 10h4v4h-4zM4 16h4v4H4zM10 16h4v4h-4zM16 16h4v4h-4z" /></svg></button>
+        <button type="button" data-layout="normal" aria-pressed="<?=$layout === 'normal' ? 'true' : 'false'?>" title="Normalne miniatury" aria-label="Normalne miniatury"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" /></svg></button>
+        <button type="button" data-layout="list" aria-pressed="<?=$layout === 'list' ? 'true' : 'false'?>" title="Lista" aria-label="Lista"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h3v3H4zM9 5.5h11v2H9zM4 10.5h3v3H4zM9 11h11v2H9zM4 16h3v3H4zM9 16.5h11v2H9z" /></svg></button>
+      </div>
 <?php if (!$searching && ($folders || $files) && canZip()): ?>
       <a class="admin-btn zip-btn" href="?zip&amp;p=<?=e(rawurlencode(publicRel($dirRel)))?>" title="Cały folder <?=e(displayPath($dirRel))?> razem z podfolderami, do <?=e(formatSize(ZIP_MAX_BYTES))?>">Pobierz folder (ZIP)</a>
 <?php endif; ?>
@@ -493,7 +501,7 @@
     </div>
 <?php endif; ?>
 
-    <div class="grid" id="grid">
+    <div class="grid<?=$layout === 'normal' ? '' : ' layout-' . $layout?>" id="grid">
 <?php if ($parent): ?>
       <a class="tile up hud-corners" href="<?=e($parent['url'])?>" id="ex-up" title="<?=e($parent['label'])?> (Backspace)">
         <span class="thumb">
@@ -524,6 +532,7 @@
         <span class="label">
           <span class="name"><svg class="name-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5V18a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18V9a1.5 1.5 0 0 0-1.5-1.5h-8L9.5 5h-5A1.5 1.5 0 0 0 3 6.5z" /></svg><?=e($folder['name'])?></span>
           <span class="info"><?=$folder['count']?> <?=plural($folder['count'], 'element', 'elementy', 'elementów')?></span>
+          <span class="date"><?=date('j.m.Y H:i', $folder['mtime'])?></span>
 <?php if ($searching): ?>
           <span class="where" title="<?=e(displayPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?>"><?=e(displayPath(dirname($folder['rel']) === '.' ? '' : dirname($folder['rel'])))?></span>
 <?php endif; ?>
@@ -556,6 +565,7 @@
         <span class="label">
           <span class="name" title="<?=e($file['name'])?>"><?=e($file['name'])?></span>
           <span class="info"><?=e(implode(' · ', array_filter([$file['dims'], formatSize($file['size'])])))?></span>
+          <span class="date"><?=date('j.m.Y H:i', $file['mtime'])?></span>
 <?php if ($searching): ?>
           <span class="where" title="<?=e(displayPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?>"><?=e(displayPath(dirname($file['rel']) === '.' ? '' : dirname($file['rel'])))?></span>
 <?php endif; ?>
@@ -763,7 +773,7 @@
 <?php endif; ?>
 
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=0247b47c99"></script>
+  <script src="../js/explorer.js?v=46840884a0"></script>
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=adf9386966"></script>
