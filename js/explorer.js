@@ -225,6 +225,112 @@ window.SanakanGallery = (function () {
       // not remembered then
     }
   });
+
+  // The film's controls in the look of the site rather than the browser's:
+  // play and pause, the time and its line, the sound and full screen
+  var player = document.getElementById('viewer-player');
+  var playButton = document.getElementById('player-play');
+  var muteButton = document.getElementById('player-mute');
+  var fullButton = document.getElementById('player-full');
+  var seekRange = document.getElementById('player-seek');
+  var volumeRange = document.getElementById('player-volume');
+  var timeEl = document.getElementById('player-time');
+  var durationEl = document.getElementById('player-duration');
+  // while the line is dragged, the film's own time does not move it back
+  var seeking = false;
+
+  function clock(seconds) {
+    if (!isFinite(seconds)) return '-:--';
+    seconds = Math.floor(seconds);
+    var h = Math.floor(seconds / 3600), m = Math.floor(seconds / 60) % 60, s = seconds % 60;
+    return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // a range is filled up to its value (css/explorer.css)
+  function fillRange(range, share) {
+    range.style.setProperty('--player-fill', (share * 100).toFixed(2) + '%');
+  }
+
+  function togglePlay() {
+    if (video.paused) video.play().catch(function () {});
+    else video.pause();
+  }
+
+  function paintPlay() {
+    var playing = !video.paused;
+    playButton.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    playButton.setAttribute('aria-label', playing ? 'Pauza' : 'Odtwórz');
+  }
+
+  // a film recorded live may not know its length; it then cannot be wound
+  function paintTime() {
+    var length = video.duration;
+    var known = isFinite(length) && length > 0;
+    seekRange.disabled = !known;
+    if (!seeking) {
+      seekRange.value = known ? Math.round(video.currentTime / length * 1000) : 0;
+      fillRange(seekRange, known ? video.currentTime / length : 0);
+      timeEl.textContent = clock(video.currentTime);
+    }
+    durationEl.textContent = clock(length);
+  }
+
+  function paintSound() {
+    var silent = video.muted || video.volume === 0;
+    muteButton.setAttribute('aria-pressed', silent ? 'true' : 'false');
+    muteButton.setAttribute('aria-label', silent ? 'Włącz dźwięk' : 'Wycisz');
+    volumeRange.value = Math.round((video.muted ? 0 : video.volume) * 100);
+    fillRange(volumeRange, volumeRange.value / 100);
+  }
+
+  function toggleMute() {
+    if (video.muted || video.volume === 0) {
+      video.muted = false;
+      if (video.volume === 0) video.volume = 0.5;
+    } else {
+      video.muted = true;
+    }
+  }
+
+  // the whole viewer goes full screen, so these controls stay; where only a
+  // video can (Safari on an iPhone), the film goes with the system's controls
+  function toggleFull() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    else if (viewer.requestFullscreen) viewer.requestFullscreen().catch(function () {});
+    else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+  }
+
+  fullButton.hidden = !viewer.requestFullscreen && !video.webkitEnterFullscreen;
+  document.addEventListener('fullscreenchange', function () {
+    var full = document.fullscreenElement === viewer;
+    fullButton.setAttribute('aria-pressed', full ? 'true' : 'false');
+    fullButton.setAttribute('aria-label', full ? 'Zamknij pełny ekran' : 'Pełny ekran');
+  });
+
+  video.addEventListener('play', paintPlay);
+  video.addEventListener('pause', paintPlay);
+  ['timeupdate', 'durationchange', 'loadedmetadata', 'emptied'].forEach(function (name) {
+    video.addEventListener(name, paintTime);
+  });
+  video.addEventListener('volumechange', paintSound);
+  playButton.addEventListener('click', togglePlay);
+  muteButton.addEventListener('click', toggleMute);
+  fullButton.addEventListener('click', toggleFull);
+
+  seekRange.addEventListener('input', function () {
+    seeking = true;
+    var share = seekRange.value / 1000;
+    fillRange(seekRange, share);
+    timeEl.textContent = clock(share * video.duration);
+    video.currentTime = share * video.duration;
+  });
+  seekRange.addEventListener('change', function () { seeking = false; });
+
+  volumeRange.addEventListener('input', function () {
+    video.volume = volumeRange.value / 100;
+    video.muted = video.volume === 0;
+  });
+  paintSound();
   var nameEl = document.getElementById('viewer-name');
   var detailsEl = document.getElementById('viewer-details');
   var openLink = document.getElementById('viewer-open');
@@ -365,12 +471,14 @@ window.SanakanGallery = (function () {
   stageEl.addEventListener('pointerup', endPan);
   stageEl.addEventListener('pointercancel', endPan);
 
-  // A drag must not reach the film's own play/pause (its click toggles it); a
-  // plain click still does. The press on the media is stopped too, so it does
-  // not close the viewer.
+  // A plain click on the film plays or pauses it, a drag does not. The press
+  // on the media is stopped too, so it does not close the viewer.
   [image, video].forEach(function (el) {
     el.addEventListener('click', function (e) {
-      if (!panMoved) return;
+      if (!panMoved) {
+        if (el === video) togglePlay();
+        return;
+      }
       panMoved = false;
       e.preventDefault();
       e.stopPropagation();
@@ -398,6 +506,7 @@ window.SanakanGallery = (function () {
     loading.hidden = false;
     image.hidden = true;
     video.hidden = true;
+    player.hidden = tile.dataset.kind !== 'video';
 
     if (tile.dataset.kind === 'video') {
       image.removeAttribute('src');
@@ -441,7 +550,9 @@ window.SanakanGallery = (function () {
   }
 
   function close() {
+    if (document.fullscreenElement === viewer) document.exitFullscreen().catch(function () {});
     viewer.hidden = true;
+    player.hidden = true;
     document.body.classList.remove('viewer-open');
     image.removeAttribute('src');
     stopVideo();
@@ -500,9 +611,24 @@ window.SanakanGallery = (function () {
     if (document.querySelector('dialog[open]')) return;
 
     if (!viewer.hidden) {
+      var film = current && current.dataset.kind === 'video';
+      // the arrows on a line of the player move the line, not to another file
+      var onRange = e.target.type === 'range';
       if (e.key === 'Escape') close();
-      else if (e.key === 'ArrowLeft') step(-1);
-      else if (e.key === 'ArrowRight') step(1);
+      else if (e.key === 'ArrowLeft' && !onRange) step(-1);
+      else if (e.key === 'ArrowRight' && !onRange) step(1);
+      else if (film && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        var key = e.key.toLowerCase();
+        if (key === ' ' || key === 'k') {
+          // not also the click of the button that has the focus
+          e.preventDefault();
+          togglePlay();
+        } else if (key === 'm') {
+          toggleMute();
+        } else if (key === 'f') {
+          toggleFull();
+        }
+      }
       return;
     }
 

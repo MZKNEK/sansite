@@ -712,8 +712,17 @@ main.content {
 }
 
 .viewer-close {
-    font: 22px/1 Lato, sans-serif;
-    padding: 2px 12px 6px;
+    padding: 6px 9px;
+}
+
+.viewer-close svg {
+    display: block;
+    width: 1.5em;
+    height: 1.5em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
 }
 
 /* flex, not grid: a grid row sized by its content makes max-height: 100% on
@@ -774,10 +783,158 @@ main.content {
     cursor: pointer;
 }
 
-.viewer-nav:hover {
+.viewer-nav:hover,
+.viewer-nav:focus-visible {
     --arm: 18px;
     --fill: rgba(var(--accent-rgb), 0.18);
     color: var(--text-strong);
+    outline: 0;
+}
+
+.viewer-nav svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s;
+}
+
+.viewer-nav.prev:hover svg {
+    transform: translateX(-3px);
+}
+
+.viewer-nav.next:hover svg {
+    transform: translateX(3px);
+}
+
+/* the film's controls under the stage, in the look of the skins' music
+   button and its volume line */
+.viewer-player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+.viewer-player[hidden],
+.player-btn[hidden] {
+    display: none;
+}
+
+.player-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    color: var(--link);
+    cursor: pointer;
+}
+
+.player-btn:hover,
+.player-btn:focus-visible {
+    --arm: 18px;
+    --fill: rgba(var(--accent-rgb), 0.18);
+    color: var(--text-strong);
+    outline: 0;
+}
+
+.player-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.player-btn .when-on,
+.player-btn[aria-pressed="true"] .when-off {
+    display: none;
+}
+
+.player-btn[aria-pressed="true"] .when-on {
+    display: block;
+}
+
+.player-time {
+    flex: none;
+    min-width: 4.5ch;
+    font: 13px "Sanakan Mono", monospace;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* a thin HUD line filled up to the value, a square thumb */
+.player-range {
+    height: 24px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.player-seek {
+    flex: 1 1 auto;
+    min-width: 60px;
+}
+
+.player-volume {
+    flex: none;
+    width: 96px;
+}
+
+.player-range:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.player-range::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(to right, var(--accent-light) var(--player-fill, 0%), rgba(var(--accent-rgb), 0.25) var(--player-fill, 0%));
+}
+
+.player-range::-moz-range-track {
+    height: 2px;
+    background: rgba(var(--accent-rgb), 0.25);
+}
+
+.player-range::-moz-range-progress {
+    height: 2px;
+    background: var(--accent-light);
+}
+
+.player-range::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    margin-top: -4px;
+    border: 0;
+    background: var(--accent-light);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.player-range::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 0;
+    background: var(--accent-light);
+}
+
+.player-range:focus-visible {
+    outline: 1px dashed var(--accent-light);
+    outline-offset: 2px;
 }
 
 .viewer-nav.prev {
@@ -817,6 +974,17 @@ body.viewer-open {
 
     .viewer-stage {
         padding: 12px 8px 72px;
+    }
+
+    /* the phone's own buttons set the volume */
+    .player-volume {
+        display: none;
+    }
+
+    .viewer-player {
+        gap: 8px;
+        padding-left: 10px;
+        padding-right: 10px;
     }
 
     .viewer-nav {

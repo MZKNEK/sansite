@@ -288,7 +288,7 @@
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=e7e220aaa9" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=b8057cb484" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=3e5842eee0" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -602,15 +602,33 @@
 <?php endif; ?>
         <button type="button" class="viewer-btn" id="viewer-copy">Kopiuj link</button>
         <a class="viewer-btn" id="viewer-open" href="#" target="_blank" rel="noopener">Otwórz</a>
-        <button type="button" class="viewer-btn viewer-close" id="viewer-close" aria-label="Zamknij">&times;</button>
+        <button type="button" class="viewer-btn viewer-close" id="viewer-close" aria-label="Zamknij" title="Zamknij (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
       </div>
     </div>
     <div class="viewer-stage" id="viewer-stage">
-      <button type="button" class="viewer-nav prev hud-corners" id="viewer-prev" aria-label="Poprzedni">&larr;</button>
+      <button type="button" class="viewer-nav prev hud-corners" id="viewer-prev" aria-label="Poprzedni" title="Poprzedni (&larr;)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5.5 4.5 12l6.5 6.5" /></svg></button>
       <img class="viewer-img" id="viewer-img" alt="" draggable="false" />
-      <video class="viewer-img" id="viewer-video" controls loop playsinline draggable="false" hidden></video>
+      <video class="viewer-img" id="viewer-video" loop playsinline draggable="false" hidden></video>
       <span class="viewer-loading" id="viewer-loading">Wczytywanie&hellip;</span>
-      <button type="button" class="viewer-nav next hud-corners" id="viewer-next" aria-label="Następny">&rarr;</button>
+      <button type="button" class="viewer-nav next hud-corners" id="viewer-next" aria-label="Następny" title="Następny (&rarr;)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5.5l6.5 6.5-6.5 6.5" /></svg></button>
+    </div>
+    <div class="viewer-player" id="viewer-player" hidden>
+      <button type="button" class="player-btn hud-corners" id="player-play" aria-label="Odtwórz" title="Odtwórz / pauza (spacja)" aria-pressed="false">
+        <svg class="when-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z" /></svg>
+        <svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13M15.5 5.5v13" /></svg>
+      </button>
+      <span class="player-time" id="player-time">0:00</span>
+      <input type="range" class="player-range player-seek" id="player-seek" min="0" max="1000" step="1" value="0" aria-label="Przewijanie" />
+      <span class="player-time" id="player-duration">0:00</span>
+      <button type="button" class="player-btn hud-corners" id="player-mute" aria-label="Wycisz" title="Wycisz (M)" aria-pressed="false">
+        <svg class="when-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></svg>
+        <svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM16 9.5l5 5M21 9.5l-5 5" /></svg>
+      </button>
+      <input type="range" class="player-range player-volume" id="player-volume" min="0" max="100" step="1" value="50" aria-label="Głośność" />
+      <button type="button" class="player-btn hud-corners" id="player-full" aria-label="Pełny ekran" title="Pełny ekran (F)" aria-pressed="false">
+        <svg class="when-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" /></svg>
+        <svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" /></svg>
+      </button>
     </div>
   </div>
 <?php endif; ?>
@@ -773,7 +791,7 @@
 <?php endif; ?>
 
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=46840884a0"></script>
+  <script src="../js/explorer.js?v=f80d22b5fb"></script>
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=adf9386966"></script>

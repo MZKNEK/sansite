@@ -70,7 +70,7 @@
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=e7e220aaa9" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=b8057cb484" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=3e5842eee0" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
