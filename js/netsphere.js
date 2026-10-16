@@ -498,11 +498,12 @@
         }
         var finds = SanakanSafeguard.finds();
         var names = SanakanSafeguard.names;
-        Object.keys(names).forEach(function (key) {
+        var keys = Object.keys(names);
+        keys.forEach(function (key) {
           if (finds[key]) row(names[key], 'ZNALEZIONE', 'ok');
           else row('wpis niezidentyfikowany', '—', 'dim');
         });
-        row('razem', Object.keys(finds).length + ' z ' + Object.keys(names).length);
+        row('razem', keys.filter(function (key) { return finds[key]; }).length + ' z ' + keys.length);
         say('Wskazówki do reszty: idź rejestr', 'dim');
       },
 

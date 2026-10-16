@@ -98,6 +98,40 @@ export async function testSafeguardSync({ browser, base, site, php, errors }) {
     assert.deepEqual(state.retryProofs || {}, {}, 'confirmed finds no longer keep replacement proofs');
   }
 
+  // Seasonal discoveries stay in storage but never inflate the terminal's total.
+  await withRegister({}, {}, async page => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(`${base}/500.html`);
+    await page.keyboard.type('netsphere');
+    const input = page.locator('.ns-box input');
+    await input.waitFor();
+    await page.waitForFunction(() => !!SanakanSafeguard.finds().netsphere);
+    await page.waitForLoadState('networkidle');
+    const regular = await page.evaluate(() => Object.keys(SanakanSafeguard.names));
+    const seasonal = ['xmas', 'newyear', 'easter', 'aprilfools', 'birthday', 'halloween', 'friday13', 'sakura', 'perseids', 'fireflies'];
+    for (const [keys, count] of [
+      [[], 0],
+      [seasonal, 0],
+      [regular.slice(0, 2), 2],
+      [[...regular.slice(0, 2), ...seasonal], 2],
+      [[...regular, ...seasonal, 'unknown-find'], regular.length]
+    ]) {
+      await page.evaluate(keys => {
+        SanakanDiscoveryStorage.setItem('safeguard', JSON.stringify({
+          finds: Object.fromEntries(keys.map(key => [key, 1])), sent: {}, proofs: {}
+        }));
+      }, keys);
+      await input.fill('wyczysc');
+      await input.press('Enter');
+      await input.fill('rejestr');
+      await input.press('Enter');
+      assert.equal(await page.locator('.ns-row').last().textContent(), `razem${count} z ${regular.length}`);
+      assert.equal(await page.locator('.ns-row').count(), regular.length + 1, 'only regular discoveries appear in the register');
+      assert.equal(await page.locator('.ns-row span.ok').count(), count, 'the total matches the listed discoveries');
+      assert.deepEqual(await page.evaluate(() => Object.keys(SanakanSafeguard.finds())), keys, 'printing the register preserves every discovery');
+    }
+  }, false);
+
   // A new device can print the last fragment using the account's third one,
   // including static pages whose account menu arrives after Safeguard starts.
   const beforePaper = Object.fromEntries(Object.entries(fixture.finds).slice(0, 3));

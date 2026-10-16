@@ -766,7 +766,7 @@
   <script src="../js/explorer.js?v=0247b47c99"></script>
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
-  <script src="../js/netsphere.js?v=43a6101b80"></script>
+  <script src="../js/netsphere.js?v=adf9386966"></script>
   <script src="../js/safeguard.js?v=ec477d1123"></script>
   <script src="../js/seasonal-background.js?v=2ab3aebbb9"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>

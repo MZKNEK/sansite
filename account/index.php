@@ -621,7 +621,7 @@
   <script src="../js/skin-picker.js?v=fc70fcbccc"></script>
   <script src="../js/appearance-picker.js?v=6caf1d1412"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
-  <script src="../js/netsphere.js?v=43a6101b80"></script>
+  <script src="../js/netsphere.js?v=adf9386966"></script>
   <script src="../js/safeguard.js?v=ec477d1123"></script>
   <script src="../js/seasonal-background.js?v=2ab3aebbb9"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
