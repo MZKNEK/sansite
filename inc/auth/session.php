@@ -46,10 +46,117 @@
         session_start();
     }
 
-    // visitors get no session; one is started only when its cookie is there
+    // Visitors get no session; one is started only when its cookie is there
+    // and names a session the server still keeps. PHP writes a file for any
+    // session started, so a made-up cookie sent with every request would
+    // otherwise fill the disk. Before the sessions' folder exists (PHP's own
+    // folder is used then, siteSession()) the cookie alone counts.
     function sessionExists()
     {
-        return !empty($_COOKIE[SITE_SESSION]);
+        $id = $_COOKIE[SITE_SESSION] ?? '';
+        if (!is_string($id) || $id === '')
+            return false;
+        if (session_status() === PHP_SESSION_ACTIVE)
+            return true;
+        if (!is_dir(dataDir() . '/sessions'))
+            return true;
+        $file = sessionFile($id);
+        if ($file === null)
+            return false;
+        clearstatcache(true, $file);
+
+        return is_file($file);
+    }
+
+    // the file of a session, or null for an ID PHP never gives (only its own
+    // characters, so a cookie cannot name a path)
+    function sessionFile($id)
+    {
+        return preg_match('/^[A-Za-z0-9,-]{1,128}$/D', (string)$id) ? dataDir() . '/sessions/sess_' . $id : null;
+    }
+
+    // ---- Sessions without an account ----------------------------------------------
+    // Anyone can start one (a login begun and given up, a form sent without
+    // an account), and PHP keeps each for SESSION_DAYS. Maintenance
+    // (inc/maintenance.php) deletes them once unused this long; the ones with
+    // an account or with folders shared by a link stay as long as a login.
+    const ANONYMOUS_SESSION_SECONDS = 3600;
+
+    const SESSION_KEEP_KEYS = ['gallery_user', 'gallery_shares'];
+
+    // Deletes the session files unused for ANONYMOUS_SESSION_SECONDS with none
+    // of SESSION_KEEP_KEYS, until $deadline (microtime); $dryRun only counts
+    // them. A file that cannot be read as a session stays. Returns how many.
+    function pruneAnonymousSessions($now, $deadline = null, $dryRun = false)
+    {
+        $dir = dataDir() . '/sessions';
+        $handle = @opendir($dir);
+        if ($handle === false)
+            return 0;
+
+        $removed = 0;
+        while (($name = readdir($handle)) !== false) {
+            if ($deadline !== null && microtime(true) >= $deadline)
+                break;
+            if (strpos($name, 'sess_') !== 0)
+                continue;
+            $file = $dir . '/' . $name;
+            $time = @filemtime($file);
+            if ($time === false || $time > $now - ANONYMOUS_SESSION_SECONDS || is_link($file))
+                continue;
+            $data = @file_get_contents($file);
+            $keys = $data === false ? null : sessionDataKeys($data);
+            if ($keys === null || array_intersect(SESSION_KEEP_KEYS, $keys))
+                continue;
+            if ($dryRun || @unlink($file))
+                $removed++;
+        }
+        closedir($handle);
+
+        return $removed;
+    }
+
+    // The keys of a session as PHP's "php" handler writes it, key|value with
+    // each value serialized, or null when it is not one. The values are
+    // walked, not searched: a value holding "gallery_user|" (a path to come
+    // back to after a login) must not count as the key.
+    function sessionDataKeys($data)
+    {
+        $keys = [];
+        $at = 0;
+        $length = strlen($data);
+        while ($at < $length) {
+            $bar = strpos($data, '|', $at);
+            if ($bar === false)
+                return null;
+            $keys[] = substr($data, $at, $bar - $at);
+            $at = serializedEnd($data, $bar + 1);
+            if ($at === null)
+                return null;
+        }
+
+        return $keys;
+    }
+
+    // where the serialized value starting at $at ends, or null; only what a
+    // session of the site holds (no objects)
+    function serializedEnd($data, $at, $depth = 0)
+    {
+        if ($depth > 16 || !preg_match('/\G(?:N;|b:[01];|i:-?\d+;|d:[^;]+;|s:(\d+):"|a:(\d+):\{)/', $data, $match, 0, $at))
+            return null;
+        $at += strlen($match[0]);
+        if (($match[1] ?? '') !== '') {
+            $at += (int)$match[1];
+            return substr($data, $at, 2) === '";' ? $at + 2 : null;
+        }
+        if (($match[2] ?? '') !== '') {
+            for ($i = 0; $i < 2 * (int)$match[2]; $i++)
+                if (($at = serializedEnd($data, $at, $depth + 1)) === null)
+                    return null;
+            return substr($data, $at, 1) === '}' ? $at + 1 : null;
+        }
+
+        return $at;
     }
 
     // ['id' => ..., 'name' => ..., 'avatar' => URL] of the logged-in Discord account, or null;

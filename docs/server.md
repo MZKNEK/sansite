@@ -169,7 +169,7 @@ The cleanup of the gallery's data, its own job every 10 minutes, so it neither w
 echo '*/10 * * * * www-data /usr/bin/systemd-cat -t sanakan-maintenance php /var/www/html/inc/run-maintenance.php' > /etc/cron.d/sanakan-maintenance
 ```
 
-It finishes or undoes a move to the trash or a restore cut short (each is noted in `inc/data/operations/` before it starts; one that is unclear, the file in both places or in neither, is only reported), then deletes the trash entries past 30 days, the oldest first, for at most 20 seconds a run; a big folder goes in parts, and is no longer restorable once begun. Folders in the trash without an entry are reported, never deleted. `inc/data/maintenance.json` keeps the last run; the panel shows it at the trash and warns when no run went well for 2 hours. By hand: `sudo -u www-data php /var/www/html/inc/run-maintenance.php --dry-run` says what it would do.
+It finishes or undoes a move to the trash or a restore cut short (each is noted in `inc/data/operations/` before it starts; one that is unclear, the file in both places or in neither, is only reported), then deletes the trash entries past 30 days, the oldest first, for at most 20 seconds a run; a big folder goes in parts, and is no longer restorable once begun. With the time left it deletes the sessions without an account or a shared folder unused for an hour (a login given up, a form sent anonymously), which PHP would otherwise keep a week. Folders in the trash without an entry are reported, never deleted. `inc/data/maintenance.json` keeps the last run; the panel shows it at the trash and warns when no run went well for 2 hours. By hand: `sudo -u www-data php /var/www/html/inc/run-maintenance.php --dry-run` says what it would do.
 
 ## Deployment
 

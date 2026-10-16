@@ -76,7 +76,7 @@ try {
   assert.equal(anonymous.status(), 401, 'panel without a login');
   assert.match(await anonymous.text(), /Identyfikacja wymagana/, 'the 401 page');
   // Exercise the shipped client: concurrent anonymous redemptions share the
-  // first CSRF session, and a reply lost after the write can be retried safely.
+  // first CSRF token, and a reply lost after the write can be retried safely.
   const registerContext = await discoveryContext(browser);
   try {
     await registerContext.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
@@ -96,7 +96,7 @@ try {
     ]), ticket);
     assert.ok(replies[0]?.proof);
     assert.deepEqual(replies[1], replies[0]);
-    assert.equal(csrfRequests, 1, 'concurrent changes share the initial anonymous session');
+    assert.equal(csrfRequests, 1, 'concurrent changes share the initial anonymous token');
     let loseReply = true;
     await registerPage.route('**/megastructure.php*', async route => {
       if (loseReply && route.request().method() === 'POST') {

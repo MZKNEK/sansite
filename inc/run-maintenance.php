@@ -1,6 +1,7 @@
 <?php
     // The regular cleanup of the gallery's data (inc/maintenance.php): operations
-    // cut short and the trash past its days. Run by its own cron job every 10
+    // cut short, the trash past its days and the sessions left without an
+    // account. Run by its own cron job every 10
     // minutes, as the web server's user:
     //   */10 * * * * www-data /usr/bin/systemd-cat -t sanakan-maintenance php /var/www/html/inc/run-maintenance.php
     // By hand: --dry-run says what it would do and changes nothing; --inventory
@@ -36,7 +37,8 @@
     echo ($dryRun ? 'Bez zmian (--dry-run): ' : ''),
         'dokończone operacje ', $report['recovered'],
         ', usunięte z kosza ', $report['removed'], ' (', formatSize($report['bytes']), ')',
-        ', zaległe ', $report['backlog'], "\n";
+        ', zaległe ', $report['backlog'],
+        ', porzucone sesje ', $report['sessions'], "\n";
     foreach ($report['problems'] as $problem)
         fwrite(STDERR, '  ' . $problem . "\n");
     exit($report['problems'] ? 1 : 0);

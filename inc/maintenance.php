@@ -9,7 +9,9 @@
     //   2. the trash entries past TRASH_DAYS go for good, the oldest first, for at
     //      most MAINTENANCE_SECONDS a run; a big folder goes in parts, and what is
     //      left (the backlog) is done by the next runs;
-    //   3. how it went is kept in inc/data/maintenance.json for the panel.
+    //   3. the sessions without an account left unused go
+    //      (pruneAnonymousSessions() in inc/auth/session.php);
+    //   4. how it went is kept in inc/data/maintenance.json for the panel.
     // Defining things only: nothing runs when this file is loaded.
     require_once __DIR__ . '/gallery.php';
 
@@ -56,7 +58,7 @@
 
         $deadline = microtime(true) + $seconds;
         $previousDeadline = dataLockDeadline($deadline);
-        $report = ['time' => $now, 'dryRun' => $dryRun, 'recovered' => 0, 'removed' => 0, 'bytes' => 0, 'backlog' => 0, 'problems' => []];
+        $report = ['time' => $now, 'dryRun' => $dryRun, 'recovered' => 0, 'removed' => 0, 'bytes' => 0, 'backlog' => 0, 'sessions' => 0, 'problems' => []];
 
         try {
         readData('trash');
@@ -104,6 +106,8 @@
             // own account folders there must not reach the run)
             refreshAccountUsageSnapshot(defined('SITE_TEST_IO') && SITE_TEST_IO ? dataDir() : str_replace('\\', '/', dirname(__DIR__)) . '/i', $deadline);
         }
+        if (microtime(true) < $deadline)
+            $report['sessions'] = pruneAnonymousSessions($now, $deadline, $dryRun);
         } catch (Throwable $error) {
             $report['problems'][] = $error->getMessage();
         }

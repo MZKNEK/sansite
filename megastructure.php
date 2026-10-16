@@ -21,10 +21,11 @@
     header('X-Robots-Tag: noindex');
     sendSafeguardHeader();
 
-    // Anonymous players need CSRF protection too. Only a player asking to
-    // make a change starts a session; ordinary reads remain session-free.
+    // Anonymous players need CSRF protection too, without a session of their
+    // own (megaCsrf()); ordinary reads need no token at all.
+    $secret = safeguardSecret();
     if (isset($_GET['csrf'])) {
-        echo json_encode(['csrf' => siteCsrf()]);
+        echo json_encode(['csrf' => megaCsrf($secret)]);
         exit;
     }
     // Match the dispatcher's input filtering before choosing the guards;
@@ -37,7 +38,7 @@
         echo json_encode(['error' => 'method']);
         exit;
     }
-    if ($changes && (!isset($_POST['csrf']) || !is_string($_POST['csrf']) || !checkCsrf())) {
+    if ($changes && !megaCheckCsrf($secret, $_POST['csrf'] ?? null)) {
         http_response_code(403);
         echo json_encode(['error' => 'csrf']);
         exit;
@@ -50,7 +51,6 @@
         exit;
     }
 
-    $secret = safeguardSecret();
     $now = new DateTimeImmutable('now');
     // the preview also skips the waits and the days of the finds the server
     // witnesses (megaWitness())

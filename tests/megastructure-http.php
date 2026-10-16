@@ -62,7 +62,15 @@
         [$status, $auth] = megaHttpRequest($client, $megaUrl . '?csrf');
         $csrf = $auth['csrf'] ?? '';
         megaHttpCheck($status === 200 && strlen($csrf) === 64, 'register issues a session CSRF token');
+        $sessionFiles = function () use ($data) { return glob($data . '/sessions/sess_*') ?: []; };
+        $sessionsBefore = $sessionFiles();
         [, $otherAuth] = megaHttpRequest($otherClient, $megaUrl . '?csrf');
+        megaHttpCheck(strlen($otherAuth['csrf'] ?? '') === 64 && $sessionFiles() === $sessionsBefore, 'an anonymous player gets a token without a session file');
+        $madeUp = curl_init();
+        curl_setopt_array($madeUp, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_COOKIE => SITE_SESSION . '=madeupsession' . bin2hex(random_bytes(8))]);
+        megaHttpRequest($madeUp, $megaUrl . '?csrf');
+        megaHttpRequest($madeUp, $base . '/__mega-account');
+        megaHttpCheck($sessionFiles() === $sessionsBefore, 'a made-up session cookie writes no session file');
 
         $born = time() - 3600;
         $ticket = megaProof('smoke-register-secret', 'ticket:snake', $born, '0000000100000000');
@@ -84,6 +92,8 @@
         $idlePost = ['witness' => 'idle', 'ticket' => $idle];
         [$status] = megaHttpRequest($otherClient, $megaUrl . '?' . http_build_query($idlePost));
         megaHttpCheck($status === 405, 'GET cannot redeem an anonymous ticket');
+        [$status] = megaHttpRequest($madeUp, $megaUrl, $idlePost + ['csrf' => $otherAuth['csrf']]);
+        megaHttpCheck($status === 403, 'an anonymous token without its cookie is refused');
         [$status, $idleFirst] = megaHttpRequest($otherClient, $megaUrl, $idlePost + ['csrf' => $otherAuth['csrf']]);
         [, $idleRetry] = megaHttpRequest($otherClient, $megaUrl, $idlePost + ['csrf' => $otherAuth['csrf']]);
         megaHttpCheck($status === 200 && isset($idleFirst['proof']) && $idleRetry === $idleFirst, 'anonymous ticket redemption is protected and retryable');

@@ -77,6 +77,55 @@
         return hash_hmac('sha256', $label, $secret);
     }
 
+    // ---- The CSRF token of a player ---------------------------------------------
+    // A visitor with a session (a login, a shared folder) gets the session's
+    // token. One without gets a token without a session, so playing on the
+    // 404 page leaves no file on the server: a random key in a cookie only
+    // this site reads, and the token is its HMAC under the secret. Another
+    // site can read neither, as with the session's token.
+    const MEGA_CSRF_COOKIE = 'mega_csrf';
+
+    function megaCsrfKey()
+    {
+        $key = $_COOKIE[MEGA_CSRF_COOKIE] ?? '';
+
+        return is_string($key) && preg_match('/^[0-9a-f]{32}$/D', $key) ? $key : null;
+    }
+
+    // the token for megastructure.php?csrf, '' without a secret
+    function megaCsrf($secret)
+    {
+        if (sessionExists())
+            return siteCsrf();
+        if ($secret === '')
+            return '';
+
+        $key = megaCsrfKey();
+        if ($key === null) {
+            $key = bin2hex(random_bytes(16));
+            $options = ['path' => '/', 'secure' => visitorUsesHttps(), 'httponly' => true, 'samesite' => 'Strict'];
+            if (PHP_VERSION_ID >= 70300)
+                setcookie(MEGA_CSRF_COOKIE, $key, $options);
+            else
+                setcookie(MEGA_CSRF_COOKIE, $key, 0, '/; samesite=Strict', '', $options['secure'], true);
+            $_COOKIE[MEGA_CSRF_COOKIE] = $key;
+        }
+
+        return megaHash($secret, 'csrf:' . $key);
+    }
+
+    // whether $token is the session's or the cookie's token of this visitor
+    function megaCheckCsrf($secret, $token)
+    {
+        if (!is_string($token) || $token === '')
+            return false;
+        if (sessionExists() && checkCsrf())
+            return true;
+        $key = megaCsrfKey();
+
+        return $secret !== '' && $key !== null && hash_equals(megaHash($secret, 'csrf:' . $key), $token);
+    }
+
     // a number from 0 to n - 1, the i-th of a label
     function megaPick($secret, $label, $i, $n)
     {
