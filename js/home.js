@@ -194,6 +194,11 @@ function homeSay(wrap, text, ms) {
   function finish() {
     var heard = letters.map(function (code) { return LETTERS[code] || '?'; }).join('');
     letters = [];
+    // one word is no message but a way somewhere
+    if (heard === 'HUES') {
+      location.assign('hues/');
+      return;
+    }
     var answer = REPLIES[heard] || AGAIN;
     busy = true;
     var sent = 300 + send(answer, 300, FAST) - PAUSE * FAST;
