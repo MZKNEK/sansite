@@ -8,8 +8,9 @@
 # reloads; a configuration that does not pass is rolled back and the deploy stops.
 # The wiki's icons (server/wiki/assets/) go the same way when they changed, with
 # Wiki.js restarted. The skins' songs (audio/*.webm, audio/*.mp3), kept out of
-# git, go when the server has none or another one of the same name. Cloudflare
-# is told to forget the pictures, icons and songs that changed
+# git, go when the server has none or another one of the same name, and so do
+# the files of the folders named in .deploy-local, also out of git. Cloudflare
+# is told to forget the pictures, icons, songs and those files that changed
 # (inc/purge-cache.php). Run
 # it from Git Bash or any shell with ssh, tar and md5sum:
 #   ./deploy.sh sanakan                  site in /var/www/html
@@ -507,6 +508,57 @@ if [ ${#changed_audio[@]} -gt 0 ]; then
     fi
 fi
 
+# Folders of the site kept out of git on purpose, named one per line in
+# .deploy-local (itself out of git, so this script names none of them), go
+# the same way as the songs: a file goes when the server has none of its name
+# or another one (by MD5), and Cloudflare forgets it below. One removed here
+# stays on the server.
+local_dirs=()
+changed_local=()
+if [ -f .deploy-local ]; then
+    while IFS= read -r dir || [ -n "$dir" ]; do
+        dir=${dir%$'\r'}
+        dir=${dir%/}
+        case "$dir" in
+            ''|'#'*) continue ;;
+            /*|*..*) echo "Pomijam '$dir' z .deploy-local: ścieżka spoza strony." >&2; continue ;;
+        esac
+        if [ -d "$dir" ]; then
+            local_dirs+=("$dir")
+        else
+            echo "Pomijam '$dir' z .deploy-local: nie ma takiego katalogu." >&2
+        fi
+    done < .deploy-local
+fi
+if [ ${#local_dirs[@]} -gt 0 ]; then
+    # "hash path" either side: md5sum in Git Bash marks the files binary
+    # ("hash *path"), on the server it does not ("hash  path")
+    sums() { sed -E 's/^([0-9a-f]{32}) [ *]/\1 /'; }
+    remote_local=$(ssh "$target" "bash -s -- '$root' $(printf "'%s' " "${local_dirs[@]}")" <<'REMOTE' | sums
+cd "$1" 2>/dev/null || exit 0
+shift
+for dir in "$@"; do
+    [ -d "$dir" ] && find "$dir" -type f -print0 | xargs -0 -r md5sum
+done
+exit 0
+REMOTE
+)
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        grep -qxF "$line" <<< "$remote_local" || changed_local+=("${line#* }")
+    done < <(find "${local_dirs[@]}" -type f -print0 | xargs -0 -r md5sum | sums)
+fi
+if [ ${#changed_local[@]} -gt 0 ]; then
+    echo "Zmienione pliki spoza gita (.deploy-local), wysyłam do $target:$root:"
+    printf '  %s\n' "${changed_local[@]}"
+    if [ "$dry_run" -eq 0 ]; then
+        tar -c "${changed_local[@]}" \
+            | ssh "$target" "tar -x -C '$root' --no-same-owner --no-overwrite-dir"
+    else
+        echo "[dry-run] Wysłałbym je."
+    fi
+fi
+
 # Cloudflare forgets the pictures, icons and the like the deploy changed or
 # deleted (the CSS and JS have a new ?v= instead), the wiki's too, so they show
 # at once and not after a day; inc/purge-cache.php on the server does it with
@@ -523,7 +575,7 @@ while IFS= read -r file; do
     purge+=$'\n'"$wiki_url/_assets/${file#server/wiki/assets/}"
     [ "$file" = server/wiki/assets/favicon.ico ] && purge+=$'\n'"$wiki_url/favicon.ico"
 done <<< "$changed_wiki"
-for file in ${changed_audio[@]+"${changed_audio[@]}"}; do
+for file in ${changed_audio[@]+"${changed_audio[@]}"} ${changed_local[@]+"${changed_local[@]}"}; do
     purge+=$'\n'"$site_url/$file"
 done
 purge=$(printf '%s\n' "$purge" | sed '/^$/d; s/ /%20/g')

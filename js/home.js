@@ -194,9 +194,10 @@ function homeSay(wrap, text, ms) {
   function finish() {
     var heard = letters.map(function (code) { return LETTERS[code] || '?'; }).join('');
     letters = [];
-    // one word is no message but a way somewhere
-    if (heard === 'HUES') {
-      location.assign('hues/');
+    // some words are no message but a way somewhere
+    var WAYS = { HUES: 'hues/', WAP: 'wap/' };
+    if (WAYS[heard]) {
+      location.assign(WAYS[heard]);
       return;
     }
     var answer = REPLIES[heard] || AGAIN;
