@@ -405,11 +405,23 @@
     if (state.image < 0) showImage(images.length - 1);
   }
 
-  // a picture of the pack, or an animation with all its frames, out of the
-  // bytes of pictures.bin ([start, end] of each)
+  // A picture of the pack, or an animation with all its frames, out of the
+  // bytes of pictures.bin ([start, end] of each). An image of a blob: address,
+  // not an ImageBitmap, which would hold every picture decoded (about 1 GB for
+  // the pack) where the browser decodes an image when drawn and lets it go.
+  function readFrame(bytes) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.decoding = 'async';
+      img.onload = function () { resolve(img); };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }));
+    });
+  }
+
   function readPicture(item, bytes) {
     Promise.all(item.parts.map(function (part) {
-      return createImageBitmap(new Blob([bytes.subarray(part[0], part[1])], { type: 'image/webp' }));
+      return readFrame(bytes.subarray(part[0], part[1]));
     })).then(function (frames) {
       addImage(item.entry.name, frames, 'pack:' + item.entry.name, item.entry.cx);
     }, function () { /* left out */ });
@@ -1179,7 +1191,7 @@
     songs = json.songs.map(function (entry) {
       return { name: entry.title || entry.name, loop: entry.loop, build: entry.build, rhythm: entry.rhythm, buildupRhythm: entry.buildupRhythm };
     }).concat(songs);
-    if (pictures.length && json.pictures && window.createImageBitmap) {
+    if (pictures.length && json.pictures) {
       loadPictures(pictures, json.pictures).catch(function () {
         setStatus('Nie udało się wczytać wszystkich obrazów. Możesz dodać własne pliki.');
       });

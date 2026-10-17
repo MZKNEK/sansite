@@ -262,7 +262,7 @@
     <p class="hues-picker-empty" id="hues-picker-empty" hidden>Nic nie pasuje.</p>
   </section>
 
-  <script src="hues.js?v=3af202c77c"></script>
+  <script src="hues.js?v=6c222d2918"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 
