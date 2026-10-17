@@ -49,6 +49,17 @@ export async function testHome({ browser, base, site, php, errors }) {
     } finally { await context.close(); }
   }
 
+  // A running clock can pass the target while pauseAt waits for its timers
+  // (a slow CI runner): it is paused by then, so the second try holds.
+  async function pauseSoon(page) {
+    try {
+      await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    } catch (error) {
+      if (!/fast-forward to the past/.test(error.message)) throw error;
+      await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    }
+  }
+
   async function morse(page, word) {
     const code = { P: '.--.', O: '---', N: '-.', G: '--.' };
     const now = Date.now();
@@ -82,7 +93,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     const table = page.locator('.pp-table');
     await table.click();
     await page.waitForFunction(() => document.pointerLockElement === document.querySelector('.pp-table'));
-    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    await pauseSoon(page);
     async function paddleTop() {
       return table.evaluate(canvas => {
         const scale = canvas.height / 270;
@@ -121,7 +132,7 @@ export async function testHome({ browser, base, site, php, errors }) {
     });
     await table.click();
     await page.waitForFunction(() => document.pointerLockElement === document.querySelector('.pp-table'));
-    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+    await pauseSoon(page);
     await moveLockedMouse(-10000);
     await page.clock.runFor(15000);
     await page.clock.resume();
