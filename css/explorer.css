@@ -937,6 +937,61 @@ main.content {
     outline-offset: 2px;
 }
 
+/* A small button of words with the targeting corners (WAP, 0x40 and its
+   middles): capitals in the colour of links, the corners growing on hover.
+   A file picker inside lies over it, unseen. */
+.hud-button.hud-corners {
+    --arm: 8px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 11px;
+    overflow: hidden;
+    border: 0;
+    color: var(--link);
+    font: 11px/1 "Sanakan Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.hud-button.hud-corners:hover,
+.hud-button.hud-corners:focus-visible,
+.hud-button.hud-corners:focus-within {
+    --arm: 14px;
+    --fill: rgba(var(--accent-rgb), 0.18);
+    color: var(--text-strong);
+    outline: 0;
+}
+
+.hud-button.hud-corners:disabled {
+    --arm: 8px;
+    --fill: rgba(var(--accent-rgb), 0.05);
+    color: var(--link);
+    opacity: 0.4;
+    cursor: default;
+}
+
+.hud-button input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* a switch that is on (WAP's shuffle, 0x40's lock, a shape of the middles):
+   lit corners over a tinted fill */
+.player-btn.player-switch[aria-pressed="true"],
+.hud-button[aria-pressed="true"] {
+    --corner: var(--accent-light);
+    --fill: rgba(var(--accent-rgb), 0.3);
+    color: var(--text-strong);
+}
+
 .viewer-nav.prev {
     left: 12px;
 }

@@ -1,0 +1,651 @@
+/* 0x40 (hues/): the stage fills the window; the bar at the bottom, the
+   status line and the help are dark glass in the skin's accent, so they read
+   over any of the 64 colours. The buttons, ranges and fields are the site's
+   (style.css, explorer.css). */
+html,
+body.hues {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* the backdrop of the settings: white, black, or behind a transparent stage
+   the site's own (style.css) */
+body.hues[data-backdrop="white"] {
+    background: #fff;
+}
+
+body.hues[data-backdrop="black"] {
+    background: #000;
+}
+
+body.hues {
+    --hues-glass: rgb(8 9 9 / 0.8);
+    --hues-ink: #e9e9ec;
+    --hues-dim: #a9a9b2;
+    --hues-accent: rgb(var(--accent-light-rgb));
+    --hues: var(--hue, #fff);
+    color-scheme: dark;
+    min-height: 0;
+    color: var(--hues-ink);
+    font: 15px/1.5 Lato, sans-serif;
+}
+
+.hues-stage {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.hues-back.back {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 3;
+    --fill: var(--hues-glass);
+    color: var(--hues-ink);
+    text-decoration: none;
+    backdrop-filter: blur(6px);
+}
+
+/* ---- the status line (loading, counting, errors) */
+
+.hues-status {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    z-index: 3;
+    max-width: calc(100% - 32px);
+    margin: 0;
+    padding: 8px 16px;
+    transform: translateX(-50%);
+    background: var(--hues-glass);
+    color: var(--hues-ink);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.06em;
+    backdrop-filter: blur(6px);
+}
+
+/* above the bar, whose height hues.js keeps in --bar */
+.hues-on .hues-status {
+    top: auto;
+    bottom: calc(var(--bar, 110px) + 16px);
+}
+
+/* ---- the bar */
+
+.hues-ui {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: 8px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--hues-glass);
+    border-top: 2px solid var(--hues);
+    backdrop-filter: blur(8px);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+}
+
+.hues-bare .hues-ui,
+.hues-bare .hues-back,
+.hues-bare .hues-help,
+.hues-bare .hues-picker {
+    display: none;
+}
+
+.hues-bare .hues-stage {
+    cursor: pointer;
+}
+
+.hues-beats {
+    overflow: hidden;
+    white-space: nowrap;
+    font: 15px/1.6 "JetBrains Mono", monospace;
+    letter-spacing: 0.08em;
+}
+
+.hues-prompt {
+    color: var(--hues-accent);
+    margin-right: 0.5em;
+}
+
+.hues-beat-now {
+    color: var(--hues-ink);
+    font-weight: bold;
+    padding: 0 0.15em;
+    background: rgba(var(--accent-rgb), 0.45);
+}
+
+.hues-beat-next {
+    color: var(--hues-dim);
+}
+
+.hues-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 40px;
+    margin-top: 2px;
+}
+
+.hues-counters {
+    display: flex;
+    gap: 18px;
+    color: var(--hues-dim);
+    letter-spacing: 0.06em;
+}
+
+.hues-counters b {
+    color: var(--hues-ink);
+    font-weight: normal;
+}
+
+/* the tempo takes the room of its longest value, so nothing moves when it
+   comes */
+#hues-bpm {
+    display: inline-block;
+    min-width: 5ch;
+}
+
+/* right after the counters; the song takes what room is left, the same
+   whatever its title, so nothing moves */
+.hues-names {
+    display: flex;
+    flex: 1 1 320px;
+    flex-wrap: wrap;
+    gap: 2px 22px;
+    min-width: 0;
+}
+
+.hues-names .hues-name:last-child {
+    flex: 1 1 18ch;
+}
+
+.hues-link#hues-song {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+}
+
+/* a name between its two small arrows, the previous and the next */
+.hues-steps {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+
+.hues-names .hues-name:last-child .hues-steps {
+    flex: 1 1 0;
+}
+
+.hues-step {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--hues-dim);
+    cursor: pointer;
+}
+
+.hues-step svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hues-step:hover,
+.hues-step:focus-visible {
+    color: var(--hues-accent);
+}
+
+/* the label and its value on one middle line: a baseline would set the
+   value higher, as the colour's fixed box and the arrows have none of
+   their own */
+.hues-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.hues-name i {
+    font-style: normal;
+    color: var(--hues-accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 11px;
+}
+
+/* Every name keeps one width (the font is monospaced), so a new colour,
+   picture or song never moves the bar or changes its height */
+.hues-hue {
+    display: inline-block;
+    width: calc(12 * (1ch + 0.14em));
+    overflow: hidden;
+    color: var(--hues-ink);
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.hues-link {
+    width: 20ch;
+    text-align: left;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--hues-ink);
+    font: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.hues-link:hover,
+.hues-link:focus-visible {
+    color: var(--hues-accent);
+    text-decoration: underline;
+}
+
+.hues-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.hues-gap {
+    flex: 1;
+}
+
+/* The buttons, the volume and the speed are the gallery player's, the lock
+   and the files the site's small buttons of words (explorer.css), on a
+   raised fill over the glass; the volume stays on a phone too */
+.hues-controls .player-btn,
+.player-btn.hues-help-close {
+    --fill: var(--surface-raised);
+}
+
+.hues-controls .hud-button {
+    height: 38px;
+    padding: 0 12px;
+}
+
+.hues-controls .player-volume {
+    display: block;
+    width: 110px;
+    margin: 0 4px;
+}
+
+/* ---- the help */
+
+.hues-help {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--bar, 110px) + 16px);
+    z-index: 4;
+    width: min(720px, calc(100% - 32px));
+    max-height: calc(100% - var(--bar, 110px) - 32px);
+    overflow: auto;
+    padding: 18px 24px;
+    transform: translateX(-50%);
+    --fill: rgb(8 9 9 / 0.92);
+    --arm: 18px;
+    backdrop-filter: blur(8px);
+}
+
+.hues-help h2 {
+    margin: 0 0 6px;
+    font: 15px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--hues-accent);
+}
+
+.hues-help p {
+    margin: 0 0 12px;
+    color: var(--hues-dim);
+    font-size: 14px;
+}
+
+.hues-help-close {
+    float: right;
+}
+
+.hues-help-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 32px;
+}
+
+.hues-help dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 3px 14px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.hues-help dt {
+    color: var(--hues-ink);
+    font: 14px/1.5 "JetBrains Mono", monospace;
+}
+
+.hues-help dd {
+    margin: 0;
+    color: var(--hues-dim);
+}
+
+/* ---- the settings, a narrower panel of the help's kind */
+
+.hues-help.hues-settings {
+    width: min(480px, calc(100% - 32px));
+}
+
+/* its parts, as in 0x40 Hues: transitions, graphics, behaviour, looks, files */
+.hues-part + .hues-part {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(var(--accent-light-rgb), 0.2);
+}
+
+.hues-part h3 {
+    margin: 0;
+    color: var(--hues-accent);
+    font: 12px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+/* "po [5] minutach" after the buttons of the song change */
+.hues-after {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 4px;
+    color: var(--hues-dim);
+    font-size: 13px;
+}
+
+.hues-number.field {
+    width: 4.5em;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 13px;
+}
+
+.hues-number:disabled {
+    opacity: 0.4;
+}
+
+.hues-setting {
+    margin-top: 14px;
+}
+
+.hues-setting-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    color: var(--hues-ink);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.hues-setting-label output {
+    color: var(--hues-accent);
+    letter-spacing: 0.04em;
+}
+
+.hues-modes {
+    margin: 14px 0 0;
+    padding: 0;
+    border: 0;
+}
+
+.hues-modes legend {
+    padding: 0;
+}
+
+.hues-mode {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 6px;
+    color: var(--hues-dim);
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.hues-mode input {
+    flex: none;
+    accent-color: var(--hues-accent);
+}
+
+.hues-mode b {
+    display: block;
+    color: var(--hues-ink);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* a choice of a few, as a row of buttons: the radio hidden, its label the
+   button, the chosen one lit */
+.hues-choice {
+    margin: 14px 0 0;
+    padding: 0;
+    border: 0;
+}
+
+.hues-choice legend {
+    padding: 0;
+}
+
+.hues-segments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hues-segments label {
+    position: relative;
+}
+
+.hues-segments label > input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.hues-segments label > span {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgba(var(--accent-light-rgb), 0.35);
+    background: rgb(255 255 255 / 0.04);
+    color: var(--hues-dim);
+    font: 12px/1 "Sanakan Mono", monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.hues-segments label:hover > span {
+    border-color: var(--hues-accent);
+    color: var(--hues-ink);
+}
+
+.hues-segments input:checked + span {
+    border-color: var(--hues-accent);
+    background: rgba(var(--accent-rgb), 0.45);
+    color: var(--hues-ink);
+}
+
+.hues-segments input:focus-visible + span {
+    outline: 2px solid var(--hues-accent);
+    outline-offset: 2px;
+}
+
+.hues-setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hues-range {
+    flex: 1;
+    min-width: 0;
+}
+
+/* the owner's way to the middles of the pictures (centres.php) */
+.hues-help .hues-owner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 0;
+    font-size: 13px;
+}
+
+.hues-owner .hud-button {
+    flex: none;
+}
+
+.hues-help .hues-setting p {
+    margin: 6px 0 0;
+    font-size: 13px;
+}
+
+/* ---- the search of pictures and songs, above the bar like the help */
+
+.hues-picker {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--bar, 110px) + 16px);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    width: min(460px, calc(100% - 32px));
+    max-height: min(460px, calc(100% - var(--bar, 110px) - 32px));
+    padding: 18px 20px;
+    transform: translateX(-50%);
+    --fill: rgb(8 9 9 / 0.92);
+    --arm: 18px;
+    backdrop-filter: blur(8px);
+}
+
+.hues-picker h2 {
+    margin: 0 0 10px;
+    font: 15px/34px "Sanakan Mono", monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--hues-accent);
+}
+
+.hues-picker .hues-help-close {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+}
+
+.hues-search.field {
+    width: 100%;
+}
+
+.hues-picker-list {
+    flex: 0 1 auto;
+    min-height: 0;
+    margin: 10px 0 0;
+    padding: 0;
+    overflow: auto;
+    list-style: none;
+}
+
+.hues-picker-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 10px;
+    color: var(--hues-ink);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    cursor: pointer;
+}
+
+.hues-picker-list li[aria-selected="true"] {
+    background: rgba(var(--accent-rgb), 0.4);
+}
+
+/* what is on now */
+.hues-picker-list li.hues-current {
+    color: var(--hues-accent);
+}
+
+.hues-picker-list li.hues-current::before {
+    content: "> ";
+}
+
+.hues-picker-list small {
+    flex: none;
+    color: var(--hues-dim);
+    font-size: 11px;
+}
+
+.hues-picker-empty {
+    margin: 10px 0 0;
+    color: var(--hues-dim);
+    font-size: 14px;
+}
+
+@media (max-width: 640px) {
+    .hues-back.back {
+        top: 10px;
+        left: 10px;
+        padding: 6px 12px;
+    }
+
+    .hues-ui {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .hues-counters {
+        gap: 12px;
+        font-size: 12px;
+    }
+
+    .hues-gap {
+        display: none;
+    }
+
+    /* a line for each name, the song's whole width */
+    .hues-names .hues-name {
+        flex: 1 1 100%;
+    }
+
+    .hues-controls .player-volume {
+        width: 84px;
+    }
+
+    .hues-help-cols {
+        grid-template-columns: 1fr;
+    }
+}

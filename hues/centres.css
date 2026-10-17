@@ -1,0 +1,144 @@
+/* The middles of 0x40's pictures (hues/centres.php): the site's own buttons,
+   range and list (style.css, explorer.css), laid out as a workspace the
+   height of the window, the stage beside the whole picture */
+body.centres {
+    height: 100vh;
+    min-height: 0;
+}
+
+.centres-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.25);
+    background: var(--surface-raised);
+}
+
+.centres-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.centres-pick {
+    width: 260px;
+    max-width: 60vw;
+}
+
+.centres-slider {
+    flex: 1 1 320px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.centres-slider .player-range {
+    flex: 1;
+    min-width: 0;
+}
+
+.centres-label,
+.centres-state,
+.centres-value {
+    font: 12px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--link);
+}
+
+.centres-value {
+    width: 5ch;
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.centres-state {
+    min-width: 13ch;
+    color: var(--text-muted);
+}
+
+.centres-state.centres-dirty {
+    color: var(--warning);
+}
+
+.centres-main {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    min-height: 0;
+    padding: 16px;
+}
+
+.centres-stage {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+}
+
+.centres-stage canvas,
+#whole {
+    display: block;
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35);
+}
+
+.centres-side {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 340px;
+}
+
+#whole {
+    width: 100%;
+}
+
+.centres-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.centres-check input {
+    accent-color: var(--accent-light);
+}
+
+.centres-note {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.centres-note kbd {
+    padding: 0 5px;
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    color: var(--link);
+    font: 12px/18px "Sanakan Mono", monospace;
+}
+
+@media (max-width: 800px) {
+    body.centres {
+        height: auto;
+    }
+
+    .centres-main {
+        flex-direction: column;
+    }
+
+    .centres-stage {
+        height: 60vh;
+    }
+
+    .centres-side {
+        width: 100%;
+    }
+}

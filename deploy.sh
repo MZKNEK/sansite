@@ -9,11 +9,10 @@
 # The wiki's icons (server/wiki/assets/) go the same way when they changed, with
 # Wiki.js restarted. The skins' songs (audio/*.webm, audio/*.mp3), kept out of
 # git, go when the server has none or another one of the same name, and so do
-# the files of the folders named in .deploy-local, also out of git (a file
-# removed from one of those folders here is removed on the server too). Cloudflare
-# is told to forget the pictures, icons, songs and those files that changed
-# (inc/purge-cache.php). Run
-# it from Git Bash or any shell with ssh, tar and md5sum:
+# the media of 0x40 and WAP (hues/.pack/, wap/.mu/), also out of git; one
+# removed here stays on the server. Cloudflare is told to forget the pictures,
+# icons and songs that changed (inc/purge-cache.php). Run it from Git Bash or
+# any shell with ssh, tar and md5sum:
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
 #   ./deploy.sh --dry-run sanakan        only show what would be sent, changed
@@ -509,36 +508,22 @@ if [ ${#changed_audio[@]} -gt 0 ]; then
     fi
 fi
 
-# Folders of the site kept out of git on purpose, named one per line in
-# .deploy-local (itself out of git, so this script names none of them), go
-# the same way as the songs: a file goes when the server has none of its name
-# or another one (by MD5), and Cloudflare forgets it below. Unlike the songs,
-# each folder is kept the same as here: a file the server has in it and this
-# copy no longer does is removed there, with the folders it leaves empty. A
-# folder named that is missing here is skipped whole, never emptied there.
-local_dirs=()
-changed_local=()
-removed_local=()
-if [ -f .deploy-local ]; then
-    while IFS= read -r dir || [ -n "$dir" ]; do
-        dir=${dir%$'\r'}
-        dir=${dir%/}
-        case "$dir" in
-            ''|'#'*) continue ;;
-            /*|*..*) echo "Pomijam '$dir' z .deploy-local: ścieżka spoza strony." >&2; continue ;;
-        esac
-        if [ -d "$dir" ]; then
-            local_dirs+=("$dir")
-        else
-            echo "Pomijam '$dir' z .deploy-local: nie ma takiego katalogu." >&2
-        fi
-    done < .deploy-local
-fi
-if [ ${#local_dirs[@]} -gt 0 ]; then
+# The media of 0x40 (hues/.pack/: pictures, animations, songs, respack.json)
+# and of WAP (wap/.mu/) are kept out of git as well and go the same way as the
+# songs: a file goes when the server has none of its name or another one (by
+# MD5), and one removed here stays on the server. They lie in dot folders,
+# which nginx refuses, and go out only through hues/pack.php and wap/song.php
+# with Cache-Control: private, so Cloudflare has nothing of them to forget.
+media_dirs=()
+for dir in hues/.pack wap/.mu; do
+    [ -d "$dir" ] && media_dirs+=("$dir")
+done
+changed_media=()
+if [ ${#media_dirs[@]} -gt 0 ]; then
     # "hash path" either side: md5sum in Git Bash marks the files binary
     # ("hash *path"), on the server it does not ("hash  path")
     sums() { sed -E 's/^([0-9a-f]{32}) [ *]/\1 /'; }
-    remote_local=$(ssh "$target" "bash -s -- '$root' $(printf "'%s' " "${local_dirs[@]}")" <<'REMOTE' | sums
+    remote_media=$(ssh "$target" "bash -s -- '$root' $(printf "'%s' " "${media_dirs[@]}")" <<'REMOTE' | sums
 cd "$1" 2>/dev/null || exit 0
 shift
 for dir in "$@"; do
@@ -547,38 +532,19 @@ done
 exit 0
 REMOTE
 )
-    local_paths=()
     while IFS= read -r line; do
         [ -n "$line" ] || continue
-        local_paths+=("${line#* }")
-        grep -qxF "$line" <<< "$remote_local" || changed_local+=("${line#* }")
-    done < <(find "${local_dirs[@]}" -type f -print0 | xargs -0 -r md5sum | sums)
-    here=$(printf '%s\n' ${local_paths[@]+"${local_paths[@]}"})
-    while IFS= read -r line; do
-        [ -n "$line" ] || continue
-        grep -qxF "${line#* }" <<< "$here" || removed_local+=("${line#* }")
-    done <<< "$remote_local"
+        grep -qxF "$line" <<< "$remote_media" || changed_media+=("${line#* }")
+    done < <(find "${media_dirs[@]}" -type f -print0 | xargs -0 -r md5sum | sums)
 fi
-if [ ${#changed_local[@]} -gt 0 ]; then
-    echo "Zmienione pliki spoza gita (.deploy-local), wysyłam do $target:$root:"
-    printf '  %s\n' "${changed_local[@]}"
+if [ ${#changed_media[@]} -gt 0 ]; then
+    echo "Zmienione pliki 0x40 i WAP spoza gita, wysyłam do $target:$root:"
+    printf '  %s\n' "${changed_media[@]}"
     if [ "$dry_run" -eq 0 ]; then
-        tar -c "${changed_local[@]}" \
+        tar -c "${changed_media[@]}" \
             | ssh "$target" "tar -x -C '$root' --no-same-owner --no-overwrite-dir"
     else
         echo "[dry-run] Wysłałbym je."
-    fi
-fi
-if [ ${#removed_local[@]} -gt 0 ]; then
-    echo "Pliki spoza gita usunięte tutaj (.deploy-local), usuwam z $target:$root:"
-    printf '  %s\n' "${removed_local[@]}"
-    if [ "$dry_run" -eq 0 ]; then
-        # the names, any of them, NUL-separated on stdin; then the folders of
-        # .deploy-local lose the subfolders that were left empty
-        printf '%s\0' "${removed_local[@]}" \
-            | ssh "$target" "cd '$root' && xargs -0 -r rm -f -- && find $(printf "'%s' " "${local_dirs[@]}") -mindepth 1 -type d -empty -delete"
-    else
-        echo "[dry-run] Usunąłbym je."
     fi
 fi
 
@@ -598,7 +564,7 @@ while IFS= read -r file; do
     purge+=$'\n'"$wiki_url/_assets/${file#server/wiki/assets/}"
     [ "$file" = server/wiki/assets/favicon.ico ] && purge+=$'\n'"$wiki_url/favicon.ico"
 done <<< "$changed_wiki"
-for file in ${changed_audio[@]+"${changed_audio[@]}"} ${changed_local[@]+"${changed_local[@]}"} ${removed_local[@]+"${removed_local[@]}"}; do
+for file in ${changed_audio[@]+"${changed_audio[@]}"}; do
     purge+=$'\n'"$site_url/$file"
 done
 purge=$(printf '%s\n' "$purge" | sed '/^$/d; s/ /%20/g')

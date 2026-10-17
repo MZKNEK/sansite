@@ -5,6 +5,11 @@
 # The songs of the Teto and Miku skins, sent by deploy.sh on their own
 /audio/
 
+# The pack of 0x40 (pictures, animations, songs, respack.json) and the songs of
+# WAP, sent by deploy.sh on their own
+/hues/.pack/
+/wap/.mu/
+
 # Discord application secret and the gallery admins, only on the server
 /inc/config.php
 
