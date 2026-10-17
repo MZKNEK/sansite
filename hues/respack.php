@@ -8,7 +8,8 @@
     //   Songs/build_<Name>.ogg           played once before it, if any
     // A PNG put in Images/ or Animations/ is changed to lossless WebP (cwebp,
     // from CWEBP or the PATH; the 2-bit line art of the pack is several times
-    // larger as lossy WebP) and removed, then respack.json lists what there is,
+    // larger as lossy WebP) and removed (maker.php makes such a PNG out of any
+    // picture and runs this), then respack.json lists what there is,
     // which hues.js reads (through pack.php), and pictures.bin holds all the
     // pictures and frames in one. Run it after adding, changing or removing
     // files (deploy.sh runs it before it sends anything); it writes only what

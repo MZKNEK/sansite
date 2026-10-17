@@ -1,0 +1,159 @@
+/* The maker of 0x40's pictures (hues/maker.php): the site's own buttons,
+   range, field and list (style.css, explorer.css), laid out as a workspace
+   the height of the window, the stage beside the settings, as the middles
+   (centres.css) are */
+body.maker {
+    height: 100vh;
+    min-height: 0;
+}
+
+.maker-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.25);
+    background: var(--surface-raised);
+}
+
+.maker-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.maker-save {
+    flex: 1 1 320px;
+    justify-content: flex-end;
+}
+
+.maker-save .field {
+    flex: 0 1 260px;
+}
+
+.maker-main {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    min-height: 0;
+    padding: 16px;
+}
+
+.maker-stage {
+    position: relative;
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+}
+
+.maker-stage canvas {
+    display: block;
+    touch-action: none;
+}
+
+.maker-empty {
+    position: absolute;
+    margin: 0;
+    padding: 24px;
+    border: 1px dashed rgba(var(--accent-rgb), 0.45);
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+    pointer-events: none;
+}
+
+.maker-side {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 340px;
+    overflow-y: auto;
+}
+
+.maker-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.maker-heading {
+    margin: 0 0 2px;
+    font: 12px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--link);
+}
+
+.maker-row {
+    display: grid;
+    grid-template-columns: 11ch 1fr 5ch;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-size: 13px;
+}
+
+.maker-row .hud-select {
+    grid-column: 2 / 4;
+}
+
+.maker-row .player-range {
+    min-width: 0;
+}
+
+.maker-row output {
+    color: var(--text-muted);
+    font: 12px "Sanakan Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.maker-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.maker-check input {
+    accent-color: var(--accent-light);
+}
+
+.maker-note {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.maker-note kbd {
+    padding: 0 5px;
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    color: var(--link);
+    font: 12px/18px "Sanakan Mono", monospace;
+}
+
+@media (max-width: 800px) {
+    body.maker {
+        height: auto;
+    }
+
+    .maker-main {
+        flex-direction: column;
+    }
+
+    .maker-stage {
+        height: 60vh;
+    }
+
+    .maker-side {
+        width: 100%;
+    }
+}
