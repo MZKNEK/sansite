@@ -2,7 +2,7 @@
 // built straight into the site's <name>/ folder, which is committed and
 // deployed with the rest of the site. `npm run dev` takes what belongs to the
 // site itself (its fonts, icons, account.php, the gallery) from the site
-// running locally (tools/preview.sh, see the README), or from the address
+// running locally (tools/preview.sh, see docs/development.md), or from the address
 // in SANAKAN_SITE. The app passes its plugins, Svelte's among them, as this
 // file has no packages of its own to import them from.
 

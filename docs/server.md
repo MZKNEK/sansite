@@ -1,6 +1,6 @@
 # Server and deployment
 
-How [sanakan.pl](https://sanakan.pl) runs on its server, how it is deployed and how it moves to a new one. The site itself, its layout, running it locally and its tests are in the [README](../README.md).
+How the site runs on its server, how it is deployed and how it moves to a new one. The rest of the documentation is listed in the [README](../README.md).
 
 ## Server
 
