@@ -405,29 +405,63 @@
     if (state.image < 0) showImage(images.length - 1);
   }
 
-  function loadFile(url) {
-    return new Promise(function (resolve, reject) {
-      var img = new Image();
-      img.decoding = 'async';
-      img.onload = function () { resolve(img); };
-      img.onerror = reject;
-      img.src = url;
-    });
-  }
-
-  // a picture of the pack, or an animation with all its frames read first
-  function loadPicture(entry) {
-    if (entry.loading) return;
-    entry.loading = true;
-    var urls = entry.frames
-      ? entry.frames.map(function (frame) { return PACK + 'Animations/' + encodeURIComponent(entry.name) + '/' + encodeURIComponent(frame) + '.webp'; })
-      : [PACK + 'Images/' + encodeURIComponent(entry.name) + '.webp'];
-    Promise.all(urls.map(loadFile)).then(function (frames) {
-      addImage(entry.name, frames, 'pack:' + entry.name, entry.cx);
+  // a picture of the pack, or an animation with all its frames, out of the
+  // bytes of pictures.bin ([start, end] of each)
+  function readPicture(item, bytes) {
+    Promise.all(item.parts.map(function (part) {
+      return createImageBitmap(new Blob([bytes.subarray(part[0], part[1])], { type: 'image/webp' }));
+    })).then(function (frames) {
+      addImage(item.entry.name, frames, 'pack:' + item.entry.name, item.entry.cx);
     }, function () { /* left out */ });
   }
 
-  var pictures = [];
+  // The pack's pictures, then the frames of its animations, come in one file
+  // (pictures.bin, made by respack.php) in the order of the list, each as
+  // long as the list's pictures.sizes says; each is shown once its bytes are
+  // in, not after the whole file. The file's version in the address lets
+  // the browser keep it until it changes.
+  function loadPictures(entries, pack) {
+    var sizes = pack.sizes, size = 0, n = 0;
+    var items = entries.map(function (entry) {
+      var parts = [];
+      (entry.frames || [null]).forEach(function () {
+        parts.push([size, size += sizes[n++] || 0]);
+      });
+      return { entry: entry, parts: parts, end: size };
+    });
+    var bytes = new Uint8Array(size), got = 0, next = 0;
+    // the bar shows only when the file is not in at once (not kept by the
+    // browser, a slow link)
+    var bar = $('hues-loading'), barTimer = setTimeout(function () { bar.hidden = false; }, 400);
+    function take(chunk) {
+      chunk = chunk.subarray(0, size - got);
+      bytes.set(chunk, got);
+      got += chunk.length;
+      var percent = size ? Math.floor(got / size * 100) : 100;
+      bar.setAttribute('aria-valuenow', percent);
+      $('hues-loading-text').textContent = 'Wczytuję obrazy… ' + percent + '% (' + (got / 1048576).toFixed(1) + ' z ' + (size / 1048576).toFixed(1) + ' MB)';
+      $('hues-loading-fill').style.width = percent + '%';
+      while (next < items.length && items[next].end <= got) readPicture(items[next++], bytes);
+    }
+    function done() {
+      clearTimeout(barTimer);
+      bar.hidden = true;
+    }
+    return fetch(PACK + 'pictures.bin&v=' + encodeURIComponent(pack.version)).then(function (response) {
+      if (!response.ok) throw new Error(response.status);
+      if (!response.body) return response.arrayBuffer().then(function (buffer) { take(new Uint8Array(buffer)); });
+      var reader = response.body.getReader();
+      return reader.read().then(function step(result) {
+        if (result.done) return;
+        take(result.value);
+        return reader.read().then(step);
+      });
+    }).then(done, function (error) {
+      done();
+      throw error;
+    });
+  }
+
   function showImage(index) {
     if (!images.length) return;
     index = ((index % images.length) + images.length) % images.length;
@@ -1141,11 +1175,15 @@
     return response.json();
   }).then(function (json) {
     var centres = json.centres || {};
-    pictures = json.images.map(function (name) { return { name: name, cx: centres[name] }; }).concat(json.animations);
+    var pictures = json.images.map(function (name) { return { name: name, cx: centres[name] }; }).concat(json.animations);
     songs = json.songs.map(function (entry) {
       return { name: entry.title || entry.name, loop: entry.loop, build: entry.build, rhythm: entry.rhythm, buildupRhythm: entry.buildupRhythm };
     }).concat(songs);
-    pictures.forEach(loadPicture);
+    if (pictures.length && json.pictures && window.createImageBitmap) {
+      loadPictures(pictures, json.pictures).catch(function () {
+        setStatus('Nie udało się wczytać wszystkich obrazów. Możesz dodać własne pliki.');
+      });
+    }
   }).catch(function () {
     setStatus('Nie udało się wczytać listy obrazów i utworów. Możesz dodać własne pliki.');
   });

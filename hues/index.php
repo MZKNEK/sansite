@@ -33,7 +33,7 @@
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=e7e220aaa9" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=e330d129f9" type="text/css" rel="stylesheet" />
-  <link href="hues.css?v=db556cd25e" type="text/css" rel="stylesheet" />
+  <link href="hues.css?v=6c5285720b" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
 </head>
 
@@ -42,6 +42,10 @@
   <a class="hues-back back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
 
   <p class="hues-status" id="hues-status" role="status" hidden></p>
+  <div class="hues-loading" id="hues-loading" role="progressbar" aria-label="Wczytywanie obrazów" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+    <span class="progress-text" id="hues-loading-text">Wczytuję obrazy&hellip;</span>
+    <span class="progress-bar"><span id="hues-loading-fill"></span></span>
+  </div>
 
   <div class="hues-ui" id="hues-ui">
     <div class="hues-controls">
@@ -258,7 +262,7 @@
     <p class="hues-picker-empty" id="hues-picker-empty" hidden>Nic nie pasuje.</p>
   </section>
 
-  <script src="hues.js?v=526e078ed6"></script>
+  <script src="hues.js?v=3af202c77c"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 

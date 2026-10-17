@@ -9,10 +9,11 @@
 # The wiki's icons (server/wiki/assets/) go the same way when they changed, with
 # Wiki.js restarted. The skins' songs (audio/*.webm, audio/*.mp3), kept out of
 # git, go when the server has none or another one of the same name, and so do
-# the media of 0x40 and WAP (hues/.pack/, wap/.mu/), also out of git; one
+# the media of 0x40 and WAP (hues/.pack/, wap/.mu/), also out of git, with the
+# list of 0x40's pack made again first (php hues/respack.php); one
 # removed here stays on the server. Cloudflare is told to forget the pictures,
 # icons and songs that changed (inc/purge-cache.php). Run it from Git Bash or
-# any shell with ssh, tar and md5sum:
+# any shell with ssh, tar and md5sum (and php, with hues/.pack/ there):
 #   ./deploy.sh sanakan                  site in /var/www/html
 #   ./deploy.sh sanakan /var/www/other   another folder
 #   ./deploy.sh --dry-run sanakan        only show what would be sent, changed
@@ -222,6 +223,21 @@ nginx_dest() {
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     echo "Są niezacommitowane zmiany. Najpierw je zacommituj, wysyłany jest tylko ostatni commit." >&2
     exit 1
+fi
+
+# The list of 0x40's pack (respack.json) and its pictures in one
+# (pictures.bin) are made again by hues/respack.php before anything goes, so
+# a picture or song added, changed or removed never goes without them; it
+# writes only what changed, and a failure (a PNG cwebp could not make WebP)
+# stops the deploy. --dry-run only says whether it would run.
+if [ -d hues/.pack ]; then
+    if [ "$dry_run" -eq 0 ]; then
+        php hues/respack.php
+    elif php hues/respack.php --check; then
+        echo "[dry-run] Lista 0x40 (respack.json, pictures.bin) jest aktualna."
+    else
+        echo "[dry-run] Uruchomiłbym php hues/respack.php: obrazy lub utwory 0x40 się zmieniły."
+    fi
 fi
 
 commit=$(git rev-parse HEAD)

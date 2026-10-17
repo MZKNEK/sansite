@@ -73,6 +73,31 @@ body.hues {
     bottom: calc(var(--bar, 110px) + 16px);
 }
 
+/* ---- the loading of the pack's pictures, shown when it takes a while: the
+   site's .progress-text and .progress-bar on the status line's glass */
+
+.hues-loading {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    z-index: 3;
+    width: min(360px, calc(100% - 32px));
+    padding: 10px 16px;
+    transform: translateX(-50%);
+    background: var(--hues-glass);
+    color: var(--hues-ink);
+    font: 13px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.06em;
+    backdrop-filter: blur(6px);
+}
+
+/* under the way back, which a narrow stage leaves no room beside */
+@media (max-width: 640px) {
+    .hues-loading {
+        top: 64px;
+    }
+}
+
 /* ---- the bar */
 
 .hues-ui {
