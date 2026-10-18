@@ -4,8 +4,9 @@
 // loop. Every half beat has one character of a beat string, which says what
 // happens on it (EFFECTS): the classic maps of 0x40 Hues where the pack has
 // them (classicMaps(), with the later effects added in the extended mode,
-// enrich()), else one counted in the browser from the decoded song, its tempo
-// and the onsets of its low and high band (analyse()). A song or pictures of
+// enrich() of beats.js), else one counted in the browser from the decoded
+// song, its tempo and the onsets of its low and high band (analyse() of
+// beats.js). A song or pictures of
 // the visitor's own are read the same way and never leave the browser.
 (function () {
   'use strict';
@@ -42,26 +43,9 @@
     return 'rgb(' + Math.round(rgb[0]) + ',' + Math.round(rgb[1]) + ',' + Math.round(rgb[2]) + ')';
   }
 
-  // What a character of the beat string does; the help of the page lists
-  // the same. A held blackout or inversion lasts until the next character
-  // that does anything.
-  var EFFECTS = {
-    'x': { blur: 'v', image: true, colour: 'cut' },
-    'o': { blur: 'h', image: true, colour: 'cut' },
-    'X': { blur: 'v', colour: 'cut' },
-    'O': { blur: 'h', colour: 'cut' },
-    '-': { image: true, colour: 'cut' },
-    ':': { colour: 'cut' },
-    '*': { image: true },
-    '~': { colour: 'fade' },
-    '=': { image: true, colour: 'fade' },
-    '|': { blackout: 'short', colour: 'cut' },
-    '+': { blackout: 'hold' },
-    'i': { invert: true, colour: 'cut' },
-    's': { slice: 'h', colour: 'cut' },
-    'v': { slice: 'v', colour: 'cut' },
-    '#': { slice: 'both', colour: 'cut' }
-  };
+  // what each character of a beat string does, and the maps counted from a
+  // song or made from a classic one (beats.js)
+  var EFFECTS = HuesBeats.EFFECTS, analyse = HuesBeats.analyse, enrich = HuesBeats.enrich;
 
   // The classic mode keeps to what the first, Flash 0x40 Hues knew (x o X O
   // - : * ~ = | + .); the inversion and the slices came later, and stand in
@@ -70,245 +54,6 @@
   var classic = false;
   function modeChars(chars) {
     return classic ? chars.replace(/[isv#]/g, function (ch) { return CLASSIC[ch]; }) : chars;
-  }
-
-  // ---- the beat map ----------------------------------------------------
-
-  // a second-order filter (RBJ's cookbook), low or high pass, Q of 1/sqrt 2
-  function biquad(type, freq, rate) {
-    var w = 2 * Math.PI * freq / rate, cos = Math.cos(w), alpha = Math.sin(w) * Math.SQRT1_2;
-    var a0 = 1 + alpha;
-    var b0 = type === 'low' ? (1 - cos) / 2 : (1 + cos) / 2;
-    var b1 = type === 'low' ? 1 - cos : -(1 + cos);
-    return { b0: b0 / a0, b1: b1 / a0, b2: b0 / a0, a1: -2 * cos / a0, a2: (1 - alpha) / a0 };
-  }
-
-  // the mean square of 10 ms frames of the whole song, of the low band (the
-  // kick), the high one (snares, claps, hats) and all of it, in one pass
-  function energies(buffer) {
-    var rate = buffer.sampleRate, hop = Math.round(rate * 0.01);
-    var frames = Math.floor(buffer.length / hop);
-    var chans = [];
-    for (var c = 0; c < buffer.numberOfChannels; c++) chans.push(buffer.getChannelData(c));
-    var nc = chans.length;
-    var lo = biquad('low', 150, rate), hi = biquad('high', 2500, rate);
-    var all = new Float32Array(frames), low = new Float32Array(frames), high = new Float32Array(frames);
-    var x1 = 0, x2 = 0, l1 = 0, l2 = 0, h1 = 0, h2 = 0, i = 0;
-    for (var f = 0; f < frames; f++) {
-      var ea = 0, el = 0, eh = 0;
-      for (var end = i + hop; i < end; i++) {
-        var x = 0;
-        for (c = 0; c < nc; c++) x += chans[c][i];
-        x /= nc;
-        var yl = lo.b0 * x + lo.b1 * x1 + lo.b2 * x2 - lo.a1 * l1 - lo.a2 * l2;
-        var yh = hi.b0 * x + hi.b1 * x1 + hi.b2 * x2 - hi.a1 * h1 - hi.a2 * h2;
-        x2 = x1; x1 = x; l2 = l1; l1 = yl; h2 = h1; h1 = yh;
-        ea += x * x; el += yl * yl; eh += yh * yh;
-      }
-      all[f] = ea / hop; low[f] = el / hop; high[f] = eh / hop;
-    }
-    return { all: all, low: low, high: high, frameSec: hop / rate };
-  }
-
-  function percentile(values, q) {
-    var sorted = Array.prototype.slice.call(values).sort(function (a, b) { return a - b; });
-    return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] : 0;
-  }
-
-  // How sharply a band grows louder in each frame: the rise of its compressed
-  // energy, less the mean rise around it, so a busy passage does not read as
-  // one long onset
-  function novelty(energy) {
-    var n = energy.length, scale = 100 / Math.max(1e-12, percentile(energy, 0.98));
-    var rise = new Float32Array(n), out = new Float32Array(n);
-    var prev = Math.log1p(energy[0] * scale);
-    for (var i = 1; i < n; i++) {
-      var now = Math.log1p(energy[i] * scale);
-      rise[i] = now > prev ? now - prev : 0;
-      prev = now;
-    }
-    var W = 20, sum = 0, count = 0;
-    for (i = 0; i < Math.min(n, W); i++) { sum += rise[i]; count++; }
-    for (i = 0; i < n; i++) {
-      if (i + W < n) { sum += rise[i + W]; count++; }
-      if (i - W - 1 >= 0) { sum -= rise[i - W - 1]; count--; }
-      var d = rise[i] - sum / count;
-      out[i] = d > 0 ? d : 0;
-    }
-    return out;
-  }
-
-  // The tempo: the lag at which the onsets repeat best, leaning towards 120
-  // BPM (a log-normal weight), then the exact period and phase of the comb of
-  // beats that falls on the most onsets. In frames.
-  function tempo(nov, frameSec) {
-    var n = nov.length;
-    var minLag = Math.floor(60 / 200 / frameSec), maxLag = Math.ceil(60 / 60 / frameSec);
-    var best = -1, lag = minLag;
-    for (var l = minLag; l <= maxLag; l++) {
-      var s = 0;
-      for (var i = l; i < n; i++) s += nov[i] * nov[i - l];
-      var bpm = 60 / (l * frameSec);
-      var score = s / (n - l) * Math.exp(-0.5 * Math.pow(Math.log2(bpm / 120) / 0.9, 2));
-      if (score > best) { best = score; lag = l; }
-    }
-    // a beat a frame off still counts
-    var near = new Float32Array(n);
-    for (i = 0; i < n; i++) near[i] = Math.max(nov[i], i > 0 ? nov[i - 1] : 0, i + 1 < n ? nov[i + 1] : 0);
-    var period = lag, phase = 0;
-    best = -1;
-    for (var p = lag - 1.5; p <= lag + 1.5; p += 0.02) {
-      for (var ph = 0; ph < p; ph += 0.5) {
-        var sum = 0, beats = 0;
-        for (var t = ph; t < n - 0.5; t += p) { sum += near[Math.round(t)]; beats++; }
-        if (beats && sum / beats > best) { best = sum / beats; period = p; phase = ph; }
-      }
-    }
-    // a character per half beat reads best between 85 and 175 BPM
-    while (60 / (period * frameSec) < 85) period /= 2;
-    while (60 / (period * frameSec) >= 175) period *= 2;
-    return { period: period, phase: phase % period };
-  }
-
-  function strongest(values, from, to) {
-    var top = 0;
-    for (var i = Math.max(0, from); i <= to && i < values.length; i++) if (values[i] > top) top = values[i];
-    return top;
-  }
-  function mean(values, from, to) {
-    var sum = 0, count = 0;
-    for (var i = Math.max(0, from); i < to && i < values.length; i++) { sum += values[i]; count++; }
-    return count ? sum / count : 0;
-  }
-
-  // the onsets of a song's buffer, its bands and all of them together, each
-  // band as loud as the others; counted once a buffer
-  var featuresOf = typeof WeakMap === 'function' ? new WeakMap() : null;
-  function features(buffer) {
-    var kept = featuresOf && featuresOf.get(buffer);
-    if (kept) return kept;
-    var e = energies(buffer);
-    var all = novelty(e.all), low = novelty(e.low), high = novelty(e.high);
-    var n = all.length, mixed = new Float32Array(n);
-    var na = percentile(all, 0.99) || 1, nl = percentile(low, 0.99) || 1, nh = percentile(high, 0.99) || 1;
-    for (var i = 0; i < n; i++) mixed[i] = all[i] / na + low[i] / nl + high[i] / nh;
-    kept = { e: e, all: all, low: low, high: high, mixed: mixed };
-    if (featuresOf) featuresOf.set(buffer, kept);
-    return kept;
-  }
-
-  // The extended map of a song with a classic one: the classic map, with the
-  // later effects where its strongest beats fall. Of its blurs and cuts (x o
-  // -), the strongest 8% become slices (v s #) and the strongest 2% an
-  // inversion, never two within 16 characters, so only here and there.
-  var SLICES = { 'x': 'v', 'o': 's', '-': '#' };
-  function enrich(buffer, chars) {
-    var f = features(buffer), step = buffer.duration / chars.length, strength = [], ranked = [];
-    for (var c = 0; c < chars.length; c++) {
-      var s = -1;
-      if (SLICES[chars.charAt(c)]) {
-        var at = Math.round(c * step / f.e.frameSec);
-        s = strongest(f.mixed, at - 2, at + 2);
-        ranked.push(s);
-      }
-      strength.push(s);
-    }
-    if (!ranked.length) return chars;
-    ranked.sort(function (a, b) { return b - a; });
-    var slice = ranked[Math.floor(ranked.length * 0.08)], invert = ranked[Math.floor(ranked.length * 0.02)];
-    var out = chars.split(''), last = -16;
-    for (c = 0; c < chars.length; c++) {
-      if (strength[c] < 0 || c - last < 16 || strength[c] < slice) continue;
-      out[c] = strength[c] >= invert ? 'i' : SLICES[chars.charAt(c)];
-      last = c;
-    }
-    return out.join('');
-  }
-
-  // The beat string of a song: a character every half beat, from its onsets
-  // (the kick a horizontal blur, a snare or clap a vertical one, weaker ones a
-  // plain cut or a colour), quiet passages slow fades, and a blackout before a
-  // drop, which opens with a blur. A buildup takes the beat of its loop
-  // (fixed: the period and the first beat, in seconds), so it runs into it.
-  function analyse(buffer, fixed) {
-    var f = features(buffer), e = f.e;
-    var all = f.all, low = f.low, high = f.high, mixed = f.mixed, n = all.length;
-    var beat = fixed ? { period: fixed.period / e.frameSec, phase: fixed.phase / e.frameSec } : tempo(mixed, e.frameSec);
-    var step = beat.period / 2;
-    var count = Math.max(0, Math.floor((n - beat.phase) / step));
-
-    var lowOn = new Float32Array(count), highOn = new Float32Array(count), allOn = new Float32Array(count), loud = new Float32Array(count);
-    for (var c = 0; c < count; c++) {
-      var at = Math.round(beat.phase + c * step);
-      lowOn[c] = strongest(low, at - 2, at + 2);
-      highOn[c] = strongest(high, at - 2, at + 2);
-      allOn[c] = strongest(all, at - 2, at + 2);
-      loud[c] = mean(e.all, at, Math.round(at + step));
-    }
-    function normalise(values) {
-      var top = percentile(values, 0.9) || 1;
-      for (var k = 0; k < values.length; k++) values[k] = Math.min(2, values[k] / top);
-    }
-    normalise(lowOn); normalise(highOn); normalise(allOn);
-
-    // the first beat of a bar: the one of every four with the most kick
-    var bars = [0, 0, 0, 0];
-    for (c = 0; c < count; c += 2) bars[(c / 2) % 4] += lowOn[c];
-    var barPhase = bars.indexOf(Math.max.apply(null, bars));
-    // how loud the two bars around a character are, against the song's middle
-    var around = new Float32Array(count);
-    for (c = 0; c < count; c++) around[c] = mean(loud, c - 8, c + 8);
-    var middle = percentile(around, 0.5) || 1e-9;
-
-    var chars = [];
-    for (c = 0; c < count; c++) {
-      var on = c % 2 === 0, k = c >> 1;
-      var inBar = ((k - barPhase) % 4 + 4) % 4, bar = Math.floor((k - barPhase) / 4);
-      var ch = '.';
-      if (around[c] < 0.3 * middle) {
-        if (on && inBar === 0) ch = bar % 2 ? '=' : '~';
-        else if (on && allOn[c] > 0.9) ch = ':';
-      } else if (on) {
-        // the backbeat's snare or clap over a kick on every beat
-        if ((inBar & 1) && highOn[c] > 0.35 && (highOn[c] > 0.7 || highOn[c] > 1.2 * Math.max(highOn[c - 2] || 0, highOn[c + 2] || 0))) ch = 'x';
-        else if (lowOn[c] > 0.55 && lowOn[c] >= highOn[c]) ch = 'o';
-        else if (highOn[c] > 0.55) ch = 'x';
-        else if (allOn[c] > 0.4) ch = '-';
-        else if (allOn[c] > 0.2) ch = ':';
-        if (inBar === 3 && (bar & 3) === 3 && ch !== '.' && ch !== ':') ch = ['s', 'v', '#'][(bar >> 2) % 3];
-        else if (inBar === 0 && (bar & 7) === 4 && highOn[c] > 0.6) ch = 'i';
-      } else {
-        // between the beats only what stands out of both beats around it,
-        // or every half beat of a pop song would flash with its hats
-        var lowNear = Math.max(lowOn[c - 1] || 0, lowOn[c + 1] || 0);
-        var highNear = Math.max(highOn[c - 1] || 0, highOn[c + 1] || 0);
-        if (lowOn[c] > 1 && lowOn[c] > 1.2 * lowNear) ch = 'O';
-        else if (highOn[c] > 1.3 && highOn[c] > 1.3 * highNear) ch = 'X';
-        else if (allOn[c] > 1.2 && allOn[c] > Math.max(allOn[c - 1] || 0, allOn[c + 1] || 0)) ch = ':';
-      }
-      chars.push(ch);
-    }
-    // drops and the ends of loud passages, on the first beats of bars
-    var lastDrop = -64;
-    for (c = 16; c + 16 <= count; c += 2) {
-      k = c >> 1;
-      if (((k - barPhase) % 4 + 4) % 4 !== 0) continue;
-      var before = mean(loud, c - 16, c), after = mean(loud, c, c + 16);
-      if (after > 2.2 * before && after > 0.6 * middle && c - lastDrop >= 64) {
-        chars[c - 4] = '+';
-        chars[c - 3] = chars[c - 2] = chars[c - 1] = '.';
-        chars[c] = 'x';
-        lastDrop = c;
-      } else if (before > 2.2 * after && before > 0.6 * middle) {
-        chars[c - 2] = '|';
-      }
-    }
-    return {
-      bpm: 60 / (beat.period * e.frameSec),
-      start: beat.phase * e.frameSec,
-      step: step * e.frameSec,
-      chars: chars.join('')
-    };
   }
 
   // ---- the page ---------------------------------------------------------
@@ -346,7 +91,7 @@
   // the songs go to input, which feeds the volume (gain) and the analyser
   var audio = null, input = null, gain = null, analyser = null, sources = [];
   var song = -1, track = null, map = null, loading = 0;
-  var volume = 0.7;
+  var volume = 0.2;
   try {
     var kept = parseFloat(localStorage.getItem(VOLUME_KEY));
     if (kept >= 0 && kept <= 1) volume = kept;
@@ -537,9 +282,10 @@
     if (state.blackout && state.blackout.hold) state.blackout = { t0: t, release: t, out: 0.08 };
     state.invert = false;
     if (effect.colour) randomHue(effect.colour === 'fade' ? untilNext(c) : 0);
+    var before = state.image;
     if (effect.image) randomImage();
     if (effect.blur) state.blur = { axis: effect.blur, t0: t };
-    if (effect.slice) state.slice = { axis: effect.slice, t0: t, seed: Math.random() * 1000 };
+    if (effect.slice) state.slice = { axis: effect.slice, t0: t, seed: Math.random() * 1000, from: before };
     if (effect.invert) state.invert = true;
     if (effect.blackout === 'hold') state.blackout = { t0: t, hold: true };
     if (effect.blackout === 'short') state.blackout = { t0: t, release: t + Math.min(0.12, map.step * 0.5), out: map.step * 0.6 };
@@ -695,7 +441,13 @@
     if (slice) {
       var amount = rect.h * 0.08 * Math.exp(-(t - slice.t0) / 0.12);
       if (amount < 0.5) state.slice = null;
-      else return drawSlices(src, rect, alpha, slice, amount);
+      else {
+        // the picture it cuts from, if it changed (not when locked)
+        var old = slice.from >= 0 && slice.from !== index && images[slice.from] ? images[slice.from] : null;
+        var oldSrc = old ? frameOf(old) : src;
+        return drawSlices({ src: src, rect: rect }, { src: oldSrc, rect: old ? imageRect(old, oldSrc) : rect },
+          alpha, slice, amount, 1 - amount / (rect.h * 0.08));
+      }
     }
     if (!d) {
       g.globalAlpha = alpha;
@@ -799,20 +551,28 @@
   }
 
   // the picture cut into strips moved apart, which close up again
-  function drawSlices(src, rect, alpha, slice, amount) {
+  // A slice cuts between the picture there was and the new one: each strip
+  // of either, more of the new one as the shifts settle (done: 0 to 1)
+  function drawSlices(fresh, old, alpha, slice, amount, done) {
     var strips = 14;
     g.globalAlpha = alpha;
+    function noise(i, k, scale) {
+      var r = Math.sin(slice.seed + i * k) * scale;
+      return r - Math.floor(r);
+    }
     for (var i = 0; i < strips; i++) {
-      var r = Math.sin(slice.seed + i * 12.9898) * 43758.5453;
-      var shift = (r - Math.floor(r) - 0.5) * 2 * amount;
-      var r2 = Math.sin(slice.seed + i * 78.233) * 12345.6789;
-      var shift2 = (r2 - Math.floor(r2) - 0.5) * 2 * amount;
-      if (slice.axis !== 'v')
-        g.drawImage(src, 0, i * rect.ih / strips, rect.iw, rect.ih / strips,
-          rect.x + shift, rect.y + i * rect.h / strips, rect.w, rect.h / strips);
-      if (slice.axis !== 'h')
-        g.drawImage(src, i * rect.iw / strips, 0, rect.iw / strips, rect.ih,
-          rect.x + i * rect.w / strips, rect.y + shift2, rect.w / strips, rect.h);
+      var shift = (noise(i, 12.9898, 43758.5453) - 0.5) * 2 * amount;
+      var shift2 = (noise(i, 78.233, 12345.6789) - 0.5) * 2 * amount;
+      if (slice.axis !== 'v') {
+        var a = noise(i, 39.3468, 24634.6345) < 0.4 + 0.6 * done ? fresh : old, ra = a.rect;
+        g.drawImage(a.src, 0, i * ra.ih / strips, ra.iw, ra.ih / strips,
+          ra.x + shift, ra.y + i * ra.h / strips, ra.w, ra.h / strips);
+      }
+      if (slice.axis !== 'h') {
+        var b = noise(i, 93.9898, 35791.2468) < 0.4 + 0.6 * done ? fresh : old, rb = b.rect;
+        g.drawImage(b.src, i * rb.iw / strips, 0, rb.iw / strips, rb.ih,
+          rb.x + i * rb.w / strips, rb.y + shift2, rb.w / strips, rb.h);
+      }
     }
   }
 

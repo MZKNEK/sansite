@@ -51,7 +51,7 @@
     <div class="hues-controls">
       <button class="player-btn hud-corners" id="hues-pause" type="button" aria-label="Pauza" aria-pressed="false" title="Pauza (Spacja)"><svg class="when-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg><svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z" /></svg></button>
       <button class="player-btn hud-corners" id="hues-mute" type="button" aria-label="Wycisz" aria-pressed="false" title="Wycisz (M)"><svg class="when-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /></svg><svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zm12 0 6 6m0-6-6 6" /></svg></button>
-      <input class="player-range player-volume" id="hues-volume" type="range" min="0" max="100" step="1" value="70" aria-label="Głośność" />
+      <input class="player-range player-volume" id="hues-volume" type="range" min="0" max="100" step="1" value="20" aria-label="Głośność" />
       <span class="hues-gap"></span>
       <button class="hud-button hud-corners" id="hues-lock" type="button" aria-pressed="false" title="Zablokuj obraz (K)">Blokada obrazu</button>
       <button class="player-btn hud-corners" id="hues-settings-toggle" type="button" aria-label="Ustawienia" aria-expanded="false" aria-controls="hues-settings" title="Ustawienia (S)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg></button>
@@ -235,7 +235,7 @@
         <dt>|</dt><dd>krótkie wygaszenie</dd>
         <dt>+</dt><dd>wygaszenie do następnego znaku</dd>
         <dt>i</dt><dd>odwrócenie kolorów (rozszerzone)</dd>
-        <dt>s v #</dt><dd>cięcie obrazu w poziomie, w pionie, w obu (rozszerzone)</dd>
+        <dt>s v #</dt><dd>cięcie do nowego obrazu w poziomie, w pionie, w obu (rozszerzone)</dd>
         <dt>.</dt><dd>nic</dd>
       </dl>
       <dl class="hues-keys">
@@ -262,7 +262,8 @@
     <p class="hues-picker-empty" id="hues-picker-empty" hidden>Nic nie pasuje.</p>
   </section>
 
-  <script src="hues.js?v=6c222d2918"></script>
+  <script src="beats.js?v=a741788131"></script>
+  <script src="hues.js?v=e757f89fd1"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 
