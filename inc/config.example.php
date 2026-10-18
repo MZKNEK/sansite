@@ -56,6 +56,12 @@
         // '234567890123456789',
     ];
 
+    // Accounts at LV.2 (VIP_ROLE in inc/auth/config.php; the panel can add
+    // more). It counts only with a role on the bot's server, user and up. Optional.
+    const VIP_ACCOUNTS = [
+        // '345678901234567890',
+    ];
+
     // Key of this site's application in the bot API, sent as x-app-key; it needs
     // the Info right (Site covers it too). With it the site asks the bot for the
     // roles of the logged-in account on its Discord server: dev, admin,

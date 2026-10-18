@@ -126,7 +126,7 @@
     const TEST_ROLE_OUT = 'out';
 
     // ['panel' => bool, 'gallery' => key of TEST_GALLERY, 'api' => bool, 'role'
-    // => key of BOT_ROLES or TEST_ROLE_OUT, 'until' => time; each one null for
+    // => key of roleLevels() or TEST_ROLE_OUT, 'until' => time; each one null for
     // the real one] the logged-in account is trying, or null; with $id only
     // when that is its account. $reset reads the session again.
     function testRights($id = null, $reset = false)
@@ -172,7 +172,7 @@
         if (isset($test['api']))
             $parts[] = 'lista API: ' . ($test['api'] ? 'tak' : 'nie');
         if (isset($test['role']))
-            $parts[] = 'rola: ' . ($test['role'] === TEST_ROLE_OUT ? 'poza serwerem' : BOT_ROLES[$test['role']][2]);
+            $parts[] = 'rola: ' . ($test['role'] === TEST_ROLE_OUT ? 'poza serwerem' : roleLevels()[$test['role']][2]);
 
         return $parts ? implode(' · ', $parts) : 'prawdziwe uprawnienia';
     }

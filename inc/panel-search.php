@@ -141,7 +141,7 @@
 <?php if ($s['accounts']): ?>
         <h3 class="diag-title" id="konta">Konta <span class="muted"><?=formatCount($s['accountsTotal'])?></span></h3>
         <div class="logins logins-search">
-<?php foreach ($s['accounts'] as $id => $why): $id = (string)$id; $badge = roleBadge($knownRoles[$id]['roles'] ?? null); ?>
+<?php foreach ($s['accounts'] as $id => $why): $id = (string)$id; $badge = roleBadge(withVip($id, $knownRoles[$id]['roles'] ?? null)); ?>
           <div class="login-row">
             <span class="login-who"><?=accountCell($id, $s['logins'])?></span>
             <span class="login-when">znalezione po: <?=e($why)?></span>

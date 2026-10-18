@@ -343,7 +343,7 @@
                 'id' => $id,
                 'name' => (string)($known['name'] ?? '') !== '' ? (string)$known['name'] : 'Nieznany łowca',
                 'avatar' => (string)($known['avatar'] ?? ''),
-                'badge' => isset($roles[$id]['roles']) ? roleBadge($roles[$id]['roles']) : null,
+                'badge' => isset($roles[$id]['roles']) ? roleBadge(withVip($id, $roles[$id]['roles'])) : null,
                 'finds' => $finds,
                 'count' => count($counted),
                 'reached' => $counted ? max($counted) : min($finds),

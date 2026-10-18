@@ -73,6 +73,22 @@
                 $access[] = [$label, false, '', $list];
         }
 
+        // LV.2 of the panel: granted only with a role on the bot's server, and
+        // it counts only while the role is there
+        $vipEntry = panelList('vipAccounts')[$id] ?? null;
+        $vipConfig = configList('VIP_ACCOUNTS');
+        $vipFrom = $vipConfig !== true && in_array($id, $vipConfig, true) ? 'inc/config.php'
+            : ($vipEntry !== null ? 'panel' . (!empty($vipEntry['added']) ? ', ' . date('j.m.Y', $vipEntry['added']) : '')
+                . (!empty($vipEntry['by']) ? ', nadał(a) ' . ($logins[$vipEntry['by']]['name'] ?? $vipEntry['by']) : '')
+                . (($vipEntry['note'] ?? '') !== '' ? ': „' . $vipEntry['note'] . '”' : '') : '');
+        $vipRole = hasServerRole($id);
+        if ($vipFrom === '')
+            $access[] = ['LV.2 VIP (WAP)', false, $vipRole ? '' : 'nadawany tylko z rolą na serwerze bota', $vipRole ? 'vipAccounts' : null];
+        else if (!$vipRole)
+            $access[] = ['LV.2 VIP (WAP)', false, 'na liście (' . $vipFrom . '), ale bez roli na serwerze bota', null];
+        else
+            $access[] = ['LV.2 VIP (WAP)', true, $vipFrom, $vipEntry !== null ? 'vipAccounts' : null];
+
         $requests = [];
         foreach (REQUEST_LABELS as $for => $label)
             if ($request = pendingRequest($for, $id))
@@ -98,7 +114,7 @@
             'id' => $id,
             'login' => $logins[$id] ?? null,
             'name' => $logins[$id]['name'] ?? 'nieznane konto',
-            'roles' => $rolesEntry['roles'] ?? null,
+            'roles' => withVip($id, $rolesEntry['roles'] ?? null),
             'rolesChecked' => $rolesEntry['checked'] ?? null,
             'seen' => max($lastAddress, $logins[$id]['last'] ?? 0),
             'loggedOut' => accountSessionsSince($id),

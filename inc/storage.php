@@ -57,10 +57,10 @@
         if ($data !== [] && array_is_list($data))
             return false;
         if ($name === 'access') {
-            foreach (['galleryAdmins', 'galleryViewers', 'galleryUploaders', 'galleryPrivate', 'apiViewers', 'uploadLimits', 'galleryLimitOverrides'] as $key)
+            foreach (['galleryAdmins', 'galleryViewers', 'galleryUploaders', 'galleryPrivate', 'apiViewers', 'vipAccounts', 'uploadLimits', 'galleryLimitOverrides'] as $key)
                 if (array_key_exists($key, $data) && !is_array($data[$key]))
                     return false;
-            foreach (['galleryAdmins', 'galleryViewers', 'galleryUploaders', 'galleryPrivate', 'apiViewers'] as $key)
+            foreach (['galleryAdmins', 'galleryViewers', 'galleryUploaders', 'galleryPrivate', 'apiViewers', 'vipAccounts'] as $key)
                 foreach ($data[$key] ?? [] as $entry)
                     if (!is_array($entry)) return false;
             foreach ($data['uploadLimits'] ?? [] as $value)

@@ -7,7 +7,8 @@
         'galleryViewers' => 'oglądający galerię',
         'galleryUploaders' => 'zablokowany własny folder w galerii',
         'galleryPrivate' => 'prywatny folder w galerii',
-        'apiViewers' => 'dostęp do API'
+        'apiViewers' => 'dostęp do API',
+        'vipAccounts' => 'LV.2 VIP'
     ];
 
     // title and description of the card of each list
@@ -18,7 +19,8 @@
             . USER_FILES_DEFAULT . ' zdjęć, limit zmienia się w profilu konta; każde do ' . USER_FILE_MAX_BYTES / 1048576 . ' MB, razem do ' . USER_TOTAL_MAX_BYTES / 1048576
             . ' MB, zapisywane jako WebP, gdy wychodzi mniejszy; to, co z niego usunie, czeka w koszu do ' . USER_TRASH_MAX_BYTES / 1048576 . ' MB. Konta z tej listy mają go zablokowanego, a konto bez roli go nie ma; folder i pliki zostają.'],
         'galleryPrivate' => ['Prywatny folder galerii', 'Widzą i/' . PRIVATE_DIR . '. Administratorzy panelu zawsze, reszta z tej listy. Pliki nie otwierają się bezpośrednim linkiem.'],
-        'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.']
+        'apiViewers' => ['Dostęp do API', 'Czytają dokumentację API w api/. Administratorzy panelu mają ją zawsze, a z ról na serwerze bota dev, admin, semi-admin i tester.'],
+        'vipAccounts' => ['LV.2 VIP', 'Poziom nadawany tutaj, tylko kontom z rolą na serwerze bota (od user w górę); bez roli przestaje działać, a wpis zostaje. Daje WAP (wap/), którego wyższa rola na serwerze nie zastępuje; administratorzy panelu mają go zawsze. Na odznace widać wyższą rolę, gdy konto ją ma.']
     ];
 
     // name of an account from the recent logins, or its ID
@@ -196,6 +198,9 @@
         } else {
             $cells['api'] = ['—', '', 'Bez dokumentacji API'];
         }
+
+        if (inAccessList('vipAccounts', $id, false))
+            $details[] = ['LV.2 VIP', $join(hasServerRole($id) ? 'daje WAP' : 'bez roli na serwerze bota, nie działa', accessFrom('vipAccounts', $id, $logins))];
 
         $details[] = ['Role na serwerze bota', $serverRoles === null ? 'nieznane (bot jeszcze nie pytany)' : (roleNames($serverRoles) ? implode(', ', roleNames($serverRoles)) : (empty($serverRoles['onGuild']) ? 'poza serwerem' : 'brak'))];
 

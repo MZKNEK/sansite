@@ -177,17 +177,18 @@ html:not([data-skin])[data-hud="full"] {
 .role-semiAdmin { --role: #f0a35e; --role-rgb: 240, 163, 94; --role-light-rgb: 246, 192, 140; --role-dark-rgb: 176, 110, 47; }
 .role-tester { --role: #e8d36a; --role-rgb: 232, 211, 106; --role-light-rgb: 240, 226, 154; --role-dark-rgb: 171, 154, 56; }
 .role-moderator { --role: #5fd38d; --role-rgb: 95, 211, 141; --role-light-rgb: 143, 227, 175; --role-dark-rgb: 55, 156, 94; }
+.role-vip { --role: #5aa9f0; --role-rgb: 90, 169, 240; --role-light-rgb: 138, 195, 245; --role-dark-rgb: 52, 115, 176; }
 .role-user { --role: #b670d3; --role-rgb: 182, 112, 211; --role-light-rgb: 182, 112, 211; --role-dark-rgb: 113, 59, 135; }
 .role-none,
 .role-out { --role: #80848e; --role-rgb: 128, 132, 142; --role-light-rgb: 160, 164, 173; --role-dark-rgb: 85, 88, 95; }
 
 /* Text in a role's colour: the role itself on dark skins, mixed with the text
    on light ones, where the bright role colours lack contrast. */
-:where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-user, .role-none, .role-out) {
+:where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-vip, .role-user, .role-none, .role-out) {
     --role-ink: var(--role);
 }
-:root:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"]):where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-user, .role-none, .role-out),
-:root:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"]) :where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-user, .role-none, .role-out) {
+:root:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"]):where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-vip, .role-user, .role-none, .role-out),
+:root:where([data-skin="echidna"], [data-skin="custom"][data-skin-base="light"]) :where(.role-dev, .role-admin, .role-semiAdmin, .role-tester, .role-moderator, .role-vip, .role-user, .role-none, .role-out) {
     --role-ink: color-mix(in srgb, var(--role) 40%, var(--text));
 }
 

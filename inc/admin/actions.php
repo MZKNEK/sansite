@@ -46,6 +46,8 @@
                 $config = configList(ACCESS_LISTS[$list]);
                 if ($config !== true && in_array($id, $config, true))
                     reply(false, 'To konto jest już na tej liście w konfiguracji.', 409);
+                if ($list === 'vipAccounts' && !hasServerRole($id))
+                    reply(false, 'LV.2 dostaje tylko konto z rolą na serwerze bota (od user w górę), potwierdzoną przez bota w ostatniej dobie.', 409);
 
                 $entry = [
                     'note' => cutText(trim((string)($_POST['note'] ?? '')), 60),
@@ -65,10 +67,11 @@
                 // a request of this account is answered now; the right is written
                 // first, and a request a failure here leaves goes at the next look
                 // at the panel (the requests of accounts let in are dropped there)
-                $for = $list === 'apiViewers' ? 'api' : 'gallery';
-                updateData('requests', function (&$requests) use ($for, $id) {
-                    unset($requests[$for][$id]);
-                });
+                $for = $list === 'apiViewers' ? 'api' : ($list === 'vipAccounts' ? null : 'gallery');
+                if ($for !== null)
+                    updateData('requests', function (&$requests) use ($for, $id) {
+                        unset($requests[$for][$id]);
+                    });
                 done('access', 'Dodano ' . accountLabel($id, $logins) . ': ' . LIST_LABELS[$list] . '.');
 
             case 'revoke':
@@ -108,7 +111,7 @@
                 $role = (string)($_POST['role'] ?? '');
                 $minutes = (int)($_POST['minutes'] ?? 0);
                 if (!in_array($panel, ['', '0', '1'], true) || ($gallery !== '' && !isset(TEST_GALLERY[$gallery])) || !in_array($private, ['', '0', '1'], true)
-                        || !in_array($api, ['', '0', '1'], true) || ($role !== '' && $role !== TEST_ROLE_OUT && !isset(BOT_ROLES[$role])) || !in_array($minutes, TEST_MINUTES, true))
+                        || !in_array($api, ['', '0', '1'], true) || ($role !== '' && $role !== TEST_ROLE_OUT && !isset(roleLevels()[$role])) || !in_array($minutes, TEST_MINUTES, true))
                     reply(false, 'Złe ustawienie podglądu, odśwież stronę.', 400);
                 $rights = array_filter([
                     'panel' => $panel === '' ? null : $panel === '1',

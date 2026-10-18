@@ -36,8 +36,8 @@
           <label class="hud-field">
             <span class="hud-field-label">Rola na serwerze bota</span>
             <span class="hud-select"><select name="role"><option value="">bez zmian</option>
-<?php foreach (BOT_ROLES as $key => [$level, $badgeLabel, $name]): ?>
-              <option value="<?=e($key)?>"<?=$key === 'user' ? ' selected' : ''?>><?=e($name)?> (LV.<?=$level?>)</option>
+<?php foreach (roleLevels() as $key => [$level, $badgeLabel, $name]): ?>
+              <option value="<?=e($key)?>"<?=$key === 'user' ? ' selected' : ''?>><?=e($name)?> (LV.<?=$level?><?=$key === 'vip' ? ', z rolą user' : ''?>)</option>
 <?php endforeach; ?>
               <option value="<?=TEST_ROLE_OUT?>">poza serwerem</option>
             </select><svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg></span>
@@ -77,6 +77,9 @@
             <?=accountCell($entry['id'], $logins)?>
 <?php if ($entry['note'] !== ''): ?>
             <span class="note"><?=e($entry['note'])?></span>
+<?php endif; ?>
+<?php if ($list === 'vipAccounts' && !hasServerRole($entry['id'])): ?>
+            <span class="note" title="LV.2 działa tylko z rolą na serwerze bota (od user w górę), potwierdzoną w ostatniej dobie">bez roli, nie działa</span>
 <?php endif; ?>
 <?php if ($entry['config']): ?>
             <span class="badge-config" title="Ustawione w inc/config.php">config</span>
@@ -126,7 +129,7 @@
 <?php foreach ($logins as $id => $login):
         $id = (string)$id;
         // the highest role on the bot's server, the others in its title
-        $serverRoles = $knownRoles[$id]['roles'] ?? null;
+        $serverRoles = withVip($id, $knownRoles[$id]['roles'] ?? null);
         $badge = roleBadge($serverRoles);
         [$cells, $details] = accessColumns($id, $logins, $galleryDir, $serverRoles);
 ?>
@@ -135,7 +138,7 @@
             <span class="login-when"><?=e(ago($login['last'] ?? 0))?> &middot; <?=(int)($login['count'] ?? 0)?>&times;</span>
             <span class="login-lv">
 <?php if ($badge): ?>
-              <span class="lv role-<?=e($badge['key'])?>" title="<?=e(roleNames($serverRoles) ? 'Role na serwerze Sanakana: ' . implode(', ', roleNames($serverRoles)) : $badge['title'])?>">LV.<?=$badge['level']?> <?=e($badge['name'])?></span>
+              <span class="lv role-<?=e($badge['key'])?>" title="<?=e(roleNames($serverRoles) ? ($badge['key'] === 'vip' ? $badge['title'] . ' · ' : '') . 'Role na serwerze Sanakana: ' . implode(', ', roleNames($serverRoles)) : $badge['title'])?>">LV.<?=$badge['level']?> <?=e($badge['name'])?></span>
 <?php endif; ?>
             </span>
 <?php foreach (ACCESS_COLUMNS as $column => $label): [$text, $level, $title] = $cells[$column]; ?>
@@ -166,6 +169,9 @@
 <?php endif; ?>
 <?php if (!canViewApiId($id)): ?>
                 <button type="button" class="admin-btn small" data-action="grant" data-list="apiViewers" data-id="<?=e($id)?>">+ API</button>
+<?php endif; ?>
+<?php if (hasServerRole($id) && !inAccessList('vipAccounts', $id, false)): ?>
+                <button type="button" class="admin-btn small" data-action="grant" data-list="vipAccounts" data-id="<?=e($id)?>">+ LV.2 VIP</button>
 <?php endif; ?>
                 <a class="admin-btn small" href="?konto=<?=e($id)?>">Profil konta, odbieranie</a>
               </div>

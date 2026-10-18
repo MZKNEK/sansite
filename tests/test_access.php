@@ -88,3 +88,29 @@
         assertSame(5, userFilesLimit('333'));
         assertSame(USER_FILES_DEFAULT, userFilesLimit('888'));
     });
+
+    test('LV.2 VIP counts only with a role on the bot server, under a higher one on the badge', function () {
+        writeData('roles', [
+            '580' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()],
+            '581' => ['roles' => ['onGuild' => true, 'moderator' => true, 'user' => true], 'checked' => time()],
+            '582' => ['roles' => ['onGuild' => true], 'checked' => time()],
+            '583' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()],
+        ]);
+        $entry = ['note' => '', 'added' => 1, 'by' => '999'];
+        writeData('access', ['vipAccounts' => ['580' => $entry, '581' => $entry, '582' => $entry]]);
+
+        assertTrue(isVipId('580'));
+        $badge = roleBadge(botRoles('580'));
+        assertSame(['vip', 2, 'VIP'], [$badge['key'], $badge['level'], $badge['label']]);
+        assertSame(['user'], roleNames(botRoles('580')), 'not a role of the server');
+
+        assertTrue(isVipId('581'), 'a higher role keeps the level');
+        assertSame('moderator', roleBadge(botRoles('581'))['key'], 'and shows instead of it');
+
+        assertFalse(isVipId('582'), 'on the list without a role');
+        assertSame('none', roleBadge(botRoles('582'))['key']);
+        assertFalse(isVipId('583'), 'a role without the list');
+        assertSame('user', roleBadge(botRoles('583'))['key']);
+        assertSame('vip', roleBadge(withVip('580', ['onGuild' => true, 'user' => true]))['key'], 'roles.json as it is read');
+        assertNull(withVip('580', null));
+    });

@@ -73,8 +73,8 @@
         return is_array($data) ? $data : null;
     }
 
-    // The flags of an account (onGuild and the keys of BOT_ROLES), or null when
-    // the bot was never asked; $refresh asks it again when the answer is old.
+    // The flags of an account (onGuild, the keys of BOT_ROLES and vip, see
+    // withVip()), or null when the bot was never asked; $refresh asks it again when the answer is old.
     // With $trusted, for what the account may do, also null when the bot last
     // confirmed them more than BOT_ROLES_TRUSTED ago, so a role taken away on
     // Discord stops counting while the bot does not answer; the old ones still
@@ -84,9 +84,11 @@
         // a role being tried: only that one, on the server or off it
         $test = testRights($id);
         if (isset($test['role'])) {
+            // vip comes with user, as it can only be granted with a role
             $roles = ['onGuild' => $test['role'] !== TEST_ROLE_OUT];
             foreach (array_keys(BOT_ROLES) as $role)
-                $roles[$role] = $role === $test['role'];
+                $roles[$role] = $role === $test['role'] || ($role === 'user' && $test['role'] === 'vip');
+            $roles['vip'] = $test['role'] === 'vip';
             return $roles;
         }
 
@@ -127,7 +129,27 @@
         if ($trusted && time() - (int)($entry['checked'] ?? 0) > BOT_ROLES_TRUSTED)
             return null;
 
-        return $entry['roles'] ?? null;
+        return withVip($id, $entry['roles'] ?? null);
+    }
+
+    // The roles the bot reported ($roles, as roles.json keeps them) with
+    // 'vip', the level the panel grants (VIP_ROLE): true when the account is
+    // on the vipAccounts list and has a role on the bot's server, user and up,
+    // so it stops counting with the role and comes back with it. Null stays
+    // null.
+    function withVip($id, $roles)
+    {
+        if ($roles === null)
+            return null;
+
+        $roles['vip'] = false;
+        foreach (array_keys(BOT_ROLES) as $role)
+            if (!empty($roles[$role])) {
+                $roles['vip'] = inAccessList('vipAccounts', (string)$id, false);
+                break;
+            }
+
+        return $roles;
     }
 
     // roles of the logged-in account, asked again when old, or null
@@ -138,12 +160,20 @@
         return $user === null ? null : botRoles($user['id'], true, $trusted);
     }
 
-    // any role on the bot's server, user and up: the logged-in account's asked
-    // again when the answer is old (siteRoles()), another's as the bot said last
-    function hasServerRole($id)
+    // the roles an account may do things with: the logged-in account's asked
+    // again when the answer is old (siteRoles()), another's as the bot said
+    // last; null when the bot has not confirmed them lately (botRoles())
+    function trustedRoles($id)
     {
         $user = siteUser();
-        $roles = $user !== null && (string)$user['id'] === (string)$id ? siteRoles(true) : botRoles($id, false, true);
+
+        return $user !== null && (string)$user['id'] === (string)$id ? siteRoles(true) : botRoles($id, false, true);
+    }
+
+    // any role on the bot's server, user and up
+    function hasServerRole($id)
+    {
+        $roles = trustedRoles($id);
         foreach (array_keys(BOT_ROLES) as $role)
             if (!empty($roles[$role]))
                 return true;
@@ -161,22 +191,40 @@
         return false;
     }
 
-    // the highest role as ['key', 'level', 'label', 'name', 'title'], or null when unknown
+    // LV.2 of the panel (VIP_ROLE), with a role on the bot's server
+    function isVipId($id)
+    {
+        return !empty(trustedRoles($id)['vip']);
+    }
+
+    // every level an account can show, highest first: the roles of the bot's
+    // server and the one the panel grants
+    function roleLevels()
+    {
+        $levels = BOT_ROLES + ['vip' => VIP_ROLE];
+        uasort($levels, function ($a, $b) { return $b[0] <=> $a[0]; });
+
+        return $levels;
+    }
+
+    // the highest level as ['key', 'level', 'label', 'name', 'title'], or null when unknown
     function roleBadge($roles)
     {
         if ($roles === null)
             return null;
 
-        foreach (BOT_ROLES as $key => [$level, $label, $name])
+        foreach (roleLevels() as $key => [$level, $label, $name])
             if (!empty($roles[$key]))
-                return ['key' => $key, 'level' => $level, 'label' => $label, 'name' => $name, 'title' => 'Rola na serwerze Sanakana: ' . $name];
+                return ['key' => $key, 'level' => $level, 'label' => $label, 'name' => $name,
+                    'title' => ($key === 'vip' ? 'Poziom nadany na stronie Sanakana: ' : 'Rola na serwerze Sanakana: ') . $name];
 
         return empty($roles['onGuild'])
             ? ['key' => 'out', 'level' => 0, 'label' => 'POZA SERWEREM', 'name' => 'poza serwerem', 'title' => 'Tego konta nie ma na serwerze Sanakana']
             : ['key' => 'none', 'level' => 0, 'label' => 'BEZ ROLI', 'name' => 'bez roli', 'title' => 'Konto nie ma roli na serwerze Sanakana'];
     }
 
-    // every role of an account, highest first, by its name in the panel
+    // every role of an account on the bot's server, highest first, by its name
+    // in the panel (not the level the panel grants)
     function roleNames($roles)
     {
         $names = [];

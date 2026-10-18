@@ -31,7 +31,7 @@
   <link href="../css/style.css?v=e72561c5d0" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../css/skins.css?v=e7e220aaa9" type="text/css" rel="stylesheet" />
+  <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=e330d129f9" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>

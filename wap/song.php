@@ -1,8 +1,8 @@
 <?php
     // One song of WAP from .mu/ (song.php?f=name), for those inc/members.php
-    // lets in.
+    // lets in (wapAllowed()).
     require __DIR__ . '/../inc/members.php';
-    memberGate(false);
+    memberGate(false, wapAllowed());
 
     sendMemberFile(__DIR__ . '/.mu', $_GET['f'] ?? '', [
         'mp3' => 'audio/mpeg',

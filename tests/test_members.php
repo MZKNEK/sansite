@@ -5,6 +5,12 @@
     require_once __DIR__ . '/../inc/hues-centres.php';
     require_once __DIR__ . '/../wap/tags.php';
 
+    // a login is configured, so memberAllowed() and wapAllowed() answer
+    if (!defined('DISCORD_CLIENT_ID')) define('DISCORD_CLIENT_ID', 'test');
+    if (!defined('DISCORD_CLIENT_SECRET')) define('DISCORD_CLIENT_SECRET', 'test');
+    if (!defined('DISCORD_REDIRECT_URI')) define('DISCORD_REDIRECT_URI', 'https://example.test/auth/discord/');
+    if (!defined('PANEL_ADMINS')) define('PANEL_ADMINS', ['999']);
+
     // an MP3 of nothing but an ID3v1 tag
     function id3v1Song($title, $artist)
     {
@@ -118,4 +124,34 @@
         assertTrue(setPackHuesCentre($file, 'Alpha', null));
         assertTrue(setPackHuesCentre($file, 'Beta', null));
         assertSame('{}', json_encode(json_decode(file_get_contents($file))->centres), 'no middles stay an object');
+    });
+
+    test('WAP lets in LV.2 and the owners, not a higher role alone', function () {
+        writeData('roles', [
+            '590' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()],
+            '591' => ['roles' => ['onGuild' => true, 'dev' => true, 'user' => true], 'checked' => time()],
+        ]);
+        writeData('access', ['vipAccounts' => ['590' => ['note' => '', 'added' => 1, 'by' => '999']]]);
+
+        $allowed = function ($id) {
+            sessionFor('sanakan-wap-' . $id, ['id' => $id, 'name' => 'Test', 'avatar' => 'a']);
+            $result = [memberAllowed(), wapAllowed()];
+            sessionEnd();
+            return $result;
+        };
+        assertSame([true, true], $allowed('590'), 'LV.2');
+        assertSame([true, false], $allowed('591'), 'a dev without LV.2 gets 0x40 only');
+        assertSame([true, true], $allowed('999'), 'an owner');
+        assertSame([false, false], $allowed('592'), 'no role');
+
+        // the owner trying LV.2 without the panel
+        sessionFor('sanakan-wap-test', ['id' => '999', 'name' => 'Root', 'avatar' => 'a']);
+        setTestRights(['panel' => false, 'role' => 'vip'], 15);
+        assertTrue(wapAllowed());
+        assertSame('vip', roleBadge(siteRoles())['key']);
+        assertContains('rola: vip', testRightsText(testRights('999')));
+        setTestRights(['panel' => false, 'role' => 'admin'], 15);
+        assertFalse(wapAllowed());
+        setTestRights(null);
+        sessionEnd();
     });

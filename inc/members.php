@@ -1,9 +1,10 @@
 <?php
     // The pages only for the members of the bot's server, 0x40 (hues/) and WAP
-    // (wap/): an account logged in with Discord that has a role on the bot's
-    // server (user and up, hasServerRole()), or an owner of the site
-    // (PANEL_ADMINS, isPanelAdminId(), so the rights an admin tries in the
-    // panel count). Everyone else, logged in or not, gets the site's 403 page.
+    // (wap/): 0x40 for an account logged in with Discord that has a role on the
+    // bot's server (user and up, hasServerRole()), WAP only for one at LV.2,
+    // the level the panel grants (isVipId(), VIP_ROLE); both for an owner of
+    // the site (PANEL_ADMINS, isPanelAdminId(), so the rights an admin tries in
+    // the panel count). Everyone else, logged in or not, gets the site's 403 page.
     // Their media lie in dot folders (hues/.pack/, wap/.mu/), which nginx
     // refuses like any dot folder, so they go out only through
     // sendMemberFile() (hues/pack.php, wap/song.php).
@@ -17,6 +18,17 @@
         $user = siteUser();
 
         return $user !== null && (isPanelAdminId($user['id']) || hasServerRole($user['id']));
+    }
+
+    // WAP (wap/): LV.2 of the panel, which a higher role on the bot's server
+    // does not replace, or an owner of the site
+    function wapAllowed()
+    {
+        if (!authConfigured())
+            return false;
+        $user = siteUser();
+
+        return $user !== null && (isPanelAdminId($user['id']) || isVipId($user['id']));
     }
 
     // an owner of the site only (hues/centres.php)

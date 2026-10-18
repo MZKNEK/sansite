@@ -24,6 +24,7 @@
         'semiAdmin' => 'Pomarańcz',
         'tester'    => 'Złoto',
         'moderator' => 'Zieleń',
+        'vip'       => 'Błękit',
         'user'      => 'Fiolet',
         'out'       => 'Szarość'
     ];
@@ -31,7 +32,7 @@
     // every role colour as a hex, for the swatches in the profile
     const HUD_COLOR_HEX = [
         'dev' => '#4fd1c5', 'admin' => '#e86262', 'semiAdmin' => '#f0a35e', 'tester' => '#e8d36a',
-        'moderator' => '#5fd38d', 'user' => '#b670d3', 'out' => '#80848e', 'none' => '#80848e'
+        'moderator' => '#5fd38d', 'vip' => '#5aa9f0', 'user' => '#b670d3', 'out' => '#80848e', 'none' => '#80848e'
     ];
 
     // what an account picked: the mode and the colour, both with a safe default.
@@ -72,11 +73,11 @@
     }
 
     // who picks the colour: an account with a role on the bot's server (user
-    // and up, $badge of roleBadge()) and the panel admins; the others keep the
-    // colour of their own role, which for them is the site's purple
+    // and up, LV.2 among them, $badge of roleBadge()) and the panel admins; the
+    // others keep the colour of their own role, which for them is the site's purple
     function canPickHudColor($id, $badge)
     {
-        return isPanelAdminId($id) || isset(BOT_ROLES[$badge['key'] ?? '']);
+        return isPanelAdminId($id) || isset(roleLevels()[$badge['key'] ?? '']);
     }
 
     function setHud($id, $mode, $color)

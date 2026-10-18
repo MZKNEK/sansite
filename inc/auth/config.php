@@ -28,7 +28,8 @@
         'galleryViewers' => 'GALLERY_VIEWERS',
         'galleryUploaders' => 'GALLERY_UPLOADERS',
         'galleryPrivate' => 'GALLERY_PRIVATE',
-        'apiViewers' => 'API_VIEWERS'
+        'apiViewers' => 'API_VIEWERS',
+        'vipAccounts' => 'VIP_ACCOUNTS'
     ];
 
     // what an account can ask for, as it reads after "dostęp do"
@@ -45,6 +46,13 @@
         'moderator' => [3, 'MOD', 'moderator'],
         'user' => [1, 'USER', 'user']
     ];
+
+    // The level the panel grants (the vipAccounts list), as a role of
+    // BOT_ROLES: only to an account with a role on the bot's server, user and
+    // up, and it counts only while that role is there (withVip()). It lets in
+    // to WAP (wap/, inc/members.php); a higher role on the server still shows
+    // on the badge, the level stays under it.
+    const VIP_ROLE = [2, 'VIP', 'vip'];
 
     // roles that may read the API documentation, and that see the private commands on cmd/
     const API_ROLES = ['dev', 'admin', 'semiAdmin', 'tester'];
