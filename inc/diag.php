@@ -343,7 +343,7 @@
         $handle = @fopen($file, 'r');
         if ($handle === false)
             return null;
-        $lock = @fopen(diagDir() . '/log.lock', 'c');
+        $lock = @fopen(diagDir() . '/log.lock', 'ce');
         if ($lock !== false)
             flock($lock, LOCK_EX);
 

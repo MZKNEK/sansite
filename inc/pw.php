@@ -153,7 +153,7 @@
 
         if (!is_dir(dataDir()))
             @mkdir(dataDir(), 0750, true);
-        $lock = @fopen(dataDir() . '/pw.lock', 'c');
+        $lock = @fopen(dataDir() . '/pw.lock', 'ce');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if ($lock !== false)
                 fclose($lock);

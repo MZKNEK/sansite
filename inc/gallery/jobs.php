@@ -303,7 +303,7 @@
     {
         if (!dataWritable())
             return 0;
-        $lock = @fopen(dataDir() . '/media-jobs.lock', 'c');
+        $lock = @fopen(dataDir() . '/media-jobs.lock', 'ce');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if ($lock !== false)
                 fclose($lock);
@@ -335,13 +335,16 @@
     // Starts inc/media-worker.php on its own, out of the request, so a job just
     // queued begins now and not at cron's next minute. While a run holds the
     // lock nothing starts: it takes the new job after its own (should it have
-    // just found the queue empty, cron does at the next minute). True when it
-    // started.
+    // just found the queue empty, cron does at the next minute). It starts when
+    // the request ends, after the session is written and closed: a child gets
+    // the request's open files, and PHP's session file is locked as long as it
+    // is open (the lock files are opened close-on-exec, see fileLock()). True
+    // when it is to start.
     function startMediaWorker()
     {
         if (!dataWritable() || !function_exists('proc_open') || ($php = phpCommandLine()) === null)
             return false;
-        $lock = @fopen(dataDir() . '/media-jobs.lock', 'c');
+        $lock = @fopen(dataDir() . '/media-jobs.lock', 'ce');
         if ($lock === false)
             return false;
         $free = flock($lock, LOCK_EX | LOCK_NB);
@@ -364,10 +367,16 @@
         $null = DIRECTORY_SEPARATOR === '/' ? '/dev/null' : 'NUL';
         // the shell puts it in the background and returns at once
         $command = DIRECTORY_SEPARATOR === '/' ? $command . ' > /dev/null 2>&1 &' : 'start "" /B ' . $command;
-        $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']], $pipes);
-        if (!is_resource($process))
-            return false;
-        proc_close($process);
+        static $queued = false;
+        if (!$queued)
+            register_shutdown_function(function () use ($command, $null) {
+                if (session_status() === PHP_SESSION_ACTIVE)
+                    session_write_close();
+                $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']], $pipes);
+                if (is_resource($process))
+                    proc_close($process);
+            });
+        $queued = true;
         return true;
     }
 

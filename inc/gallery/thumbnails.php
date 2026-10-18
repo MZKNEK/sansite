@@ -138,7 +138,7 @@
             // It waits only THUMB_WAIT seconds: the requests of a whole folder
             // waiting in line would take every worker of the small PHP-FPM pool,
             // so the rest is asked again by the page (js/explorer.js).
-            $lock = @fopen(thumbsDir() . '/.lock', 'c');
+            $lock = @fopen(thumbsDir() . '/.lock', 'ce');
             for ($waited = 0; $lock !== false && !flock($lock, LOCK_EX | LOCK_NB); $waited++) {
                 if ($waited >= THUMB_WAIT * 10) {
                     fclose($lock);

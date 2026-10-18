@@ -83,7 +83,7 @@
     {
         if (!is_dir(dataDir()))
             @mkdir(dataDir(), 0750, true);
-        $lock = @fopen(dataDir() . '/autoblock.lock', 'c');
+        $lock = @fopen(dataDir() . '/autoblock.lock', 'ce');
         if ($lock === false)
             return false;
         if (!flock($lock, LOCK_EX | LOCK_NB)) {

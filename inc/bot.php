@@ -721,7 +721,7 @@
     // asks api/alive, when it was not asked in the last BOT_API_CHECK_EVERY
     function botApiCheck($now)
     {
-        $lock = @fopen(botFile('api.lock'), 'c');
+        $lock = @fopen(botFile('api.lock'), 'ce');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if ($lock !== false)
                 fclose($lock);
@@ -1029,7 +1029,7 @@
             return $state;
 
         // without any state to show the request waits for the one asking
-        $lock = @fopen(botFile('status.lock'), 'c');
+        $lock = @fopen(botFile('status.lock'), 'ce');
         if ($lock !== false && !flock($lock, $state === null ? LOCK_EX : LOCK_EX | LOCK_NB)) {
             fclose($lock);
             if ($state !== null)

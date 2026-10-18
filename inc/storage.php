@@ -336,12 +336,14 @@
     // A lock file opened and locked, shared or not, or null when that did not
     // work within DATA_LOCK_WAIT seconds. Closing the handle lets it go. The file
     // itself stays: removing it while someone waits on it would let two in.
+    // Opened close-on-exec ("e"), as every lock file is: a process started from
+    // a request (the media worker) would otherwise keep the lock held.
     function fileLock($lockFile, $exclusive)
     {
         $dir = dirname($lockFile);
         if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir))
             return null;
-        $handle = @fopen($lockFile, 'c');
+        $handle = @fopen($lockFile, 'ce');
         if ($handle === false)
             return null;
 

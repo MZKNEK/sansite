@@ -49,7 +49,7 @@
         $dir = dataDir() . '/locks';
         if (!is_dir($dir))
             @mkdir($dir, 0750, true);
-        $lock = @fopen($dir . '/maintenance-run.lock', 'c');
+        $lock = @fopen($dir . '/maintenance-run.lock', 'ce');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if ($lock !== false)
                 fclose($lock);
@@ -166,7 +166,7 @@
                 $problems[] = 'nieprawidłowy zapis operacji ' . basename($file);
                 continue;
             }
-            $active = @fopen(dataLockFile('operation-' . basename($file, '.json')), 'c');
+            $active = @fopen(dataLockFile('operation-' . basename($file, '.json')), 'ce');
             if (!$active || !flock($active, LOCK_EX | LOCK_NB)) {
                 if ($active) fclose($active);
                 continue;

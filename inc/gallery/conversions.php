@@ -20,7 +20,7 @@
     {
         // Age alone is insufficient: never clean beside a live encoder.
         @mkdir(dataDir() . '/locks', 0750, true);
-        $active = @fopen(dataLockFile('gallery-encoder'), 'c');
+        $active = @fopen(dataLockFile('gallery-encoder'), 'ce');
         if (!$active || !flock($active, LOCK_EX | LOCK_NB)) {
             if ($active) fclose($active);
             return;
