@@ -95,6 +95,7 @@
         assertSame('Nick', $_SESSION['gallery_user']['name']);
         assertContains('cdn.discordapp.com/avatars/123/hash.png', $_SESSION['gallery_user']['avatar']);
         assertTrue(isset(readData('logins')['123']), 'the login is remembered');
+        assertTrue($_SESSION['gallery_csrf'] !== 'csrf-token' && strlen($_SESSION['gallery_csrf']) === 64, 'the login gets a new CSRF token');
         assertContains('Zalogowano', takeFlash());
         sessionEnd();
     });

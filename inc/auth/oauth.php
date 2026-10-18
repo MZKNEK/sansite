@@ -108,6 +108,9 @@
         $_SESSION['generation'] = sessionGeneration($id);
         // a new session: its address and device are noted at once
         unset($_SESSION['address_seen']);
+        // a new CSRF token too: one known before the login (a session cookie
+        // planted from elsewhere) must not carry over into the logged-in one
+        unset($_SESSION['gallery_csrf']);
         siteCsrf();
         setFlash('Zalogowano jako ' . $name . '.');
         recordLogin($id, $name, $avatar, $account['username'] ?? '');
