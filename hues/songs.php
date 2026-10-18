@@ -117,7 +117,7 @@
         $rhythm = (string)($_POST['rhythm'] ?? '');
         $buildupRhythm = (string)($_POST['buildupRhythm'] ?? '');
         if (!preg_match('/^[xoXO:*~=|+isv#.-]{1,20000}$/', $rhythm) || !preg_match('/^[xoXO:*~=|+isv#.-]{0,20000}$/', $buildupRhythm)
-            || mb_strlen($title) > 200)
+            || !preg_match('/^.{0,200}$/us', $title))
             songsAnswer(400, ['error' => 'map']);
         $loopFile = "$pack/Songs/loop_$key.ogg";
         $buildFile = "$pack/Songs/build_$key.ogg";
