@@ -72,6 +72,15 @@
         assertTrue(isset($jobs['fresh']));
     });
 
+    test('startMediaWorker starts none while a run holds the lock', function () {
+        $lock = fopen(dataDir() . '/media-jobs.lock', 'c');
+        assertTrue(flock($lock, LOCK_EX | LOCK_NB));
+        try {
+            assertFalse(startMediaWorker(), 'the running one takes the new job');
+        } finally { flock($lock, LOCK_UN); fclose($lock); }
+        assertTrue(phpCommandLine() !== null, 'the command-line PHP is found');
+    });
+
     test('zipCollect walks a folder and skips a name', function () {
         $base = tempDir();
         mkdir($base . '/sub');

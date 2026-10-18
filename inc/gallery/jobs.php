@@ -332,6 +332,59 @@
         } finally { flock($lock, LOCK_UN); fclose($lock); }
     }
 
+    // Starts inc/media-worker.php on its own, out of the request, so a job just
+    // queued begins now and not at cron's next minute. While a run holds the
+    // lock nothing starts: it takes the new job after its own (should it have
+    // just found the queue empty, cron does at the next minute). True when it
+    // started.
+    function startMediaWorker()
+    {
+        if (!dataWritable() || !function_exists('proc_open') || ($php = phpCommandLine()) === null)
+            return false;
+        $lock = @fopen(dataDir() . '/media-jobs.lock', 'c');
+        if ($lock === false)
+            return false;
+        $free = flock($lock, LOCK_EX | LOCK_NB);
+        if ($free)
+            flock($lock, LOCK_UN);
+        fclose($lock);
+        if (!$free)
+            return false;
+
+        $command = escapeshellarg($php);
+        // the local preview's php -S has its settings prepended and may load GD
+        // by hand (tools/preview.sh), which its worker needs as well
+        if (PHP_SAPI === 'cli-server') {
+            if (extension_loaded('gd'))
+                $command .= ' -d extension=gd';
+            if (($prepend = (string)ini_get('auto_prepend_file')) !== '')
+                $command .= ' -d ' . escapeshellarg('auto_prepend_file=' . $prepend);
+        }
+        $command .= ' ' . escapeshellarg(str_replace('\\', '/', dirname(__DIR__, 2)) . '/inc/media-worker.php');
+        $null = DIRECTORY_SEPARATOR === '/' ? '/dev/null' : 'NUL';
+        // the shell puts it in the background and returns at once
+        $command = DIRECTORY_SEPARATOR === '/' ? $command . ' > /dev/null 2>&1 &' : 'start "" /B ' . $command;
+        $process = @proc_open($command, [0 => ['file', $null, 'r'], 1 => ['file', $null, 'w'], 2 => ['file', $null, 'w']], $pipes);
+        if (!is_resource($process))
+            return false;
+        proc_close($process);
+        return true;
+    }
+
+    // Path of the command-line PHP, or null: PHP-FPM's own binary is not it,
+    // so the one of the same version is looked for beside it (php8.3 on Debian)
+    function phpCommandLine()
+    {
+        if (PHP_SAPI === 'cli' || PHP_SAPI === 'cli-server')
+            return PHP_BINARY;
+        foreach (['php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION, 'php'] as $name) {
+            $path = PHP_BINDIR . '/' . $name;
+            if (is_file($path) && is_executable($path))
+                return $path;
+        }
+        return findTool('php');
+    }
+
     // short label of a job's status, for the badge on its tile
     function mediaJobLabel($job)
     {

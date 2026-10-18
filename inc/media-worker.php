@@ -1,8 +1,9 @@
 <?php
     // Changes the uploaded pictures and films waiting as WebP or WebM
-    // (inc/data/media-jobs.json). Normally inc/check-bot.php runs this every
-    // minute from cron; this file is for running it by hand, e.g. after cron was
-    // off:
+    // (inc/data/media-jobs.json). An upload starts it at once in the background
+    // (startMediaWorker() of inc/gallery/jobs.php), inc/check-bot.php does the
+    // same every minute from cron, and it can be run by hand, e.g. after cron
+    // was off:
     //   php /var/www/html/inc/media-worker.php
     // Only from the command line; inc/ is also blocked from the web in nginx.
     if (PHP_SAPI !== 'cli') {

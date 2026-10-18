@@ -40,8 +40,9 @@
     const TOOL_TIMEOUT = 50;
 
     // A picture or film is uploaded first and changed afterwards on the server
-    // (inc/data/media-jobs.json, run by inc/check-bot.php from cron or
-    // inc/media-worker.php by hand), so the upload does not wait. One film may
+    // (inc/data/media-jobs.json, run by inc/media-worker.php started by the
+    // upload, by inc/check-bot.php from cron or by hand), so the upload does
+    // not wait. One film may
     // take MEDIA_JOB_TIMEOUT per encoder; a job left "converting" for longer
     // than MEDIA_JOB_STALE (a restart) is tried again, done ones are kept
     // MEDIA_JOB_KEEP_DAYS and the gallery shows them for MEDIA_JOB_DONE_SHOW

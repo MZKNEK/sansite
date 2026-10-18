@@ -124,8 +124,8 @@
 
         // a picture or film with "change" on waits its turn as WebP or WebM: the
         // file is saved and the request answers at once, the change runs in the
-        // background (inc/check-bot.php from cron) and the gallery shows how it
-        // is going
+        // background (a worker started here at once, else inc/check-bot.php from
+        // cron) and the gallery shows how it is going
         $convertible = $ext === 'avif' || in_array($ext, WEBP_SOURCE_TYPES, true) || in_array($ext, VIDEO_SOURCE_TYPES, true);
         if ($wantConvert && $convertible) {
             $kind = in_array($ext, VIDEO_SOURCE_TYPES, true) ? 'webm' : 'webp';
@@ -135,6 +135,8 @@
             } else {
                 $user = siteUser();
                 $queued = addMediaJob($rel, $user['id'] ?? '', $user['name'] ?? '', filesize($dir[0] . '/' . $target), $kind);
+                if ($queued !== null)
+                    startMediaWorker();
                 $note = $queued === null ? ' Plik zapisano, ale nie udało się dodać konwersji do kolejki.'
                     : ($kind === 'webm' ? ' Film' : ' Grafika') . ' zostanie zamieniona na ' . $format . ' w tle; status zobaczysz w galerii.';
             }

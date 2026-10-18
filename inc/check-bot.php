@@ -42,7 +42,8 @@
     // below, which may take a while, so a long conversion never looks like cron
     // having stopped (the next run finds the lock taken and comes back at once)
     botWriteFile(botFile('cron.txt'), (string)time());
-    // uploaded pictures and films waiting as WebP or WebM (inc/gallery.php);
+    // uploaded pictures and films still waiting as WebP or WebM (an upload
+    // starts inc/media-worker.php itself, this picks up what it left);
     // one run at a time
     $mediaBase = str_replace('\\', '/', dirname(__DIR__)) . '/i';
     // the panel's gallery and inc/data numbers, counted again once an hour here
