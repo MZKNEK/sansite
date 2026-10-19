@@ -40,6 +40,12 @@ a {
 }
 
 /* Landing page */
+body.home {
+    /* Keep the same height when a mobile browser shows or hides its bars.
+       Browsers without svh keep the body's 100vh fallback. */
+    min-height: 100svh;
+}
+
 main.hero {
     flex: 1 0 auto;
     display: flex;
@@ -1107,6 +1113,26 @@ textarea.field {
 
     .links a.short {
         grid-column: 1 / -1;
+    }
+
+    /* Tighten spacing on short phones, using the height with browser bars
+       visible. Tall phones keep the sizes above; the logo and link touch
+       targets keep their sizes at every height. */
+    .home main.hero {
+        padding-block: clamp(12px, calc(20svh - 124px), 24px);
+    }
+
+    .home .tag {
+        margin-top: clamp(12px, calc(20svh - 122px), 26px);
+    }
+
+    .home .links {
+        margin-top: clamp(12px, calc(20svh - 124px), 24px);
+    }
+
+    .home .site-foot {
+        padding-block: clamp(12px, calc(20svh - 120px), 28px)
+                       clamp(12px, calc(20svh - 130px), 18px);
     }
 }
 
