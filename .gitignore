@@ -10,6 +10,10 @@
 /hues/.pack/
 /wap/.mu/
 
+# The models of USkalpelator's background removal, made by tools/bg-models.mjs
+# and sent by deploy.sh on their own
+/models/
+
 # Discord application secret and the gallery admins, only on the server
 /inc/config.php
 

@@ -5,6 +5,7 @@
   import { ownedUrls } from '../../shared/lib/ownedUrls.js';
   import { styleList, frameStyle, frameLayers, scalpCoversOpening } from './lib/frames.js';
   import { CARD, alphaBounds, moveLayers } from './lib/layers.js';
+  import { bgModels, removeBackground } from './lib/background.js';
   import Segmented from '../../shared/lib/Segmented.svelte';
   import Switch from '../../shared/lib/Switch.svelte';
   import DropZone from '../../shared/lib/DropZone.svelte';
@@ -62,10 +63,6 @@
     { value: 0.3, label: 'Lekkie' },
     { value: 0.6, label: 'Średnie', title: 'Jak dawniej' },
     { value: 1, label: 'Mocne' },
-  ];
-  const bgModels = [
-    { value: 'small', label: 'Szybki (~40 MB)' },
-    { value: 'medium', label: 'Dokładny (~80 MB)' },
   ];
   const layers = [
     { value: 'extra', label: 'Top' },
@@ -494,16 +491,9 @@
     bgProgress = 0;
     bgProgressLabel = 'Inicjalizacja...';
     try {
-      const imglyModule = await import('@imgly/background-removal');
-      const removeBackground = imglyModule.default ?? imglyModule.removeBackground ?? imglyModule;
-      const blob = await removeBackground(source, {
-        model: bgModel,
-        progress: (key, current, total) => {
-          if (total > 0) {
-            bgProgress = Math.round((current / total) * 100);
-            bgProgressLabel = key.includes('fetch') ? 'Pobieranie modelu...' : 'Przetwarzanie...';
-          }
-        }
+      const blob = await removeBackground(source, bgModel, (stage, fraction) => {
+        if (fraction != null) bgProgress = Math.round(fraction * 100);
+        bgProgressLabel = stage === 'fetch' ? 'Pobieranie modelu...' : 'Przetwarzanie...';
       });
       if (destroyed) return;
       if (image !== source) {
@@ -558,7 +548,7 @@
     extraFileName = s.extraFileName ?? extraFileName;
     sharpen = s.sharpen ?? sharpen;
     realPreview = s.realPreview ?? realPreview;
-    bgModel = s.bgModel ?? bgModel;
+    if (bgModels.some((m) => m.value === s.bgModel)) bgModel = s.bgModel;
     bgAutoLayer = s.bgAutoLayer ?? bgAutoLayer;
     activeLayer = s.activeLayer ?? activeLayer;
     zoomLevel = s.scale ?? zoomLevel;

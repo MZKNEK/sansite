@@ -10,7 +10,8 @@
 # Wiki.js restarted. The skins' songs (audio/*.webm, audio/*.mp3), kept out of
 # git, go when the server has none or another one of the same name, and so do
 # the media of 0x40 and WAP (hues/.pack/, wap/.mu/), also out of git, with the
-# list of 0x40's pack made again first (php hues/respack.php); one
+# list of 0x40's pack made again first (php hues/respack.php), and the models of
+# USkalpelator's background removal (models/, tools/bg-models.mjs); one
 # removed here stays on the server. Cloudflare is told to forget the pictures,
 # icons and songs that changed (inc/purge-cache.php). Run it from Git Bash or
 # any shell with ssh, tar and md5sum (and php, with hues/.pack/ there):
@@ -525,13 +526,16 @@ if [ ${#changed_audio[@]} -gt 0 ]; then
 fi
 
 # The media of 0x40 (hues/.pack/: pictures, animations, songs, respack.json)
-# and of WAP (wap/.mu/) are kept out of git as well and go the same way as the
-# songs: a file goes when the server has none of its name or another one (by
-# MD5), and one removed here stays on the server. They lie in dot folders,
-# which nginx refuses, and go out only through hues/pack.php and wap/song.php
-# with Cache-Control: private, so Cloudflare has nothing of them to forget.
+# and of WAP (wap/.mu/), and the models of USkalpelator's background removal
+# (models/) are kept out of git as well and go the same way as the songs: a
+# file goes when the server has none of its name or another one (by MD5), and
+# one removed here stays on the server. The media lie in dot folders, which
+# nginx refuses, and go out only through hues/pack.php and wap/song.php with
+# Cache-Control: private; the models' pieces are named by their content and
+# their list, models/resources.json, is not kept by Cloudflare. So Cloudflare
+# has nothing of them to forget.
 media_dirs=()
-for dir in hues/.pack wap/.mu; do
+for dir in hues/.pack wap/.mu models; do
     [ -d "$dir" ] && media_dirs+=("$dir")
 done
 changed_media=()
@@ -554,7 +558,7 @@ REMOTE
     done < <(find "${media_dirs[@]}" -type f -print0 | xargs -0 -r md5sum | sums)
 fi
 if [ ${#changed_media[@]} -gt 0 ]; then
-    echo "Zmienione pliki 0x40 i WAP spoza gita, wysyłam do $target:$root:"
+    echo "Zmienione pliki spoza gita (0x40, WAP, modele usuwania tła), wysyłam do $target:$root:"
     printf '  %s\n' "${changed_media[@]}"
     if [ "$dry_run" -eq 0 ]; then
         tar -c "${changed_media[@]}" \

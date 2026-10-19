@@ -15,14 +15,15 @@ export const svelteOptions = {
   },
 }
 
-export function cropperConfig(name, rest = {}) {
+export function cropperConfig(name, { resolve, ...rest } = {}) {
   const site = process.env.SANAKAN_SITE || 'http://127.0.0.1:8765'
-  const fromSite = ['/css/', '/fonts/', '/js/', '/favicon', '/apple-touch-icon', '/site.webmanifest', '/account.php', '/i/', '/pw/', '/__login', '/__preview.css']
+  const fromSite = ['/css/', '/fonts/', '/js/', '/favicon', '/apple-touch-icon', '/site.webmanifest', '/account.php', '/i/', '/pw/', '/models/', '/__login', '/__preview.css']
   return {
     base: `/${name}/`,
     // packages the shared code imports, found in the app's own node_modules
-    // (apps/shared/ has none)
+    // (apps/shared/ has none); the app's own resolve options besides
     resolve: {
+      ...resolve,
       dedupe: ['svelte', '@jsquash/webp'],
     },
     build: {
