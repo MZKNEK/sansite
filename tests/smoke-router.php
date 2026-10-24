@@ -52,7 +52,9 @@
     }
 
     // a page that fails halfway, by an exception or by a fatal error of PHP
-    // (memory run out), with display_errors off as on the site
+    // (a function declared twice), with display_errors off as on the site; the
+    // fatal error is not memory run out, which now and then crashed PHP 8.1's
+    // built-in server in CI, and every test after it with the server
     if ($path === '/__exception' || $path === '/__fatal') {
         require $root . '/inc/auth.php';
         ini_set('display_errors', '0');
@@ -62,8 +64,7 @@
         echo 'half a page';
         if ($path === '/__exception')
             throw new RuntimeException('the test of the error page');
-        ini_set('memory_limit', '16M');
-        str_repeat('x', 64 << 20);
+        eval('function smokeTwice() {} function smokeTwice() {}');
         return true;
     }
 
