@@ -32,7 +32,7 @@
 
         foreach ($running as $handle)
             assertSame(0, proc_close($handle), 'a child exited cleanly');
-        assertSame(0, proc_close($reader), 'the reader always found the whole file');
+        assertSame(0, proc_close($reader), 'the reader always found the whole file (1: cut, 2: no lock in time)');
 
         forgetData($name);
         assertSame($processes * $each, readData($name)['n'], 'every increment is in the file');
