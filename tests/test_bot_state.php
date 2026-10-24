@@ -47,6 +47,15 @@
         assertTrue($incidents[1][4], 'the older one is the planned break');
     });
 
+    test('botIncidents leaves out outages shorter than 2 minutes', function () {
+        $now = time();
+        file_put_contents(botFile('incidents.json'), json_encode([[$now - 7200, $now - 7140], [$now - 3600, $now - 3480], [$now - 60, null]]));
+        $incidents = botIncidents($now - 86400);
+        assertSame(1, count($incidents), 'one missed check and one going on for a minute are left out');
+        assertSame([$now - 3600, $now - 3480], array_slice($incidents[0], 0, 2));
+        assertSame(1, $incidents[0][2], 'the short one is not merged in');
+    });
+
     test('botHistory parses and botRecordCheck appends', function () {
         $now = time();
         file_put_contents(botFile('status-history.txt'), implode("\n", [

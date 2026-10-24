@@ -75,6 +75,8 @@
     const BOT_VERSIONS_KEEP = 50;
     // outages less than this apart are shown as one
     const BOT_INCIDENT_MERGE = 1800;
+    // outages shorter than this (one missed check) are not shown or counted
+    const BOT_INCIDENT_MIN = 120;
 
     // days, months and the times on the pages follow Polish time, not the server's
     date_default_timezone_set('Europe/Warsaw');
@@ -322,15 +324,18 @@
 
     // Outages that lasted into the time since $since or still last, newest first,
     // as [start, end or null, how many outages, seconds down since $since,
-    // planned]. Outages less than BOT_INCIDENT_MERGE apart are one, the time the
-    // bot answered between them not counted as down; a planned break and an
-    // outage outside it stay apart.
+    // planned]. Outages shorter than BOT_INCIDENT_MIN are left out, also one
+    // still going on. Outages less than BOT_INCIDENT_MERGE apart are one, the
+    // time the bot answered between them not counted as down; a planned break
+    // and an outage outside it stay apart.
     function botIncidents($since)
     {
         $windows = botMaintenanceWindows();
         $now = time();
         $merged = [];
         foreach (botRawIncidents() as [$start, $end]) {
+            if (($end ?? $now) - $start < BOT_INCIDENT_MIN)
+                continue;
             $planned = botIncidentPlanned($start, $end, $windows);
             $down = max(0, ($end ?? $now) - max($start, $since));
             $last = count($merged) - 1;
