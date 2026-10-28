@@ -12,7 +12,8 @@
 // On the channel, in order: {t: 'file', n, name, size, type}, its bytes,
 // {t: 'done', n}, answered by {t: 'got', n}; {t: 'cancel', n} from the sender
 // and {t: 'refuse', n, why} from the receiver stop one; {t: 'bye'} ends.
-// What comes in is gathered in Blobs and saved from a link; a file over LIMIT
+// What comes in is gathered in Blobs and saved from a link, always as bare
+// bytes whatever type the sender gave; a file over LIMIT
 // is refused. Over the local network a file of DISK_FROM or more goes instead
 // to the page's own disk in the browser as it comes (store.js), so it may be
 // as big as the room the browser gives the page.
@@ -693,7 +694,7 @@
     var size = Number(message.size);
     var name = String(message.name || 'plik').replace(/[\\/]/g, '_') || 'plik';
     var item = incoming = {
-      n: message.n, name: name, size: size, type: String(message.type || ''),
+      n: message.n, name: name, size: size,
       got: 0, parts: [], partBytes: 0, blobs: [], started: Date.now(), shown: 0, disk: null
     };
     item.row = row('in', name, isFinite(size) ? size : 0);
@@ -751,7 +752,7 @@
     }
     status(item.row, 'Zapisywanie');
     (item.diskReady || Promise.resolve()).then(function () {
-      if (item.disk !== 'open') return new Blob(item.blobs.concat(item.parts), { type: item.type || 'application/octet-stream' });
+      if (item.disk !== 'open') return new Blob(item.blobs.concat(item.parts));
       return storeCall(item.diskId, { op: 'close', id: item.diskId }).then(function (reply) {
         if (reply.file.size !== item.size) throw 'failed';
         return reply.file;
@@ -772,8 +773,9 @@
   // removed from there too
   function saveLink(item, file) {
     var place = item.row.querySelector('.t-action'), saved = false;
-    // a file read from the disk has no type of its own
-    var url = URL.createObjectURL(file.type || !item.type ? file : new Blob([file], { type: item.type }));
+    // never the sender's type: a page or a picture of the other side opened
+    // from here (a new tab) would be a document of this site's origin
+    var url = URL.createObjectURL(new Blob([file], { type: 'application/octet-stream' }));
     unsaved++;
     var link = document.createElement('a');
     link.className = 'hud-button hud-corners t-save';

@@ -106,7 +106,7 @@
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
   <script src="../js/year.js?v=27252b35ac"></script>
   <script src="qrcode.js?v=18ae399f81"></script>
-  <script src="t.js?v=639f660d72"></script>
+  <script src="t.js?v=c51e1701ef"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 

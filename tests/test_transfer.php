@@ -48,6 +48,7 @@
         assertSame('denied', sendTransferMessage($host['id'], transferToken(), 'x', 1005));
         assertSame('denied', pollTransfer($host['id'], 'wrong', 0, 1005));
         assertSame('large', sendTransferMessage($host['id'], $host['key'], str_repeat('x', TRANSFER_MESSAGE_SIZE + 1), 1005));
+        assertSame('bad', sendTransferMessage($host['id'], $host['key'], "{\"sdp\":\"a\x01\"}", 1005), 'control characters are refused');
 
         $forGuest = pollTransfer($host['id'], $guest['key'], 0, 1006)['messages'];
         assertSame([[1, 'offer']], $forGuest);

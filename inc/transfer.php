@@ -22,8 +22,11 @@
     // a joined transfer's last call is written at most this often
     const TRANSFER_SEEN_STEP = 30;
     const TRANSFER_PER_ACCOUNT = 5;
-    const TRANSFER_MESSAGES = 32;
-    const TRANSFER_MESSAGE_SIZE = 32768;
+    // a side sends an offer or an answer (an SDP of a few KB) and maybe a
+    // word of going through the server, so a few small ones are plenty and
+    // the file stays small whatever an account puts in
+    const TRANSFER_MESSAGES = 4;
+    const TRANSFER_MESSAGE_SIZE = 16384;
     // a piece through the server, its first byte telling text from bytes
     const TRANSFER_RELAY_CHUNK = 1048577;
     const TRANSFER_RELAY_WAITING = 8;
@@ -168,12 +171,16 @@
 
     // Leaves $message (a string, the client's own JSON) for the other side:
     // true, or 'gone', 'denied' (a wrong key), 'alone' (no one joined yet),
-    // 'large', 'full' (TRANSFER_MESSAGES waiting), 'failed'.
+    // 'large', 'bad' (control characters, which JSON from a browser never has
+    // and which would grow sixfold in the file), 'full' (TRANSFER_MESSAGES
+    // waiting), 'failed'.
     function sendTransferMessage($id, $key, $message, $now = null)
     {
         $now = $now ?? time();
         if (!is_string($message) || $message === '' || strlen($message) > TRANSFER_MESSAGE_SIZE)
             return 'large';
+        if (preg_match('/[\x00-\x1f\x7f]/', $message))
+            return 'bad';
         if (!validTransferToken($id))
             return 'gone';
         $saved = updateData('transfers', function (&$all) use ($id, $key, $message, $now) {
