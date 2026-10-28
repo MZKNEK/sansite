@@ -13,7 +13,9 @@
 // {t: 'done', n}, answered by {t: 'got', n}; {t: 'cancel', n} from the sender
 // and {t: 'refuse', n, why} from the receiver stop one; {t: 'bye'} ends.
 // What comes in is gathered in Blobs and saved from a link; a file over LIMIT
-// is refused.
+// is refused. Over the local network a file of DISK_FROM or more goes instead
+// to the page's own disk in the browser as it comes (store.js), so it may be
+// as big as the room the browser gives the page.
 (function () {
   'use strict';
 
@@ -27,6 +29,9 @@
   var HIGH = 8 * 1024 * 1024;     // the data channel's buffer waited on above this
   var LOW = 1024 * 1024;
   var PART = 16 * 1024 * 1024;    // received bytes made into a Blob, which a browser may keep on disk
+  var DISK_FROM = 256 * 1024 * 1024;
+  var DISK_SPARE = 64 * 1024 * 1024; // left free on the disk besides the file
+  var STORE_LOCK = 'sanakan-transfer/';
   var GATHER_TIME = 4000;
   var CONNECT_TIME = 20000;
   var TOKEN = /^[A-Za-z0-9_-]{22}$/;
@@ -42,11 +47,13 @@
 
   // the transfer going on: { id, key, side ('host' or 'guest'), relay (may
   // go through the server), after (the last message read), peer, pc,
-  // channel (once open), open, ended, timers }
+  // channel (once open), open, lan (the direct way goes over the local
+  // network), ended, timers }
   var s = null;
   var outgoing = [];   // files waiting to go: { n, file, row }
   var sending = null;  // the one going
-  var incoming = null; // the one coming: { n, name, size, type, got, parts, partBytes, blobs, row, refused, started }
+  var incoming = null; // the one coming: { n, name, size, type, got, parts, partBytes, blobs, row, refused, started,
+                       // disk ('opening', 'open' or null), diskId, diskReady }
   var sentFiles = {};  // what was sent, by n, for the answers
   var nextN = 1;
   var unsaved = 0;     // files received and not saved yet
@@ -355,6 +362,7 @@
       var here = String(local.address || local.ip || ''), there = String(remote.address || remote.ip || '');
       var near = privateAddress(there) || (remote.candidateType === 'host' && there === '') || (there.indexOf(':') >= 0 && here.indexOf(':') >= 0 && net64(here) === net64(there));
       routeLabel.textContent = near ? 'sieć lokalna' : 'przez internet, bezpośrednio';
+      if (s && s.pc === pc) s.lan = near;
     }).catch(function () { /* the label stays empty */ });
   }
 
@@ -483,6 +491,7 @@
     outgoing.forEach(function (item) { status(item.row, 'Przerwano'); item.row.classList.add('t-failed'); });
     outgoing = [];
     if (incoming && !incoming.refused) { status(incoming.row, 'Przerwano'); incoming.row.classList.add('t-failed'); }
+    if (incoming) dropDisk(incoming);
     incoming = null;
     awake();
   }
@@ -667,7 +676,8 @@
       incoming = null;
       awake();
     } else if (message.t === 'refuse' && item) {
-      item.refused = message.why === 'large' ? 'Za duży dla drugiego urządzenia (ponad ' + bytes(LIMIT) + ')' : 'Anulowano na drugim urządzeniu';
+      item.refused = message.why === 'large' ? 'Za duży dla drugiego urządzenia (ponad ' + bytes(LIMIT) + ' poza siecią lokalną)'
+        : message.why === 'space' ? 'Za mało miejsca na drugim urządzeniu' : 'Anulowano na drugim urządzeniu';
       if (sending !== item) finished(item.row, item.refused, true);
     } else if (message.t === 'got' && item) {
       item.got = true;
@@ -682,45 +692,51 @@
   function fileIn(message) {
     var size = Number(message.size);
     var name = String(message.name || 'plik').replace(/[\\/]/g, '_') || 'plik';
-    incoming = {
+    var item = incoming = {
       n: message.n, name: name, size: size, type: String(message.type || ''),
-      got: 0, parts: [], partBytes: 0, blobs: [], started: Date.now(), shown: 0
+      got: 0, parts: [], partBytes: 0, blobs: [], started: Date.now(), shown: 0, disk: null
     };
-    incoming.row = row('in', name, isFinite(size) ? size : 0);
-    if (!(size >= 0) || size > LIMIT) {
-      refuse('large', 'Za duży (ponad ' + bytes(LIMIT) + ')');
-      return;
-    }
-    status(incoming.row, 'Odbieranie');
-    var current = incoming;
-    action(incoming.row, 'Anuluj', function () {
-      if (incoming === current) refuse('cancel', 'Anulowano');
+    item.row = row('in', name, isFinite(size) ? size : 0);
+    if (!(size >= 0)) return refuse('cancel', 'Nieznany rozmiar');
+    if (size >= DISK_FROM && s && s.lan && diskUsable()) toDisk(item);
+    else if (size > LIMIT) return refuse('large', 'Za duży (ponad ' + bytes(LIMIT) + ' poza siecią lokalną)');
+    status(item.row, 'Odbieranie');
+    action(item.row, 'Anuluj', function () {
+      if (incoming === item) refuse('cancel', 'Anulowano');
     });
     awake();
   }
 
   function refuse(why, text) {
-    incoming.refused = true;
-    incoming.parts = incoming.blobs = [];
-    finished(incoming.row, text, true);
-    if (s && s.channel) s.channel.send(JSON.stringify({ t: 'refuse', n: incoming.n, why: why }));
+    var item = incoming;
+    item.refused = true;
+    item.parts = item.blobs = [];
+    dropDisk(item);
+    finished(item.row, text, true);
+    if (s && s.channel) s.channel.send(JSON.stringify({ t: 'refuse', n: item.n, why: why }));
     awake();
   }
 
   function bytesIn(buffer) {
-    if (!incoming || incoming.refused) return;
-    incoming.parts.push(buffer);
-    incoming.got += buffer.byteLength;
-    incoming.partBytes += buffer.byteLength;
-    if (incoming.got > incoming.size) return refuse('cancel', 'Przyszło więcej, niż zapowiedziano');
-    if (incoming.partBytes >= PART) {
-      incoming.blobs.push(new Blob(incoming.parts));
-      incoming.parts = [];
-      incoming.partBytes = 0;
+    var item = incoming;
+    if (!item || item.refused) return;
+    item.got += buffer.byteLength;
+    if (item.got > item.size) return refuse('cancel', 'Przyszło więcej, niż zapowiedziano');
+    if (item.disk === 'open') {
+      storeWorker().postMessage({ op: 'write', id: item.diskId, buffer: buffer }, [buffer]);
+    } else {
+      item.parts.push(buffer);
+      item.partBytes += buffer.byteLength;
+      // kept as they are while the disk opens, to be written there in order
+      if (item.disk !== 'opening' && item.partBytes >= PART) {
+        item.blobs.push(new Blob(item.parts));
+        item.parts = [];
+        item.partBytes = 0;
+      }
     }
-    if (Date.now() - incoming.shown > 150) {
-      incoming.shown = Date.now();
-      progress(incoming.row, incoming.got, incoming.size, incoming.started);
+    if (Date.now() - item.shown > 150) {
+      item.shown = Date.now();
+      progress(item.row, item.got, item.size, item.started);
     }
   }
 
@@ -729,22 +745,179 @@
     incoming = null;
     awake();
     if (item.refused) return;
-    if (item.got !== item.size) return finished(item.row, 'Przyszło mniej, niż zapowiedziano', true);
-    var blob = new Blob(item.blobs.concat(item.parts), { type: item.type || 'application/octet-stream' });
-    item.blobs = item.parts = [];
-    if (s && s.channel) s.channel.send(JSON.stringify({ t: 'got', n: item.n }));
-    finished(item.row, 'Odebrano');
+    if (item.got !== item.size) {
+      dropDisk(item);
+      return finished(item.row, 'Przyszło mniej, niż zapowiedziano', true);
+    }
+    status(item.row, 'Zapisywanie');
+    (item.diskReady || Promise.resolve()).then(function () {
+      if (item.disk !== 'open') return new Blob(item.blobs.concat(item.parts), { type: item.type || 'application/octet-stream' });
+      return storeCall(item.diskId, { op: 'close', id: item.diskId }).then(function (reply) {
+        if (reply.file.size !== item.size) throw 'failed';
+        return reply.file;
+      });
+    }).then(function (file) {
+      item.blobs = item.parts = [];
+      if (s && s.channel) s.channel.send(JSON.stringify({ t: 'got', n: item.n }));
+      finished(item.row, 'Odebrano');
+      saveLink(item, file);
+    }, function (error) {
+      dropDisk(item);
+      finished(item.row, error === 'space' ? 'Zabrakło miejsca na dysku' : 'Nie udało się zapisać', true);
+      if (s && s.channel) s.channel.send(JSON.stringify({ t: 'refuse', n: item.n, why: error === 'space' ? 'space' : 'cancel' }));
+    });
+  }
+
+  // the link that saves a received file; one kept on the page's disk can be
+  // removed from there too
+  function saveLink(item, file) {
+    var place = item.row.querySelector('.t-action'), saved = false;
+    // a file read from the disk has no type of its own
+    var url = URL.createObjectURL(file.type || !item.type ? file : new Blob([file], { type: item.type }));
     unsaved++;
     var link = document.createElement('a');
     link.className = 'hud-button hud-corners t-save';
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = item.name;
     link.textContent = 'Zapisz';
-    var saved = false;
     link.addEventListener('click', function () {
       if (!saved) { saved = true; unsaved--; }
     });
-    item.row.querySelector('.t-action').appendChild(link);
+    place.appendChild(link);
+    if (item.disk !== 'open') return;
+    // the copy stays until removed here or the page is left (sweepDisk() on
+    // the next visit)
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'hud-button hud-corners';
+    remove.textContent = 'Usuń';
+    remove.title = 'Usuwa kopię z miejsca przeglądarki; najpierw zapisz plik';
+    remove.addEventListener('click', function () {
+      if (!saved) { saved = true; unsaved--; }
+      URL.revokeObjectURL(url);
+      dropDisk(item);
+      place.textContent = '';
+      status(item.row, 'Usunięto z przeglądarki');
+    });
+    place.appendChild(remove);
+  }
+
+  // ---- big files on the page's own disk in the browser (store.js)
+
+  var store = null;
+  var storeWaits = {}; // the answer awaited for a file id: { resolve, reject }
+  var storeItems = {}; // the incoming file of an id, for a write that failed
+  var storeLocks = {}; // what lets go of a file's lock, by id
+
+  function diskUsable() {
+    return !!(window.Worker && navigator.storage && navigator.storage.getDirectory && navigator.locks);
+  }
+
+  function storeWorker() {
+    if (!store) {
+      store = new Worker(document.body.dataset.store);
+      store.addEventListener('message', function (event) {
+        var reply = event.data, waiting = storeWaits[reply.id];
+        if (waiting) {
+          delete storeWaits[reply.id];
+          if (reply.ok) waiting.resolve(reply);
+          else waiting.reject(reply.error);
+        } else if (!reply.ok && storeItems[reply.id] && storeItems[reply.id] === incoming && !incoming.refused) {
+          refuse(reply.error === 'space' ? 'space' : 'cancel', reply.error === 'space' ? 'Zabrakło miejsca na dysku' : 'Nie udało się zapisać na dysku');
+        }
+      });
+      store.addEventListener('error', function () {
+        Object.keys(storeWaits).forEach(function (id) { storeWaits[id].reject('failed'); });
+        storeWaits = {};
+      });
+    }
+    return store;
+  }
+
+  function storeCall(id, message) {
+    return new Promise(function (resolve, reject) {
+      var waiting = storeWaits[id] = { resolve: resolve, reject: reject };
+      storeWorker().postMessage(message);
+      setTimeout(function () {
+        if (storeWaits[id] === waiting) { delete storeWaits[id]; reject('failed'); }
+      }, message.op === 'open' ? 5000 : 60000);
+    });
+  }
+
+  // a file's lock, held while this page has the file, so no other page
+  // sweeps it away
+  function hold(id) {
+    return new Promise(function (granted) {
+      navigator.locks.request(STORE_LOCK + id, function () {
+        granted();
+        return new Promise(function (release) { storeLocks[id] = release; });
+      });
+    });
+  }
+
+  // Writes $item to the disk once there is room and its file is open; until
+  // then what comes waits in memory. Without the disk a file over LIMIT is
+  // refused, a smaller one stays in memory.
+  function toDisk(item) {
+    item.disk = 'opening';
+    item.diskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    storeItems[item.diskId] = item;
+    var room = navigator.storage.estimate ? navigator.storage.estimate().then(function (estimate) {
+      return estimate.quota - estimate.usage;
+    }, function () { return Infinity; }) : Promise.resolve(Infinity);
+    item.diskReady = room.then(function (free) {
+      if (free < item.size + DISK_SPARE) throw 'space';
+      return hold(item.diskId);
+    }).then(function () {
+      return storeCall(item.diskId, { op: 'open', id: item.diskId });
+    }).then(function () {
+      item.disk = item.dropped ? null : 'open';
+      if (item.dropped) return dropDisk(item);
+      item.parts.forEach(function (buffer) {
+        storeWorker().postMessage({ op: 'write', id: item.diskId, buffer: buffer }, [buffer]);
+      });
+      item.parts = [];
+      item.partBytes = 0;
+    }, function (error) {
+      item.disk = null;
+      dropDisk(item);
+      if (item.refused || incoming !== item) return;
+      if (item.size > LIMIT || error === 'space')
+        refuse(error === 'space' ? 'space' : 'large', error === 'space' ? 'Za mało miejsca na dysku' : 'Nie da się zapisać na dysku, a to ponad ' + bytes(LIMIT));
+    });
+  }
+
+  // removes $item's copy from the disk, if it had one, and lets go of its
+  // lock; one still opening is removed by toDisk() once it opened or failed
+  function dropDisk(item) {
+    var id = item.diskId;
+    if (!id) return;
+    delete storeItems[id];
+    item.dropped = true;
+    if (item.disk === 'opening') return;
+    item.diskId = null;
+    var release = function () { if (storeLocks[id]) { storeLocks[id](); delete storeLocks[id]; } };
+    if (!store) return release();
+    storeCall(id, { op: 'remove', id: id }).then(release, release);
+  }
+
+  // what pages left behind: every file whose lock no page holds
+  function sweepDisk() {
+    if (!diskUsable()) return;
+    navigator.storage.getDirectory().then(function (root) {
+      return root.getDirectoryHandle('sanakan-transfer');
+    }).then(function (dir) {
+      var names = dir.keys();
+      (function next() {
+        names.next().then(function (entry) {
+          if (entry.done) return;
+          navigator.locks.request(STORE_LOCK + entry.value, { ifAvailable: true }, function (lock) {
+            return lock ? dir.removeEntry(entry.value).catch(function () {}) : null;
+          });
+          next();
+        }).catch(function () {});
+      })();
+    }).catch(function () { /* no folder yet */ });
   }
 
   // ---- the screen kept on while a file goes either way
@@ -769,6 +942,7 @@
 
   // ---- the start: the scanned address, or the first device
 
+  sweepDisk();
   var hash = location.hash.slice(1);
   if (TOKEN.test(hash)) join(hash);
   else show('start');

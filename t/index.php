@@ -35,7 +35,7 @@
   <script src="../js/appearance.js?v=2e6e831727"></script>
 </head>
 
-<body class="transfer" data-csrf="<?= htmlspecialchars($csrf) ?>">
+<body class="transfer" data-csrf="<?= htmlspecialchars($csrf) ?>" data-store="store.js?v=bb1843caea">
   <main class="content">
     <header class="ex-header">
       <div class="ex-top">
@@ -101,12 +101,12 @@
       <button type="button" class="hud-button hud-corners" id="t-again" hidden>Od nowa</button>
     </section>
 
-    <p class="t-hint">Pliki idą prosto między urządzeniami (WebRTC, szyfrowane) i nie są zapisywane na serwerze, który tylko pomaga im się odnaleźć. W tej samej sieci idą po niej. Odebrany plik czeka w pamięci przeglądarki, aż go zapiszesz, więc jeden może mieć do 2 GB. Nie zamykaj karty ani nie wygaszaj ekranu w trakcie.</p>
+    <p class="t-hint">Pliki idą prosto między urządzeniami (WebRTC, szyfrowane) i nie są zapisywane na serwerze, który tylko pomaga im się odnaleźć. W tej samej sieci idą po niej. Odebrany plik czeka w pamięci przeglądarki, aż go zapiszesz, więc jeden może mieć do 2 GB. W sieci lokalnej duży plik (od 256 MB) zapisuje się w trakcie na dysku, w miejscu przeglądarki, więc może być większy, póki starczy miejsca; ta kopia znika po „Usuń” albo przy następnej wizycie. Nie zamykaj karty ani nie wygaszaj ekranu w trakcie.</p>
   </main>
   <footer class="site-foot"><span>&copy; 2017&ndash;<span id="foot-year">2026</span> Sniku</span><i aria-hidden="true">&middot;</i><a href="../state/">Status</a><i aria-hidden="true">&middot;</i><a href="../privacy/">Prywatność</a><i aria-hidden="true">&middot;</i><a href="../terms/">Zasady</a></footer>
   <script src="../js/year.js?v=27252b35ac"></script>
   <script src="qrcode.js?v=18ae399f81"></script>
-  <script src="t.js?v=8c67d83737"></script>
+  <script src="t.js?v=639f660d72"></script>
   <script src="../js/palette.js?v=7ab481b465"></script>
 </body>
 
