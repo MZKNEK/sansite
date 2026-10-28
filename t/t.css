@@ -1,0 +1,227 @@
+/* The transfer page (t/): one panel with the targeting corners, its steps
+   shown one at a time, the site's buttons of words and fields (explorer.css,
+   style.css). The QR code stays dark on white in every skin, as scanners
+   read it so. */
+.t-panel.hud-corners {
+    --arm: 18px;
+    --fill: var(--surface-raised);
+    max-width: 620px;
+    margin: 36px auto 0;
+    padding: 24px 24px 20px;
+    text-align: center;
+}
+
+.t-step[hidden],
+.t-panel [hidden] {
+    display: none;
+}
+
+.t-lead {
+    margin: 0 0 18px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.t-lead strong {
+    color: var(--heading);
+}
+
+.t-label {
+    font: 11px/1.5 "Sanakan Mono", monospace;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--link);
+}
+
+.hud-button.hud-corners.t-main {
+    height: 38px;
+    padding: 0 18px;
+    font-size: 12px;
+}
+
+.t-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* ---- the code */
+
+.t-qr {
+    display: block;
+    width: min(260px, 100%);
+    height: auto;
+    margin: 14px auto 16px;
+    image-rendering: pixelated;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+}
+
+.t-link-row {
+    display: flex;
+    gap: 8px;
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.t-address.field {
+    flex: 1;
+    min-width: 0;
+    font: 12px "JetBrains Mono", Consolas, monospace;
+}
+
+.t-note {
+    margin: 10px 0 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* ---- connected */
+
+.t-state-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.t-route {
+    color: var(--success);
+    font: 12px "Sanakan Mono", monospace;
+    letter-spacing: 0.08em;
+}
+
+.t-peer {
+    margin: 4px 0 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.t-relay {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.t-relay p {
+    margin: 0 0 10px;
+}
+
+.t-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 22px 12px;
+    border: 1px dashed rgba(var(--accent-rgb), 0.45);
+    transition: background-color 0.15s;
+}
+
+.t-drop.t-over {
+    background: rgba(var(--accent-rgb), 0.12);
+}
+
+.t-drop-hint {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.t-list {
+    margin: 14px 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+}
+
+.t-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2px 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.18);
+}
+
+.t-mark {
+    grid-row: span 2;
+    color: var(--link);
+    font: 18px "Sanakan Mono", monospace;
+}
+
+.t-name {
+    overflow: hidden;
+    color: var(--heading);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.t-meta {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.t-status {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.t-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.t-bar {
+    grid-column: 2 / -1;
+    height: 3px;
+    background: rgba(var(--accent-rgb), 0.15);
+}
+
+.t-bar i {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--accent-light);
+}
+
+.t-done .t-bar i {
+    background: var(--success);
+}
+
+.t-failed .t-status {
+    color: var(--danger);
+}
+
+.t-failed .t-bar {
+    visibility: hidden;
+}
+
+.t-message {
+    margin: 14px 0;
+    color: var(--warning);
+    font-size: 14px;
+}
+
+.t-hint {
+    max-width: 620px;
+    margin: 18px auto 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+@media only screen and (max-width: 420px) {
+    .t-panel.hud-corners {
+        padding: 18px 14px 14px;
+    }
+
+    .t-link-row {
+        flex-direction: column;
+    }
+}
