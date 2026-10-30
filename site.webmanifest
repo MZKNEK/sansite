@@ -1,7 +1,12 @@
 {
+  "id": "/",
   "name": "Sanakan",
   "short_name": "Sanakan",
+  "description": "Bot na Discorda: polecenia, wiki, Waifu, Skalpelator i status na żywo.",
+  "lang": "pl",
   "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
   "icons": [
     {
       "src": "/img/favicon-192x192.png",
@@ -17,6 +22,12 @@
       "src": "/img/favicon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/img/favicon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "theme_color": "#9b59b6",
