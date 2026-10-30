@@ -26,6 +26,7 @@ window.SanakanSkinJa = (function () {
     'Alter': 'オルター',
     'Skalpelator': 'スカルペル',
     'USkalpelator': 'Uスカルペル',
+    'Profilator': 'プロフィラー',
     'Status': '稼働状況',
     'Prywatność': 'プライバシー',
     'Zasady': '利用規約',

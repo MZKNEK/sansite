@@ -130,6 +130,7 @@
         ['/cmd/ban', [403]],
         ['/skalpel/', [200]],
         ['/uskalpel/', [200]],
+        ['/profilator/', [200]],
         ['/og.php?p=cmd', [200, 302]],
         ['/og.php?p=versions', [200, 302]],
         ['/og.php?p=wersje', [200, 302]],

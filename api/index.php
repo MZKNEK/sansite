@@ -45,11 +45,11 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=b75bcdfb18" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=5b1bfc9d73" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=e330d129f9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -106,7 +106,7 @@
   <script src="../js/netsphere.js?v=adf9386966"></script>
   <script src="../js/safeguard.js?v=ec477d1123"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
-  <script src="../js/palette.js?v=7ab481b465"></script>
+  <script src="../js/palette.js?v=10c535e8a5"></script>
 </body>
 
 </html>
@@ -124,7 +124,7 @@
   <title>API &middot; Sanakan</title>
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
   <link rel="stylesheet" type="text/css" href="./swagger-ui.css?v=c6b71aa0c3" >
-  <link rel="stylesheet" type="text/css" href="../css/style.css?v=b75bcdfb18" />
+  <link rel="stylesheet" type="text/css" href="../css/style.css?v=5b1bfc9d73" />
   <link rel="stylesheet" type="text/css" href="../css/palette.css?v=94c96c7c93" />
   <link rel="stylesheet" type="text/css" href="../css/account.css?v=66047e5fc2" />
   <link rel="stylesheet" type="text/css" href="../css/skins.css?v=50e6f40617" />
@@ -235,7 +235,7 @@
 <script src="../js/netsphere.js?v=adf9386966"></script>
 <script src="../js/safeguard.js?v=ec477d1123"></script>
 <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
-<script src="../js/palette.js?v=7ab481b465"></script>
+<script src="../js/palette.js?v=10c535e8a5"></script>
 </body>
 <style> .swagger-ui .scheme-container, .swagger-ui .topbar { display: none !important; } </style>
 <style> .swagger-ui.swagger-container .wrapper span a img { display: none !important; } </style>

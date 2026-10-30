@@ -18,6 +18,22 @@
         assertNull(pwLocalName('src/Pictures/PW/a\b.png'), 'a backslash');
     });
 
+    test('pwLocalName puts the pictures of the profile under np/', function () {
+        assertSame('np/pbase.png', pwLocalName('src/Pictures/np/pbase.png'));
+        assertSame('np/ab/BaseLv/25.png', pwLocalName('src/Pictures/np/ab/BaseLv/25.png'));
+        assertSame('np/statsAnime.png', pwLocalName('src/Pictures/statsAnime.png'));
+        assertSame('np/statsManga.png', pwLocalName('src/Pictures/statsManga.png'));
+        assertNull(pwLocalName('src/Pictures/coin0.png'), 'another picture of the folder above');
+        assertNull(pwLocalName('src/Pictures/np/../PW/SSS.png'), 'out of the folder');
+        assertNull(pwLocalName('src/Pictures/PW/np/pbase.png'), 'a folder of the cards named like the profile\'s');
+    });
+
+    test('pwSourcePath finds every mirrored file in the repository again', function () {
+        foreach (['src/Pictures/PW/SSS.png', 'src/Pictures/PW/CG/Delta/Border2.png', 'src/Pictures/np/pbase.png',
+            'src/Pictures/np/ab/Gold.png', 'src/Pictures/statsAnime.png', 'src/Pictures/statsManga.png'] as $path)
+            assertSame($path, pwSourcePath(pwLocalName($path)));
+    });
+
     test('pwParseVariants reads the styles of the frames from the bot\'s code', function () {
         $code = "class X {\n    public static int GetCardVariantsCount(this Card card)\n    {\n        return card.Quality switch\n"
             . "        {\n            Quality.Delta => 8,\n            Quality.Eta => 18,\n            _ => 0\n        };\n    }\n"

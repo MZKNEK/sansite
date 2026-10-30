@@ -237,10 +237,10 @@
 
     // one change asked of the gallery's page by an account, in a process of its
     // own, as handlePost() ends the one it runs in: the answer
-    function galleryPost($id, $base, $fields)
+    function galleryPost($id, $base, $fields, $files = [])
     {
         $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
-        $process = proc_open([PHP_BINARY, __DIR__ . '/gallery-post-child.php', $id, $base, json_encode($fields)],
+        $process = proc_open([PHP_BINARY, __DIR__ . '/gallery-post-child.php', $id, $base, json_encode($fields), json_encode((object)$files)],
             [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['file', $null, 'w']], $pipes, __DIR__,
             array_merge(getenv() ?: [], ['SANAKAN_TEST_DATA' => SITE_DATA_DIR]));
         fclose($pipes[0]);
@@ -322,4 +322,30 @@
         assertTrue(galleryCanChange($baseU, $own . '/a.png'));
         assertFalse(galleryCanChange($baseU, 'a.png'), 'an account with a folder of its own only that folder');
         sessionEnd();
+    });
+
+    test('a picture of Profilator sent again answers with the one already in its folder', function () {
+        $base = tempDir();
+        writeData('roles', ['556' => ['roles' => ['onGuild' => true, 'user' => true], 'checked' => time()]]);
+        mkdir($base . '/users/556-Test/Profilator', 0755, true);
+        file_put_contents($base . '/users/556-Test/Profilator/0123456789abcdef.webp', 'x');
+        $file = ['file' => ['name' => '0123456789abcdef.png', 'tmp_name' => 'none', 'error' => UPLOAD_ERR_OK, 'size' => 1, 'type' => 'image/png']];
+
+        $answer = galleryPost('556', $base, ['action' => 'profilator'], $file);
+        assertTrue($answer['ok'] ?? null, json_encode($answer));
+        assertContains('Profilator/0123456789abcdef.webp', $answer['url'] ?? '', 'the link of the WebP the PNG became');
+        assertSame(['0123456789abcdef.webp'], array_values(array_diff(scandir($base . '/users/556-Test/Profilator'), ['.', '..'])), 'nothing new kept');
+
+        $answer = galleryPost('556', $base, ['action' => 'profilator'], ['file' => ['name' => 'fedcba9876543210.png', 'tmp_name' => 'none', 'error' => UPLOAD_ERR_OK, 'size' => 1, 'type' => 'image/png']]);
+        assertFalse($answer['ok'] ?? null, 'a new picture is an upload, which this one is not');
+    });
+
+    test('Profilator cannot put pictures into the gallery of an account without a folder of its own', function () {
+        $base = tempDir();
+        writeData('roles', ['557' => ['roles' => ['onGuild' => true], 'checked' => time()]]);
+        $file = ['file' => ['name' => '0123456789abcdef.png', 'tmp_name' => 'none', 'error' => UPLOAD_ERR_OK, 'size' => 1, 'type' => 'image/png']];
+
+        $answer = galleryPost('557', $base, ['action' => 'profilator'], $file);
+        assertFalse($answer['ok'] ?? null, json_encode($answer));
+        assertFalse(is_dir($base . '/users'), 'no folder made');
     });

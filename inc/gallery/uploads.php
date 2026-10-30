@@ -3,18 +3,18 @@
     // gallery, loaded by inc/gallery.php.
 
     // The folder the croppers save the cards into, inside the folder of the
-    // account (CROPPER_DIR), made the first time; an account without a folder
-    // of its own gets the answer that it has none.
-    function cropperFolder($base)
+    // account (CROPPER_DIR, or PROFILATOR_DIR for Profilator), made the first
+    // time; an account without a folder of its own gets the answer that it has none.
+    function cropperFolder($base, $name = CROPPER_DIR)
     {
         $own = ownFolder($base);
         if ($own === null)
             reply(false, 'To konto nie ma swojego folderu w galerii (trzeba mieć rolę na serwerze bota).', 403);
 
-        $rel = $own . '/' . CROPPER_DIR;
+        $rel = $own . '/' . $name;
         if (!is_dir($base . '/' . $rel)) {
             if (!@mkdir($base . '/' . $rel, 0755) && !is_dir($base . '/' . $rel))
-                reply(false, 'Nie udało się utworzyć folderu ' . CROPPER_DIR . ' w galerii.', 500);
+                reply(false, 'Nie udało się utworzyć folderu ' . $name . ' w galerii.', 500);
             addHistory('mkdir', 'Utworzono folder ' . galleryPath($rel) . '.');
         }
 

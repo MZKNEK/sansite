@@ -2,7 +2,8 @@
     // One change asked of the gallery's page (handlePost(), which ends the
     // process with its answer), for tests/test_gallery_access.php: the account
     // $argv[1] is logged in, the gallery is the folder $argv[2] and the fields
-    // of the POST are the JSON of $argv[3], the CSRF token added. The answer's
+    // of the POST are the JSON of $argv[3], the CSRF token added, and the
+    // optional JSON of $argv[4] is $_FILES. The answer's
     // JSON is the output. The accounts are those of tests/test_access.php, and
     // 445 a gallery admin who may see the private folder too. Not sent to the
     // server (tests/ is export-ignore).
@@ -22,4 +23,5 @@
     $_SERVER['REQUEST_METHOD'] = 'POST';
     sessionFor('sanakan-post-' . $argv[1] . '-' . bin2hex(random_bytes(4)), ['id' => $argv[1], 'name' => 'Test', 'avatar' => 'a']);
     $_POST = ['csrf' => siteCsrf()] + json_decode($argv[3], true);
+    $_FILES = isset($argv[4]) ? json_decode($argv[4], true) : [];
     handlePost($argv[2]);

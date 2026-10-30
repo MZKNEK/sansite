@@ -74,6 +74,19 @@
             $action = 'upload';
         }
 
+        // a picture of a profile code from Profilator, the same way into its
+        // own folder; the page names it by its content, so one sent again
+        // (also after the change to WebP) answers with the link of the one there
+        if ($action === 'profilator') {
+            $folder = cropperFolder($base, PROFILATOR_DIR);
+            $name = trim(basename(str_replace('\\', '/', (string)($_FILES['file']['name'] ?? ''))));
+            foreach (array_unique([$name, pathinfo($name, PATHINFO_FILENAME) . '.webp']) as $same)
+                if ($same !== '' && nameError($same, true) === null && is_file($base . '/' . $folder . '/' . $same))
+                    reply(true, 'Ten obrazek już jest w galerii.', 200, uploadedLinks($folder . '/' . $same));
+            $_POST['dir'] = publicRel($folder);
+            $action = 'upload';
+        }
+
         // an account with a folder of its own changes only what is in it, and
         // there only adds, renames, turns and deletes pictures
         if (!galleryIsAdmin()) {

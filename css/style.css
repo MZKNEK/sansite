@@ -366,8 +366,10 @@ body.gbe-shot main.hero {
     display: none;
 }
 
-/* the login looks like the HUD buttons of the site (corners from .hud-corners) */
-.home-account a.home-login {
+/* the login looks like the HUD buttons of the site (corners from .hud-corners),
+   also in the top bar of a subpage that takes it (Profilator) */
+.home-account a.home-login,
+.ex-top a.home-login {
     padding: 6px 13px;
     color: var(--text);
     font: 11px/1.5 "Sanakan Mono", monospace;
@@ -957,6 +959,11 @@ textarea.field {
     transform: none;
 }
 
+/* a third button under the second (Profilator under USkalpelator) */
+.links .below a.swap-alt ~ a.swap-alt {
+    top: calc(200% + 28px);
+}
+
 /* keeps the hover active across the gap between the two buttons */
 .link-swap:hover::after {
     content: "";
@@ -966,6 +973,10 @@ textarea.field {
     z-index: 0;
     width: 100%;
     height: calc(100% + 14px);
+}
+
+.link-swap.below:has(a.swap-alt ~ a.swap-alt):hover::after {
+    height: calc(200% + 28px);
 }
 
 /* touch screens and narrow windows: show both buttons, no animations.
@@ -1076,8 +1087,9 @@ textarea.field {
 
 /* narrow windows: the Morse line, about 700px wide, would not fit; a wide
    touch screen (a tablet, Android's desktop mode) keeps it. The buttons go in
-   pairs, Alter and USkalpelator next to their first ones, API across, and with
-   a smaller logo the whole page fits a phone's screen without scrolling */
+   pairs, Alter and USkalpelator next to their first ones, Profilator next to
+   API, and with a smaller logo the whole page fits a phone's screen without
+   scrolling */
 @media only screen and (max-width: 720px) {
     .motto {
         display: none;
@@ -1109,10 +1121,6 @@ textarea.field {
 
     .links a i {
         margin-right: 6px;
-    }
-
-    .links a.short {
-        grid-column: 1 / -1;
     }
 
     /* Tighten spacing on short phones, using the height with browser bars

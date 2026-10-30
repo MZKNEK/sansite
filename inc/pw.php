@@ -10,13 +10,20 @@
     // seconds a run, the rest the next minute; a file gone from the repository
     // goes here too. With them it reads how many styles each ultimate frame
     // has from the bot's code (variants.json), which USkalpelator used to parse
-    // from GitHub itself. Kept in readData('pw') as ['checked', 'files' =>
+    // from GitHub itself. The pictures of the profile (the bot's np/ folder
+    // and its two panels of statistics) come the same way into np/, for
+    // Profilator. Kept in readData('pw') as ['checked', 'files' =>
     // [path => git hash], 'pending' => [path => git hash], 'error', 'synced'].
     require_once __DIR__ . '/auth.php';
 
     const PW_REPO = 'MZKNEK/sanakan';
     const PW_BRANCH = 'master';
     const PW_SOURCE = 'src/Pictures/PW';
+    const PW_PROFILE_SOURCE = 'src/Pictures/np';
+    const PW_PROFILE_FILES = [
+        'src/Pictures/statsAnime.png' => 'np/statsAnime.png',
+        'src/Pictures/statsManga.png' => 'np/statsManga.png'
+    ];
     const PW_VARIANTS_SOURCE = 'src/Extensions/CardExtension.cs';
     const PW_SYNC_EVERY = 21600;
     const PW_RETRY = 900;
@@ -45,17 +52,35 @@
             . implode('/', array_map('rawurlencode', explode('/', $path)));
     }
 
-    // the name of a file of the folder inside inc/data/pw, or null for one that
+    // the name of a file of the folders inside inc/data/pw, or null for one that
     // is not a picture or whose name could reach outside it
     function pwLocalName($path)
     {
-        if (strpos($path, PW_SOURCE . '/') !== 0)
+        if (isset(PW_PROFILE_FILES[$path]))
+            return PW_PROFILE_FILES[$path];
+        if (strpos($path, PW_SOURCE . '/') === 0)
+            $name = substr($path, strlen(PW_SOURCE) + 1);
+        else if (strpos($path, PW_PROFILE_SOURCE . '/') === 0)
+            $name = 'np/' . substr($path, strlen(PW_PROFILE_SOURCE) + 1);
+        else
             return null;
-        $name = substr($path, strlen(PW_SOURCE) + 1);
         if (!preg_match('~^[\w .()+-]+(?:/[\w .()+-]+)*$~u', $name) || preg_match('~(^|/)\.~', $name))
+            return null;
+        // np/ belongs to the profile's pictures, a folder of the cards by that name would mix with them
+        if (strpos($path, PW_SOURCE . '/np/') === 0)
             return null;
 
         return in_array(strtolower(pathinfo($name, PATHINFO_EXTENSION)), PW_TYPES, true) ? $name : null;
+    }
+
+    // where a file of the mirror is in the bot's repository, pwLocalName() turned around
+    function pwSourcePath($name)
+    {
+        $file = array_search($name, PW_PROFILE_FILES, true);
+        if ($file !== false)
+            return $file;
+
+        return strpos($name, 'np/') === 0 ? PW_PROFILE_SOURCE . '/' . substr($name, 3) : PW_SOURCE . '/' . $name;
     }
 
     // git's hash of a file's content, which GitHub's list of files gives
@@ -175,7 +200,7 @@
         foreach ($pending as $name => $hash) {
             if (microtime(true) - $started >= $budget || $failed >= 3)
                 break;
-            [$content, $status] = pwGet(pwRawUrl(PW_SOURCE . '/' . $name));
+            [$content, $status] = pwGet(pwRawUrl(pwSourcePath($name)));
             if ($status !== 200 || $content === false || pwGitHash($content) !== $hash || !pwWrite($name, $content)) {
                 $failed++;
                 $state['error'] = 'nie udało się pobrać ' . $name . ' (HTTP ' . $status . ')';

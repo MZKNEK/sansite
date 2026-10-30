@@ -26,6 +26,7 @@
     ['Dokumentacja API', 'api/', 'swagger endpoint'],
     ['Skalpelator', 'skalpel/', 'karta przycinanie obrazek crop'],
     ['USkalpelator', 'uskalpel/', 'ultimate karta przycinanie crop'],
+    ['Profilator', 'profilator/', 'profil wygląd styl ramka awatar kod konfiguracja'],
     ['Prywatność', 'privacy/', 'dane cookies privacy'],
     ['Zasady', 'terms/', 'regulamin terms warunki'],
     ['Wiki', 'https://wiki.sanakan.pl', 'pomoc poradnik'],

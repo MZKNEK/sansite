@@ -115,9 +115,9 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../img/favicon.svg" type="image/svg+xml" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=b75bcdfb18" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=5b1bfc9d73" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=e330d129f9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
   <link href="maker.css?v=0579a7e25d" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
 </head>

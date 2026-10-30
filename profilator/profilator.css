@@ -1,0 +1,167 @@
+/* Profilator: only its layout, the fields, buttons, selects and cards are the
+   site's (style.css, explorer.css, status.css, admin.css) */
+
+.profilator-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-top: 32px;
+}
+
+/* a wide window: the preview stays in sight while the settings scroll */
+@media only screen and (min-width: 1100px) {
+    .profilator-grid {
+        grid-template-columns: minmax(0, 790px) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .profilator-preview {
+        position: sticky;
+        top: 16px;
+    }
+}
+
+.profilator-settings {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+}
+
+/* the names of the styles are long, one field under the other keeps them whole */
+.profilator-settings .hud-fields {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.profilator-canvas {
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
+    background: rgba(var(--accent-rgb), 0.05);
+    line-height: 0;
+}
+
+.profilator-canvas canvas {
+    width: 100%;
+    height: auto;
+}
+
+.profilator-preview .hint {
+    margin: 12px 0 0;
+}
+
+.profilator-command {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.profilator-command .hud-field {
+    flex: 1;
+}
+
+.profilator-command .field {
+    width: 100%;
+    color: var(--text-strong);
+}
+
+.profilator-note:empty,
+.profilator-after:empty {
+    display: none;
+}
+
+.profilator-after {
+    margin: 12px 0 0;
+}
+
+.card .hud-field + .hint {
+    margin-top: 12px;
+}
+
+/* the switches as a list, each with what it does under its name */
+.profilator-switches .switch {
+    padding: 10px 0;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.15);
+}
+
+.profilator-switches .switch:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.profilator-switches .switch-label small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* a switch that changes nothing on the style picked, still in the code */
+.profilator-switches .switch.idle {
+    opacity: 0.45;
+}
+
+.profilator-range {
+    margin-top: 18px;
+}
+
+.profilator-range .player-range {
+    width: 100%;
+}
+
+.profilator-images-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-bottom: 14px;
+}
+
+.profilator-images-head .switch {
+    flex: 1 1 100%;
+}
+
+.profilator-images-head .hint {
+    margin: 0;
+}
+
+.profilator-images {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.profilator-images li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "name pick clear" "file pick clear";
+    align-items: center;
+    gap: 2px 10px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.15);
+}
+
+.profilator-images li:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.profilator-image-name {
+    grid-area: name;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.profilator-image-file {
+    grid-area: file;
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profilator-images .hud-button {
+    grid-area: pick;
+}
+
+.profilator-images [data-image-clear] {
+    grid-area: clear;
+}

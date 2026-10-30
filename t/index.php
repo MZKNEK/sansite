@@ -27,10 +27,10 @@
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=b75bcdfb18" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=5b1bfc9d73" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=e330d129f9" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
   <link href="t.css?v=e010d817c1" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
 </head>
@@ -107,7 +107,7 @@
   <script src="../js/year.js?v=27252b35ac"></script>
   <script src="qrcode.js?v=18ae399f81"></script>
   <script src="t.js?v=c51e1701ef"></script>
-  <script src="../js/palette.js?v=7ab481b465"></script>
+  <script src="../js/palette.js?v=10c535e8a5"></script>
 </body>
 
 </html>

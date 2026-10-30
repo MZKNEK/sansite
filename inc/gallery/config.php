@@ -80,6 +80,10 @@
     // cards into, inside the folder of the account
     const CROPPER_DIR = 'Skalpelator';
 
+    // the folder Profilator (/profilator/) puts the pictures of a profile code
+    // into, inside the folder of the account
+    const PROFILATOR_DIR = 'Profilator';
+
     // the folder only the panel admins and the GALLERY_PRIVATE list see, and
     // whose files nginx never gives straight from the disk
     const PRIVATE_DIR = 'private';
