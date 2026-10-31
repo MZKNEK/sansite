@@ -15,7 +15,7 @@ export const svelteOptions = {
   },
 }
 
-export function cropperConfig(name, { resolve, ...rest } = {}) {
+export function cropperConfig(name, { resolve, build, ...rest } = {}) {
   const site = process.env.SANAKAN_SITE || 'http://127.0.0.1:8765'
   const fromSite = ['/css/', '/fonts/', '/js/', '/favicon', '/apple-touch-icon', '/site.webmanifest', '/account.php', '/i/', '/pw/', '/models/', '/__login', '/__preview.css']
   return {
@@ -29,6 +29,7 @@ export function cropperConfig(name, { resolve, ...rest } = {}) {
     build: {
       outDir: `../../${name}`,
       emptyOutDir: true,
+      ...build,
     },
     server: {
       // the code both croppers share is in apps/shared/, outside their folders,

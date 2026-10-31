@@ -178,8 +178,8 @@
 
 .profilator-images li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
-    grid-template-areas: "name pick edit clear" "file pick edit clear";
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    grid-template-areas: "name pick cut edit clear" "file pick cut edit clear";
     align-items: center;
     gap: 2px 10px;
     padding: 10px 0;
@@ -216,6 +216,10 @@
 
 .profilator-images li.covered .hud-button {
     pointer-events: none;
+}
+
+.profilator-images [data-image-cut] {
+    grid-area: cut;
 }
 
 .profilator-images [data-image-edit] {
@@ -269,4 +273,13 @@
 .profilator-settings[inert],
 .profilator-command[inert] {
     opacity: 0.5;
+}
+
+/* the model of the overlays' background removal, under the pictures */
+.profilator-cut {
+    margin-top: 14px;
+}
+
+.profilator-cut .hint {
+    margin: 8px 0 0;
 }

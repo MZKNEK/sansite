@@ -39,6 +39,8 @@
     }
     $ready = is_file(pwDir() . '/np/pbase.png');
     $board = glob(__DIR__ . '/../skalpel/assets/empty-*.webp')[0] ?? null;
+    // USkalpelator's background removal, built as a module of its own (apps/uskalpel/vite.config.js)
+    $cutout = glob(__DIR__ . '/../uskalpel/assets/cutout-*.js')[0] ?? null;
 
     $avatar = $user !== null && $user['avatar'] !== '' ? preg_replace('~\?size=\d+$~', '?size=128', $user['avatar']) : '';
 
@@ -96,7 +98,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=40075428bb" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=df7b0441b0" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -107,7 +109,7 @@
     data-levels="<?=e(json_encode((object)$levels))?>" data-prefix="<?=e($prefix)?>"
     data-nick="<?=e($user['name'] ?? '')?>" data-avatar="<?=e($avatar)?>" data-own="<?=$own ? '1' : '0'?>" data-csrf="<?=e($csrf)?>" data-me="<?=$user !== null ? 'me.php' : ''?>"
     data-color="<?=e($badge !== null ? (HUD_COLOR_HEX[$badge['key']] ?? '') : '')?>"
-    data-art="../img/logo.webp" data-board="<?=$board !== null ? '../skalpel/assets/' . e(basename($board)) : ''?>" data-cards="../pw/" data-bot-cards="cards/"
+    data-art="../img/logo.webp" data-board="<?=$board !== null ? '../skalpel/assets/' . e(basename($board)) : ''?>" data-cards="../pw/" data-bot-cards="cards/" data-cutout="<?=$cutout !== null ? '../uskalpel/assets/' . e(basename($cutout)) : ''?>"
     data-resample="../js/resample.js?v=75f42fd46f" data-resample-worker="../js/resample.worker.js?v=567df5edd0">
     <header class="ex-header">
       <div class="ex-top">
@@ -252,11 +254,24 @@
               <span class="profilator-image-name"><?=e($label)?> <span class="muted"><?=e($size)?> px</span></span>
               <span class="profilator-image-file muted" data-image-file>nie wybrano</span>
               <span class="hud-button hud-corners">Wybierz<input type="file" accept="image/*" aria-label="<?=e($label)?>: wybierz obrazek" /></span>
+<?php if ($key === 'overlay' || $key === 'premium'): ?>
+              <button type="button" class="admin-btn small" data-image-cut hidden aria-label="<?=e($label)?>: usuń tło">Usuń tło</button>
+<?php endif; ?>
               <button type="button" class="admin-btn small" data-image-edit hidden aria-label="<?=e($label)?>: przesuń i powiększ">Ustaw</button>
               <button type="button" class="admin-btn small" data-image-clear hidden>Usuń</button>
             </li>
 <?php endforeach; ?>
           </ul>
+          <div class="profilator-cut" id="cut-box" hidden>
+            <label class="hud-field">
+              <span class="hud-field-label">Model usuwania tła nakładek</span>
+              <span class="hud-select">
+                <select id="cut-model"></select>
+                <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
+              </span>
+            </label>
+            <p class="hint" id="cut-note">„Usuń tło” przy nakładce z pliku wycina postać tak jak USkalpelator. Model pobiera się przy pierwszym użyciu (44 lub 88 MB) i przeglądarka trzyma go potem rok; liczy się na procesorze, na telefonie nawet kilkanaście sekund.</p>
+          </div>
         </section>
       </div>
     </div>
@@ -268,7 +283,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="profile.js?v=35641fbe40"></script>
-  <script src="profilator.js?v=683d3142ce"></script>
+  <script src="profilator.js?v=21ab9c1052"></script>
 </body>
 
 </html>

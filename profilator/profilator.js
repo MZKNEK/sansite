@@ -604,6 +604,12 @@
       label.textContent = text;
       label.title = slot && slot.url ? slot.url : '';
       row.querySelector('[data-image-clear]').hidden = !slot;
+      var cut = row.querySelector('[data-image-cut]');
+      if (cut) {
+        cut.hidden = !cutout || !slot || !slot.file;
+        cut.disabled = cutting();
+        cut.textContent = slot && slot.cutting ? slot.cutting : 'Usuń tło';
+      }
       var edit = row.querySelector('[data-image-edit]');
       edit.hidden = !slot || !slot.img;
       edit.textContent = editing === row.getAttribute('data-image') ? 'Gotowe' : 'Ustaw';
@@ -857,6 +863,10 @@
       update();
     });
 
+    var cut = row.querySelector('[data-image-cut]');
+    if (cut)
+      cut.addEventListener('click', function () { cutBackground(name); });
+
     row.querySelector('[data-image-clear]').addEventListener('click', function () {
       forget(name);
       update();
@@ -869,6 +879,91 @@
         startFraming(name);
     });
   });
+
+  // --- the overlays' background removal ---
+
+  // USkalpelator's (uskalpel/assets/cutout-*.js, built with the app): loaded
+  // with the page for its list of models, while onnxruntime and the model
+  // itself come only once a background is removed (from the site's /models/,
+  // kept a year). The original file is cut, and the figure takes the
+  // overlay's place as a picture from a file would, to be framed and sent
+  var cutout = null;
+  var cutBox = document.getElementById('cut-box');
+  var cutModel = document.getElementById('cut-model');
+  var cutNote = document.getElementById('cut-note');
+  var cutAbout = cutNote.textContent;
+
+  function cutting() {
+    return Object.keys(FREE).some(function (name) { return slots[name] && !!slots[name].cutting; });
+  }
+
+  function showModel() {
+    var model = cutout.bgModels.filter(function (m) { return m.value === cutModel.value; })[0];
+    cutNote.textContent = (model ? model.title + '. ' : '') + cutAbout;
+  }
+
+  if (root.getAttribute('data-cutout')) {
+    import(new URL(root.getAttribute('data-cutout'), location.href).href).then(function (module) {
+      cutout = module;
+      var picked = 'anime';
+      try {
+        picked = localStorage.getItem('profilator-cut-model') || picked;
+      } catch (e) {
+        // no storage: the model for anime characters
+      }
+      module.bgModels.forEach(function (model) {
+        var option = document.createElement('option');
+        option.value = model.value;
+        option.textContent = model.label + ' (' + model.tag + ')';
+        cutModel.appendChild(option);
+      });
+      cutModel.value = module.bgModels.some(function (m) { return m.value === picked; }) ? picked : module.bgModels[0].value;
+      showModel();
+      cutBox.hidden = false;
+      showRows();
+    }, function () {
+      // without the module the overlays keep their background
+    });
+  }
+
+  cutModel.addEventListener('change', function () {
+    try {
+      localStorage.setItem('profilator-cut-model', cutModel.value);
+    } catch (e) {
+      // kept for this visit only
+    }
+    showModel();
+  });
+
+  function cutBackground(name) {
+    var slot = slots[name];
+    if (!cutout || !slot || !slot.file || cutting())
+      return;
+    if (editing !== null)
+      stopFraming();
+    slot.cutting = 'Przygotowanie…';
+    update();
+    cutout.removeBackground(slot.objectUrl, cutModel.value, function (stage, fraction) {
+      slot.cutting = stage === 'fetch'
+        ? 'Pobieranie modelu' + (fraction != null ? ' ' + Math.round(fraction * 100) + '%' : '…')
+        : 'Usuwanie tła…';
+      showRows();
+    }).then(function (blob) {
+      delete slot.cutting;
+      if (slots[name] === slot) {
+        var file = new File([blob], slot.file.name.replace(/\.[^.]*$/, '') + '-bez-tla.png', { type: 'image/png' });
+        var next = { file: file, objectUrl: URL.createObjectURL(file), status: 'tło usunięte' };
+        put(name, next);
+        show(name, next, next.objectUrl);
+      }
+      update();
+    }, function (e) {
+      delete slot.cutting;
+      if (slots[name] === slot)
+        slot.status = 'nie udało się usunąć tła' + (e && e.message ? ': ' + e.message : '');
+      update();
+    });
+  }
 
   // --- moving and zooming a picture on the preview ---
 
