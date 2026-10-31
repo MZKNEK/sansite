@@ -28,6 +28,24 @@
         foreach (['dev', 'admin', 'semiAdmin', 'tester', 'moderator', 'user'] as $role)
             $roles[$role] = $account !== null && ($account[1] === $role || ($role === 'user' && $account[1] !== null));
         echo json_encode($roles);
+    } else if (preg_match('~/api/User/discord/(\d+)/profile$~', $path, $match)) {
+        // what Profilator gets of an account: a made-up profile, no pictures nor cards
+        $account = $data['accounts'][$match[1]] ?? null;
+        if ($account === null || $account[1] === null) {
+            http_response_code(404);
+            echo json_encode('User not found!');
+        } else {
+            $list = ['inProgress' => 7, 'completed' => 210, 'skipped' => 3, 'onHold' => 5, 'dropped' => 12, 'inPlan' => 64, 'total' => 301,
+                'rating' => 8.1, 'count' => 2950, 'years' => 0, 'months' => 2, 'days' => 3, 'hours' => 11, 'minutes' => 0];
+            echo json_encode([
+                'code' => 'AQUOgAhG', 'nick' => $account[0], 'avatar' => 'https://cdn.discordapp.com/embed/avatars/' . ((int)substr($match[1], -1) % 6) . '.png',
+                'color' => '#e86262', 'rank' => 'Podglądowy', 'level' => 23, 'exp' => 4400, 'top' => 128, 'messages' => 3120,
+                'sc' => 42000, 'tc' => 310, 'ac' => 12, 'ct' => 80, 'pc' => 9, 'cards' => 412, 'limit' => 1000, 'karma' => 150,
+                'rarities' => ['SS' => 2, 'S' => 11, 'A' => 40, 'B' => 90, 'C' => 120, 'D' => 80, 'E' => 69],
+                'scalpels' => 4, 'scissors' => 0, 'ultimates' => 0, 'waifu' => null, 'gallery' => [],
+                'anime' => $list, 'manga' => null
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
     } else if (strpos($path, '/api/Info/commands/private') !== false) {
         echo json_encode(['prefix' => $data['prefix'], 'modules' => previewModules($data['private'])], JSON_UNESCAPED_UNICODE);
     } else if (strpos($path, '/api/Info/commands') !== false) {

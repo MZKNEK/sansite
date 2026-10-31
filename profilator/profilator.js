@@ -26,6 +26,7 @@
   var shadowsNote = document.getElementById('shadows-note');
   var inCode = document.getElementById('images-in-code');
   var login = document.getElementById('profile-login');
+  var source = document.getElementById('profile-source');
   var switches = Array.prototype.slice.call(root.querySelectorAll('[data-flag]'));
   var rows = Array.prototype.slice.call(root.querySelectorAll('[data-image]'));
   var special = borderSelect.querySelector('option[value="TurqLeaves"]');
@@ -126,8 +127,9 @@
     var images = {};
     if (!withImages)
       return images;
+    // the account's own pictures stay where they are and cost nothing, so they are left out
     P.IMAGES.forEach(function (name) {
-      if (slots[name] && slots[name].url)
+      if (slots[name] && slots[name].url && !slots[name].current)
         images[name] = slots[name].url;
     });
     if (!P.styleNeedsImage(state.style)) {
@@ -170,7 +172,7 @@
       var label = row.querySelector('[data-image-file]');
       var text = 'nie wybrano';
       if (slot)
-        text = (slot.file ? slot.file.name : 'z kodu') + (slot.status ? ' · ' + slot.status : '');
+        text = (slot.file ? slot.file.name : slot.current ? 'twój' : 'z kodu') + (slot.status ? ' · ' + slot.status : '');
       label.textContent = text;
       label.title = slot && slot.url ? slot.url : '';
       row.querySelector('[data-image-clear]').hidden = !slot;
@@ -393,14 +395,15 @@
 
   // --- the code ---
 
-  function loadCode(decoded) {
+  // current: the account's own profile, whose pictures it already has
+  function loadCode(decoded, current) {
     P.IMAGES.forEach(forget);
     Object.keys(decoded.images).forEach(function (name) {
-      var slot = { url: decoded.images[name], status: '' };
+      var slot = { url: decoded.images[name], status: current ? 'obecny' : '', current: !!current };
       slots[name] = slot;
       show(name, slot, slot.url);
     });
-    if (Object.keys(decoded.images).length)
+    if (!current && Object.keys(decoded.images).length)
       withImages = true;
     apply(decoded);
   }
@@ -436,6 +439,59 @@
 
   // --- the start: the code of the address, the pictures, the fonts ---
 
+  // the account's own profile from the bot (me.php): its numbers and cards
+  // instead of the made-up ones, and its look when the address has no code
+  var real = false;
+  var me = root.getAttribute('data-me');
+
+  function list(stats) {
+    return stats ? {
+      inProgress: stats.inProgress, completed: stats.completed, skipped: stats.skipped, onHold: stats.onHold,
+      dropped: stats.dropped, inPlan: stats.inPlan, total: stats.total, rating: stats.rating, count: stats.count,
+      time: { years: stats.years, months: stats.months, days: stats.days, hours: stats.hours, minutes: stats.minutes }
+    } : null;
+  }
+
+  if (me) {
+    fetch(me, { credentials: 'same-origin' }).then(function (res) {
+      return res.json().then(function (body) { return { status: res.status, body: body }; }, function () { return { status: res.status, body: null }; });
+    }).then(function (answer) {
+      var mine = answer.status === 200 && answer.body && !answer.body.error ? answer.body : null;
+      if (!mine) {
+        source.textContent = 'Układ, grafiki i czcionki są te same co w bocie. ' + (answer.body && answer.body.error === 'none'
+          ? 'Nie masz jeszcze profilu w bocie, więc liczby i karty są przykładowe.'
+          : 'Bot nie podał teraz twojego profilu, więc liczby i karty są przykładowe; spróbuj za chwilę.');
+        return;
+      }
+      real = true;
+      ['level', 'exp', 'top', 'messages', 'sc', 'tc', 'ac', 'ct', 'pc', 'cards', 'limit', 'karma', 'rarities', 'scalpels', 'scissors', 'ultimates', 'rank', 'color']
+        .forEach(function (key) { data[key] = mine[key]; });
+      data.nick = mine.nick || data.nick;
+      data.anime = list(mine.anime);
+      data.manga = list(mine.manga);
+      data.waifu = null;
+      data.gallery = [];
+      source.textContent = 'To twój profil z bota, z twoimi liczbami, kartami i statystykami z Shindena; obrazki są te, które masz ustawione.';
+      Promise.all([load(mine.avatar), load(mine.waifu)].concat(mine.gallery.map(load))).then(function (images) {
+        if (images[0])
+          data.avatar = images[0];
+        data.waifu = images[1];
+        data.gallery = images.slice(2);
+        redraw();
+      });
+      var code = P.decode(mine.code);
+      if (code && !fromHash && !codeInput.value.trim()) {
+        codeInput.value = mine.code;
+        codeState.textContent = 'twój obecny';
+        loadCode(code, true);
+      } else {
+        update();
+      }
+    }, function () {
+      source.textContent = 'Układ, grafiki i czcionki są te same co w bocie. Nie udało się wczytać twojego profilu, więc liczby i karty są przykładowe.';
+    });
+  }
+
   var fromHash = P.decode(decodeURIComponent(location.hash.slice(1)));
   if (fromHash) {
     codeInput.value = location.hash.slice(1);
@@ -451,6 +507,8 @@
   })).then(redraw);
 
   load(root.getAttribute('data-avatar') || root.getAttribute('data-art')).then(function (img) {
+    if (real && data.avatar)
+      return;
     data.avatar = img;
     redraw();
   });
@@ -484,6 +542,8 @@
         return card;
       });
     })).then(function (made) {
+      if (real)
+        return;
       data.gallery = made;
       data.waifu = made[0];
       redraw();

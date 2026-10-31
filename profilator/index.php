@@ -103,7 +103,7 @@
 <body class="state-page">
   <main class="content profilator-page" id="profilator" data-pw="../pw/np/" data-ready="<?=$ready ? '1' : '0'?>"
     data-levels="<?=e(json_encode((object)$levels))?>" data-prefix="<?=e($prefix)?>"
-    data-nick="<?=e($user['name'] ?? '')?>" data-avatar="<?=e($avatar)?>" data-own="<?=$own ? '1' : '0'?>" data-csrf="<?=e($csrf)?>"
+    data-nick="<?=e($user['name'] ?? '')?>" data-avatar="<?=e($avatar)?>" data-own="<?=$own ? '1' : '0'?>" data-csrf="<?=e($csrf)?>" data-me="<?=$user !== null ? 'me.php' : ''?>"
     data-color="<?=e($badge !== null ? (HUD_COLOR_HEX[$badge['key']] ?? '') : '')?>"
     data-art="../img/logo.webp" data-board="<?=$board !== null ? '../skalpel/assets/' . e(basename($board)) : ''?>" data-cards="../pw/">
     <header class="ex-header">
@@ -128,7 +128,7 @@
 <?php if (!$ready): ?>
         <p class="hint warn">Grafiki profilu nie zostały jeszcze pobrane z repozytorium bota, więc podgląd jest niepełny. Strona pobiera je co kilka godzin.</p>
 <?php endif; ?>
-        <p class="hint">Układ, grafiki i czcionki są te same co w bocie. Poziom, waluty, karty i statystyki z Shindena są przykładowe<?=$user !== null ? ', nick i awatar są twoje' : ''?>.</p>
+        <p class="hint" id="profile-source">Układ, grafiki i czcionki są te same co w bocie. <?=$user !== null ? 'Wczytywanie twojego profilu z bota…' : 'Poziom, waluty, karty i statystyki z Shindena są przykładowe; po zalogowaniu zobaczysz swój profil.'?></p>
 
         <div class="profilator-command">
           <label class="hud-field">
@@ -235,8 +235,8 @@
   <script src="../js/safeguard.js?v=ec477d1123"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="profile.js?v=f4fbc4a05c"></script>
-  <script src="profilator.js?v=de46d99f53"></script>
+  <script src="profile.js?v=4665d8b9ea"></script>
+  <script src="profilator.js?v=c568ccca70"></script>
 </body>
 
 </html>

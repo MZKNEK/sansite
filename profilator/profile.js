@@ -526,8 +526,10 @@ window.Profile = (function () {
     function gallery() {
       var y = 4;
       var x = 19;
+      // a card without its picture leaves its place empty
       data.gallery.slice(0, 12).forEach(function (card) {
-        drawToHeight(ctx, card, x, y, 150);
+        if (card)
+          drawToHeight(ctx, card, x, y, 150);
         x += 121;
         if (x > 730) {
           x = 19;
@@ -554,7 +556,8 @@ window.Profile = (function () {
           var cardX = startX;
           var cardY = y + (small ? 26 : 2);
           data.gallery.slice(0, small ? 2 : 6).forEach(function (card) {
-            drawToHeight(ctx, card, cardX, cardY, cardSize);
+            if (card)
+              drawToHeight(ctx, card, cardX, cardY, cardSize);
             cardX += gap;
             if (cardX > gap * 2 + startX) {
               cardX = startX;
