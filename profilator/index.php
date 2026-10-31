@@ -257,7 +257,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="profile.js?v=4665d8b9ea"></script>
-  <script src="profilator.js?v=6b60cdd42a"></script>
+  <script src="profilator.js?v=3d4da0676b"></script>
 </body>
 
 </html>

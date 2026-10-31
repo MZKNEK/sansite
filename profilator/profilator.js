@@ -319,7 +319,8 @@
       return Promise.resolve(false);
     }
     return made.then(function (out) {
-      if (!out || slots[name] !== slot || slot.version !== version)
+      // also when the frame was dropped meanwhile (a picture of a code left as it was)
+      if (!out || slots[name] !== slot || slot.version !== version || !slot.out)
         return false;
       slot.out.getContext('2d').putImageData(out, 0, 0);
       slot.fine = true;
@@ -594,6 +595,8 @@
     }
     slot.uploading = true;
     slot.status = 'wysyłanie do galerii…';
+    // the frame being sent; moved again meanwhile, its answer is left out
+    var version = slot.version;
     var whole = slot.file && untouched(name, slot);
     var ext = whole ? (slot.file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png' : 'png';
     // a frame goes resampled, as the preview shows it once it is still
@@ -623,6 +626,13 @@
       if (slots[name] !== slot)
         return;
       slot.uploading = false;
+      if (slot.version !== version) {
+        // the frame it has now goes once its framing ends
+        slot.status = '';
+        upload(name);
+        update();
+        return;
+      }
       if (answer && answer.ok && answer.url) {
         // the gallery answers with a path of the site, the bot needs the whole address
         slot.url = new URL(answer.url, location.href).href;
@@ -636,6 +646,12 @@
       if (slots[name] !== slot)
         return;
       slot.uploading = false;
+      if (slot.version !== version) {
+        slot.status = '';
+        upload(name);
+        update();
+        return;
+      }
       slot.failed = true;
       slot.status = 'nie udało się wysłać do galerii';
       update();
