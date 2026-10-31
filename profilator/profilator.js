@@ -923,7 +923,26 @@
     });
     if (!current && Object.keys(decoded.images).length)
       withImages = true;
+    if (!current)
+      lendOwn();
     apply(decoded);
+  }
+
+  // the account's own pictures (from its profile in the bot) in the places a
+  // code leaves empty, as the bot keeps them there; the address never has
+  // them, so a reload shows them again this way
+  var ownImages = {};
+  function lendOwn() {
+    Object.keys(ownImages).forEach(function (name) {
+      var taken = slots[name]
+        || (name === 'combined' && (slots.background || slots.style))
+        || ((name === 'background' || name === 'style') && slots.combined);
+      if (taken)
+        return;
+      var slot = { url: ownImages[name], status: 'obecny', current: true };
+      slots[name] = slot;
+      show(name, slot, slot.url);
+    });
   }
 
   // a code typed or pasted, read as the bot reads it
@@ -998,11 +1017,13 @@
         redraw();
       });
       var code = P.decode(mine.code);
+      ownImages = code ? code.images : {};
       if (code && !fromHash && !codeInput.value.trim()) {
         codeInput.value = mine.code;
         codeState.textContent = 'twój obecny';
         loadCode(code, true);
       } else {
+        lendOwn();
         update();
       }
     }, function () {
