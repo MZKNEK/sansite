@@ -7,6 +7,8 @@
     // avatar and the colour of its role. The pictures picked for the preview
     // stay in the browser, unless they are put in the code: then they go to the
     // folder Profilator of the account's gallery and the code carries their links.
+    // Each is framed to the exact size of its place, moved and zoomed on the
+    // preview with the bar under it (profilator.js).
     require __DIR__ . '/../inc/bot.php';
     installDataErrorHandler();
     require __DIR__ . '/../inc/meta.php';
@@ -94,7 +96,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=3c7247ce71" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=e77f865155" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -105,7 +107,8 @@
     data-levels="<?=e(json_encode((object)$levels))?>" data-prefix="<?=e($prefix)?>"
     data-nick="<?=e($user['name'] ?? '')?>" data-avatar="<?=e($avatar)?>" data-own="<?=$own ? '1' : '0'?>" data-csrf="<?=e($csrf)?>" data-me="<?=$user !== null ? 'me.php' : ''?>"
     data-color="<?=e($badge !== null ? (HUD_COLOR_HEX[$badge['key']] ?? '') : '')?>"
-    data-art="../img/logo.webp" data-board="<?=$board !== null ? '../skalpel/assets/' . e(basename($board)) : ''?>" data-cards="../pw/">
+    data-art="../img/logo.webp" data-board="<?=$board !== null ? '../skalpel/assets/' . e(basename($board)) : ''?>" data-cards="../pw/"
+    data-resample="../js/resample.js?v=75f42fd46f" data-resample-worker="../js/resample.worker.js?v=567df5edd0">
     <header class="ex-header">
       <div class="ex-top">
         <a class="back hud-corners" href="../" title="Strona główna">&larr; Sanakan</a>
@@ -124,6 +127,23 @@
         <h2><i>01</i>Podgląd</h2>
         <div class="profilator-canvas">
           <canvas id="profile-canvas" width="750" height="500" role="img" aria-label="Podgląd profilu"></canvas>
+        </div>
+        <div class="profilator-frame" id="frame-bar" hidden>
+          <p class="hint" id="frame-hint" aria-live="polite"></p>
+          <label class="switch profilator-free" hidden>
+            <span class="switch-label">Tryb dowolny<small>Obrazek może być mniejszy od pola i stać w nim gdziekolwiek, reszta pola zostaje przeźroczysta.</small></span>
+            <input type="checkbox" id="frame-free" />
+            <span class="switch-state" aria-hidden="true">WYŁ</span>
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+          <div class="profilator-frame-controls">
+            <label class="hud-field">
+              <span class="hud-field-label">Powiększenie <span class="muted" id="frame-zoom-value"></span></span>
+              <input class="player-range" id="frame-zoom" type="range" min="100" max="500" step="1" />
+            </label>
+            <button type="button" class="admin-btn" id="frame-reset">Dopasuj</button>
+            <button type="button" class="admin-btn primary" id="frame-done">Gotowe</button>
+          </div>
         </div>
 <?php if (!$ready): ?>
         <p class="hint warn">Grafiki profilu nie zostały jeszcze pobrane z repozytorium bota, więc podgląd jest niepełny. Strona pobiera je co kilka godzin.</p>
@@ -203,7 +223,7 @@
 
         <section class="card">
           <h2><i>05</i>Obrazki</h2>
-          <p class="hint">Bez obrazków w kodzie zostają w przeglądarce, tylko do podglądu. Z nimi trafiają do folderu Profilator w twojej galerii, a kod dostaje ich linki: bot ustawi je razem z resztą i policzy każdy jak osobną zmianę obrazka. Tło i styl razem bot dzieli tak jak przy <code>konp jestem leniwy</code>.</p>
+          <p class="hint">Bez obrazków w kodzie zostają w przeglądarce, tylko do podglądu. Z nimi trafiają do folderu Profilator w twojej galerii, a kod dostaje ich linki: bot ustawi je razem z resztą i policzy każdy jak osobną zmianę obrazka. Obrazek z pliku wypełnia swoje pole w dokładnym rozmiarze, jakiego chce bot, a „Ustaw” pozwala go przesunąć i powiększyć na podglądzie. Tło i styl razem bot dzieli tak jak przy <code>konp jestem leniwy</code>.</p>
           <div class="profilator-images-head">
             <label class="switch">
               <span class="switch-label">Obrazki w kodzie</span>
@@ -221,6 +241,7 @@
               <span class="profilator-image-name"><?=e($label)?> <span class="muted"><?=e($size)?> px</span></span>
               <span class="profilator-image-file muted" data-image-file>nie wybrano</span>
               <span class="hud-button hud-corners">Wybierz<input type="file" accept="image/*" aria-label="<?=e($label)?>: wybierz obrazek" /></span>
+              <button type="button" class="admin-btn small" data-image-edit hidden aria-label="<?=e($label)?>: przesuń i powiększ">Ustaw</button>
               <button type="button" class="admin-btn small" data-image-clear hidden>Usuń</button>
             </li>
 <?php endforeach; ?>
@@ -236,7 +257,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="profile.js?v=4665d8b9ea"></script>
-  <script src="profilator.js?v=c568ccca70"></script>
+  <script src="profilator.js?v=b7e4420348"></script>
 </body>
 
 </html>

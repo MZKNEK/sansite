@@ -1,6 +1,7 @@
 // Renders the crop of the card: the same code makes the real preview and the
 // saved file, in a worker (render.worker.js) or, without one, on the page.
-import { resample } from './resample.js';
+// the site's own copy, which Profilator loads too
+import { resample } from '../../../js/resample.js';
 
 const makeCanvas = (w, h) => {
   if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);

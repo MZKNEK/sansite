@@ -31,8 +31,9 @@ export function cropperConfig(name, { resolve, ...rest } = {}) {
       emptyOutDir: true,
     },
     server: {
-      // the code both croppers share is in apps/shared/, outside their folders
-      fs: { allow: ['..'] },
+      // the code both croppers share is in apps/shared/, outside their folders,
+      // and the resampling in the site's js/, which Profilator loads too
+      fs: { allow: ['..', '../../js'] },
       // the site's paths, also with the app's base in front, which the dev
       // server puts on the scripts and icons of index.html (the build does not)
       proxy: Object.fromEntries(fromSite.flatMap((path) => [

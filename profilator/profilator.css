@@ -43,6 +43,53 @@
     height: auto;
 }
 
+/* a picture being framed: dragged on the preview, no page scroll under the finger */
+.profilator-canvas.framing canvas {
+    cursor: grab;
+    touch-action: none;
+}
+
+.profilator-canvas.framing canvas:active {
+    cursor: grabbing;
+}
+
+.profilator-free {
+    margin-top: 12px;
+}
+
+/* only for the overlays; the site's switch is a flex box, which hidden alone would not hide */
+.profilator-free[hidden] {
+    display: none;
+}
+
+.profilator-free .switch-label small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.profilator-frame-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.profilator-frame-controls .hud-field {
+    flex: 1 1 200px;
+}
+
+.profilator-frame-controls .player-range {
+    width: 100%;
+}
+
+/* the picture drawn bigger than its own pixels, as the outline on the preview */
+.profilator-frame-controls .profilator-upscaled {
+    color: var(--danger);
+}
+
 .profilator-preview .hint {
     margin: 12px 0 0;
 }
@@ -131,8 +178,8 @@
 
 .profilator-images li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas: "name pick clear" "file pick clear";
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "name pick edit clear" "file pick edit clear";
     align-items: center;
     gap: 2px 10px;
     padding: 10px 0;
@@ -160,6 +207,19 @@
 
 .profilator-images .hud-button {
     grid-area: pick;
+}
+
+/* the background or the style apart while both are in one picture */
+.profilator-images li.covered {
+    opacity: 0.45;
+}
+
+.profilator-images li.covered .hud-button {
+    pointer-events: none;
+}
+
+.profilator-images [data-image-edit] {
+    grid-area: edit;
 }
 
 .profilator-images [data-image-clear] {

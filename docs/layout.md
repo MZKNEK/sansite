@@ -47,7 +47,7 @@ What each file and folder holds, what stays out of git and how a backup of the d
 | `privacy/` | Privacy notice for the site, bot and API, with controls for saving discoveries, linked from every footer |
 | `terms/` | Terms of use, linked next to the privacy notice in every footer |
 | `inc/config.example.php` | Configuration template |
-| `css/`, `js/` | Styles and scripts; the account menu's styles in `css/account.css` and the search's in `css/palette.css`, which every page links after `css/style.css` (the croppers without it) |
+| `css/`, `js/` | Styles and scripts; the account menu's styles in `css/account.css` and the search's in `css/palette.css`, which every page links after `css/style.css` (the croppers without it); `js/resample.js`, the resampling of the croppers' cards (Lanczos3 without halos, a big reduction averaged first), an ES module the croppers' build takes in and Profilator loads, with `js/resample.worker.js` running it in a worker for Profilator |
 | `robots.txt` | Keeps search engines out of the gallery, the panel, the profile, `inc/`, the API documentation and the ranking of the hunters |
 | `server/nginx/` | nginx: the site's server block (https from Cloudflare with its Origin Certificate), blocked `inc/`, the 404, 403 and 500 pages, short links to commands, security headers (Skalpelator's and USkalpelator's of their own), browser cache, visitors' addresses behind Cloudflare, the site's log and the state of nginx and PHP-FPM for the server itself |
 | `server/ufw-cloudflare.sh` | The server's firewall: SSH for everyone, port 443 only for Cloudflare (see Firewall in `docs/server.md`) |
