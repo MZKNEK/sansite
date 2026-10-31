@@ -830,12 +830,18 @@ textarea.field {
     padding: 12px 20px;
     color: var(--text);
     font: 15px/1.5 "Sanakan Mono", monospace;
-    letter-spacing: 0.16em;
+    --spacing: 0.16em;
+    letter-spacing: var(--spacing);
     text-transform: uppercase;
 }
 
+/* every number (01, 03B...) as wide as three characters, so the gap before
+   the name is the same on every button */
 .links a i {
+    display: inline-block;
+    min-width: calc(3ch + 3 * var(--spacing));
     margin-right: 10px;
+    text-align: left;
     font-style: normal;
     color: var(--decoration);
     opacity: 0.8;
@@ -962,6 +968,15 @@ textarea.field {
 /* a third button under the second (Profilator under USkalpelator) */
 .links .below a.swap-alt ~ a.swap-alt {
     top: calc(200% + 28px);
+}
+
+/* the stacked buttons start at one edge, so their names of different lengths
+   line up (the first is the widest, so it looks centred anyway); a phone sets
+   them apart */
+@media only screen and (min-width: 721px) {
+    .links .below a {
+        text-align: left;
+    }
 }
 
 /* keeps the hover active across the gap between the two buttons */
@@ -1116,7 +1131,16 @@ textarea.field {
         min-width: 0;
         padding: 11px 6px;
         font-size: 13px;
-        letter-spacing: 0.08em;
+        --spacing: 0.08em;
+    }
+
+    /* the buttons start at one edge, so the numbers and the names line up in
+       each column, the longest (04B USKALPELATOR, 15 characters with the
+       number's width and its gap) centred */
+    .links a,
+    .links a.swap-alt {
+        padding-left: max(6px, calc(50% - (15ch + 15 * var(--spacing) + 6px) / 2));
+        text-align: left;
     }
 
     .links a i {
@@ -1156,7 +1180,7 @@ textarea.field {
         min-width: 0;
         padding: 12px 14px;
         font-size: 14px;
-        letter-spacing: 0.1em;
+        --spacing: 0.1em;
         white-space: nowrap;
     }
 

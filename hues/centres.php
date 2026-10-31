@@ -135,7 +135,7 @@
   <link rel="icon" href="../favicon.ico" sizes="32x32" />
   <link rel="icon" href="../img/favicon.svg" type="image/svg+xml" />
   <link href="../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../css/style.css?v=5b1bfc9d73" type="text/css" rel="stylesheet" />
+  <link href="../css/style.css?v=f2ef38f341" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
   <link href="centres.css?v=36c33841e7" type="text/css" rel="stylesheet" />

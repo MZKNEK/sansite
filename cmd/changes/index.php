@@ -77,7 +77,7 @@
   <link rel="apple-touch-icon" href="../../apple-touch-icon.png" />
   <link rel="manifest" href="../../site.webmanifest" />
   <link href="../../css/fonts.css?v=8b0e8a863d" type="text/css" rel="stylesheet" />
-  <link href="../../css/style.css?v=5b1bfc9d73" type="text/css" rel="stylesheet" />
+  <link href="../../css/style.css?v=f2ef38f341" type="text/css" rel="stylesheet" />
   <link href="../../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
