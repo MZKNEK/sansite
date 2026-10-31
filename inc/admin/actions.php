@@ -239,6 +239,24 @@
                 panelStats($galleryDir, true);
                 done('cache', 'Przeliczono galerię od nowa.');
 
+            // what is run by hand on the server, started in the background
+            // (startPhpScript()); its state shows on the panel once it is done
+            case 'pw-sync':
+                updateData('pw', function (&$state) { $state['checked'] = 0; });
+                if (!startPhpScript('inc/pw-sync.php'))
+                    reply(false, 'Nie udało się uruchomić PHP z wiersza poleceń na serwerze.', 500);
+                done('task', 'Uruchomiono pobieranie grafik bota z jego repozytorium; stan pokaże się po odświeżeniu panelu.');
+
+            case 'media-worker':
+                if (!startMediaWorker())
+                    reply(false, 'Konwersja już trwa albo nie da się uruchomić PHP z wiersza poleceń.', 409);
+                done('task', 'Uruchomiono konwersję czekających zdjęć i filmów na WebP i WebM.');
+
+            case 'maintenance-run':
+                if (!startPhpScript('inc/run-maintenance.php'))
+                    reply(false, 'Nie udało się uruchomić PHP z wiersza poleceń na serwerze.', 500);
+                done('task', 'Uruchomiono porządki galerii; wynik pokaże się w karcie Kosz po odświeżeniu panelu.');
+
             case 'restore':
                 $item = trashItems()[(string)($_POST['item'] ?? '')] ?? null;
                 if (!$item)

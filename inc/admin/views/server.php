@@ -314,6 +314,12 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
           <dd><?php $heif = findTool('magick') ?: findTool('convert') ?: findTool('ffmpeg'); ?>
 <?=canConvertHeif() ? 'obraz zapisuje ' . e(basename($heif)) . ': ' . e($heif) : '<b class="warn">brak imagemagick i ffmpeg</b>: zdjęcia HEIC z telefonu nie zostaną przyjęte. Instalacja: <code>apt-get install -y imagemagick</code>'?></dd>
 
+          <dt>Kolejka konwersji</dt>
+          <dd><?php $mediaSummary = mediaJobsSummary(mediaJobs()); ?>
+            <?=$mediaSummary !== '' ? e($mediaSummary) : 'pusta'?> <span class="muted">(cron uruchamia ją co minutę)</span>
+            <button type="button" class="admin-btn small" data-action="media-worker">Uruchom teraz</button>
+          </dd>
+
           <dt>AVIF</dt>
           <dd><?=function_exists('imagecreatefromavif') ? 'czyta GD' : (findTool('magick') || findTool('convert') || findTool('ffmpeg') ? 'przez imagemagick lub ffmpeg' : '<b class="warn">brak obsługi AVIF</b>: plik się wyświetli, ale bez miniatury. Instalacja: <code>apt-get install -y imagemagick</code>')?></dd>
 
@@ -340,15 +346,17 @@ foreach ([hasGd(), canConvertToWebp(), canConvertGifToWebp(), canThumbVideo(), c
             <button type="button" class="admin-btn small" data-action="refresh-spec">Odśwież</button>
           </dd>
 
-          <dt>Ramki kart</dt>
+          <dt>Grafiki bota</dt>
           <dd><?php $pw = pwStatus(); ?>
 <?=$pw['files'] === 0 && $pw['checked'] === null
-    ? '<b class="warn">jeszcze nie pobrane</b>: cron ściąga je z repozytorium bota (' . e(PW_REPO) . ') do <code>inc/data/pw/</code>, Skalpelatory biorą je z <code>/pw/</code>'
+    ? '<b class="warn">jeszcze nie pobrane</b>: cron ściąga je z repozytorium bota (' . e(PW_REPO) . ') do <code>inc/data/pw/</code>, Skalpelatory i Profilator biorą je z <code>/pw/</code>'
     : $pw['files'] . ' ' . plural($pw['files'], 'plik', 'pliki', 'plików')
         . ($pw['synced'] ? ', zgodne z repozytorium bota od ' . e(ago($pw['synced'])) : '')
         . ($pw['pending'] ? ', <b>' . $pw['pending'] . ' czeka na pobranie</b>' : '')
         . ($pw['checked'] ? ' <span class="muted">(sprawdzone ' . e(ago($pw['checked'])) . ')</span>' : '')
-        . ($pw['error'] ? '; <b class="warn">' . e($pw['error']) . '</b>' : '')?></dd>
+        . ($pw['error'] ? '; <b class="warn">' . e($pw['error']) . '</b>' : '')?>
+            <button type="button" class="admin-btn small" data-action="pw-sync" title="Zapytaj GitHuba od razu, bez czekania na cron">Pobierz teraz</button>
+          </dd>
 
           <dt>Klucz API bota</dt>
           <dd><?=botAppKey() === ''

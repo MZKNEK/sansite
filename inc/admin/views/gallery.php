@@ -73,7 +73,8 @@
         <?php if (isset($maintenance['tried'])): ?><p class="hint">Ostatnia próba: <?=e(ago($maintenance['tried']))?></p><?php endif; ?>
         <p class="hint">Usunięte w galerii pliki i foldery leżą tu <?=TRASH_DAYS?> dni, potem znikają same. Przywrócone wracają do swojego folderu.
           Porządki: <?=isset($maintenance['succeeded']) ? 'ostatnio ' . e(ago((int)$maintenance['succeeded'])) : 'jeszcze nie ruszyły'?><?php
-          $backlog = (int)($maintenance['last']['backlog'] ?? 0); if ($backlog): ?>, zaległe <?=$backlog?> <?=plural($backlog, 'element', 'elementy', 'elementów')?><?php endif; ?>.</p>
+          $backlog = (int)($maintenance['last']['backlog'] ?? 0); if ($backlog): ?>, zaległe <?=$backlog?> <?=plural($backlog, 'element', 'elementy', 'elementów')?><?php endif; ?>.
+          <button type="button" class="admin-btn small" data-action="maintenance-run" title="Porządki bez czekania na cron, który robi je co 10 minut">Posprzątaj teraz</button></p>
 <?php if (!$trash): ?>
         <p class="nobody">Kosz jest pusty.</p>
 <?php else: ?>

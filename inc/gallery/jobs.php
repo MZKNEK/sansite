@@ -342,7 +342,7 @@
     // when it is to start.
     function startMediaWorker()
     {
-        if (!dataWritable() || !function_exists('proc_open') || ($php = phpCommandLine()) === null)
+        if (!dataWritable())
             return false;
         $lock = @fopen(dataDir() . '/media-jobs.lock', 'ce');
         if ($lock === false)
@@ -354,6 +354,19 @@
         if (!$free)
             return false;
 
+        return startPhpScript('inc/media-worker.php');
+    }
+
+    // A script of the site ($script, from the site's folder) started by the
+    // command-line PHP in the background when the request ends, as
+    // startMediaWorker() starts the worker; also the admin panel's tasks (the
+    // pictures of the bot, the cleanup). The same command once a request.
+    // True when it is to start.
+    function startPhpScript($script, $args = [])
+    {
+        if (!function_exists('proc_open') || ($php = phpCommandLine()) === null)
+            return false;
+
         $command = escapeshellarg($php);
         // the local preview's php -S has its settings prepended and may load GD
         // by hand (tools/preview.sh), which its worker needs as well
@@ -363,12 +376,14 @@
             if (($prepend = (string)ini_get('auto_prepend_file')) !== '')
                 $command .= ' -d ' . escapeshellarg('auto_prepend_file=' . $prepend);
         }
-        $command .= ' ' . escapeshellarg(str_replace('\\', '/', dirname(__DIR__, 2)) . '/inc/media-worker.php');
+        $command .= ' ' . escapeshellarg(str_replace('\\', '/', dirname(__DIR__, 2)) . '/' . $script);
+        foreach ($args as $arg)
+            $command .= ' ' . escapeshellarg($arg);
         $null = DIRECTORY_SEPARATOR === '/' ? '/dev/null' : 'NUL';
         // the shell puts it in the background and returns at once
         $command = DIRECTORY_SEPARATOR === '/' ? $command . ' > /dev/null 2>&1 &' : 'start "" /B ' . $command;
-        static $queued = false;
-        if (!$queued)
+        static $queued = [];
+        if (!isset($queued[$command]))
             register_shutdown_function(function () use ($command, $null) {
                 if (session_status() === PHP_SESSION_ACTIVE)
                     session_write_close();
@@ -376,7 +391,7 @@
                 if (is_resource($process))
                     proc_close($process);
             });
-        $queued = true;
+        $queued[$command] = true;
         return true;
     }
 
