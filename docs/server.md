@@ -32,13 +32,14 @@ The rules are in `server/nginx/`, which git archive leaves out of the site's fil
 - `sanakan.conf` also serves the pictures of the bot's cards that cron mirrors into `inc/data/pw/` (`inc/pw.php`) at `/pw/`, from a location of its own with a rewrite, so the rule keeping `inc/` closed does not apply to them; with another `SITE_DATA_DIR` that rewrite has to follow it.
 - `sanakan-app-headers.conf` is the same for Skalpelator and USkalpelator, with a policy of their own: a picture from any https link (the card frames are the site's own copy at `/pw/`), local files as `data:` and `blob:`, their crop worker, and for USkalpelator onnxruntime's script and WebAssembly as `blob:` (from the site's `/models/`), with `'wasm-unsafe-eval'` and, for USkalpelator alone, `'unsafe-eval'` (its background removal makes classes with `new Function`). `sanakan.conf` serves them from their folders with it, their `assets/` (hashed names) for a year with the types listed, as a module script sent as anything else does not run with nosniff.
 - `sanakan-log.conf` is the format of the site's log (one JSON line per request).
+- `sanakan.conf` also passes on the profile pictures of the bot's cards from Shinden's CDN at `/profilator/cards/<id>.webp` (only `cdn2.shinden.eu/profile/<id>.webp`, none of the visitor's headers sent there), as Profilator plays an animated card and needs its bytes, which the CDN lets no page read. `sanakan-cards.conf` is their cache (`/var/lib/nginx/sanakan-cards`, 256 MB at most), kept as long as the CDN says (two hours). nginx asks the DNS at `127.0.0.53` (systemd-resolved, Ubuntu's) when a card is asked for, so a server without it needs another `resolver` there.
 
-Where they go (`deploy.sh` and `migrate.sh` know the same list): `site.conf` to `/etc/nginx/sites-available/default`, `sanakan.conf`, `sanakan-headers.conf` and `sanakan-app-headers.conf` to `/etc/nginx/snippets/`, `sanakan-realip.conf` and `sanakan-log.conf`, which work only in the http block, to `/etc/nginx/conf.d/`. `migrate.sh prepare` puts them on a new server, the wiki's too (see Wiki). Later changes are sent by `deploy.sh` when it sees them changed since the previous deploy, and it runs `nginx -t` and reloads for you (rolling the files back and stopping when the test fails). By hand:
+Where they go (`deploy.sh` and `migrate.sh` know the same list): `site.conf` to `/etc/nginx/sites-available/default`, `sanakan.conf`, `sanakan-headers.conf` and `sanakan-app-headers.conf` to `/etc/nginx/snippets/`, `sanakan-realip.conf`, `sanakan-log.conf` and `sanakan-cards.conf`, which work only in the http block, to `/etc/nginx/conf.d/`. `migrate.sh prepare` puts them on a new server, the wiki's too (see Wiki). Later changes are sent by `deploy.sh` when it sees them changed since the previous deploy, and it runs `nginx -t` and reloads for you (rolling the files back and stopping when the test fails). By hand:
 
 ```bash
 scp server/nginx/site.conf sanakan:/etc/nginx/sites-available/default
 scp server/nginx/sanakan.conf server/nginx/sanakan-headers.conf sanakan:/etc/nginx/snippets/
-scp server/nginx/sanakan-realip.conf server/nginx/sanakan-log.conf sanakan:/etc/nginx/conf.d/
+scp server/nginx/sanakan-realip.conf server/nginx/sanakan-log.conf server/nginx/sanakan-cards.conf sanakan:/etc/nginx/conf.d/
 ssh sanakan 'nginx -t && systemctl reload nginx'
 ```
 

@@ -476,8 +476,20 @@ window.Profile = (function () {
     return c;
   }
 
+  // an animated card of the bot's (profilator.js plays it, its frame of the
+  // moment in card.frame): only the first one the lower part draws moves, as
+  // the bot animates only that one (Animate(), alreadyAnimated), any other
+  // shows its first frame
+  function cardFrame(card, shown) {
+    if (card.frame && !shown.animated) {
+      shown.animated = card;
+      return card.frame;
+    }
+    return card;
+  }
+
   // GetWaifuProfileStyleImage(): the panel of the card game
-  function cardsPanel(a, data) {
+  function cardsPanel(a, data, shown) {
     var c = canvas(364, 269);
     var ctx = c.getContext('2d');
     var x = 213;
@@ -506,12 +518,12 @@ window.Profile = (function () {
     if (data.ultimates > 0) currency(ctx, data.ultimates, a.pic('mul'), x + 100, 246);
 
     if (data.waifu)
-      drawToHeight(ctx, data.waifu, 10, 4, 260);
+      drawToHeight(ctx, cardFrame(data.waifu, shown), 10, 4, 260);
     return c;
   }
 
   // GetUserNewProfileStyleAsync(): the lower part, 750 x 340 under the top
-  function lower(a, state, data, images) {
+  function lower(a, state, data, images, shown) {
     var c = canvas(750, 340);
     var ctx = c.getContext('2d');
     var style = state.style;
@@ -529,7 +541,7 @@ window.Profile = (function () {
       // a card without its picture leaves its place empty
       data.gallery.slice(0, 12).forEach(function (card) {
         if (card)
-          drawToHeight(ctx, card, x, y, 150);
+          drawToHeight(ctx, cardFrame(card, shown), x, y, 150);
         x += 121;
         if (x > 730) {
           x = 19;
@@ -557,7 +569,7 @@ window.Profile = (function () {
           var cardY = y + (small ? 26 : 2);
           data.gallery.slice(0, small ? 2 : 6).forEach(function (card) {
             if (card)
-              drawToHeight(ctx, card, cardX, cardY, cardSize);
+              drawToHeight(ctx, cardFrame(card, shown), cardX, cardY, cardSize);
             cardX += gap;
             if (cardX > gap * 2 + startX) {
               cardX = startX;
@@ -585,7 +597,7 @@ window.Profile = (function () {
       if (has(flags, FLAG.ShowCards)) {
         if (onImg)
           draw(ctx, box(370, 275, '#000000', 10), x - 3, y - 3, shadows);
-        draw(ctx, cardsPanel(a, data), x, y);
+        draw(ctx, cardsPanel(a, data, shown), x, y);
       }
     }
 
@@ -632,8 +644,10 @@ window.Profile = (function () {
     return a.pic(name);
   }
 
-  // GetUserProfileAsync(): the whole profile on a 750 x 500 canvas
+  // GetUserProfileAsync(): the whole profile on a 750 x 500 canvas; gives the
+  // animated card it drew moving, or null
   function render(target, a, state, data, images) {
+    var shown = { animated: null };
     var ctx = target.getContext('2d');
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = '#313338';
@@ -641,7 +655,7 @@ window.Profile = (function () {
 
     draw(ctx, images.background || a.pic('pbg'), 0, 0, 1, 750, 160);
     draw(ctx, a.pic('pbase'), 0, 0);
-    draw(ctx, lower(a, state, data, images), 0, 160);
+    draw(ctx, lower(a, state, data, images, shown), 0, 160);
 
     var nameX = 27 + 52 + 84;
     var nameY = 103;
@@ -681,6 +695,7 @@ window.Profile = (function () {
       draw(ctx, images.premium, 0, 0, 1, 750, 500);
 
     bar(ctx, a, state, data);
+    return shown.animated;
   }
 
   // every picture of the mirror the profile may draw, by the names render() asks for

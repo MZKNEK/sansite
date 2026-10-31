@@ -210,7 +210,7 @@ fi
 # they are not among the rules sent
 nginx_dest() {
     case "$1" in
-        server/nginx/sanakan-log.conf|server/nginx/sanakan-realip.conf)
+        server/nginx/sanakan-log.conf|server/nginx/sanakan-realip.conf|server/nginx/sanakan-cards.conf)
                                        echo "/etc/nginx/conf.d/$(basename "$1")" ;;
         server/nginx/site.conf)        echo /etc/nginx/sites-available/default ;;
         server/nginx/*.conf)           echo "/etc/nginx/snippets/$(basename "$1")" ;;

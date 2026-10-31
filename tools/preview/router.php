@@ -157,6 +157,19 @@
         return true;
     }
 
+    // the profile pictures of the bot's cards from Shinden's CDN, passed on as
+    // nginx passes them on for Profilator (sanakan.conf), with no cache
+    if (preg_match('~^/profilator/cards/([0-9]{1,12})\.webp$~', $path, $card) === 1) {
+        $bytes = @file_get_contents('https://cdn2.shinden.eu/profile/' . $card[1] . '.webp', false,
+            stream_context_create(['http' => ['timeout' => 15, 'follow_location' => 0]]));
+        if ($bytes === false || !preg_match('~^HTTP/\S+ 200~', $http_response_header[0] ?? ''))
+            return previewError($root, 404);
+        header('Content-Type: image/webp');
+        header('Cache-Control: public, max-age=7200');
+        echo $bytes;
+        return true;
+    }
+
     // short links to commands: /cmd/daily goes to cmd/index.php, which sends
     // on to /cmd/#daily or asks for a login
     if (preg_match('~^/cmd/(?!(?:changes|zmiany)(?:/|$))([^/.]+)/?$~', $path, $match)) {

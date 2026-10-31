@@ -43,6 +43,10 @@
   var frameFree = document.getElementById('frame-free');
   var frameFreeRow = frameFree.parentNode;
   var frameBox = canvas.parentNode;
+  var compareButton = document.getElementById('compare-toggle');
+  var motionButton = document.getElementById('motion-toggle');
+  var previewTools = compareButton.parentNode;
+  var changes = document.getElementById('profile-changes');
 
   var levels = {};
   try {
@@ -108,6 +112,145 @@
       img.onload = function () { resolve(img); };
       img.onerror = function () { resolve(null); };
       img.src = src;
+    });
+  }
+
+  // the bot's cards of the account: their bytes through the site
+  // (/profilator/cards/, which nginx passes on from Shinden's CDN, as the CDN
+  // lets no page read them), so an animated one can be played as the bot plays
+  // it in the profile; straight from the CDN, never moving, where that fails,
+  // and never moving in a browser without ImageDecoder
+  var botCards = root.getAttribute('data-bot-cards');
+
+  // the flag of an animation in the header of a WebP (its VP8X chunk)
+  function animatedWebp(bytes) {
+    var b = new Uint8Array(bytes, 0, Math.min(21, bytes.byteLength));
+    function tag(at) { return String.fromCharCode(b[at], b[at + 1], b[at + 2], b[at + 3]); }
+    return b.length === 21 && tag(0) === 'RIFF' && tag(8) === 'WEBP' && tag(12) === 'VP8X' && (b[20] & 2) !== 0;
+  }
+
+  // a frame's time as browsers show it: 10 ms or less (or none) as 100 ms
+  function frameDelay(microseconds) {
+    var ms = (microseconds || 0) / 1000;
+    return ms > 10 ? ms : 100;
+  }
+
+  // the card's picture, its first frame; an animated one also gets its
+  // decoder, its frame count and card.frame, a canvas with the frame of the
+  // moment (profile.js draws it), at first the first one
+  function loadCard(url) {
+    var id = /^https:\/\/cdn2\.shinden\.eu\/profile\/(\d+)\.webp$/.exec(url || '');
+    if (!id || !botCards)
+      return load(url);
+    var bytes;
+    return fetch(botCards + id[1] + '.webp', { redirect: 'error' }).then(function (res) {
+      if (!res.ok)
+        throw new Error('card ' + res.status);
+      return res.arrayBuffer();
+    }).then(function (got) {
+      bytes = got;
+      return load(URL.createObjectURL(new Blob([bytes], { type: 'image/webp' })));
+    }).then(function (img) {
+      if (!img)
+        throw new Error('card picture');
+      if (!animatedWebp(bytes) || typeof ImageDecoder === 'undefined')
+        return img;
+      var decoder = new ImageDecoder({ data: bytes, type: 'image/webp' });
+      return Promise.all([decoder.tracks.ready, decoder.completed]).then(function () {
+        var frames = decoder.tracks.selectedTrack.frameCount;
+        if (frames < 2)
+          throw new Error('still');
+        return decoder.decode({ frameIndex: 0 }).then(function (first) {
+          var frame = document.createElement('canvas');
+          frame.width = img.naturalWidth;
+          frame.height = img.naturalHeight;
+          frame.getContext('2d').drawImage(first.image, 0, 0, frame.width, frame.height);
+          img.delay = frameDelay(first.image.duration);
+          first.image.close();
+          img.decoder = decoder;
+          img.frames = frames;
+          img.at = 0;
+          img.frame = frame;
+          return img;
+        });
+      }).catch(function () {
+        decoder.close();
+        return img;
+      });
+    }).catch(function () {
+      return load(url);
+    });
+  }
+
+  // the animated card the preview shows moving (render() says which): its
+  // next frame after the time of the one shown, decoded only then, as the bot
+  // keeps the time of each frame; a change of the card (or none) stops the
+  // old one, the token keeps a frame still being decoded from going on with it
+  var playing = null;
+  var playToken = 0;
+  var playTimer = null;
+
+  // stopped by the button under the preview, which the browser remembers; at
+  // first stopped for those who ask their system for less motion
+  var paused = false;
+  try {
+    var motion = localStorage.getItem('profilator-motion');
+    paused = motion ? motion === 'off' : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) {
+    // no storage: it moves
+  }
+
+  function play(card) {
+    if (card === playing)
+      return;
+    clearTimeout(playTimer);
+    playing = card;
+    var token = ++playToken;
+    if (card && !paused)
+      playTimer = setTimeout(function () { nextFrame(card, token); }, card.delay);
+    motionButton.hidden = !card;
+    showTools();
+  }
+
+  function showTools() {
+    previewTools.hidden = compareButton.hidden && motionButton.hidden;
+  }
+
+  function showMotion() {
+    motionButton.textContent = paused ? 'Wznów animację' : 'Zatrzymaj animację';
+    motionButton.setAttribute('aria-pressed', paused ? 'true' : 'false');
+  }
+  showMotion();
+
+  motionButton.addEventListener('click', function () {
+    paused = !paused;
+    try {
+      localStorage.setItem('profilator-motion', paused ? 'off' : 'on');
+    } catch (e) {
+      // kept for this visit only
+    }
+    showMotion();
+    var card = playing;
+    playing = null;
+    play(card);
+  });
+
+  function nextFrame(card, token) {
+    var at = (card.at + 1) % card.frames;
+    card.decoder.decode({ frameIndex: at }).then(function (result) {
+      var frame = result.image;
+      if (token === playToken) {
+        var ctx = card.frame.getContext('2d');
+        ctx.clearRect(0, 0, card.frame.width, card.frame.height);
+        ctx.drawImage(frame, 0, 0, card.frame.width, card.frame.height);
+        card.at = at;
+        card.delay = frameDelay(frame.duration);
+        playTimer = setTimeout(function () { nextFrame(card, token); }, card.delay);
+        redraw();
+      }
+      frame.close();
+    }, function () {
+      // a frame that cannot be decoded: the card stays on the one shown
     });
   }
 
@@ -426,8 +569,10 @@
     drawing = true;
     requestAnimationFrame(function () {
       drawing = false;
-      P.render(canvas, assets, shownState(), data, previewImages());
-      if (editing !== null)
+      play(comparing
+        ? P.render(canvas, assets, present.state, data, present.images)
+        : P.render(canvas, assets, shownState(), data, previewImages()));
+      if (editing !== null && !comparing)
         outline();
     });
   }
@@ -516,6 +661,11 @@
     }
     note.textContent = notes.join(' ');
     note.hidden = !notes.length;
+
+    if (comparing && command.value !== comparedCode)
+      setComparing(false);
+    changes.textContent = present ? describeChanges() : '';
+    changes.hidden = !present;
 
     showFramer();
     showRows();
@@ -732,6 +882,8 @@
       return;
     if (editing !== null)
       stopFraming();
+    if (comparing)
+      setComparing(false);
     if (!slot.view) {
       slot.view = { x: 0, y: 0, zoom: 1 };
       frame(name, slot);
@@ -990,6 +1142,82 @@
 
   command.addEventListener('focus', function () { command.select(); });
 
+  // --- the present profile, to compare ---
+
+  // the look the bot has now (the code of me.php) with the account's own
+  // pictures, as the bot keeps them (both in one picture over the two apart),
+  // drawn instead of the new one while "Pokaż obecny" is pressed; a change
+  // of the code goes back to the new one
+  var present = null;
+  var comparing = false;
+  var comparedCode = '';
+
+  function setPresent(decoded) {
+    present = { state: { style: decoded.style, border: decoded.border, flags: decoded.flags, shadows: decoded.shadows }, images: {} };
+    var images = decoded.images;
+    Object.keys(images).forEach(function (name) {
+      if (images.combined && (name === 'background' || name === 'style'))
+        return;
+      load(images[name]).then(function (img) {
+        var parts = img && name === 'combined' && split(img);
+        if (parts) {
+          present.images.background = parts.top;
+          present.images.style = parts.bottom;
+        } else if (img && name !== 'combined') {
+          present.images[name] = img;
+        }
+        if (comparing)
+          redraw();
+      });
+    });
+    compareButton.hidden = false;
+    showTools();
+  }
+
+  function setComparing(on) {
+    comparing = on;
+    compareButton.textContent = on ? 'Pokaż nowy' : 'Pokaż obecny';
+    compareButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+    canvas.setAttribute('aria-label', on ? 'Podgląd obecnego profilu' : 'Podgląd profilu');
+    redraw();
+  }
+
+  compareButton.addEventListener('click', function () {
+    if (editing !== null)
+      stopFraming();
+    comparedCode = command.value;
+    setComparing(!comparing);
+  });
+
+  // what the command changes in the present profile, as the bot reads it
+  function describeChanges() {
+    var was = present.state;
+    var list = [];
+    function option(select, value) {
+      var o = select.querySelector('option[value="' + value + '"]');
+      return o ? o.textContent : value;
+    }
+    if (state.style !== was.style)
+      list.push('styl ' + option(styleSelect, was.style) + ' → ' + option(styleSelect, state.style));
+    if (state.border !== was.border)
+      list.push('ramka ' + option(borderSelect, was.border) + ' → ' + option(borderSelect, state.border));
+    var flags = switches.filter(function (input) {
+      var flag = flagName(input);
+      return (state.flags & flag) !== (was.flags & flag);
+    }).map(function (input) {
+      var flag = flagName(input);
+      return input.parentNode.querySelector('.switch-label').firstChild.textContent + ((state.flags & flag) === flag ? ' wł.' : ' wył.');
+    });
+    if (flags.length)
+      list.push(flags.join(', '));
+    if (state.shadows !== was.shadows)
+      list.push('cienie ' + was.shadows + '% → ' + state.shadows + '%');
+    var pictures = Object.keys(codeImages()).map(function (name) { return NAMES[name]; });
+    if (pictures.length)
+      list.push('nowe obrazki: ' + pictures.join(', '));
+    return list.length ? 'Zmiany względem obecnego profilu: ' + list.join('; ') + '.' : 'Kod nic nie zmienia w obecnym profilu.';
+  }
+
   // --- the start: the code of the address, the pictures, the fonts ---
 
   // the account's own profile from the bot (me.php): its numbers and cards
@@ -1025,7 +1253,7 @@
       data.waifu = null;
       data.gallery = [];
       source.textContent = 'To twój profil z bota, z twoimi liczbami, kartami i statystykami z Shindena; obrazki są te, które masz ustawione.';
-      Promise.all([load(mine.avatar), load(mine.waifu)].concat(mine.gallery.map(load))).then(function (images) {
+      Promise.all([load(mine.avatar), loadCard(mine.waifu)].concat(mine.gallery.map(loadCard))).then(function (images) {
         if (images[0])
           data.avatar = images[0];
         data.waifu = images[1];
@@ -1034,6 +1262,8 @@
       });
       var code = P.decode(mine.code);
       ownImages = code ? code.images : {};
+      if (code)
+        setPresent(code);
       if (code && !fromHash && !codeInput.value.trim()) {
         codeInput.value = mine.code;
         codeState.textContent = 'twój obecny';

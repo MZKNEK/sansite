@@ -225,3 +225,12 @@
 .profilator-images [data-image-clear] {
     grid-area: clear;
 }
+
+/* under the preview: the present profile shown instead of the new one, the
+   animated card stopped */
+.profilator-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
