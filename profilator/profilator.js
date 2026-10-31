@@ -1158,7 +1158,7 @@
     Object.keys(images).forEach(function (name) {
       if (images.combined && (name === 'background' || name === 'style'))
         return;
-      load(images[name]).then(function (img) {
+      track(images[name], load).then(function (img) {
         var parts = img && name === 'combined' && split(img);
         if (parts) {
           present.images.background = parts.top;
@@ -1233,6 +1233,46 @@
     } : null;
   }
 
+  // the bar under the preview while the profile comes: going to and fro
+  // while the bot answers (it may be asking Shinden), then the share of the
+  // cards and pictures loaded, an animated card counted once it can play;
+  // meanwhile the settings and the command stay closed (inert), as the
+  // profile coming would put its own code over what was changed
+  var loading = document.getElementById('profile-loading');
+  var loadingTotal = 0;
+  var loadingDone = 0;
+  var locked = [root.querySelector('.profilator-settings'), root.querySelector('.profilator-command')];
+
+  function lock(on) {
+    locked.forEach(function (box) {
+      if (box)
+        box.inert = on;
+    });
+  }
+  lock(!!loading);
+
+  function showLoading() {
+    if (!loading)
+      return;
+    loading.classList.remove('waiting');
+    loading.hidden = loadingDone >= loadingTotal;
+    lock(!loading.hidden);
+    document.getElementById('profile-loading-text').textContent = 'Wczytywanie kart i obrazków: ' + loadingDone + ' z ' + loadingTotal;
+    document.getElementById('profile-loading-fill').style.width = (loadingTotal ? 100 * loadingDone / loadingTotal : 100) + '%';
+  }
+
+  // a picture of the profile loaded with its loader, counted by the bar
+  function track(url, loader) {
+    if (!url)
+      return Promise.resolve(null);
+    loadingTotal++;
+    return loader(url).then(function (img) {
+      loadingDone++;
+      showLoading();
+      return img;
+    });
+  }
+
   if (me) {
     fetch(me, { credentials: 'same-origin' }).then(function (res) {
       return res.json().then(function (body) { return { status: res.status, body: body }; }, function () { return { status: res.status, body: null }; });
@@ -1242,6 +1282,7 @@
         source.textContent = 'Układ, grafiki i czcionki są te same co w bocie. ' + (answer.body && answer.body.error === 'none'
           ? 'Nie masz jeszcze profilu w bocie, więc liczby i karty są przykładowe.'
           : 'Bot nie podał teraz twojego profilu, więc liczby i karty są przykładowe; spróbuj za chwilę.');
+        showLoading();
         return;
       }
       real = true;
@@ -1253,7 +1294,7 @@
       data.waifu = null;
       data.gallery = [];
       source.textContent = 'To twój profil z bota, z twoimi liczbami, kartami i statystykami z Shindena; obrazki są te, które masz ustawione.';
-      Promise.all([load(mine.avatar), loadCard(mine.waifu)].concat(mine.gallery.map(loadCard))).then(function (images) {
+      Promise.all([track(mine.avatar, load), track(mine.waifu, loadCard)].concat(mine.gallery.map(function (url) { return track(url, loadCard); }))).then(function (images) {
         if (images[0])
           data.avatar = images[0];
         data.waifu = images[1];
@@ -1272,8 +1313,14 @@
         lendOwn();
         update();
       }
+      showLoading();
     }, function () {
       source.textContent = 'Układ, grafiki i czcionki są te same co w bocie. Nie udało się wczytać twojego profilu, więc liczby i karty są przykładowe.';
+      showLoading();
+    }).catch(function (e) {
+      // a failure of the page itself never leaves the settings closed
+      showLoading();
+      throw e;
     });
   }
 

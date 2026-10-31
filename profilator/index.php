@@ -96,7 +96,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=f1f6faec86" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=40075428bb" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -128,6 +128,12 @@
         <div class="profilator-canvas">
           <canvas id="profile-canvas" width="750" height="500" role="img" aria-label="Podgląd profilu"></canvas>
         </div>
+<?php if ($user !== null): ?>
+        <div class="profilator-loading waiting" id="profile-loading" role="status">
+          <span class="progress-text" id="profile-loading-text">Wczytywanie profilu z bota&hellip;</span>
+          <span class="progress-bar"><span id="profile-loading-fill"></span></span>
+        </div>
+<?php endif; ?>
         <div class="profilator-tools" hidden>
           <button type="button" class="admin-btn" id="compare-toggle" aria-pressed="false" hidden>Pokaż obecny</button>
           <button type="button" class="admin-btn" id="motion-toggle" aria-pressed="false" hidden>Zatrzymaj animację</button>
@@ -262,7 +268,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="profile.js?v=35641fbe40"></script>
-  <script src="profilator.js?v=4c9bda1c6d"></script>
+  <script src="profilator.js?v=683d3142ce"></script>
 </body>
 
 </html>

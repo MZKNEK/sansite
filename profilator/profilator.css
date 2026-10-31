@@ -234,3 +234,39 @@
     gap: 10px;
     margin-top: 12px;
 }
+
+/* the account's profile coming from the bot: a bar going to and fro while
+   the bot answers, then the share of its cards and pictures loaded */
+.profilator-loading {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.profilator-loading.waiting .progress-bar {
+    overflow: hidden;
+}
+
+.profilator-loading.waiting .progress-bar span {
+    width: 30%;
+    animation: profilator-waiting 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes profilator-waiting {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(333%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profilator-loading.waiting .progress-bar span {
+        width: 100%;
+        opacity: 0.5;
+        animation: none;
+    }
+}
+
+/* the settings and the command closed while the profile comes */
+.profilator-settings[inert],
+.profilator-command[inert] {
+    opacity: 0.5;
+}
