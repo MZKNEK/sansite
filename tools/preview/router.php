@@ -12,14 +12,22 @@
     $root = str_replace('\\', '/', dirname(__DIR__, 2));
     $path = rawurldecode((string)parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH));
 
-    // the security headers of an nginx rule file, its variable set as nginx does
+    // the security headers of an nginx rule file, its variables set as nginx
+    // does (sanakan.conf): eval for USkalpelator, the background removal of
+    // the overlays for Profilator
     function previewHeaders($file, $path)
     {
         $conf = (string)@file_get_contents($file);
+        $profilator = strpos($path, '/profilator/') === 0;
+        $variables = [
+            '$sanakan_app_eval' => strpos($path, '/uskalpel/') === 0 ? " 'unsafe-eval'" : '',
+            '$sanakan_cut_script' => $profilator ? " 'wasm-unsafe-eval' 'unsafe-eval' blob:" : '',
+            '$sanakan_cut_connect' => $profilator ? ' data: blob:' : '',
+        ];
         preg_match_all('/^add_header\s+(\S+)\s+"([^"]*)"/m', $conf, $matches, PREG_SET_ORDER);
         foreach ($matches as [, $name, $value])
             if ($name !== 'Strict-Transport-Security')
-                header($name . ': ' . str_replace('$sanakan_app_eval', strpos($path, '/uskalpel/') === 0 ? " 'unsafe-eval'" : '', $value));
+                header($name . ': ' . strtr($value, $variables));
     }
 
     // the site's 404 or 403 page, as nginx shows them
