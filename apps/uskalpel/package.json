@@ -21,7 +21,8 @@
   },
   "overrides": {
     "@imgly/background-removal": {
-      "onnxruntime-web": "$onnxruntime-web"
+      "onnxruntime-web": "$onnxruntime-web",
+      "zod": "^4.6.6"
     }
   }
 }
