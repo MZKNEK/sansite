@@ -177,10 +177,11 @@
             $jobByRel[$job['targetRel']] = $job;
     }
     // what an upload may be: the images (AVIF included), the HEIC and HEIF the
-    // server can write as WebP, and for a gallery admin the films, songs and text files too
-    $uploadTypes = array_merge(IMAGE_TYPES, canConvertHeif() ? CONVERT_IMAGE_TYPES : []);
+    // server can write as WebP, the songs and text files, and for a gallery
+    // admin the films too
+    $uploadTypes = array_merge(IMAGE_TYPES, canConvertHeif() ? CONVERT_IMAGE_TYPES : [], AUDIO_TYPES, TEXT_TYPES);
     if ($admin)
-        $uploadTypes = array_merge($uploadTypes, VIDEO_TYPES, AUDIO_TYPES, TEXT_TYPES);
+        $uploadTypes = array_merge($uploadTypes, VIDEO_TYPES);
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
@@ -459,7 +460,7 @@
 <?php if ($manage): ?>
       <div class="admin-bar" id="admin-bar">
 <?php if (!$searching): ?>
-        <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj <?=$admin ? 'pliki' : 'zdjęcia'?></button>
+        <button type="button" class="admin-btn primary" id="act-upload">+ Dodaj pliki</button>
         <input type="file" id="upload-input" multiple accept="<?=e('.' . implode(',.', $uploadTypes))?>" hidden />
 <?php if ($admin && (canConvertToWebp() || canConvertVideo())): ?>
         <label class="admin-check" title="PNG, JPG, GIF i AVIF zapisują się jako WebP, a MP4 jako WebM (gdy serwer ma potrzebne narzędzia); plik zapisuje się od razu, zmiana idzie w tle. Gdy nowy plik nie wyjdzie mniejszy, zostaje oryginał.">
@@ -493,7 +494,7 @@
 <?php if (!$searching && $admin): ?>
         <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą mniejsze; status zobaczysz wyżej. MP3 zostają, jakie są, i grają w podglądzie. Pliki tekstowe (<?=e(implode(', ', TEXT_TYPES))?>) zostają, jakie są, w UTF-8, do <?=e(formatSize(TEXT_MAX_BYTES))?>. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
-        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize($ownLimits['totalBytes']))?></b>, kosz <b><?=e(formatSize(userTrashBytes((string)$user['id'])))?> z <?=e(formatSize($ownLimits['trashBytes']))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(effectiveUploadLimit((string)$user['id'])))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
+        <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'pliku', 'plików', 'plików')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize($ownLimits['totalBytes']))?></b>, kosz <b><?=e(formatSize(userTrashBytes((string)$user['id'])))?> z <?=e(formatSize($ownLimits['trashBytes']))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(effectiveUploadLimit((string)$user['id'])))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. MP3 zostają, jakie są, i grają w podglądzie. Pliki tekstowe (<?=e(implode(', ', TEXT_TYPES))?>) zostają, jakie są, w UTF-8, do <?=e(formatSize(TEXT_MAX_BYTES))?>. Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
       </div>
 <?php endif; ?>
@@ -575,7 +576,7 @@
     </div>
 
 <?php if (!$folders && !$files): ?>
-    <p class="empty"><?=$searching ? 'Nic nie znaleziono' . ($whole ? ' w całej galerii.' : '.') : 'Ten folder jest pusty.' . ($manage ? ' Przeciągnij tu ' . ($admin ? 'pliki' : 'zdjęcia') . ', wklej obrazek (Ctrl+V) albo użyj „Dodaj ' . ($admin ? 'pliki' : 'zdjęcia') . '”.' : '')?></p>
+    <p class="empty"><?=$searching ? 'Nic nie znaleziono' . ($whole ? ' w całej galerii.' : '.') : 'Ten folder jest pusty.' . ($manage ? ' Przeciągnij tu pliki, wklej obrazek (Ctrl+V) albo użyj „Dodaj pliki”.' : '')?></p>
 <?php endif; ?>
     <p class="empty" id="ex-no-results" hidden>Brak pasujących plików.</p>
 <?php endif; ?>

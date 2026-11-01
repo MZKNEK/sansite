@@ -24,7 +24,7 @@
             return;
         }
 
-        sendMedia($file[0], 'public, max-age=86400');
+        sendMedia($file[0], GALLERY_CACHE);
     }
 
     // A file of the private folder for its link, i/private/<name>: only those
@@ -39,7 +39,7 @@
             return;
         }
 
-        sendMedia($file[0], 'private, max-age=3600');
+        sendMedia($file[0], 'private, no-cache');
     }
 
     // a picture, film or text file as it is, 404 for any other file; a film may be asked
@@ -127,4 +127,57 @@
             return false;
 
         return [$start, min($end, $size - 1)];
+    }
+
+    // ---- Cloudflare's copy ------------------------------------------------------
+    // Cloudflare keeps a file of the gallery a day (GALLERY_CACHE, and the same
+    // in server/nginx/sanakan.conf), so a file deleted, renamed, moved or turned
+    // would still show there, and a new one put under its name would show the
+    // old one. The addresses of such files are noted here and Cloudflare
+    // forgets them once the answer has gone (cloudflarePurge() of
+    // inc/cloudflare.php, with the token deploy.sh uses), when
+    // CLOUDFLARE_ZONE_ID is set; a failure only goes to the log. The private
+    // folder is never kept there, and of a folder at most CACHE_FORGET_MAX
+    // files are named, the rest showing for up to a day.
+
+    function forgetCached($full, $rel)
+    {
+        static $urls = null;
+        if ($urls === null) {
+            $urls = [];
+            register_shutdown_function(function () use (&$urls) {
+                if (!$urls)
+                    return;
+                if (function_exists('fastcgi_finish_request'))
+                    fastcgi_finish_request();
+                require_once __DIR__ . '/../cloudflare.php';
+                if (cloudflarePurgeConfigured() && ($error = cloudflarePurge($urls)) !== null)
+                    error_log('sanakan: Cloudflare did not forget ' . count($urls) . ' gallery files: ' . $error);
+            });
+        }
+        $urls = array_slice(array_merge($urls, cachedUrls($full, $rel)), 0, CACHE_FORGET_MAX);
+    }
+
+    // the addresses Cloudflare may keep of the file $rel, or of the files in
+    // the folder $rel, at most CACHE_FORGET_MAX
+    function cachedUrls($full, $rel)
+    {
+        require_once __DIR__ . '/../meta.php';
+        if (inPrivateDir($rel))
+            return [];
+
+        $files = [[$full, $rel]];
+        if (is_dir($full)) {
+            $files = [];
+            $tree = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($full, FilesystemIterator::SKIP_DOTS));
+            foreach ($tree as $path => $info)
+                if ($info->isFile())
+                    $files[] = [$path, $rel . '/' . str_replace('\\', '/', substr($path, strlen($full) + 1))];
+        }
+        $urls = [];
+        foreach ($files as [$path, $fileRel])
+            if (count($urls) < CACHE_FORGET_MAX && isset(MEDIA_MIME[extensionOf($path)]))
+                $urls[] = SITE_URL . siteRoot() . 'i/' . fileUrl($fileRel);
+
+        return $urls;
     }

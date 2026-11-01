@@ -7,7 +7,7 @@
     // own, i/users/<id>-<nick> (every account with a role on the bot's server,
     // user and up, but the ones GALLERY_UPLOADERS blocks), made the first time
     // it opens the gallery, and without other access see only that one: it adds pictures there,
-    // saved as WebP when that is smaller, and renames, moves between its own folders, turns and deletes them, up to a number
+    // saved as WebP when that is smaller, songs and text files, and renames, moves between its own folders, turns and deletes them, up to a number
     // of files set per account in the panel (USER_FILES_DEFAULT without one),
     // USER_FILE_MAX_BYTES each and USER_TOTAL_MAX_BYTES in all. Nobody but the
     // gallery admins sees the folders of others. In links such a folder is

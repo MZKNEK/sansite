@@ -210,7 +210,7 @@
           <dt>Własny folder</dt>
           <dd>
             <?=$p['folder'] !== null ? '<a href="' . e(siteRoot() . 'i/' . folderUrl($p['folder'])) . '">' . e(galleryPath($p['folder'])) . '</a>' : '<span class="muted">powstanie przy pierwszym wejściu do galerii</span>'?>
-            &middot; <?=$p['folderUse'][0]?> z <?=$p['filesLimit']?> <?=plural($p['filesLimit'], 'zdjęcia', 'zdjęć', 'zdjęć')?> &middot; <?=e(formatSize($p['folderUse'][1]))?> z <?=e(formatSize(accountLimits($id)['values']['totalBytes']))?>
+            &middot; <?=$p['folderUse'][0]?> z <?=$p['filesLimit']?> <?=plural($p['filesLimit'], 'pliku', 'plików', 'plików')?> &middot; <?=e(formatSize($p['folderUse'][1]))?> z <?=e(formatSize(accountLimits($id)['values']['totalBytes']))?>
             &middot; kosz <?=e(formatSize($p['trashBytes']))?> z <?=e(formatSize(accountLimits($id)['values']['trashBytes']))?>
           </dd>
 <?php endif; ?>

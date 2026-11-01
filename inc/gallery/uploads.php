@@ -60,8 +60,8 @@
         if (!isVideo($name) && !isAudio($name) && !isText($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
             reply(false, $name . ': ' . $why . '.', 413);
 
-        // an account with a folder of its own: only pictures (a gallery admin
-        // also films, songs and text files), within its limits,
+        // an account with a folder of its own: pictures, songs and text files
+        // (a gallery admin also films), within its limits,
         // counted over its whole folder with the subfolders; the folder is held
         // until the request ends, so two uploads at once do not both fit
         $owner = folderOwner($dir[1]);
@@ -69,8 +69,8 @@
         if ($own) {
             if (accountLock($owner) === null)
                 reply(false, $name . ': folder jest teraz zajęty, spróbuj za chwilę.', 503);
-            if ((isVideo($name) || isAudio($name) || isText($name)) && !galleryIsAdmin())
-                reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
+            if (isVideo($name) && !galleryIsAdmin())
+                reply(false, $name . ': do swojego folderu można dodawać zdjęcia, MP3 i pliki tekstowe, bez filmów.', 400);
             $inputBytes = in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true) ? 0 : (int)$file['size'];
             if (($why = accountQuotaError($base, $owner, 1, $inputBytes, (int)$file['size'], true)) !== null)
                 reply(false, $name . ': ' . $why, 413);

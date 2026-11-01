@@ -88,18 +88,18 @@
         }
 
         // an account with a folder of its own changes only what is in it, and
-        // there only adds, renames, turns and deletes pictures
+        // there only adds, renames, turns and deletes files
         if (!galleryIsAdmin()) {
             $own = ownFolder($base);
             if ($own === null)
                 reply(false, 'To konto nie może zarządzać galerią.', 403);
             if (!in_array($action, ['upload', 'mkdir', 'delete', 'rotate', 'rename', 'move', 'restore', 'trash-delete', 'media-clear', 'zip'], true))
-                reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać zdjęcia, zmieniać ich nazwy, obracać je i usuwać.', 403);
+                reply(false, 'W swoim folderze możesz tworzyć foldery, dodawać pliki, zmieniać ich nazwy, obracać zdjęcia i usuwać pliki.', 403);
             // new folders and uploads go only inside its own folder, subfolders included
             if (in_array($action, ['upload', 'mkdir'], true)) {
                 $dir = resolvePath($base, $_POST['dir'] ?? '', true);
                 if (!$dir || !inFolder($dir[1], $own))
-                    reply(false, $action === 'mkdir' ? 'Możesz tworzyć foldery tylko w swoim folderze.' : 'Możesz dodawać zdjęcia tylko do swojego folderu.', 403);
+                    reply(false, $action === 'mkdir' ? 'Możesz tworzyć foldery tylko w swoim folderze.' : 'Możesz dodawać pliki tylko do swojego folderu.', 403);
             }
             if (isset($_POST['items']))
                 foreach (postedItems($base) as $item)
@@ -159,6 +159,7 @@
                 $failed = [];
                 $refused = false;
                 foreach ($items as $item) {
+                    forgetCached($item[0], $item[1]);
                     if (moveToTrash($item[0], $item[1], $why)) {
                         $trashed[] = galleryPath($item[1]);
                     } else {
@@ -180,9 +181,10 @@
                 $rotated = [];
                 $skipped = [];
                 foreach (postedItems($base) as $item) {
-                    if (is_file($item[0]) && rotateImage($item[0], $left ? 90 : -90, $base, $item[1]))
+                    if (is_file($item[0]) && rotateImage($item[0], $left ? 90 : -90, $base, $item[1])) {
                         $rotated[] = galleryPath($item[1]);
-                    else
+                        forgetCached($item[0], $item[1]);
+                    } else
                         $skipped[] = basename($item[1]) . (is_file($item[0]) && isImage($item[0]) && ($why = imageLimitError($item[0])) !== null ? ' (' . $why . ')' : '');
                 }
 
@@ -302,6 +304,7 @@
                 if (file_exists(dirname($full) . '/' . $name)
                     && realpath(dirname($full) . '/' . $name) !== realpath($full))
                     reply(false, 'Coś o nazwie ' . $name . ' już tu jest.', 409);
+                forgetCached($full, $rel);
                 if (!@rename($full, dirname($full) . '/' . $name))
                     reply(false, 'Nie udało się zmienić nazwy.', 500);
                 followMovedLinks($rel, ltrim((dirname($rel) === '.' ? '' : dirname($rel)) . '/' . $name, '/'));
@@ -341,6 +344,8 @@
                     } else if (!@rename($item[0], $target[0] . '/' . $name)) {
                         $problems[] = $name . ' (nie udało się)';
                     } else {
+                        // the old addresses, of what is now under the new one
+                        forgetCached($target[0] . '/' . $name, $item[1]);
                         $moved[] = galleryPath($item[1]);
                         followMovedLinks($item[1], ltrim($target[1] . '/' . $name, '/'));
                     }

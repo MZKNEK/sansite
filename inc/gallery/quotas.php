@@ -99,7 +99,7 @@
         if ($biggest > $limits['fileBytes'])
             return 'plik ma ' . formatSize($biggest) . ', limit pliku to ' . formatSize($limits['fileBytes']);
         if ($count > 0 && $has + $count > $limits['files'])
-            return 'limit liczby plików: ' . $has . ' z ' . $limits['files'] . ' zdjęć';
+            return 'limit liczby plików: ' . $has . ' z ' . $limits['files'];
         if ($bytes > 0 && $used + $bytes > $limits['totalBytes'])
             return 'w folderze konta zostało ' . formatSize(max(0, $limits['totalBytes'] - $used)) . ' wolnego z ' . formatSize($limits['totalBytes']);
         return null;

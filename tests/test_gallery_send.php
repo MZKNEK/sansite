@@ -80,3 +80,32 @@
         assertSame(302, http_response_code(), 'old conversion links still redirect');
         http_response_code(200);
     });
+
+    test('cachedUrls names the files Cloudflare may keep, by token, never the private ones', function () {
+        $base = tempDir();
+        mkdir($base . '/album/sub', 0777, true);
+        file_put_contents($base . '/album/a b.png', 'x');
+        file_put_contents($base . '/album/sub/song.mp3', 'x');
+        file_put_contents($base . '/album/sub/notes.txt', 'x');
+        file_put_contents($base . '/album/sub/page.html', 'x');
+        mkdir($base . '/users/123-Sniku', 0777, true);
+        file_put_contents($base . '/users/123-Sniku/c.webp', 'x');
+        $saved = $_SERVER['SCRIPT_NAME'] ?? null;
+        $savedFile = $_SERVER['SCRIPT_FILENAME'] ?? null;
+        unset($_SERVER['SCRIPT_FILENAME']);
+        $_SERVER['SCRIPT_NAME'] = '/i/index.php';
+        try {
+            assertSame(['https://sanakan.pl/i/album/a%20b.png'], cachedUrls($base . '/album/a b.png', 'album/a b.png'));
+            $folder = cachedUrls($base . '/album', 'album');
+            sort($folder);
+            assertSame(['https://sanakan.pl/i/album/a%20b.png', 'https://sanakan.pl/i/album/sub/notes.txt', 'https://sanakan.pl/i/album/sub/song.mp3'],
+                $folder, 'what the gallery does not give out is left out');
+            $own = cachedUrls($base . '/users/123-Sniku/c.webp', 'users/123-Sniku/c.webp');
+            assertSame(1, preg_match('~^https://sanakan\.pl/i/u/[0-9a-f]{16}/c\.webp$~', $own[0] ?? ''), 'the ID is never in it');
+            assertSame([], cachedUrls($base . '/private/a.png', PRIVATE_DIR . '/a.png'));
+        } finally {
+            $_SERVER['SCRIPT_NAME'] = $saved;
+            if ($savedFile !== null)
+                $_SERVER['SCRIPT_FILENAME'] = $savedFile;
+        }
+    });
