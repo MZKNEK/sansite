@@ -80,7 +80,7 @@
             'ext' => extensionOf($name),
             'size' => filesize($full),
             'mtime' => filemtime($full),
-            'kind' => $image ? 'image' : (isVideo($name) ? 'video' : 'file'),
+            'kind' => $image ? 'image' : (isVideo($name) ? 'video' : (isAudio($name) ? 'audio' : 'file')),
             'dims' => $dims ? $dims[0] . '×' . $dims[1] : '',
             'thumb' => $image || isVideo($name) ? thumbUrl($rel, $full) : null
         ];

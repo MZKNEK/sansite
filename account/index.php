@@ -186,7 +186,7 @@
   <link href="../css/style.css?v=f2ef38f341" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=855c6b6aac" type="text/css" rel="stylesheet" />
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
@@ -615,7 +615,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
 <?php endif; ?>
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=f80d22b5fb"></script>
+  <script src="../js/explorer.js?v=74b087cd9b"></script>
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <script src="../js/skin-picker.js?v=fc70fcbccc"></script>

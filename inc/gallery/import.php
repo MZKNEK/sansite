@@ -99,9 +99,9 @@
         if (isText($name)) {
             if (($why = textContentError($source)) !== null)
                 return $fail($why . '.');
-        } else if (isVideo($name) ? !isVideoContent($name, $source) : !isImageContent($name, $source))
+        } else if (isAudio($name) ? !isMp3($source) : (isVideo($name) ? !isVideoContent($name, $source) : !isImageContent($name, $source)))
             return $fail('zawartość nie pasuje do typu pliku.');
-        if (!isVideo($name) && !isText($name) && ($why = imageLimitError($source)) !== null)
+        if (!isVideo($name) && !isAudio($name) && !isText($name) && ($why = imageLimitError($source)) !== null)
             return $fail($why . '.');
 
         $ext = extensionOf($name);

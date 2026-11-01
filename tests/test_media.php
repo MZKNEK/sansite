@@ -73,6 +73,9 @@
         assertTrue(isText('a.yml'));
         assertFalse(isText('a.js'));
         assertFalse(isText('a.png'));
+        assertTrue(isAudio('a.MP3'));
+        assertFalse(isAudio('a.mp4'));
+        assertFalse(isVideo('a.mp3'));
         assertSame('png', extensionOf('a.PNG'));
         assertSame('', extensionOf('noext'));
     });
@@ -108,6 +111,33 @@
             assertTrue(isHeifImage($write('h-' . $brand . '.heic', fx_header($brand))), $brand);
         assertFalse(isHeifImage($write('x.heic', fx_header('isom'))));
         assertFalse(isHeifImage($write('short.heic', 'too short')));
+    });
+
+    test('MP3 sniffing: two layer III frames, after the ID3v2 tag', function () {
+        $dir = tempDir();
+        $write = function ($name, $bytes) use ($dir) {
+            file_put_contents($dir . '/' . $name, $bytes);
+            return $dir . '/' . $name;
+        };
+        // MPEG-1 layer III, 128 kbit/s, 44.1 kHz: 417 bytes a frame
+        $one = "\xFF\xFB\x90\x00" . str_repeat("\x00", 413);
+        $frame = $one . $one;
+        $tag = 'ID3' . "\x04\x00\x00" . "\x00\x00\x01\x00" . str_repeat('T', 128);
+
+        assertTrue(isMp3($write('plain.mp3', $frame)));
+        assertTrue(isMp3($write('tagged.mp3', $tag . $frame)));
+        assertTrue(isMp3($write('padded.mp3', $tag . str_repeat("\x00", 300) . $frame)));
+        assertTrue(isMp3($write('footer.mp3', 'ID3' . "\x04\x00\x10" . "\x00\x00\x00\x04" . 'TTTT' . '3DI' . str_repeat('F', 7) . $frame)));
+        // MPEG-2 layer III, 64 kbit/s, 22.05 kHz: 208 bytes, 209 with padding
+        assertTrue(isMp3($write('mpeg2.mp3', "\xFF\xF3\x82\x00" . str_repeat("\x00", 205) . "\xFF\xF3\x80\x00" . str_repeat("\x00", 64))));
+        assertFalse(isMp3($write('one.mp3', $one . 'junk' . $one)), 'a frame alone turns up by chance');
+        assertFalse(isMp3($write('aac.mp3', "\xFF\xF1\x50\x80" . str_repeat("\x00", 64))), 'ADTS AAC is layer 0');
+        assertFalse(isMp3($write('reserved.mp3', "\xFF\xEB\x90\x00" . str_repeat("\x00", 64))), 'reserved version');
+        assertFalse(isMp3($write('badrate.mp3', "\xFF\xFB\xF0\x00" . str_repeat("\x00", 64))), 'bad bitrate');
+        assertFalse(isMp3($write('flac.mp3', $tag . 'fLaC' . str_repeat("\x00", 64))), 'an ID3 tag over FLAC');
+        assertFalse(isMp3($write('tag-only.mp3', $tag)));
+        assertFalse(isMp3($write('png.mp3', "\x89PNG\r\n\x1A\n")));
+        assertFalse(isMp3($write('empty.mp3', '')));
     });
 
     test('the content has to match the extension', function () {

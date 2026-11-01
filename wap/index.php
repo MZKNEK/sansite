@@ -31,7 +31,7 @@
   <link href="../css/style.css?v=f2ef38f341" type="text/css" rel="stylesheet" />
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=855c6b6aac" type="text/css" rel="stylesheet" />
   <link href="wap.css?v=051b14a735" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
 </head>

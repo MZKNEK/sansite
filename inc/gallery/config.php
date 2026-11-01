@@ -14,6 +14,10 @@
 
     const VIDEO_TYPES = ['webm', 'mp4'];
 
+    // songs, which only a gallery admin adds, as with films: kept as they are
+    // and played in the viewer with the films' controls
+    const AUDIO_TYPES = ['mp3'];
+
     // text files, which only a gallery admin adds, as with films: kept as they
     // are and given out in UTF-8, as plain text apart from CSS and JSON (no
     // HTML, SVG or JS, which a browser would run on the site's address)
@@ -22,7 +26,7 @@
     // a text file is read whole to check it is UTF-8
     const TEXT_MAX_BYTES = 10485760;
 
-    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif', 'webm' => 'video/webm', 'mp4' => 'video/mp4',
+    const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif', 'webm' => 'video/webm', 'mp4' => 'video/mp4', 'mp3' => 'audio/mpeg',
         'css' => 'text/css; charset=utf-8', 'json' => 'application/json; charset=utf-8', 'txt' => 'text/plain; charset=utf-8', 'md' => 'text/plain; charset=utf-8',
         'csv' => 'text/plain; charset=utf-8', 'log' => 'text/plain; charset=utf-8', 'ini' => 'text/plain; charset=utf-8', 'yml' => 'text/plain; charset=utf-8',
         'yaml' => 'text/plain; charset=utf-8', 'toml' => 'text/plain; charset=utf-8'];

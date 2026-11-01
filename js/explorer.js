@@ -197,10 +197,13 @@ window.SanakanGallery = (function () {
     if (img.complete && img.getAttribute('src') && img.naturalWidth === 0) retryThumb(img);
   });
 
-  // Viewer: pictures and videos open in place, other files open in a new tab
+  // Viewer: pictures, videos and songs open in place, other files open in a
+  // new tab. A song plays in the film's element, hidden behind a note that
+  // plays or pauses it.
   var viewer = document.getElementById('viewer');
   var image = document.getElementById('viewer-img');
   var video = document.getElementById('viewer-video');
+  var audioEl = document.getElementById('viewer-audio');
   var loading = document.getElementById('viewer-loading');
 
   // The volume set in the viewer is kept, so a film does not blast at full
@@ -300,7 +303,8 @@ window.SanakanGallery = (function () {
     else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
   }
 
-  fullButton.hidden = !viewer.requestFullscreen && !video.webkitEnterFullscreen;
+  var canFull = !!viewer.requestFullscreen || !!video.webkitEnterFullscreen;
+  fullButton.hidden = !canFull;
   document.addEventListener('fullscreenchange', function () {
     var full = document.fullscreenElement === viewer;
     fullButton.setAttribute('aria-pressed', full ? 'true' : 'false');
@@ -314,6 +318,7 @@ window.SanakanGallery = (function () {
   });
   video.addEventListener('volumechange', paintSound);
   playButton.addEventListener('click', togglePlay);
+  audioEl.addEventListener('click', togglePlay);
   muteButton.addEventListener('click', toggleMute);
   fullButton.addEventListener('click', toggleFull);
 
@@ -338,10 +343,15 @@ window.SanakanGallery = (function () {
   var current = null;
 
   function viewable(tile) {
-    return tile.dataset.kind === 'image' || tile.dataset.kind === 'video';
+    return tile.dataset.kind === 'image' || tile.dataset.kind === 'video' || tile.dataset.kind === 'audio';
   }
 
-  // the pictures and videos in their current order, without the ones the search hides
+  // what plays in the film's element and has its controls
+  function playable(tile) {
+    return tile.dataset.kind === 'video' || tile.dataset.kind === 'audio';
+  }
+
+  // the pictures, videos and songs in their current order, without the ones the search hides
   function pictures() {
     return tiles.filter(function (tile) {
       return !tile.hidden && viewable(tile);
@@ -497,18 +507,19 @@ window.SanakanGallery = (function () {
     current = tile;
     image.hidden = true;
     video.hidden = true;
-    media = tile.dataset.kind === 'video' ? video : image;
+    audioEl.hidden = true;
+    media = playable(tile) ? video : image;
     resetZoom();
     nameEl.textContent = tile.dataset.title;
     detailsEl.textContent = tile.dataset.details;
     openLink.href = tile.getAttribute('href');
 
     loading.hidden = false;
-    image.hidden = true;
-    video.hidden = true;
-    player.hidden = tile.dataset.kind !== 'video';
+    player.hidden = !playable(tile);
+    // a song has nothing to show full screen
+    fullButton.hidden = !canFull || tile.dataset.kind === 'audio';
 
-    if (tile.dataset.kind === 'video') {
+    if (playable(tile)) {
       image.removeAttribute('src');
       video.src = tile.getAttribute('href');
       video.play().catch(function () {});
@@ -528,6 +539,10 @@ window.SanakanGallery = (function () {
   // the player shows as soon as the size is known, so big videos show their controls while loading
   video.addEventListener('loadedmetadata', function () {
     loading.hidden = true;
+    if (current && current.dataset.kind === 'audio') {
+      audioEl.hidden = false;
+      return;
+    }
     video.hidden = false;
     if (zoom.scale === 1) rememberBase();
   });
@@ -611,7 +626,7 @@ window.SanakanGallery = (function () {
     if (document.querySelector('dialog[open]')) return;
 
     if (!viewer.hidden) {
-      var film = current && current.dataset.kind === 'video';
+      var film = current && playable(current);
       // the arrows on a line of the player move the line, not to another file
       var onRange = e.target.type === 'range';
       if (e.key === 'Escape') close();
@@ -625,7 +640,7 @@ window.SanakanGallery = (function () {
           togglePlay();
         } else if (key === 'm') {
           toggleMute();
-        } else if (key === 'f') {
+        } else if (key === 'f' && !fullButton.hidden) {
           toggleFull();
         }
       }

@@ -38,6 +38,7 @@
         assertNull(nameError('zdjęcie.heic', true));
         assertNull(nameError('styl.css', true));
         assertNull(nameError('notatka.TXT', true));
+        assertNull(nameError('piosenka.mp3', true));
         foreach (['strona.html', 'obraz.svg', 'skrypt.js', 'dane.xml', 'program.exe', 'bez-rozszerzenia'] as $other)
             assertTrue(nameError($other, true) !== null, $other . ': not a picture, film or text file');
         assertTrue(nameError(str_repeat('a', MAX_NAME_LENGTH + 1), false) !== null, 'too long');

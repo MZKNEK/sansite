@@ -42,6 +42,11 @@
         return in_array(extensionOf($name), VIDEO_TYPES, true);
     }
 
+    function isAudio($name)
+    {
+        return in_array(extensionOf($name), AUDIO_TYPES, true);
+    }
+
     function isText($name)
     {
         return in_array(extensionOf($name), TEXT_TYPES, true);
@@ -78,6 +83,54 @@
         $head = (string)@file_get_contents($path, false, null, 0, 12);
 
         return strlen($head) >= 12 && substr($head, 4, 4) === 'ftyp';
+    }
+
+    // the length of the MPEG audio frame of layer III whose header is at $at,
+    // or 0 when there is none: sync, a version that is not reserved, a bitrate
+    // and a sample rate that are neither free nor invalid
+    function mp3FrameLength($data, $at)
+    {
+        if ($at + 4 > strlen($data) || ord($data[$at]) !== 0xFF)
+            return 0;
+        $b1 = ord($data[$at + 1]);
+        $b2 = ord($data[$at + 2]);
+        $version = ($b1 >> 3) & 3;
+        $bitrate = $b2 >> 4;
+        $rate = ($b2 >> 2) & 3;
+        if (($b1 & 0xE0) !== 0xE0 || $version === 1 || ($b1 & 0x06) !== 0x02 || $bitrate === 0 || $bitrate === 15 || $rate === 3)
+            return 0;
+
+        // MPEG-1, else MPEG-2 and 2.5, which have half the samples a frame
+        $mpeg1 = $version === 3;
+        $kbps = $mpeg1 ? [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320][$bitrate - 1]
+            : [8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160][$bitrate - 1];
+        $hz = [3 => [44100, 48000, 32000], 2 => [22050, 24000, 16000], 0 => [11025, 12000, 8000]][$version][$rate];
+
+        return intdiv(($mpeg1 ? 144000 : 72000) * $kbps, $hz) + (($b2 >> 1) & 1);
+    }
+
+    // MP3: two MPEG audio frames of layer III one after the other (one alone
+    // turns up by chance in other files), after the ID3v2 tag when there is
+    // one; a few KiB of padding or junk before the first frame are passed over
+    function isMp3($path)
+    {
+        $head = (string)@file_get_contents($path, false, null, 0, 10);
+        $skip = 0;
+        if (strlen($head) === 10 && strncmp($head, 'ID3', 3) === 0) {
+            // the tag's size is synchsafe, 7 bits a byte, with a footer of 10 more
+            $size = 0;
+            for ($i = 6; $i < 10; $i++)
+                $size = ($size << 7) | (ord($head[$i]) & 0x7F);
+            $skip = 10 + $size + ((ord($head[5]) & 0x10) ? 10 : 0);
+        }
+
+        // the first frame starts in the first 4 KiB, the longest is 1441 bytes
+        $data = (string)@file_get_contents($path, false, null, $skip, 8192);
+        for ($i = 0; $i < 4096 && $i + 4 <= strlen($data); $i++)
+            if (($length = mp3FrameLength($data, $i)) > 0 && mp3FrameLength($data, $i + $length) > 0)
+                return true;
+
+        return false;
     }
 
     // the content of an uploaded film matches its extension
@@ -180,8 +233,8 @@
             return 'Nazwa nie może zawierać znaków / \\ : * ? " < > |';
         if (strlen($name) > MAX_NAME_LENGTH)
             return 'Nazwa jest za długa.';
-        if ($isFile && !isImage($name) && !isVideo($name) && !isText($name) && !in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true))
-            return 'Można dodawać tylko obrazki, filmy i pliki tekstowe: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES, CONVERT_IMAGE_TYPES, TEXT_TYPES)) . '.';
+        if ($isFile && !isImage($name) && !isVideo($name) && !isAudio($name) && !isText($name) && !in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true))
+            return 'Można dodawać tylko obrazki, filmy, MP3 i pliki tekstowe: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES, CONVERT_IMAGE_TYPES, AUDIO_TYPES, TEXT_TYPES)) . '.';
 
         return null;
     }

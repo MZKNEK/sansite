@@ -760,6 +760,34 @@ main.content {
     cursor: grabbing;
 }
 
+/* a song: a note in place of the picture, a click plays or pauses it */
+.viewer-audio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(240px, 60%);
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--text-strong);
+    box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.25);
+    cursor: pointer;
+}
+
+.viewer-audio:focus-visible {
+    outline: 1px solid var(--accent);
+}
+
+.viewer-audio svg {
+    width: 45%;
+    height: 45%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+}
+
 .viewer-loading {
     position: absolute;
     font: 14px "Sanakan Mono", monospace;

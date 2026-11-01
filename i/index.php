@@ -177,10 +177,10 @@
             $jobByRel[$job['targetRel']] = $job;
     }
     // what an upload may be: the images (AVIF included), the HEIC and HEIF the
-    // server can write as WebP, and for a gallery admin the films and text files too
+    // server can write as WebP, and for a gallery admin the films, songs and text files too
     $uploadTypes = array_merge(IMAGE_TYPES, canConvertHeif() ? CONVERT_IMAGE_TYPES : []);
     if ($admin)
-        $uploadTypes = array_merge($uploadTypes, VIDEO_TYPES, TEXT_TYPES);
+        $uploadTypes = array_merge($uploadTypes, VIDEO_TYPES, AUDIO_TYPES, TEXT_TYPES);
     $flash = takeFlash();
     $requested = trim((string)($_GET['p'] ?? ''), '/');
     $loginUrl = '?login' . ($requested === '' ? '' : '&p=' . rawurlencode($requested));
@@ -288,7 +288,7 @@
   <link href="../css/palette.css?v=94c96c7c93" type="text/css" rel="stylesheet" />
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="../css/explorer.css?v=2f5ac20877" type="text/css" rel="stylesheet" />
+  <link href="../css/explorer.css?v=855c6b6aac" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -491,7 +491,7 @@
           <button type="button" class="admin-btn danger" id="act-delete">Usuń</button>
         </span>
 <?php if (!$searching && $admin): ?>
-        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą mniejsze; status zobaczysz wyżej. Pliki tekstowe (<?=e(implode(', ', TEXT_TYPES))?>) zostają, jakie są, w UTF-8, do <?=e(formatSize(TEXT_MAX_BYTES))?>. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
+        <span class="admin-hint">Możesz też przeciągnąć pliki na stronę albo wkleić obrazek ze schowka (Ctrl+V). Metadane zdjęć (np. miejsce zrobienia) są usuwane. Pliki zapisują się od razu, a jako WebP (zdjęcia) lub WebM (filmy) zamieniają się w tle, gdy wyjdą mniejsze; status zobaczysz wyżej. MP3 zostają, jakie są, i grają w podglądzie. Pliki tekstowe (<?=e(implode(', ', TEXT_TYPES))?>) zostają, jakie są, w UTF-8, do <?=e(formatSize(TEXT_MAX_BYTES))?>. Limit: <?=e(formatSize(uploadLimit()))?> na plik.</span>
 <?php elseif (!$searching): $ownLimit = userFilesLimit($user['id']); ?>
         <span class="admin-hint">Twój folder: <b><?=$ownUse[0]?> z <?=$ownLimit?></b> <?=plural($ownLimit, 'zdjęcia', 'zdjęć', 'zdjęć')?>, <b><?=e(formatSize($ownUse[1]))?> z <?=e(formatSize($ownLimits['totalBytes']))?></b>, kosz <b><?=e(formatSize(userTrashBytes((string)$user['id'])))?> z <?=e(formatSize($ownLimits['trashBytes']))?></b>. Zdjęcia (PNG, JPG, GIF, WebP, AVIF, HEIC) do <?=e(formatSize(effectiveUploadLimit((string)$user['id'])))?> zapisują się od razu i zamieniają w tle na WebP, gdy wychodzi mniejszy, zawsze bez metadanych (np. miejsca zrobienia). Status zobaczysz wyżej. Możesz też przeciągnąć je na stronę albo wkleić ze schowka (Ctrl+V). Widzisz go tylko ty i administratorzy galerii.</span>
 <?php endif; ?>
@@ -609,6 +609,7 @@
       <button type="button" class="viewer-nav prev hud-corners" id="viewer-prev" aria-label="Poprzedni" title="Poprzedni (&larr;)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 5.5 4.5 12l6.5 6.5" /></svg></button>
       <img class="viewer-img" id="viewer-img" alt="" draggable="false" />
       <video class="viewer-img" id="viewer-video" loop playsinline draggable="false" hidden></video>
+      <button type="button" class="viewer-audio" id="viewer-audio" aria-label="Odtwórz / pauza" title="Odtwórz / pauza (spacja)" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5M9 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM19 15.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" /></svg></button>
       <span class="viewer-loading" id="viewer-loading">Wczytywanie&hellip;</span>
       <button type="button" class="viewer-nav next hud-corners" id="viewer-next" aria-label="Następny" title="Następny (&rarr;)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5.5l6.5 6.5-6.5 6.5" /></svg></button>
     </div>
@@ -791,7 +792,7 @@
 <?php endif; ?>
 
   <script src="../js/sanakan-util.js?v=f417e538a8"></script>
-  <script src="../js/explorer.js?v=f80d22b5fb"></script>
+  <script src="../js/explorer.js?v=74b087cd9b"></script>
   <script src="../js/to-top.js?v=6ce6e2481f"></script>
   <script src="../js/account.js?v=9ad24ea77c"></script>
   <script src="../js/netsphere.js?v=adf9386966"></script>

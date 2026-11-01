@@ -53,15 +53,15 @@
         if (isText($name)) {
             if (($why = textContentError($file['tmp_name'])) !== null)
                 reply(false, $name . ': ' . $why . '.', 400);
-        } else if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name']))
+        } else if (isAudio($name) ? !isMp3($file['tmp_name']) : (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name'])))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
         // nor the size of the file: a small one can hold a huge picture, which
         // is refused before anything is kept or decoded
-        if (!isVideo($name) && !isText($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
+        if (!isVideo($name) && !isAudio($name) && !isText($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
             reply(false, $name . ': ' . $why . '.', 413);
 
         // an account with a folder of its own: only pictures (a gallery admin
-        // also films and text files), within its limits,
+        // also films, songs and text files), within its limits,
         // counted over its whole folder with the subfolders; the folder is held
         // until the request ends, so two uploads at once do not both fit
         $owner = folderOwner($dir[1]);
@@ -69,7 +69,7 @@
         if ($own) {
             if (accountLock($owner) === null)
                 reply(false, $name . ': folder jest teraz zajęty, spróbuj za chwilę.', 503);
-            if ((isVideo($name) || isText($name)) && !galleryIsAdmin())
+            if ((isVideo($name) || isAudio($name) || isText($name)) && !galleryIsAdmin())
                 reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
             $inputBytes = in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true) ? 0 : (int)$file['size'];
             if (($why = accountQuotaError($base, $owner, 1, $inputBytes, (int)$file['size'], true)) !== null)
