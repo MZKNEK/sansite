@@ -21,7 +21,7 @@
         file_put_contents($source . '/a.png', fx_importPng());
         file_put_contents($source . '/b.webm', fx_importWebm());
         file_put_contents($source . '/fake.png', 'not a picture');
-        file_put_contents($source . '/notes.txt', 'x');
+        file_put_contents($source . '/tool.exe', 'x');
         file_put_contents($source . '/Sub/c.png', fx_importPng());
         file_put_contents($source . '/.thumbs/t.png', fx_importPng());
         mkdir($base . '/Anime/2026', 0755, true);

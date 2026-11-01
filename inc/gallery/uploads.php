@@ -50,14 +50,18 @@
             reply(false, $name . ': ' . $error, 400);
 
         // the extension alone is not enough, the content has to match it
-        if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name']))
+        if (isText($name)) {
+            if (($why = textContentError($file['tmp_name'])) !== null)
+                reply(false, $name . ': ' . $why . '.', 400);
+        } else if (isVideo($name) ? !isVideoContent($name, $file['tmp_name']) : !isImageContent($name, $file['tmp_name']))
             reply(false, $name . ': zawartość nie pasuje do typu pliku.', 400);
         // nor the size of the file: a small one can hold a huge picture, which
         // is refused before anything is kept or decoded
-        if (!isVideo($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
+        if (!isVideo($name) && !isText($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
             reply(false, $name . ': ' . $why . '.', 413);
 
-        // an account with a folder of its own: only pictures, within its limits,
+        // an account with a folder of its own: only pictures (a gallery admin
+        // also films and text files), within its limits,
         // counted over its whole folder with the subfolders; the folder is held
         // until the request ends, so two uploads at once do not both fit
         $owner = folderOwner($dir[1]);
@@ -65,7 +69,7 @@
         if ($own) {
             if (accountLock($owner) === null)
                 reply(false, $name . ': folder jest teraz zajęty, spróbuj za chwilę.', 503);
-            if (isVideo($name) && !galleryIsAdmin())
+            if ((isVideo($name) || isText($name)) && !galleryIsAdmin())
                 reply(false, $name . ': do swojego folderu można dodawać tylko zdjęcia.', 400);
             $inputBytes = in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true) ? 0 : (int)$file['size'];
             if (($why = accountQuotaError($base, $owner, 1, $inputBytes, (int)$file['size'], true)) !== null)
@@ -114,7 +118,7 @@
         if (!@move_uploaded_file($file['tmp_name'], $dir[0] . '/' . $target))
             reply(false, $name . ': nie udało się zapisać pliku.', 500);
         @chmod($dir[0] . '/' . $target, 0644);
-        $stripped = !isVideo($name) && stripMetadata($dir[0] . '/' . $target);
+        $stripped = isImage($name) && stripMetadata($dir[0] . '/' . $target);
         clearstatcache();
         if ($own && ($why = accountQuotaError($base, $owner, 0, 0, filesize($dir[0] . '/' . $target), true)) !== null) {
             @unlink($dir[0] . '/' . $target);

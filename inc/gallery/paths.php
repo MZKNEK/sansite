@@ -42,6 +42,28 @@
         return in_array(extensionOf($name), VIDEO_TYPES, true);
     }
 
+    function isText($name)
+    {
+        return in_array(extensionOf($name), TEXT_TYPES, true);
+    }
+
+    // what is wrong with the content of a text file, or null: UTF-8 (a BOM may
+    // lead) without NUL bytes, at most TEXT_MAX_BYTES
+    function textContentError($path)
+    {
+        $size = @filesize($path);
+        if ($size === false)
+            return 'nie udało się odczytać pliku';
+        if ($size > TEXT_MAX_BYTES)
+            return 'plik tekstowy może mieć najwyżej ' . formatSize(TEXT_MAX_BYTES);
+
+        $data = (string)@file_get_contents($path);
+        if (strpos($data, "\0") !== false || !preg_match('//u', $data))
+            return 'to nie jest tekst w UTF-8';
+
+        return null;
+    }
+
     // WebM is Matroska: the file starts with the EBML magic number and names its doc type
     function isWebm($path)
     {
@@ -158,8 +180,8 @@
             return 'Nazwa nie może zawierać znaków / \\ : * ? " < > |';
         if (strlen($name) > MAX_NAME_LENGTH)
             return 'Nazwa jest za długa.';
-        if ($isFile && !isImage($name) && !isVideo($name) && !in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true))
-            return 'Można dodawać tylko obrazki i filmy: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES, CONVERT_IMAGE_TYPES)) . '.';
+        if ($isFile && !isImage($name) && !isVideo($name) && !isText($name) && !in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true))
+            return 'Można dodawać tylko obrazki, filmy i pliki tekstowe: ' . implode(', ', array_merge(IMAGE_TYPES, VIDEO_TYPES, CONVERT_IMAGE_TYPES, TEXT_TYPES)) . '.';
 
         return null;
     }

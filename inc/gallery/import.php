@@ -96,9 +96,12 @@
 
         if ($error = nameError($name, true))
             return $fail($error);
-        if (isVideo($name) ? !isVideoContent($name, $source) : !isImageContent($name, $source))
+        if (isText($name)) {
+            if (($why = textContentError($source)) !== null)
+                return $fail($why . '.');
+        } else if (isVideo($name) ? !isVideoContent($name, $source) : !isImageContent($name, $source))
             return $fail('zawartość nie pasuje do typu pliku.');
-        if (!isVideo($name) && ($why = imageLimitError($source)) !== null)
+        if (!isVideo($name) && !isText($name) && ($why = imageLimitError($source)) !== null)
             return $fail($why . '.');
 
         $ext = extensionOf($name);
@@ -135,7 +138,7 @@
             if (!@rename($source, $full) && !@copy($source, $full))
                 return $fail('nie udało się zapisać pliku.');
             @chmod($full, 0644);
-            $stripped = !isVideo($name) && stripMetadata($full);
+            $stripped = isImage($name) && stripMetadata($full);
             clearstatcache();
             $rel = ltrim($dir[1] . '/' . $name, '/');
 

@@ -69,8 +69,28 @@
         assertTrue(isVideo('a.mp4'));
         assertFalse(isImage('a.webm'));
         assertFalse(isVideo('a.png'));
+        assertTrue(isText('a.CSS'));
+        assertTrue(isText('a.yml'));
+        assertFalse(isText('a.js'));
+        assertFalse(isText('a.png'));
         assertSame('png', extensionOf('a.PNG'));
         assertSame('', extensionOf('noext'));
+    });
+
+    test('text content is UTF-8 without NUL bytes', function () {
+        $dir = tempDir();
+        $write = function ($name, $bytes) use ($dir) {
+            file_put_contents($dir . '/' . $name, $bytes);
+            return $dir . '/' . $name;
+        };
+
+        assertNull(textContentError($write('a.css', "body { color: red; } /* zażółć */\n")));
+        assertNull(textContentError($write('bom.txt', "\xEF\xBB\xBFtekst")));
+        assertNull(textContentError($write('empty.txt', '')));
+        assertSame('to nie jest tekst w UTF-8', textContentError($write('latin2.txt', "za\xBF\xF3\xB3\xE6")));
+        assertSame('to nie jest tekst w UTF-8', textContentError($write('nul.txt', "a\0b")));
+        assertSame('to nie jest tekst w UTF-8', textContentError($write('png.txt', "\x89PNG\r\n\x1A\n")));
+        assertTrue(strpos((string)textContentError($write('big.txt', str_repeat('a', TEXT_MAX_BYTES + 1))), 'najwyżej') !== false);
     });
 
     test('container sniffing', function () {

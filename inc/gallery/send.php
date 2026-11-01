@@ -42,7 +42,7 @@
         sendMedia($file[0], 'private, max-age=3600');
     }
 
-    // a picture or film as it is, 404 for any other file; a film may be asked
+    // a picture, film or text file as it is, 404 for any other file; a film may be asked
     // for in parts (Range), so it can be seeked and streamed instead of coming
     // whole
     function sendMedia($path, $cache)

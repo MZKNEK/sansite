@@ -219,7 +219,11 @@
             'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif', 'ico' => 'image/x-icon',
             'woff2' => 'font/woff2', 'webm' => 'video/webm', 'mp4' => 'video/mp4', 'mp3' => 'audio/mpeg',
             'txt' => 'text/plain; charset=utf-8', 'xml' => 'application/xml'];
-        header('Content-Type: ' . ($types[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? 'application/octet-stream'));
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        // the gallery's text files as nginx gives them (sanakan.conf)
+        if (strpos($path, '/i/') === 0 && preg_match('/^(?:txt|css|json|md|csv|log|ini|ya?ml|toml)$/', $ext))
+            $types[$ext] = (['css' => 'text/css', 'json' => 'application/json'][$ext] ?? 'text/plain') . '; charset=utf-8';
+        header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
         header('Accept-Ranges: bytes');
         $size = filesize($file);
         // one byte range, as nginx answers it, so a skin's song can go on
