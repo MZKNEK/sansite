@@ -19,9 +19,10 @@
     const AUDIO_TYPES = ['mp3'];
 
     // text files, which every account adds like songs: kept as they are and
-    // given out in UTF-8, as plain text apart from CSS and JSON (no HTML, SVG
-    // or JS, which a browser would run on the site's address)
-    const TEXT_TYPES = ['txt', 'css', 'json', 'md', 'csv', 'log', 'ini', 'yml', 'yaml', 'toml'];
+    // given out in UTF-8, as plain text apart from CSS and JSON. JavaScript
+    // is a plain-text download with nosniff, never an executable script.
+    // HTML and SVG, which could run on the site's address, are refused.
+    const TEXT_TYPES = ['txt', 'css', 'json', 'md', 'csv', 'log', 'ini', 'yml', 'yaml', 'toml', 'js'];
 
     // a text file is read whole to check it is UTF-8
     const TEXT_MAX_BYTES = 10485760;
@@ -37,7 +38,7 @@
     const MEDIA_MIME = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif', 'webm' => 'video/webm', 'mp4' => 'video/mp4', 'mp3' => 'audio/mpeg',
         'css' => 'text/css; charset=utf-8', 'json' => 'application/json; charset=utf-8', 'txt' => 'text/plain; charset=utf-8', 'md' => 'text/plain; charset=utf-8',
         'csv' => 'text/plain; charset=utf-8', 'log' => 'text/plain; charset=utf-8', 'ini' => 'text/plain; charset=utf-8', 'yml' => 'text/plain; charset=utf-8',
-        'yaml' => 'text/plain; charset=utf-8', 'toml' => 'text/plain; charset=utf-8'];
+        'yaml' => 'text/plain; charset=utf-8', 'toml' => 'text/plain; charset=utf-8', 'js' => 'text/plain; charset=utf-8'];
 
     // what "change to WebP" applies to; GIFs go through gif2webp to stay animated
     const WEBP_SOURCE_TYPES = ['png', 'jpg', 'jpeg', 'gif'];

@@ -10,7 +10,15 @@
     define('GALLERY_ADMINS', ['900000000000000001', '900000000000000003']);
     define('BOT_APP_KEY', '');
     define('SAFEGUARD_SECRET', 'browser-register-secret');
-    $GLOBALS['SANAKAN_HTTP'] = function () { return [false, 503]; };
+    define('CLOUDFLARE_API_TOKEN', 'browser-test-token');
+    define('CLOUDFLARE_ZONE_ID', 'browser-test-zone');
+    $GLOBALS['SANAKAN_HTTP'] = function ($url, $options) use ($root) {
+        if ($url === 'https://api.cloudflare.com/client/v4/zones/browser-test-zone/purge_cache') {
+            file_put_contents($root . '/inc/data/browser-purges.jsonl', $options['content'] . "\n", FILE_APPEND);
+            return ['{"success":true,"result":{}}', 200];
+        }
+        return [false, 503];
+    };
     require $root . '/inc/gallery.php';
     installDataErrorHandler();
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

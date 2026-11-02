@@ -55,12 +55,16 @@
 
         $time = filemtime($path);
         $size = filesize($path);
-        $etag = '"' . dechex($time) . '-' . dechex($size) . '"';
+        $etag = '"' . (isText($path) ? hash_file('sha256', $path) : dechex($time) . '-' . dechex($size)) . '"';
         header('Content-Type: ' . $type);
         header('Cache-Control: ' . $cache);
         header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
         header('ETag: ' . $etag);
         header('X-Content-Type-Options: nosniff');
+        if (extensionOf($path) === 'js') {
+            header('Content-Disposition: attachment');
+            header("Content-Security-Policy: sandbox; default-src 'none'");
+        }
         header('Accept-Ranges: bytes');
         if (trim((string)($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
             http_response_code(304);

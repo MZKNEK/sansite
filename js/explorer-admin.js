@@ -103,17 +103,32 @@
   var progressFill = document.getElementById('progress-fill');
   var uploading = false;
 
+  function confirmReplacement(message) {
+    var dialog = document.getElementById('dlg-upload-replace');
+    document.getElementById('upload-replace-what').textContent = message;
+    dialog.returnValue = '';
+    return new Promise(function (resolve) {
+      dialog.addEventListener('close', function () {
+        resolve(dialog.returnValue === 'yes');
+      }, { once: true });
+      dialog.showModal();
+    });
+  }
+
   function uploadFiles(fileList) {
     var files = Array.prototype.slice.call(fileList);
     if (!files.length || uploading) return;
     uploading = true;
 
-    var added = 0, problems = [], index = 0;
+    var added = 0, replaced = 0, skipped = 0, problems = [], index = 0;
     progress.hidden = false;
 
     function next() {
       if (index >= files.length) {
-        var message = added ? 'Dodano ' + added + ' ' + plural(added, 'plik', 'pliki', 'plików') + '.' : 'Nie dodano żadnego pliku.';
+        var message = added ? 'Dodano ' + added + ' ' + plural(added, 'plik', 'pliki', 'plików') + '.' : '';
+        if (replaced) message += (message ? ' ' : '') + 'Podmieniono ' + replaced + ' ' + plural(replaced, 'plik', 'pliki', 'plików') + '.';
+        if (skipped) message += (message ? ' ' : '') + 'Pominięto ' + skipped + ' ' + plural(skipped, 'plik', 'pliki', 'plików') + '.';
+        if (!message) message = 'Nie dodano żadnego pliku.';
         if (problems.length) message += ' ' + problems.join(' ');
         reloadWith(message, problems.length > 0);
         return;
@@ -136,11 +151,22 @@
       progressText.textContent = label;
       progressFill.style.width = '0';
 
-      post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0' }, file, function (part) {
-        progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
-        progressFill.style.width = (part * 100) + '%';
-      }).then(function (result) {
-        if (result.ok) added++;
+      function send(replace) {
+        return post({ action: 'upload', dir: data.dir, webp: webpBox && webpBox.checked ? '1' : '0', replace: replace ? '1' : '0' }, file, function (part) {
+          progressText.textContent = label + ' (' + Math.round(part * 100) + '%)';
+          progressFill.style.width = (part * 100) + '%';
+        }).then(function (result) {
+          if (!result.needsReplacement) return result;
+          return confirmReplacement(result.message).then(function (confirmed) {
+            return confirmed ? send(true) : { skipped: true };
+          });
+        });
+      }
+
+      send(false).then(function (result) {
+        if (result.skipped) skipped++;
+        else if (result.ok && result.replaced) replaced++;
+        else if (result.ok) added++;
         else problems.push(result.message);
         next();
       });

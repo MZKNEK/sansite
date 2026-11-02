@@ -15,6 +15,7 @@ import { testCustomSkin } from './custom-skin-browser.mjs';
 import { testSkinPicker } from './skin-picker-browser.mjs';
 import { testSeasonalBackground } from './seasonal-browser.mjs';
 import { testTheme } from './theme-browser.mjs';
+import { testGalleryText } from './gallery-text-browser.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, '.preview/browser/entry.cjs'));
 const { chromium } = require('playwright');
@@ -42,13 +43,13 @@ const [hasGd, hasZip] = JSON.parse(loaded.stdout);
 const extensions = [...(hasGd ? [] : ['-d', 'extension=gd']), ...(hasZip ? [] : ['-d', 'extension=zip'])];
 // The transport limits of the server in docs/server.md, as the test uploads a
 // file over PHP's default 2M.
-const limits = ['-d', 'upload_max_filesize=64M', '-d', 'post_max_size=64M'];
+const limits = ['-d', 'upload_max_filesize=64M', '-d', 'post_max_size=64M', '-d', `upload_tmp_dir=${tmpdir()}`];
 const server = spawn(php, [...extensions, ...limits, '-d', 'display_errors=1', '-d', 'error_reporting=-1', '-S', `127.0.0.1:${port}`, path.join(root, 'tests/browser-router.php')],
   { cwd: site, env: { ...process.env, SANAKAN_BROWSER_ROOT: site.replaceAll('\\', '/') }, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
 let log = '';
 server.stderr.on('data', data => { log += data; });
 // BROWSER_ONLY=seasonal,theme runs only those parts while working on them
-// (storage, core, home, skins, seasonal, custom, picker, theme); the whole
+// (storage, core, text, home, skins, seasonal, custom, picker, theme); the whole
 // suite, without it, before a commit.
 const only = (process.env.BROWSER_ONLY || '').split(',').map(name => name.trim()).filter(Boolean);
 const want = name => !only.length || only.includes(name);
@@ -231,6 +232,7 @@ try {
   assert.equal((await rename('case-only.png', 'Case-Only.png')).status(), 200, 'a case-only rename without a collision still works');
   assert.equal(readFileSync(path.join(renameDir, 'Case-Only.png'), 'utf8'), 'CASE ONLY');
   }
+  if (want('text')) await testGalleryText({ browser, base, site, errors });
   if (want('home')) await testHome({ browser, base, site, php, errors });
   if (want('skins')) await testSkinChanges({ browser, base, site, errors });
   if (want('seasonal')) await testSeasonalBackground({ browser, base, site, php, errors });

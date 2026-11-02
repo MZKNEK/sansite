@@ -59,7 +59,7 @@
 
     // Entire commit is journaled. Recovery only recognizes its own artifacts
     // by their hashes; a file with the right name alone proves nothing.
-    function commitConversion($full, $rel, $candidate, $wanted, $fingerprint, &$error, $actor = null)
+    function commitConversion($full, $rel, $candidate, $wanted, $fingerprint, &$error, $actor = null, $background = false)
     {
         $mutation = galleryLock();
         $policy = galleryLock('policy', false);
@@ -80,7 +80,9 @@
                 $base = substr($full, 0, -strlen($rel) - 1);
                 $why = accountQuotaError($base, $owner, 0, $converted['size'] - $fingerprint['size'], $converted['size']);
                 if ($why !== null) throw new RuntimeException($why);
-                if (userTrashBytes($owner) + $fingerprint['size'] > accountLimits($owner)['values']['trashBytes'])
+                // Automatic conversions retain the original even over the
+                // trash quota; manual conversions still require room for it.
+                if (!$background && userTrashBytes($owner) + $fingerprint['size'] > accountLimits($owner)['values']['trashBytes'])
                     throw new RuntimeException('Brak miejsca na oryginał w koszu.');
             }
             $name = $wanted === $full ? basename($full) : freeName(dirname($full), basename($wanted));

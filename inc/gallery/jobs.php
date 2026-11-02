@@ -188,7 +188,7 @@
     // manual change); a re-encoded WebP keeps its own name and link.
     function swapInConverted($full, $rel, $candidateFull, $targetFull, &$targetRel, $sizeFrom, $sizeTo, $format, $byName, $background = false, &$error = null, $fingerprint = null, $actor = null)
     {
-        $actual = commitConversion($full, $rel, $candidateFull, $targetFull, $fingerprint, $error, $actor);
+        $actual = commitConversion($full, $rel, $candidateFull, $targetFull, $fingerprint, $error, $actor, $background);
         if ($actual === false) return false;
         $targetFull = dirname($full) . '/' . basename($actual);
         $targetRel = $actual;

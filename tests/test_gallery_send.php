@@ -25,6 +25,45 @@
         assertSame('', $none, 'a range past the end sends no body');
     });
 
+    test('text cache validators change even when size and modification time stay the same', function () {
+        $path = tempDir() . '/notes.txt';
+        file_put_contents($path, 'OLD');
+        $modified = filemtime($path);
+        $_SERVER['HTTP_IF_NONE_MATCH'] = '"' . hash('sha256', 'OLD') . '"';
+        unset($_SERVER['HTTP_RANGE']);
+        try {
+            ob_start();
+            sendMedia($path, GALLERY_CACHE);
+            assertSame('', ob_get_clean());
+            assertSame(304, http_response_code());
+            file_put_contents($path, 'NEW');
+            touch($path, $modified);
+            clearstatcache(true, $path);
+            http_response_code(200);
+            ob_start();
+            sendMedia($path, GALLERY_CACHE);
+            assertSame('NEW', ob_get_clean());
+            assertSame(200, http_response_code());
+        } finally {
+            unset($_SERVER['HTTP_IF_NONE_MATCH']);
+            http_response_code(200);
+        }
+    });
+
+    test('nginx serves uploaded JavaScript as a sandboxed download before executable site scripts', function () {
+        $config = file_get_contents(__DIR__ . '/../server/nginx/sanakan.conf');
+        $start = strpos($config, 'location ~* ^/i/.+\\.js$ {');
+        assertTrue($start !== false);
+        assertTrue($start < strpos($config, 'location ~* \\.(?:css|js)$ {'));
+        $location = substr($config, $start, strpos($config, "\n}", $start) - $start);
+        assertTrue(str_contains($location, 'types { }'));
+        assertTrue(str_contains($location, 'default_type text/plain;'));
+        assertTrue(str_contains($location, 'Content-Disposition "attachment"'));
+        assertTrue(str_contains($location, "sandbox; default-src 'none'"));
+        assertTrue(str_contains($location, 'include snippets/sanakan-headers.conf;'));
+        assertTrue(str_contains(file_get_contents(__DIR__ . '/../server/nginx/sanakan-headers.conf'), 'X-Content-Type-Options "nosniff"'));
+    });
+
     test('sendMovedLink answers with a redirect or a 404, without a body', function () {
         writeData('moved', ['a.png' => 'b.webp']);
 

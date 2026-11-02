@@ -60,6 +60,16 @@
         if (!isVideo($name) && !isAudio($name) && !isText($name) && ($why = imageLimitError($file['tmp_name'])) !== null)
             reply(false, $name . ': ' . $why . '.', 413);
 
+        $replaceText = false;
+        $existing = $dir[0] . '/' . $name;
+        if (isText($name) && (file_exists($existing) || is_link($existing))) {
+            if (!is_file($existing) || is_link($existing))
+                reply(false, $name . ': ta nazwa jest zajęta przez folder lub dowiązanie.', 409);
+            if (($_POST['replace'] ?? '') !== '1')
+                reply(false, 'Plik „' . $name . '” już istnieje. Podmienić?', 409, ['needsReplacement' => true]);
+            $replaceText = true;
+        }
+
         // an account with a folder of its own: pictures, songs and text files
         // (a gallery admin also films), within its limits,
         // counted over its whole folder with the subfolders; the folder is held
@@ -72,8 +82,31 @@
             if (isVideo($name) && !galleryIsAdmin())
                 reply(false, $name . ': do swojego folderu można dodawać zdjęcia, MP3 i pliki tekstowe, bez filmów.', 400);
             $inputBytes = in_array(extensionOf($name), CONVERT_IMAGE_TYPES, true) ? 0 : (int)$file['size'];
-            if (($why = accountQuotaError($base, $owner, 1, $inputBytes, (int)$file['size'], true)) !== null)
+            if ($replaceText)
+                $inputBytes = max(0, $inputBytes - filesize($existing));
+            if (($why = accountQuotaError($base, $owner, $replaceText ? 0 : 1, $inputBytes, (int)$file['size'], true)) !== null)
                 reply(false, $name . ': ' . $why, 413);
+        }
+
+        if ($replaceText) {
+            // Stage on the same filesystem: a failed save keeps the old file.
+            $path = $dir[0] . '/.upload-' . bin2hex(random_bytes(12));
+            $modified = max(time(), filemtime($existing) + 1);
+            if (!@move_uploaded_file($file['tmp_name'], $path)) {
+                @unlink($path);
+                reply(false, $name . ': nie udało się zapisać pliku.', 500);
+            }
+            // nginx also uses mtime and size as validators. Change mtime even
+            // for an equal-sized replacement uploaded within the same second.
+            if (!@chmod($path, 0644) || !@touch($path, $modified) || !galleryRename($path, $existing)) {
+                @unlink($path);
+                reply(false, $name . ': nie udało się podmienić pliku.', 500);
+            }
+            clearstatcache(true, $existing);
+            $rel = ltrim($dir[1] . '/' . $name, '/');
+            forgetCached($existing, $rel);
+            done('upload', 'Podmieniono ' . galleryPath($rel) . '.', 'Podmieniono ' . $name . '.',
+                ['replaced' => true] + uploadedLinks($rel));
         }
 
         // "change to WebP" ticked in the page, always in the folder of an account;

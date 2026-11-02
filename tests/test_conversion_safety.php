@@ -21,6 +21,35 @@
         assertSame([], glob(operationsDir() . '/*.json') ?: []);
     });
 
+    test('automatic conversion preserves its original even with a full trash while manual conversion refuses', function () {
+        $base = trashAccount(['a.webm' => 8]);
+        $rel = 'users/556-U/a.webm';
+        $full = $base . '/' . $rel;
+        $snapshot = conversionSnapshot($full);
+        $candidate = dirname($snapshot['input']) . '/converted.webm';
+        file_put_contents($candidate, 'small');
+        $old = '20250101000000-abcdef99';
+        writeData('trash', [$old => ['name' => 'old.png', 'from' => 'users/556-U/old.png', 'owner' => '556',
+            'size' => USER_TRASH_MAX_BYTES, 'deleted' => time(), 'folder' => false, 'by' => 'U']]);
+        try {
+            assertFalse(swapInConverted($full, $rel, $candidate, $base . '/users/556-U/a.webm', $targetRel,
+                8, 5, 'WebM', 'U', false, $error, $snapshot['fingerprint'], '556'));
+            assertTrue(str_contains($error, 'koszu'));
+            assertSame('xxxxxxxx', file_get_contents($full));
+            assertSame(USER_TRASH_MAX_BYTES, userTrashBytes('556'));
+            assertTrue(swapInConverted($full, $rel, $candidate, $base . '/users/556-U/a.webm', $targetRel,
+                8, 5, 'WebM', 'U', true, $error, $snapshot['fingerprint'], '556'), $error ?? '');
+            assertSame('users/556-U/a.webm', $targetRel);
+            assertSame('small', file_get_contents($base . '/' . $targetRel));
+            assertSame(USER_TRASH_MAX_BYTES + 8, userTrashBytes('556'));
+            $items = trashItems();
+            unset($items[$old]);
+            assertSame(1, count($items));
+            assertSame('xxxxxxxx', file_get_contents(trashDir() . '/' . array_key_first($items) . '/a.webm'));
+            assertSame([], glob(operationsDir() . '/*.json') ?: []);
+        } finally { sessionEnd(); }
+    });
+
     test('source hash detects a same-size same-mtime replacement and snapshot remains stable', function () {
         [$base, $snapshot, $candidate] = conversionFixture();
         file_put_contents($base . '/a.png', 'modified');

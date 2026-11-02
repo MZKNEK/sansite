@@ -651,6 +651,18 @@
     <span class="progress-bar"><span id="progress-fill"></span></span>
   </div>
 
+  <dialog class="ex-dialog" id="dlg-upload-replace" aria-labelledby="upload-replace-title">
+    <form method="dialog">
+      <h2 id="upload-replace-title">Podmienić plik?</h2>
+      <p id="upload-replace-what"></p>
+      <p>Wybierz „Tak”, aby zastąpić treść, lub „Nie”, aby pominąć plik.</p>
+      <div class="dialog-actions">
+        <button type="button" class="admin-btn" data-close autofocus>Nie</button>
+        <button type="submit" class="admin-btn primary" value="yes">Tak</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="ex-dialog" id="dlg-mkdir">
     <form id="form-mkdir">
       <h2>Nowy folder</h2>
@@ -801,7 +813,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
 <?php if ($manage && !$showTrash): ?>
-  <script src="../js/explorer-admin.js?v=5c3e1c0087"></script>
+  <script src="../js/explorer-admin.js?v=139f2f95c9"></script>
 <?php endif; ?>
 <?php if ($showTrash): ?>
   <script src="../js/gallery-trash.js?v=3f8e29c453"></script>

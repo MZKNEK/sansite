@@ -71,7 +71,8 @@
         assertFalse(isVideo('a.png'));
         assertTrue(isText('a.CSS'));
         assertTrue(isText('a.yml'));
-        assertFalse(isText('a.js'));
+        assertTrue(isText('a.JS'));
+        assertSame('text/plain; charset=utf-8', MEDIA_MIME['js']);
         assertFalse(isText('a.png'));
         assertTrue(isAudio('a.MP3'));
         assertFalse(isAudio('a.mp4'));
