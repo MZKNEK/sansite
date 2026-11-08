@@ -308,14 +308,17 @@
     // Each entry is ['version', 'since' => time or null, 'date' => text or null,
     // 'commit' => hash or null, 'changes' => whether a section exists]. A version
     // that is only in verdiff.md and the bot has not reported yet is not listed,
-    // so the page never shows a version ahead of the bot. The versions of
-    // inc/verdiff-builtin.md came before the site logged any, so those the bot
-    // never reported are listed after the reported ones, without a start.
+    // so the page never shows a version ahead of the bot. One the bot skipped
+    // (an update from 1.4.11.8 straight to 1.4.11.10) is listed without a start
+    // ('skipped' => true), before the first version older than it. The versions
+    // of inc/verdiff-builtin.md came before the site logged any, so those the
+    // bot never reported are listed after the reported ones, without a start.
     function versionEntries()
     {
         $sections = verdiffSections();
         $entries = [];
         $listed = [];
+        $newest = null;
         foreach (botVersions() as $reported) {
             $key = verdiffKey($reported['version']);
             $section = $sections[$key] ?? null;
@@ -327,6 +330,8 @@
                 'changes' => $section !== null,
             ];
             $listed[$key] = true;
+            if ($newest === null || version_compare($key, $newest, '>'))
+                $newest = $key;
         }
         foreach (verdiffBuiltin() as $key => $section) {
             if (isset($listed[$key]))
@@ -344,6 +349,28 @@
             return (($b['since'] ?? 0) <=> ($a['since'] ?? 0))
                 ?: version_compare(verdiffKey($b['version']), verdiffKey($a['version']));
         });
+
+        // the versions the bot skipped: in the changelog, never reported, older
+        // than the newest it reported
+        foreach (verdiff()['sections'] as $key => $section) {
+            if (isset($listed[$key]) || $newest === null || !verdiffExpected($key) || !version_compare($key, $newest, '<'))
+                continue;
+            $at = count($entries);
+            foreach ($entries as $i => $entry) {
+                if (version_compare(verdiffKey($entry['version']), $key, '<')) {
+                    $at = $i;
+                    break;
+                }
+            }
+            array_splice($entries, $at, 0, [[
+                'version' => $section['version'],
+                'since' => null,
+                'date' => $section['date'],
+                'commit' => $section['commit'],
+                'changes' => true,
+                'skipped' => true,
+            ]]);
+        }
 
         return $entries;
     }

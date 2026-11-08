@@ -51,6 +51,8 @@
                     : ' &middot; działa ' . e(duration(time() - $shown['since'])));
         else if ($shown['date'])
             $introParts[] = 'data w changelogu: ' . e($shown['date']);
+        if (!empty($shown['skipped']))
+            $introParts[] = 'bot ją pominął przy aktualizacji';
         if ($shown['commit'])
             $introParts[] = 'commit <code>' . e($shown['commit']) . '</code>';
     }
@@ -206,7 +208,7 @@
 <?php endif; ?>
               <span class="version-name"><?=e($entry['version'])?><?php if ($isCurrent): ?> <em class="version-now">teraz</em><?php endif; ?></span>
               <span class="version-summary"><?php if ($entry['summary'] !== ''): ?><?=e($entry['summary'])?><?php if ($entry['more']): ?> <small>+<?=$entry['more']?></small><?php endif; ?><?php elseif ($entry['changes']): ?><span class="version-none">bez listy zmian</span><?php else: ?><span class="version-none">brak opisu</span><?php endif; ?></span>
-              <span class="version-when"><span class="version-from"><?=$date !== null ? e($date) : '—'?></span><?php if ($entry['since']): ?> <span class="version-until">&ndash; <?=$entry['until'] !== null ? e(versionUntil($entry['since'], $entry['until'])) : 'teraz'?></span><?php endif; ?><?php if ($entry['ran'] !== null): ?><small><?=$entry['until'] === null ? 'działa' : 'działała'?> <?=e(duration($entry['ran']))?></small><?php endif; ?></span>
+              <span class="version-when"><span class="version-from"><?=$date !== null ? e($date) : '—'?></span><?php if ($entry['since']): ?> <span class="version-until">&ndash; <?=$entry['until'] !== null ? e(versionUntil($entry['since'], $entry['until'])) : 'teraz'?></span><?php endif; ?><?php if ($entry['ran'] !== null): ?><small><?=$entry['until'] === null ? 'działa' : 'działała'?> <?=e(duration($entry['ran']))?></small><?php elseif (!empty($entry['skipped'])): ?><small>pominięta przy aktualizacji</small><?php endif; ?></span>
 <?=$entry['changes'] ? "            </a>
 " : "            </div>
 "?>

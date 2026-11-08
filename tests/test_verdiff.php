@@ -192,6 +192,28 @@
         assertSame($sorted, $older, 'the built-in ones newest first, the oldest last');
     });
 
+    test('versionEntries lists a version the bot skipped between its neighbours', function () {
+        $now = time();
+        file_put_contents(botFile('verdiff.json'), json_encode([
+            'fetched' => $now, 'tried' => $now, 'hash' => 'x',
+            'sections' => verdiffParse("# 1.4.11.11\n\n- ahead\n\n# 1.4.11.10\n\n- ten\n\n# 1.4.11.9\n\nData: 2026-11-08\nCommit: 9999999\n\n- nine\n\n# 1.4.11.8\n\n- eight\n"),
+        ]));
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.4.11.7', 'since' => $now - 900, 'seen' => $now - 900],
+            ['version' => '1.4.11.8', 'since' => $now - 600, 'seen' => $now - 600],
+            ['version' => '1.4.11.10', 'since' => $now - 60, 'seen' => $now - 60],
+        ]));
+
+        $entries = versionEntries();
+        assertSame(['1.4.11.10', '1.4.11.9', '1.4.11.8', '1.4.11.7'], array_slice(array_column($entries, 'version'), 0, 4), 'the skipped one between its neighbours, none ahead of the bot');
+        assertNull($entries[1]['since']);
+        assertTrue($entries[1]['skipped']);
+        assertSame('9999999', $entries[1]['commit']);
+        assertTrue($entries[1]['changes']);
+        assertFalse(isset($entries[0]['skipped']), 'a reported version is not skipped');
+        assertSame(['older' => '1.4.11.9', 'newer' => null], array_map(function ($entry) { return $entry['version'] ?? null; }, versionNeighbours($entries, '1.4.11.10')));
+    });
+
     test('versionSeries and versionGroups put the versions in series', function () {
         assertSame('1.4.10', versionSeries('1.4.10.16'));
         assertSame('1.0.0', versionSeries('1.0.0.0-alpha'));
