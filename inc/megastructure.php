@@ -602,8 +602,8 @@
     // ---- What the server witnesses -------------------------------------------------
     // Most finds happen in the browser alone, where the server cannot see them
     // made, so it checks what it can before it gives their proof (?witness=):
-    //   - a seasonal find, its day (Polish time, give or take MEGA_DAY_SLACK
-    //     hours for the browsers of other time zones);
+    //   - a seasonal find, its day in Poland, the server's time zone, which
+    //     the browsers of every time zone go by too (js/safeguard.js);
     //   - the idle home page, the Emitter held, the logo broken and a wait at
     //     a closed door, the time they took, from a ticket the browser got
     //     when they began (?ticket=), each ticket good for one find only
@@ -631,7 +631,6 @@
     ];
     const MEGA_KILLY_SLOT = 20;
     const MEGA_KILLY_CHANCE = 5;
-    const MEGA_DAY_SLACK = 14;
     // the finds the server gives a proof of when asked
     const MEGA_PLAIN_FINDS = ['netsphere', 'lost', 'console', 'silicon', 'lore', 'offline', 'morse', 'pingpong', 'unknown'];
 
@@ -657,15 +656,10 @@
         return megaPick($secret, 'killy', intdiv($time, MEGA_KILLY_SLOT), MEGA_KILLY_CHANCE) === 0;
     }
 
-    // whether it is a seasonal find's day at a time, in Poland or in a time
-    // zone up to MEGA_DAY_SLACK hours away
+    // whether it is a seasonal find's day at a time, in Poland
     function megaSeason($key, $now)
     {
-        foreach ([-MEGA_DAY_SLACK, 0, MEGA_DAY_SLACK] as $hours)
-            if (in_array($key, safeguardHolidays($now->setTimezone(new DateTimeZone('Europe/Warsaw'))->modify(($hours >= 0 ? '+' : '') . $hours . ' hours')), true))
-                return true;
-
-        return false;
+        return in_array($key, safeguardHolidays($now->setTimezone(new DateTimeZone('Europe/Warsaw'))), true);
     }
 
     // The proof of a find the browser says it made, or null when the server

@@ -430,11 +430,14 @@
         assertSame(['denied' => true], $witness(['witness' => 'made-up']));
         assertSame(['denied' => true], $witness(['witness' => 'gene']), 'the way to the gene has its own answers');
 
-        // the seasonal ones on their day only, give or take the time zones
+        // the seasonal ones on their day in Poland only, whatever the time zone
         assertSame(['denied' => true], $witness(['witness' => 'halloween']));
         $halloween = new DateTimeImmutable('2026-10-31 12:00', new DateTimeZone('Europe/Warsaw'));
         assertTrue(isset($witness(['witness' => 'halloween'], $halloween)['proof']));
-        assertTrue(isset($witness(['witness' => 'halloween'], $halloween->modify('+20 hours'))['proof']), 'still 31 October in America');
+        assertTrue(isset($witness(['witness' => 'halloween'], $halloween->setTime(0, 0))['proof']), 'from midnight in Poland');
+        assertTrue(isset($witness(['witness' => 'halloween'], $halloween->setTime(23, 59, 59))['proof']), 'to midnight in Poland');
+        assertSame(['denied' => true], $witness(['witness' => 'halloween'], $halloween->setTime(0, 0)->modify('-1 second')), 'already 31 October further east');
+        assertSame(['denied' => true], $witness(['witness' => 'halloween'], $halloween->modify('+20 hours')), 'still 31 October in America');
         assertSame(['denied' => true], $witness(['witness' => 'halloween'], $halloween->modify('+2 days')));
         assertTrue(isset($witness(['witness' => 'xmas'], null, true)['proof']), 'the preview pretends any day');
 
@@ -457,15 +460,15 @@
         assertTrue(!isset(SAFEGUARD_SEASONAL['pingpong']));
     });
 
-    test('seasonal backgrounds need an in-season server witness with the usual timezone slack', function () {
+    test('seasonal backgrounds need a server witness on their days in Poland', function () {
         foreach (['sakura' => ['04-02', 14], 'perseids' => ['08-01', 15], 'fireflies' => ['06-15', 16]] as $key => [$date, $length]) {
             $start = new DateTimeImmutable('2026-' . $date . ' 12:00', new DateTimeZone('Europe/Warsaw'));
             $end = $start->modify('+' . ($length - 1) . ' days');
-            foreach ([$start, $end, $start->modify('-16 hours'), $end->modify('+16 hours')] as $day) {
+            foreach ([$start, $end, $start->setTime(0, 0), $end->setTime(23, 59, 59)] as $day) {
                 $answer = megastructureAnswer('a', ['witness' => $key], $day);
                 assertSame(['proof' => true], proven($answer, $key, $day->getTimestamp()), $key . ' on ' . $day->format('c'));
             }
-            foreach ([$start->modify('-2 days'), $end->modify('+2 days')] as $day)
+            foreach ([$start->setTime(0, 0)->modify('-1 second'), $end->setTime(23, 59, 59)->modify('+1 second'), $start->modify('-2 days'), $end->modify('+2 days')] as $day)
                 assertSame(['denied' => true], megastructureAnswer('a', ['witness' => $key], $day));
             assertTrue(isset(megastructureAnswer('a', ['witness' => $key], $start->modify('+3 months'), true)['proof']), 'the local preview can pretend the event');
             assertFalse(in_array($key, MEGA_PLAIN_FINDS, true), 'the event cannot bypass the date check');

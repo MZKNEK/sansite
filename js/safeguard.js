@@ -598,19 +598,46 @@ window.SanakanSafeguard = (function () {
 
   // ---- The days of the year ------------------------------------------------------
 
-  // today's year, month and day; localStorage "safeguard-date" set to "MM-DD"
-  // (this year) or "YYYY-MM-DD" makes the site pretend another day, to try
-  // out the days below
-  function today() {
+  // The time in Poland, the server's (Europe/Warsaw), whatever the time zone
+  // of the browser, so a seasonal day begins and ends at the same moment for
+  // everyone, as the server witnesses it (megaSeason() in inc/megastructure.php):
+  // {year, month, day, hour, minute, second}; the browser's own time zone
+  // only when it does not know Poland's.
+  var POLAND = null;
+  try {
+    POLAND = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Warsaw', hourCycle: 'h23', year: 'numeric', month: 'numeric',
+      day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric'
+    });
+  } catch (err) {
+    // no time zones: the browser's own
+  }
+
+  function polandNow() {
     var now = new Date();
+    if (!POLAND) {
+      return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(),
+        hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds() };
+    }
+    var parts = {};
+    POLAND.formatToParts(now).forEach(function (part) { parts[part.type] = +part.value; });
+    return { year: parts.year, month: parts.month, day: parts.day,
+      hour: parts.hour % 24, minute: parts.minute, second: parts.second };
+  }
+
+  // today's year, month and day in Poland; localStorage "safeguard-date" set
+  // to "MM-DD" (this year) or "YYYY-MM-DD" makes the site pretend another
+  // day, to try out the days below
+  function today() {
+    var now = polandNow();
     var fake = null;
     try {
       fake = /^(?:(\d{4})-)?(\d\d)-(\d\d)$/.exec(localStorage.getItem('safeguard-date') || '');
     } catch (err) {
       // no storage, no pretending
     }
-    if (fake) return { year: fake[1] ? +fake[1] : now.getFullYear(), month: +fake[2], day: +fake[3] };
-    return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+    if (fake) return { year: fake[1] ? +fake[1] : now.year, month: +fake[2], day: +fake[3] };
+    return { year: now.year, month: now.month, day: now.day };
   }
 
   // Easter Sunday of a year (the Gregorian computus), as a Date at midnight
@@ -861,15 +888,16 @@ window.SanakanSafeguard = (function () {
     for (var n = 0; n < rockets; n++) setTimeout(rocket, n * 380 + Math.random() * 250, from);
   }
 
-  // the real clock, not a pretended day: midnight is midnight
+  // the real clock, not a pretended day: midnight is midnight in Poland
   function newYearMidnight() {
-    var now = new Date();
-    if (now.getMonth() === 0 && now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() < 15) {
+    var now = polandNow();
+    if (now.month === 1 && now.day === 1 && now.hour === 0 && now.minute < 15) {
       setTimeout(function () { fireworks(8); }, 1500);
       return;
     }
-    if (now.getMonth() !== 11 || now.getDate() !== 31) return;
-    setTimeout(function () { fireworks(14); }, new Date(now.getFullYear() + 1, 0, 1) - now);
+    if (now.month !== 12 || now.day !== 31) return;
+    var left = 86400 - (now.hour * 3600 + now.minute * 60 + now.second);
+    setTimeout(function () { fireworks(14); }, left * 1000);
   }
 
   // Friday the 13th: now and then a title of the page in view breaks into
@@ -1218,7 +1246,7 @@ window.SanakanSafeguard = (function () {
 
   // found(key, proof) notes a find with its proof, witness(key, extra) asks
   // the server for one first and ticket(kind) for a ticket, names its names, finds() what this browser found
-  // today() the day of the year (maybe a pretended one), holiday(key) whether
+  // today() the day of the year in Poland (maybe a pretended one), holiday(key) whether
   // it is that one's (holidays() above), and fireworks(rockets, from) the New
   // Year's, from a point {x, y} of the window or from its bottom. An optional
   // third argument supplies a background layer, colour and smaller bursts.
