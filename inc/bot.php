@@ -762,9 +762,12 @@
         return $last !== null && !$last[1] && $now - $last[0] < BOT_API_ISSUE_FOR;
     }
 
-    // [online, Discord ping, health data] of a health report
+    // [online, Discord ping, health data] of a health report, its version
+    // number without the build metadata (botVersionNumber())
     function botReadHealth($health)
     {
+        if (isset($health['version']) && is_string($health['version']))
+            $health['version'] = botVersionNumber($health['version']);
         $online = $health['status'] !== 'down' && ($health['discord']['state'] ?? '') === 'Connected';
 
         return [$online, $online ? (int)($health['discord']['latencyMs'] ?? 0) : null, $health];
@@ -972,9 +975,19 @@
     // when it gives one (also after the site has not answered for a while),
     // otherwise the moment the check noticed it.
 
+    // The version number without the build metadata after "+" (SemVer's), which
+    // the .NET SDK 8 and later add to the informational version, the commit
+    // the bot was built from ("1.5.0.0+fe9b051"): a build of another commit
+    // under the same number is the same version, and verdiff.md heads its
+    // sections with the number alone.
+    function botVersionNumber($version)
+    {
+        return trim(explode('+', (string)$version, 2)[0]);
+    }
+
     function botRecordVersion($version, $now, $startedAt = null)
     {
-        $version = trim((string)$version);
+        $version = botVersionNumber($version);
         if ($version === '')
             return;
 

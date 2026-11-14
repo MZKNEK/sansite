@@ -23,8 +23,10 @@
     // the bot's changelog from its repository, asked for again every
     // VERDIFF_TTL (sooner while a new version has no section in it yet), so
     // state/versions/ opens without waiting on the network; the sections the file
-    // no longer has are read from its history
+    // no longer has are read from its history, and a version the bot runs
+    // from another branch takes its section from there until the merge
     verdiffBackfill();
+    verdiffBranches();
     // the pictures of the cards for the croppers, mirrored from the bot's
     // repository (inc/pw.php): its list every 6 hours, the changed files at
     // most 40 seconds a run

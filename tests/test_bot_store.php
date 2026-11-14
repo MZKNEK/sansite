@@ -156,6 +156,12 @@
 
         botRecordVersion('', $now + 360);
         assertSame(3, count(botVersions()), 'an empty version is ignored');
+
+        // a build of another commit under the same number is the same version
+        botRecordVersion('1.2+aaaaaaa', $now + 420);
+        botRecordVersion('1.3+bbbbbbb', $now + 480);
+        botRecordVersion('1.3+ccccccc', $now + 540);
+        assertSame(['1.3', '1.2', '1.1', '1.0'], array_column(botVersions(), 'version'));
     });
 
     test('botCronLast and the bot addresses', function () {

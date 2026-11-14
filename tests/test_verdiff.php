@@ -28,9 +28,10 @@
         assertSame([], verdiffItems(''));
     });
 
-    test('verdiffKey ignores a leading v', function () {
+    test('verdiffKey ignores a leading v and the build metadata', function () {
         assertSame('1.2.3', verdiffKey('v1.2.3'));
         assertSame('1.2.3', verdiffKey(' 1.2.3 '));
+        assertSame('1.5.0.0', verdiffKey('1.5.0.0+fe9b051'));
     });
 
     test('verdiffDue asks again for a new version without a section', function () {
@@ -102,6 +103,97 @@
         assertSame([$a, $b], $cache['revisions']);
         assertSame(3, $first, 'the history and two revisions');
         assertSame($first, count($asked), 'nothing missing, nothing asked');
+    });
+
+    test('verdiffBranches takes the section of a reported version from another branch', function () {
+        $now = time();
+        $sha = function ($c) { return str_repeat($c, 40); };
+        file_put_contents(botFile('verdiff.json'), json_encode([
+            'fetched' => $now, 'tried' => $now, 'history' => $now, 'hash' => 'x',
+            'sections' => verdiffParse("# 1.4.11.21
+
+- on master
+"),
+        ]));
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.4.11.21', 'since' => $now - 86400],
+            ['version' => '1.5.0.0', 'since' => $now - 60],
+        ]));
+        $files = [
+            'a' => "# 1.5.0.0
+
+Data: 2026-11-14
+
+- from the branch
+
+# 1.5.0.1
+
+- never ran
+
+# 1.4.11.21
+
+- the branch's copy
+",
+            'b' => "# 1.5.0.0
+
+- from an older branch
+",
+        ];
+        $heads = ['master' => $sha('m'), 'dotnet10' => $sha('a'), 'old' => $sha('b')];
+        $asked = [];
+        $GLOBALS['SANAKAN_HTTP'] = function ($url) use (&$files, &$heads, &$asked) {
+            $asked[] = $url;
+            if (strpos($url, 'api.github.com/repos/o/r/branches') !== false)
+                return [json_encode(array_map(function ($name, $sha) { return ['name' => $name, 'commit' => ['sha' => $sha]]; }, array_keys($heads), $heads)), 200];
+            foreach ($heads as $sha)
+                if (strpos($url, "raw.githubusercontent.com/o/r/$sha/verdiff.md") !== false)
+                    return isset($files[$sha[0]]) ? [$files[$sha[0]], 200] : ['404: Not Found', 404];
+
+            return [false, 0];
+        };
+        $url = 'https://raw.githubusercontent.com/o/r/master/verdiff.md';
+        verdiffBranches($url);
+        $cache = verdiffCached();
+        assertSame('- from the branch', $cache['sections']['1.5.0.0']['changes'], 'the first branch by name');
+        assertSame('2026-11-14', $cache['sections']['1.5.0.0']['date']);
+        assertSame(['1.5.0.0' => 'dotnet10'], $cache['borrowed']);
+        assertSame('- on master', $cache['sections']['1.4.11.21']['changes'], 'the configured branch wins');
+        assertFalse(isset($cache['sections']['1.5.0.1']), 'a version that never ran is not taken');
+        $listed = array_column(versionEntries(), 'version');
+        assertSame(['1.5.0.0', '1.4.11.21'], array_slice($listed, 0, 2));
+        assertFalse(in_array('1.5.0.1', $listed, true), 'nor listed as skipped');
+        assertSame(3, count($asked), 'the branches and the files of two of them, not master');
+
+        // too soon to ask again; then the branch changes its text
+        verdiffBranches($url);
+        assertSame(3, count($asked));
+        file_put_contents(botFile('verdiff.json'), json_encode(['branches' => $now - VERDIFF_RETRY] + verdiffCached()));
+        $files['c'] = "# 1.5.0.0
+
+- corrected on the branch
+";
+        $heads['dotnet10'] = $sha('c');
+        verdiffBranches($url);
+        assertSame(5, count($asked), 'the list and the one branch that moved');
+        assertSame('- corrected on the branch', verdiffCached()['sections']['1.5.0.0']['changes']);
+
+        // the merge: the configured file has it now and wins
+        file_put_contents(botFile('verdiff.json'), json_encode(['fetched' => 0] + verdiffCached()));
+        $GLOBALS['SANAKAN_HTTP'] = function ($url) use (&$asked) {
+            $asked[] = $url;
+            return ["# 1.5.0.0
+
+- merged
+", 200];
+        };
+        verdiff($url);
+        $count = count($asked);
+        verdiffBranches($url);
+        unset($GLOBALS['SANAKAN_HTTP']);
+        $cache = verdiffCached();
+        assertSame('- merged', $cache['sections']['1.5.0.0']['changes']);
+        assertSame([], $cache['borrowed']);
+        assertSame($count, count($asked), 'nothing missing, no branches asked');
     });
 
     test('a version before VERDIFF_FROM has its built-in changes', function () {

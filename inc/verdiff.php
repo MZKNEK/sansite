@@ -20,7 +20,9 @@
     // the site. The bot's repository may keep only the current version in the
     // file, so a section once read is kept when the file no longer has it, and
     // the ones the site missed are read from the file's history on GitHub
-    // (verdiffBackfill()). The versions before VERDIFF_FROM, which the file
+    // (verdiffBackfill()). A version the bot runs from another branch before
+    // its merge takes its section from that branch's file (verdiffBranches()).
+    // The versions before VERDIFF_FROM, which the file
     // never described, have their changes written here, in
     // inc/verdiff-builtin.md (same format), and are never looked for in the
     // file. Needs inc/bot.php (botFile()) and inc/auth.php (httpRaw()).
@@ -50,10 +52,11 @@
         return [$match[1], $match[2], $match[3], $match[4]];
     }
 
-    // the key a version is matched by: no spaces, no leading "v"
+    // the key a version is matched by: no spaces, no leading "v", no build
+    // metadata after "+" (botVersionNumber())
     function verdiffKey($version)
     {
-        return ltrim(trim((string)$version), 'vV');
+        return ltrim(trim(explode('+', (string)$version, 2)[0]), 'vV');
     }
 
     // whether verdiff.md is expected to describe a version (VERDIFF_FROM on)
@@ -179,10 +182,13 @@
         [$body, $status] = verdiffGet($url);
         if ($body !== false && $status === 200) {
             $old = $known ? $cache : [];
+            $parsed = verdiffParse($body);
             $cache = [
                 'fetched' => time(),
                 'hash' => substr(hash('sha256', (string)$body), 0, 12),
-                'sections' => verdiffParse($body) + ($old['sections'] ?? []),
+                'sections' => $parsed + ($old['sections'] ?? []),
+                // a section the file has now is no longer a branch's
+                'borrowed' => array_diff_key($old['borrowed'] ?? [], $parsed),
             ] + $old;
         } else {
             // keep what is known and come back in VERDIFF_RETRY seconds
@@ -242,6 +248,107 @@
         $cache['sections'] += $sections;
         $cache['revisions'] = $revisions;
         $cache['history'] = time();
+        botWriteFile(botFile('verdiff.json'), json_encode($cache, JSON_UNESCAPED_UNICODE));
+    }
+
+    // The versions the bot reported (VERDIFF_FROM on) that the configured
+    // file does not describe: without a section, or with one taken from a
+    // branch; [key => when the bot began running it]
+    function verdiffMissing($cache)
+    {
+        $missing = [];
+        foreach (botVersions() as $reported) {
+            $key = verdiffKey($reported['version']);
+            if (verdiffExpected($key) && (!isset($cache['sections'][$key]) || isset($cache['borrowed'][$key])))
+                $missing[$key] = max($missing[$key] ?? 0, (int)($reported['since'] ?? 0));
+        }
+
+        return $missing;
+    }
+
+    // The sections of verdiff.md on the repository's other branches, for the
+    // versions the bot reported that the configured branch (BOT_REPO_VERDIFF_URL)
+    // does not describe yet: a bot run from a branch for a while shows its
+    // changes before the merge. Only a reported version takes a section from
+    // a branch, so a branch's versions that never ran are neither listed nor
+    // counted as skipped. A section taken ('borrowed' => [key => branch]) is
+    // kept, also once the branch is gone, follows the branch while it changes,
+    // and gives way to the configured file's own as soon as it has one
+    // (verdiff()). The branches are asked of the GitHub API, one request, only
+    // while a version is missing, as often as verdiffDue() asks the file for
+    // it (VERDIFF_RETRY while the version is new, VERDIFF_TTL after); a
+    // branch's file is read once per head commit ('heads' => [branch => sha])
+    // and only its sections the configured file has not are kept
+    // ('branchSections' => [branch => [key => section]]). Two branches with
+    // a section of the same version: the first by name. Only for a
+    // raw.githubusercontent.com address; from cron (inc/check-bot.php), after
+    // verdiffBackfill(). $url stands in for verdiffUrl() (the tests).
+    function verdiffBranches($url = null)
+    {
+        $github = verdiffGithub($url ?? verdiffUrl());
+        $cache = verdiffCached();
+        if ($github === null || $cache === null)
+            return;
+        $missing = verdiffMissing($cache);
+        if (!$missing)
+            return;
+
+        [$owner, $repo, $ref, $path] = $github;
+        $now = time();
+        $own = array_diff_key($cache['sections'], $cache['borrowed'] ?? []);
+        $branchSections = $cache['branchSections'] ?? [];
+        $heads = $cache['heads'] ?? [];
+        $checked = (int)($cache['branches'] ?? 0);
+        $wait = $now - max($missing) < VERDIFF_NEW ? VERDIFF_RETRY : VERDIFF_TTL;
+        if ($now - $checked >= $wait) {
+            $checked = $now;
+            [$body, $status] = verdiffGet('https://api.github.com/repos/' . $owner . '/' . $repo . '/branches?per_page=100', 'application/vnd.github+json');
+            $list = $body !== false && $status === 200 ? json_decode((string)$body, true) : null;
+            if (is_array($list)) {
+                $seen = [];
+                foreach ($list as $branch) {
+                    $name = $branch['name'] ?? null;
+                    $sha = $branch['commit']['sha'] ?? null;
+                    if (!is_string($name) || $name === $ref || !is_string($sha) || !preg_match('/^[0-9a-f]{40}$/', $sha))
+                        continue;
+                    $seen[$name] = true;
+                    if (($heads[$name] ?? null) === $sha)
+                        continue;
+                    [$text, $status] = verdiffGet('https://raw.githubusercontent.com/' . $owner . '/' . $repo . '/' . $sha . '/' . $path);
+                    // a file that did not come is asked for again next time
+                    if ($text !== false && $status === 200)
+                        $branchSections[$name] = array_diff_key(verdiffParse($text), $own);
+                    elseif ($status === 404)
+                        unset($branchSections[$name]);
+                    else
+                        continue;
+                    $heads[$name] = $sha;
+                }
+                // the branches gone from the repository
+                $branchSections = array_intersect_key($branchSections, $seen);
+                $heads = array_intersect_key($heads, $seen);
+            }
+        }
+
+        ksort($branchSections, SORT_STRING);
+        $found = [];
+        foreach (array_keys($missing) as $key)
+            foreach ($branchSections as $name => $sections)
+                if (isset($sections[$key])) {
+                    $found[$key] = [$name, $sections[$key]];
+                    break;
+                }
+
+        // read again, so a fetch that came meanwhile is not lost
+        $cache = verdiffCached() ?? $cache;
+        foreach ($found as $key => [$name, $section])
+            if (!isset($cache['sections'][$key]) || isset($cache['borrowed'][$key])) {
+                $cache['sections'][$key] = $section;
+                $cache['borrowed'][$key] = $name;
+            }
+        $cache['branchSections'] = $branchSections;
+        $cache['heads'] = $heads;
+        $cache['branches'] = $checked;
         botWriteFile(botFile('verdiff.json'), json_encode($cache, JSON_UNESCAPED_UNICODE));
     }
 

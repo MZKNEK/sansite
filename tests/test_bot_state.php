@@ -97,4 +97,10 @@
 
         [$connecting] = botReadHealth(['status' => 'ok', 'discord' => ['state' => 'Connecting']]);
         assertFalse($connecting);
+
+        // the commit the .NET SDK adds to the informational version is left out
+        [, , $health] = botReadHealth(['status' => 'ok', 'version' => '1.5.0.0+fe9b051']);
+        assertSame('1.5.0.0', $health['version']);
+        [, , $health] = botReadHealth(['status' => 'ok', 'version' => '1.4.11.21']);
+        assertSame('1.4.11.21', $health['version']);
     });
