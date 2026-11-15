@@ -420,6 +420,8 @@
     // ('skipped' => true), before the first version older than it. The versions
     // of inc/verdiff-builtin.md came before the site logged any, so those the
     // bot never reported are listed after the reported ones, without a start.
+    // A version reported again (the bot went back to it) is listed once, at its
+    // newest start.
     function versionEntries()
     {
         $sections = verdiffSections();
@@ -428,6 +430,8 @@
         $newest = null;
         foreach (botVersions() as $reported) {
             $key = verdiffKey($reported['version']);
+            if (isset($listed[$key]))
+                continue;
             $section = $sections[$key] ?? null;
             $entries[] = [
                 'version' => $reported['version'],

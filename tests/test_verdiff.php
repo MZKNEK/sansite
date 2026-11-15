@@ -261,6 +261,25 @@ Data: 2026-11-14
         assertSame('2026-10-01', $entries[2]['date'], 'the changelog section wins over the built-in one');
     });
 
+    test('versionEntries lists a version the bot went back to once, at its newest start', function () {
+        $now = time();
+        file_put_contents(botFile('verdiff.json'), json_encode([
+            'fetched' => $now, 'tried' => $now, 'hash' => 'x',
+            'sections' => verdiffParse("# 1.5.0.6\n\n- six\n\n# 1.5.0.5\n\n- five\n"),
+        ]));
+        file_put_contents(botFile('versions.json'), json_encode([
+            ['version' => '1.5.0.5', 'since' => $now - 900, 'seen' => $now - 900],
+            ['version' => '1.5.0.6', 'since' => $now - 600, 'seen' => $now - 600],
+            ['version' => '1.5.0.5', 'since' => $now - 60, 'seen' => $now - 60],
+        ]));
+
+        $entries = versionEntries();
+        assertSame(['1.5.0.5', '1.5.0.6'], array_slice(array_column($entries, 'version'), 0, 2));
+        assertSame($now - 60, $entries[0]['since']);
+        assertSame($now - 600, $entries[1]['since']);
+        assertSame(1, count(array_keys(array_column($entries, 'version'), '1.5.0.5')));
+    });
+
     test('versionEntries lists the built-in versions the bot never reported', function () {
         $now = time();
         file_put_contents(botFile('verdiff.json'), json_encode(['fetched' => $now, 'hash' => 'x', 'sections' => []]));
