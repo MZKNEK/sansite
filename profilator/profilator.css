@@ -321,7 +321,7 @@
 
 .profilator-pictures li {
     display: grid;
-    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
 }

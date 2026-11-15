@@ -133,6 +133,7 @@
         ['/profilator/', [200]],
         ['/profilator/api.php?a=me', [401]],
         ['/profilator/api.php?a=nothing', [401]],
+        ['/profilator/api.php?a=delete&id=1', [401]],
         ['/og.php?p=cmd', [200, 302]],
         ['/og.php?p=versions', [200, 302]],
         ['/og.php?p=wersje', [200, 302]],

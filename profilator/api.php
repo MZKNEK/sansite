@@ -61,7 +61,7 @@
     if (profilatorPath($id) === null)
         profilatorJson(400, ['error' => 'account']);
 
-    $changing = in_array($action, ['upload', 'quote', 'preview', 'save'], true);
+    $changing = in_array($action, ['upload', 'delete', 'quote', 'preview', 'save'], true);
     if ($changing && ($method !== 'POST' || !hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF'] ?? ''))))
         profilatorJson(403, ['error' => 'csrf']);
 
@@ -77,6 +77,12 @@
             if (!preg_match('/^\d{1,20}$/', $picture))
                 profilatorJson(400, ['error' => 'picture']);
             profilatorPass(profilatorBot('GET', profilatorPath($id, 'images/' . $picture)), true);
+
+        case 'delete':
+            $picture = (string)($_GET['id'] ?? '');
+            if (!preg_match('/^\d{1,20}$/', $picture))
+                profilatorJson(400, ['error' => 'picture']);
+            profilatorPass(profilatorBot('DELETE', profilatorPath($id, 'images/' . $picture)));
 
         case 'current':
             profilatorPass(profilatorBot('GET', profilatorPath($id, 'image'), null, [], 60), true);

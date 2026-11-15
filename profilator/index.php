@@ -49,7 +49,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=320c6f66e1" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=0d42d40606" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -226,8 +226,8 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="layers.js?v=9bc73c2099"></script>
-  <script src="editor.js?v=974c7b5b18"></script>
+  <script src="layers.js?v=3b3f06307f"></script>
+  <script src="editor.js?v=1d0369a72b"></script>
 </body>
 
 </html>

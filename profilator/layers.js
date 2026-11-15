@@ -318,20 +318,33 @@ window.Layers = (function () {
 
   function shows(layer, part) { return !layer.hide || layer.hide.indexOf(part) < 0; }
 
+  // as the bot's: in equal columns while every item fits its own, otherwise spread with equal gaps,
+  // and large numbers shortened (12,3K) when the full ones would run into each other
   function legend(c, stats, labels, x, y, w, all) {
-    if (all) {
-      stats.statuses.forEach(function (v, i) {
-        var lx = x + 14 + i * ((w - 28) / 6);
-        dot(c, lx + 4, y, STATUS[i]);
-        text(c, group(v), 13, true, C.text, lx + 12, y);
-      });
-      return;
+    if (all)
+      legendRow(c, stats, null, [0, 1, 2, 3, 4, 5], 13, 4, x, y, w);
+    else
+      legendRow(c, stats, labels, [1, 0, 5], 13, 4, x, y, w);
+  }
+
+  function legendRow(c, stats, labels, shown, numberSize, labelGap, x, y, w) {
+    function number(s, cut) { return cut ? short(stats.statuses[s]) : group(stats.statuses[s]); }
+    function itemWidth(s, cut) { return 12 + (labels ? width(labels[s], 12, false) + labelGap : 0) + width(number(s, cut), numberSize, true); }
+    var room = w - 28, n = shown.length;
+    var full = shown.reduce(function (a, s) { return a + itemWidth(s, false); }, 0);
+    var cut = full + 8 * (n - 1) > room;
+    var widths = shown.map(function (s) { return itemWidth(s, cut); });
+    var column = room / n, at = [];
+    if (widths.every(function (v) { return v <= column - 6; })) {
+      shown.forEach(function (s, i) { at.push(x + 14 + column * i); });
+    } else {
+      var gap = n > 1 ? (room - widths.reduce(function (a, v) { return a + v; }, 0)) / (n - 1) : 0;
+      shown.forEach(function (s, i) { at.push(i === 0 ? x + 14 : at[i - 1] + widths[i - 1] + gap); });
     }
-    [1, 0, 5].forEach(function (s, i) {
-      var lx = x + 14 + (w - 28) / 3 * i;
-      dot(c, lx + 4, y, STATUS[s]);
-      var tw = text(c, labels[s], 12, false, C.dim, lx + 12, y);
-      text(c, group(stats.statuses[s]), 13, true, C.text, lx + 16 + tw, y);
+    shown.forEach(function (s, i) {
+      dot(c, at[i] + 4, y, STATUS[s]);
+      var tw = labels ? text(c, labels[s], 12, false, C.dim, at[i] + 12, y) + labelGap : 0;
+      text(c, number(s, cut), numberSize, true, C.text, at[i] + 12 + tw, y);
     });
   }
 
@@ -389,13 +402,8 @@ window.Layers = (function () {
 
     if (shows(layer, 'legend')) {
       if (layer.legend === 'all') {
-        labels.forEach(function (label, i) {
-          var lx = x + 14 + (i % 3) * ((w - 28) / 3);
-          var ly = cy + 8 + Math.floor(i / 3) * 20;
-          dot(c, lx + 4, ly, STATUS[i]);
-          var tw = text(c, label, 12, false, C.dim, lx + 12, ly);
-          text(c, group(stats.statuses[i]), 12, true, C.text, lx + 15 + tw, ly);
-        });
+        legendRow(c, stats, labels, [0, 1, 2], 12, 3, x, cy + 8, w);
+        legendRow(c, stats, labels, [3, 4, 5], 12, 3, x, cy + 28, w);
         cy += 44;
       } else {
         legend(c, stats, labels, x, cy + 8, w, false);

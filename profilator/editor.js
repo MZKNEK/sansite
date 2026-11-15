@@ -1666,7 +1666,44 @@
       text.textContent = 'Obrazek ' + p.id + ' · ' + (USES[p.use] || p.use) + ' · ' + p.width + ' × ' + p.height + (p.animated ? ' · ruchomy' : '');
       li.appendChild(img);
       li.appendChild(text);
+      if (logged)
+        li.appendChild(button('Usuń', 'admin-btn small', 'Usuń obrazek ' + p.id, function () { removePicture(p); }));
       host.appendChild(li);
+    });
+  }
+
+  // the pictures the layout being edited uses
+  function picturesInLayout() {
+    var used = [];
+    if (M.header) used.push(M.header.image);
+    if (M.style) used.push(M.style.image);
+    if (M.ultra) used.push(M.ultra.image);
+    if (M.avatar.frame === 'custom') used.push(M.avatar.customImage);
+    M.layers.forEach(function (layer) { if (layer.t === 'overlay') used.push(layer.image); });
+    return used;
+  }
+
+  // the bot refuses a picture its saved profile still shows
+  function removePicture(p) {
+    if (picturesInLayout().indexOf(p.id) >= 0) {
+      say('Obrazek ' + p.id + ' jest w układzie. Najpierw usuń go z układu.', true);
+      return;
+    }
+    if (!window.confirm('Usunąć obrazek ' + p.id + '? Tego nie da się cofnąć.'))
+      return;
+    fetch(api + '?a=delete&id=' + encodeURIComponent(p.id), { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF': csrf } }).then(function (res) {
+      if (res.status === 200 || res.status === 404) {
+        pictures = pictures.filter(function (x) { return x.id !== p.id; });
+        delete images[p.id];
+        renderPictures();
+        say('Obrazek ' + p.id + ' usunięty.');
+      } else if (res.status === 409) {
+        say('Obrazek ' + p.id + ' jest w zapisanym profilu. Zapisz profil bez niego, potem go usuń.', true);
+      } else {
+        say('Nie udało się usunąć obrazka (' + res.status + ').', true);
+      }
+    }, function () {
+      say('Bot nie odpowiada, spróbuj za chwilę.', true);
     });
   }
 

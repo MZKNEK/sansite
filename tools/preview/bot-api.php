@@ -64,12 +64,27 @@
                 echo json_encode('Not a picture');
                 return;
             }
-            $picture = count($state['pictures']) + 1;
+            $picture = max(array_merge([0], array_column($state['pictures'], 'id'))) + 1;
             move_uploaded_file($upload['tmp_name'], $dir . '/' . $id . '-' . $picture . '.bin');
             $view = ['id' => $picture, 'use' => $_POST['use'] ?? 'overlay', 'width' => $info[0], 'height' => $info[1], 'animated' => false];
             $state['pictures'][] = $view;
             $save();
             echo json_encode($view);
+            return;
+        }
+        if ($what === 'images' && $method === 'DELETE') {
+            $picture = (int)($m[3] ?? 0);
+            $used = in_array($picture, array_map('intval', array_merge(array_column($state['layout']['layers'] ?? [], 'image'),
+                [$state['layout']['header']['image'] ?? 0, $state['layout']['style']['image'] ?? 0, $state['layout']['ultra']['image'] ?? 0])), true);
+            if ($used) {
+                http_response_code(409);
+                echo json_encode('Picture is in the saved profile');
+                return;
+            }
+            $state['pictures'] = array_values(array_filter($state['pictures'], function ($p) use ($picture) { return $p['id'] !== $picture; }));
+            @unlink($dir . '/' . $id . '-' . $picture . '.bin');
+            $save();
+            echo json_encode('Picture deleted!');
             return;
         }
         if ($what === 'images') {
