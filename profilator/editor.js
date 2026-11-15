@@ -1322,6 +1322,12 @@
       host.appendChild(labelled('Karty', segment([[3, '3'], [6, '6'], [12, '12']], o.count || 12, function (v) { o.count = v; clamp(sel); })));
       host.appendChild(toggle('p-panel', 'Tło panelu', o.panel !== false, function (v) { o.panel = v; }));
     } else if (o.t === 'rank') {
+      host.appendChild(labelled('Styl', segment([['pill', 'Pigułka'], ['solid', 'Pełna'], ['glass', 'Szkło'], ['text', 'Sam napis'], ['underline', 'Podkreślenie'], ['gradient', 'Gradient']],
+        o.style || 'pill', function (v) { if (v === 'pill') delete o.style; else o.style = v; })));
+      host.appendChild(labelled('Rozmiar', segment([['small', 'Mały'], ['medium', 'Średni'], ['large', 'Duży']], o.size || 'medium', function (v) {
+        if (v === 'medium') delete o.size; else o.size = v;
+        clamp(sel);
+      })));
       host.appendChild(labelled('Wyrównanie', segment([['left', 'Od lewej'], ['center', 'Środkiem']], o.align || 'left', function (v) {
         var b = boxOf(sel);
         o.align = v;

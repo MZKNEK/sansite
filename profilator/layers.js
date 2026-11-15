@@ -113,7 +113,13 @@ window.Layers = (function () {
 
   function stickerWidth(h) { return Math.round(CARD_RATIO * h); }
 
-  function rankWidth(rank) { return rank ? width(trim(rank, 13, true, 300), 13, true) + 22 : 0; }
+  // the rank's font size, height and padding at each size, as the bot's
+  var RANK = { small: [11, 18, 9], medium: [13, 22, 11], large: [16, 27, 14] };
+  function rankMetrics(layer) { return RANK[(layer && layer.size) || 'medium'] || RANK.medium; }
+  function rankWidth(rank, layer) {
+    var m = rankMetrics(layer);
+    return rank ? width(trim(rank, m[0], true, 300 * m[0] / 13), m[0], true) + 2 * m[2] : 0;
+  }
 
   function box(layer, part, assets, data) {
     switch (part) {
@@ -129,7 +135,7 @@ window.Layers = (function () {
       case 'gallery': w = SIZE.list; h = SIZE.panel; break;
       case 'bigGallery': w = layer.count === 3 ? 360 : SIZE.big[0]; h = layer.count === 3 || layer.count === 6 ? 164 : SIZE.big[1]; break;
       case 'sticker': w = stickerWidth(layer.h); h = layer.h; break;
-      case 'rank': w = rankWidth(data && data.rank) || 120; h = SIZE.rank; break;
+      case 'rank': w = rankWidth(data && data.rank, layer) || 120; h = rankMetrics(layer)[1]; break;
       case 'overlay': case 'ultra': {
         var p = assets && assets.picture(layer.image);
         if (p) { var s = size(p); w = Math.round(s[0] * (layer.scale || 1)); h = Math.round(s[1] * (layer.scale || 1)); }
@@ -672,18 +678,63 @@ window.Layers = (function () {
     c.restore();
   }
 
+  // a light colour takes dark letters, as the bot's check does
+  function isLight(hex) {
+    var v = [1, 3, 5].map(function (i) {
+      var s = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] > 0.4;
+  }
+
+  function shadowText(c, value, size, color, x, cy) {
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,0.8)';
+    c.shadowBlur = 5;
+    c.shadowOffsetY = 1;
+    text(c, value, size, true, color, x, cy);
+    c.restore();
+  }
+
+  // pill, solid, glass, text, underline or gradient, small, medium or large, as the bot draws them
   function rank(c, layer, value, accent) {
     if (!value || !value.trim())
       return;
-    value = trim(value.trim(), 13, true, 300);
-    var w = width(value, 13, true) + 22;
+    var m = rankMetrics(layer), size = m[0], h = m[1], pad = m[2];
+    value = trim(value.trim(), size, true, 300 * size / 13);
+    var tw = width(value, size, true), w = tw + 2 * pad;
     var x = layer.align === 'center' ? layer.x - w / 2 : layer.x;
-    c.save();
-    rr(c, x, layer.y, w, SIZE.rank, 11);
-    c.fillStyle = 'rgba(19,18,23,0.72)'; c.fill();
-    c.strokeStyle = accent; c.lineWidth = 1.5; c.stroke();
-    c.restore();
-    text(c, value, 13, true, C.text, x + w / 2, layer.y + 11.5, 'center');
+    var y = layer.y, cy = y + h / 2 + 0.5;
+    switch (layer.style) {
+      case 'solid':
+        c.save(); rr(c, x, y, w, h, h / 2); c.fillStyle = accent; c.fill(); c.restore();
+        text(c, value, size, true, isLight(accent) ? '#131217' : '#FFFFFF', x + w / 2, cy, 'center');
+        break;
+      case 'glass':
+        glass(c, x, y, w, h, h / 2, 0.55);
+        text(c, value, size, true, C.text, x + w / 2, cy, 'center');
+        break;
+      case 'text':
+        shadowText(c, value, size, C.text, x, cy);
+        break;
+      case 'underline':
+        shadowText(c, value, size, C.text, x, cy - 2);
+        c.save(); rr(c, x, cy + size / 2 + 1, tw, Math.max(2, size / 6), 1.5); c.fillStyle = accent; c.fill(); c.restore();
+        break;
+      case 'gradient':
+        var g = c.createLinearGradient(x, 0, x + w + pad, 0);
+        g.addColorStop(0, alpha(accent, 0.95)); g.addColorStop(0.55, alpha(accent, 0.55)); g.addColorStop(1, alpha(accent, 0));
+        c.save(); rr(c, x, y, w + pad, h, h / 2); c.fillStyle = g; c.fill(); c.restore();
+        shadowText(c, value, size, '#FFFFFF', x + pad, cy);
+        break;
+      default:
+        c.save();
+        rr(c, x, y, w, h, h / 2);
+        c.fillStyle = 'rgba(19,18,23,0.72)'; c.fill();
+        c.strokeStyle = accent; c.lineWidth = 1.5; c.stroke();
+        c.restore();
+        text(c, value, size, true, C.text, x + w / 2, cy, 'center');
+    }
   }
 
   function nick(c, layer, value) {

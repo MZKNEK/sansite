@@ -228,8 +228,8 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="layers.js?v=dd5e9f7847"></script>
-  <script src="editor.js?v=6c76fc0764"></script>
+  <script src="layers.js?v=4f9c98979d"></script>
+  <script src="editor.js?v=30b58a637a"></script>
 </body>
 
 </html>
