@@ -115,6 +115,7 @@
             if (!empty($layout['header'])) $needs[] = 'headerImg';
             if (!empty($layout['style'])) $needs[] = 'styleImg';
             if (!empty($layout['ultra'])) $needs[] = 'ultra';
+            if (!empty($layout['hd'])) $needs[] = 'hd';
             $kinds = array_count_values(array_column($layout['layers'] ?? [], 't'));
             for ($i = 1; $i <= ($kinds['overlay'] ?? 0); $i++) $needs[] = 'overlay:' . $i;
             for ($i = 1; $i <= ($kinds['sticker'] ?? 0); $i++) $needs[] = 'sticker:' . $i;
@@ -128,7 +129,13 @@
         $tc = array_sum(array_column($missing, 'tc'));
 
         if ($what === 'quote') {
-            echo json_encode(['errors' => [], 'missing' => $missing, 'sc' => $sc, 'tc' => $tc, 'walletSc' => 42000, 'walletTc' => 310], JSON_UNESCAPED_UNICODE);
+            $tcOnly = in_array(true, array_column($missing, 'tcOnly'), true);
+            echo json_encode(['errors' => [], 'missing' => $missing, 'sc' => $sc, 'tc' => $tc, 'walletSc' => 42000, 'walletTc' => 6310, 'tcOnly' => $tcOnly], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if ($method === 'PUT' && ($body['currency'] ?? 'sc') !== 'tc' && in_array(true, array_column($missing, 'tcOnly'), true)) {
+            http_response_code(400);
+            echo json_encode('This profile needs TC');
             return;
         }
         if ($method === 'PUT') {

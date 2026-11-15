@@ -784,7 +784,7 @@
   function nudgePad() {
     var pad = document.createElement('div');
     pad.className = 'profilator-nudge';
-    [['↑', 0, -1, 'w górę'], ['←', -1, 0, 'w lewo'], ['→', 1, 0, 'w prawo'], ['↓', 0, 1, 'w dół']].forEach(function (a) {
+    [['←', -1, 0, 'w lewo'], ['↑', 0, -1, 'w górę'], ['↓', 0, 1, 'w dół'], ['→', 1, 0, 'w prawo']].forEach(function (a) {
       var b = button(a[0], 'admin-btn small', 'Przesuń ' + a[3] + ' o 1 px (z Shift o 10 px)', function (e) {
         var o = sel !== null ? objectOf(sel) : null;
         if (!o) return;
@@ -854,6 +854,10 @@
     li.appendChild(name);
     var ops = document.createElement('span');
     ops.className = 'profilator-layer-ops';
+    if (options.movable) {
+      ops.appendChild(button('↑', 'admin-btn small', 'Wyżej', function () { moveLayer(o, 1); }));
+      ops.appendChild(button('↓', 'admin-btn small', 'Niżej', function () { moveLayer(o, -1); }));
+    }
     if (key !== null) {
       var on = isLocked(key);
       var lock = button(on ? '🔒' : '🔓', 'profilator-lock', (on ? 'Odblokuj: ' : 'Zablokuj: ') + options.name, function (e) {
@@ -864,10 +868,6 @@
       });
       lock.setAttribute('aria-pressed', String(on));
       ops.appendChild(lock);
-    }
-    if (options.movable) {
-      ops.appendChild(button('↑', 'admin-btn small', 'Wyżej', function () { moveLayer(o, 1); }));
-      ops.appendChild(button('↓', 'admin-btn small', 'Niżej', function () { moveLayer(o, -1); }));
     }
     li.appendChild(ops);
     if (key !== null)
@@ -1308,10 +1308,18 @@
         ['ult', 'Ultimate'], ['scal', 'Własne obrazki'], ['scis', 'Własne ramki']], o.hide, function (part, off) {
         o.hide = off ? o.hide.concat([part]) : o.hide.filter(function (x) { return x !== part; });
       })));
+      host.appendChild(toggle('p-panel', 'Tło panelu', o.panel !== false, function (v) { o.panel = v; }));
+      host.appendChild(labelled('Rozmiar panelu', segment([['full', 'Pełny'], ['narrow', 'Wąski'], ['low', 'Niski']], o.size || 'full', function (v) {
+        if (v === 'full') delete o.size; else o.size = v;
+        clamp(sel);
+      })));
+      host.appendChild(note(o.size === 'narrow' ? 'Wąski: sama karta waifu, a gdy jest ukryta, statystyki jedna pod drugą.'
+        : o.size === 'low' ? 'Niski: same statystyki w rzędach, bez karty.' : 'Pełny: karta waifu obok statystyk.'));
     } else if (o.t === 'gallery') {
       host.appendChild(labelled('Karty', segment([[6, '6 małych'], [2, '2 duże']], o.count || 6, function (v) { o.count = v; })));
       host.appendChild(toggle('p-panel', 'Tło panelu', o.panel !== false, function (v) { o.panel = v; }));
     } else if (o.t === 'bigGallery') {
+      host.appendChild(labelled('Karty', segment([[3, '3'], [6, '6'], [12, '12']], o.count || 12, function (v) { o.count = v; clamp(sel); })));
       host.appendChild(toggle('p-panel', 'Tło panelu', o.panel !== false, function (v) { o.panel = v; }));
     } else if (o.t === 'rank') {
       host.appendChild(labelled('Wyrównanie', segment([['left', 'Od lewej'], ['center', 'Środkiem']], o.align || 'left', function (v) {
@@ -1359,6 +1367,7 @@
       pick.value = M.accent.toLowerCase();
 
     fill($('look-panels'), segment([['solid', 'Pełne'], ['glass', 'Szkło'], ['shadow', 'Cień']], M.panels, function (v) { M.panels = v; }));
+    fill($('look-hd'), segment([[false, '750 × 500'], [true, '1500 × 1000']], !!M.hd, function (v) { if (v) M.hd = true; else delete M.hd; }));
     fill($('look-shade'), segment([['band', 'Pasek'], ['fade', 'Cieniowanie'], ['none', 'Brak']], M.shade, function (v) { M.shade = v; }));
     fill($('look-bar'), segment([['bottom', 'Na dole'], ['top', 'Na górze'], ['hidden', 'Ukryty']], M.bar.at, function (v) { M.bar.at = v; }));
     fill($('look-bar-look'), segment([['solid', 'Pełny'], ['glass', 'Szkło']], M.bar.look, function (v) { M.bar.look = v; }));
@@ -1584,7 +1593,7 @@
       name.textContent = f.name;
       var price = document.createElement('span');
       price.className = 'muted';
-      price.textContent = money(f.sc, f.tc);
+      price.textContent = f.tcOnly ? group(f.tc) + ' TC (tylko TC)' : money(f.sc, f.tc);
       li.appendChild(name);
       li.appendChild(price);
       list.appendChild(li);
@@ -1595,8 +1604,14 @@
       li.textContent = 'Wszystko, czego używa ten układ, masz już odblokowane.';
       list.appendChild(li);
     }
+    // something sold only for TC makes the whole save paid in TC
+    var scOption = $('currency').querySelector('option[value="sc"]');
+    scOption.disabled = !!quote.tcOnly;
+    if (quote.tcOnly)
+      $('currency').value = 'tc';
     var currency = $('currency').value;
-    var afford = !quote.sc || (currency === 'tc' ? quote.walletTc >= quote.tc : quote.walletSc >= quote.sc);
+    var due = quote.sc || quote.tc;
+    var afford = !due || (currency === 'tc' ? quote.walletTc >= quote.tc : quote.walletSc >= quote.sc);
     total.textContent = '';
     function row(label, value, cls) {
       var r = document.createElement('div');
@@ -1609,17 +1624,17 @@
       r.appendChild(v);
       total.appendChild(r);
     }
-    if (quote.sc) {
-      row('Do zapłaty raz', money(quote.sc, quote.tc), 'due');
+    if (due) {
+      row('Do zapłaty raz', quote.tcOnly ? group(quote.tc) + ' TC (część opcji jest tylko za TC)' : money(quote.sc, quote.tc), 'due');
       row('Masz', group(quote.walletSc) + ' SC i ' + group(quote.walletTc) + ' TC', 'wallet');
       if (!afford)
         row('Brakuje', currency === 'tc' ? group(quote.tc - quote.walletTc) + ' TC' : group(quote.sc - quote.walletSc) + ' SC', 'short');
     } else {
       row('Zapis', 'bez opłat', 'free');
     }
-    $('currency-field').hidden = !quote.sc;
+    $('currency-field').hidden = !due;
     $('save').disabled = !!(quote.errors && quote.errors.length) || !afford;
-    $('save').textContent = quote.sc ? 'Zapłać i zapisz' : 'Zapisz';
+    $('save').textContent = due ? 'Zapłać i zapisz' : 'Zapisz';
   }
 
   $('currency').addEventListener('change', function () { renderCost(); });

@@ -125,9 +125,9 @@ window.Layers = (function () {
     var w = 0, h = 0;
     switch (layer.t) {
       case 'anime': case 'manga': w = SIZE.list; h = layer.size === 'large' ? SIZE.large : SIZE.small; break;
-      case 'cards': w = SIZE.cards; h = SIZE.panel; break;
+      case 'cards': w = layer.size === 'narrow' ? 186 : SIZE.cards; h = layer.size === 'low' ? 130 : SIZE.panel; break;
       case 'gallery': w = SIZE.list; h = SIZE.panel; break;
-      case 'bigGallery': w = SIZE.big[0]; h = SIZE.big[1]; break;
+      case 'bigGallery': w = layer.count === 3 ? 360 : SIZE.big[0]; h = layer.count === 3 || layer.count === 6 ? 164 : SIZE.big[1]; break;
       case 'sticker': w = stickerWidth(layer.h); h = layer.h; break;
       case 'rank': w = rankWidth(data && data.rank) || 120; h = SIZE.rank; break;
       case 'overlay': case 'ultra': {
@@ -470,16 +470,20 @@ window.Layers = (function () {
     c.drawImage(img, x, y, Math.round(s[0] * height / s[1]), height);
   }
 
+  // as the bot's: full, narrow (the waifu alone, or the numbers one under another) or low (the numbers in rows)
   function cardsPanel(c, layout, layer, data, accent, assets) {
-    var w = SIZE.cards, x = layer.x, y = layer.y;
-    ground(c, layout, x, y, w, SIZE.panel);
+    var b = box(layer), w = b.w, h = b.h, x = layer.x, y = layer.y;
+    var narrow = layer.size === 'narrow';
+    if (layer.panel !== false)
+      ground(c, layout, x, y, w, h);
     cardsIcon(c, x + 22, y + 19, accent);
-    text(c, 'Karcianka', 16, true, C.text, x + 38, y + 19);
 
+    var pillLeft = x + w - 14;
     var karma = KARMA[data.karma];
     if (shows(layer, 'karma') && karma) {
-      var label = 'Karma: ' + karma[0];
+      var label = narrow ? karma[0] : 'Karma: ' + karma[0];
       var kw = width(label, 12, true) + 18;
+      pillLeft = x + w - 14 - kw;
       c.save();
       rr(c, x + w - 14 - kw, y + 9, kw, 20, 10);
       c.fillStyle = alpha(karma[1], 0.18); c.fill();
@@ -487,9 +491,23 @@ window.Layers = (function () {
       c.restore();
       text(c, label, 12, true, C.text, x + w - 14 - kw / 2, y + 19.5, 'center');
     }
+    if (!narrow || x + 38 + width('Karcianka', 16, true) + 8 <= pillLeft)
+      text(c, 'Karcianka', 16, true, C.text, x + 38, y + 19);
 
-    var rx = x + 14;
-    if (shows(layer, 'waifu')) {
+    if (layer.size === 'low') {
+      lowCards(c, layer, data, accent, x, y, w);
+      return;
+    }
+
+    var rx = x + 14, columns = 4;
+    if (narrow) {
+      if (shows(layer, 'waifu') && data.waifu) {
+        card(c, assets.card(data.waifu.id), x + Math.floor((w - stickerWidth(226)) / 2), y + 40, 226);
+        return;
+      }
+      columns = 2;
+    } else if (shows(layer, 'waifu')) {
+      columns = 2;
       if (data.waifu)
         card(c, assets.card(data.waifu.id), x + 12, y + 40, 226);
       rx = x + 12 + stickerWidth(226) + 14;
@@ -508,12 +526,11 @@ window.Layers = (function () {
       cy += 60;
     }
     if (shows(layer, 'rarity')) {
-      var columns = shows(layer, 'waifu') ? 2 : 4;
       RARITIES.forEach(function (r, i) {
         var gx = rx + (i % columns) * (rw / columns), gy = cy + Math.floor(i / columns) * 25;
         var n = (data.rarities || {})[r] || 0;
         chip(c, r, gx, gy, n ? 1 : 0.35);
-        text(c, group(n), 14, true, n ? C.text : C.dim, gx + 42, gy + 9.5);
+        text(c, group(n), narrow ? 13 : 14, true, n ? C.text : C.dim, gx + (narrow ? 39 : 42), gy + 9.5);
       });
       cy += Math.ceil(8 / columns) * 25 + 4;
     }
@@ -531,6 +548,41 @@ window.Layers = (function () {
     extras.forEach(function (e, i) {
       text(c, e[1], 12, false, C.dim, rx, cy + i * 20);
       text(c, group(e[2]), 13, true, e[2] ? C.text : C.dim, rx + rw, cy + i * 20, 'right');
+    });
+  }
+
+  // the low card game: the count with its bar in one row, the rarities in two, the rest in one line
+  function lowCards(c, layer, data, accent, x, y, w) {
+    var rx = x + 14, rw = w - 28, cy = y + 40;
+    if (shows(layer, 'count')) {
+      var lw = text(c, 'Karty', 12, false, C.dim, rx, cy + 8) + 6;
+      var vw = text(c, group(data.cards), 16, true, C.text, rx + lw, cy + 8);
+      var tw = text(c, ' / ' + group(data.limit), 13, false, C.dim, rx + lw + vw, cy + 8);
+      var bx = rx + lw + vw + tw + 12, bw = rx + rw - bx;
+      if (bw >= 20) {
+        var ratio = data.limit > 0 ? Math.max(0, Math.min(1, data.cards / data.limit)) : 0;
+        c.save();
+        rr(c, bx, cy + 5, bw, 6, 3); c.fillStyle = C.track; c.fill();
+        rr(c, bx, cy + 5, Math.max(6, bw * ratio), 6, 3); c.fillStyle = accent; c.fill();
+        c.restore();
+      }
+      cy += 22;
+    }
+    if (shows(layer, 'rarity')) {
+      RARITIES.forEach(function (r, i) {
+        var gx = rx + (i % 4) * (rw / 4), gy = cy + Math.floor(i / 4) * 24;
+        var n = (data.rarities || {})[r] || 0;
+        chip(c, r, gx, gy, n ? 1 : 0.35);
+        text(c, group(n), 14, true, n ? C.text : C.dim, gx + 42, gy + 9.5);
+      });
+      cy += 50;
+    }
+    var ex = rx;
+    [['ult', 'Ultimate', data.ultimates], ['scal', 'Własne obrazki', data.customImages], ['scis', 'Własne ramki', data.customBorders]].forEach(function (e) {
+      if (!shows(layer, e[0])) return;
+      var lw = text(c, e[1], 12, false, C.dim, ex, cy + 8) + 5;
+      var vw = text(c, group(e[2]), 13, true, e[2] ? C.text : C.dim, ex + lw, cy + 8);
+      ex += lw + vw + 16;
     });
   }
 
@@ -556,11 +608,11 @@ window.Layers = (function () {
   }
 
   function bigGallery(c, layout, layer, data, assets) {
-    var x = layer.x, y = layer.y;
+    var x = layer.x, y = layer.y, b = box(layer);
     if (layer.panel !== false)
-      ground(c, layout, x, y, SIZE.big[0], SIZE.big[1]);
+      ground(c, layout, x, y, b.w, b.h);
     var ch = 140, cw = stickerWidth(ch), gap = Math.floor((SIZE.big[0] - 24 - 6 * cw) / 5);
-    (data.gallery || []).slice(0, 12).forEach(function (g, i) {
+    (data.gallery || []).slice(0, layer.count === 3 || layer.count === 6 ? layer.count : 12).forEach(function (g, i) {
       if (g)
         card(c, assets.card(g.id), x + 12 + (i % 6) * (cw + gap), y + 12 + Math.floor(i / 6) * (ch + 4), ch);
     });

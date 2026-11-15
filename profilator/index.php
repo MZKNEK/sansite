@@ -49,7 +49,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=500591a280" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=26c907c624" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -129,6 +129,7 @@
             <span class="hud-field-label">Kolor akcentu</span>
             <div class="profilator-swatches"><span id="accents"></span><label class="profilator-pick"><input type="color" id="accent-pick" value="#ff7a45" aria-label="Dowolny kolor akcentu" /> dowolny</label></div>
           </div>
+          <div class="profilator-group"><span class="hud-field-label">Rozdzielczość profilu (podwójna tylko za TC)</span><div id="look-hd"></div></div>
           <div class="profilator-group"><span class="hud-field-label">Przyciemnienie nagłówka pod nickiem</span><div id="look-shade"></div></div>
           <div class="profilator-group"><span class="hud-field-label">Panele</span><div id="look-panels"></div></div>
           <label class="hud-field profilator-range">
@@ -227,8 +228,8 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="layers.js?v=3b3f06307f"></script>
-  <script src="editor.js?v=5e0644b46d"></script>
+  <script src="layers.js?v=dd5e9f7847"></script>
+  <script src="editor.js?v=6c76fc0764"></script>
 </body>
 
 </html>

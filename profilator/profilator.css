@@ -183,20 +183,15 @@
 }
 
 .profilator-nudge {
-    display: grid;
-    grid-template-columns: repeat(3, 32px);
-    grid-template-rows: repeat(3, 28px);
-    gap: 3px;
+    display: flex;
+    gap: 4px;
 }
 
 .profilator-nudge button {
+    width: 32px;
+    height: 28px;
     padding: 0;
 }
-
-.profilator-nudge [data-dir="↑"] { grid-area: 1 / 2; }
-.profilator-nudge [data-dir="←"] { grid-area: 2 / 1; }
-.profilator-nudge [data-dir="→"] { grid-area: 2 / 3; }
-.profilator-nudge [data-dir="↓"] { grid-area: 3 / 2; }
 
 .profilator-lock {
     width: 26px;

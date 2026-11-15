@@ -10,266 +10,312 @@
       "name": "Ukrywanie pozycji paska",
       "description": "dowolne pozycje paska",
       "sc": 6000,
-      "tc": 99
+      "tc": 99,
+      "tcOnly": false
     },
     {
       "key": "barPos",
       "name": "Położenie paska",
       "description": "pasek na górze albo ukryty",
       "sc": 6000,
-      "tc": 99
+      "tc": 99,
+      "tcOnly": false
     },
     {
       "key": "panelHide",
       "name": "Ukrywanie pozycji paneli",
       "description": "karcianka, anime i manga",
       "sc": 6000,
-      "tc": 99
+      "tc": 99,
+      "tcOnly": false
     },
     {
       "key": "nickHide",
       "name": "Ukrycie nicka",
       "description": "np. dla własnego nicka na nakładce",
       "sc": 6000,
-      "tc": 99
+      "tc": 99,
+      "tcOnly": false
     },
     {
       "key": "panels",
       "name": "Wygląd paneli",
       "description": "szkło i cień paneli, szkło pod paskiem i kartami",
       "sc": 12000,
-      "tc": 199
+      "tc": 199,
+      "tcOnly": false
     },
     {
       "key": "avatar",
       "name": "Awatar: rozmiar i kształt",
       "description": "większy awatar, zaokrąglony i kwadrat",
       "sc": 12000,
-      "tc": 199
+      "tc": 199,
+      "tcOnly": false
     },
     {
       "key": "recent",
       "name": "Ostatnio oglądane i czytane",
       "description": "ostatnie tytuły w panelach anime i mangi",
       "sc": 12000,
-      "tc": 199
+      "tc": 199,
+      "tcOnly": false
     },
     {
       "key": "accent",
       "name": "Kolor akcentu",
       "description": "dowolny kolor zamiast koloru roli",
       "sc": 18000,
-      "tc": 299
+      "tc": 299,
+      "tcOnly": false
     },
     {
       "key": "listLarge",
       "name": "Duże panele anime i mangi",
       "description": "cztery liczby, wszystkie statusy, więcej tytułów",
       "sc": 18000,
-      "tc": 299
+      "tc": 299,
+      "tcOnly": false
     },
     {
       "key": "styleImg",
       "name": "Własny obrazek stylu",
       "description": "obrazek w polu 750 × 340, zmiany za darmo",
       "sc": 24000,
-      "tc": 399
+      "tc": 399,
+      "tcOnly": false
     },
     {
       "key": "headerImg",
       "name": "Własne tło nagłówka",
       "description": "obrazek w polu 750 × 160, zmiany za darmo",
       "sc": 30000,
-      "tc": 499
+      "tc": 499,
+      "tcOnly": false
     },
     {
       "key": "sticker:1",
       "name": "Miejsce na kartę-naklejkę 1",
       "description": "karta postawiona w dowolnym miejscu",
       "sc": 9000,
-      "tc": 149
+      "tc": 149,
+      "tcOnly": false
     },
     {
       "key": "sticker:2",
       "name": "Miejsce na kartę-naklejkę 2",
       "description": "karta postawiona w dowolnym miejscu",
       "sc": 15000,
-      "tc": 249
+      "tc": 249,
+      "tcOnly": false
     },
     {
       "key": "sticker:3",
       "name": "Miejsce na kartę-naklejkę 3",
       "description": "karta postawiona w dowolnym miejscu",
       "sc": 24000,
-      "tc": 399
+      "tc": 399,
+      "tcOnly": false
     },
     {
       "key": "sticker:4",
       "name": "Miejsce na kartę-naklejkę 4",
       "description": "karta postawiona w dowolnym miejscu",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "overlay:1",
       "name": "Miejsce na nakładkę 1",
       "description": "obrazek od wysokości nicka w dół, zmiany za darmo",
       "sc": 30000,
-      "tc": 499
+      "tc": 499,
+      "tcOnly": false
     },
     {
       "key": "overlay:2",
       "name": "Miejsce na nakładkę 2",
       "description": "obrazek od wysokości nicka w dół, zmiany za darmo",
       "sc": 45000,
-      "tc": 749
+      "tc": 749,
+      "tcOnly": false
     },
     {
       "key": "overlay:3",
       "name": "Miejsce na nakładkę 3",
       "description": "obrazek od wysokości nicka w dół, zmiany za darmo",
       "sc": 60000,
-      "tc": 999
+      "tc": 999,
+      "tcOnly": false
     },
     {
       "key": "layout",
       "name": "Własny układ",
       "description": "przesuwanie paneli, nicka, rangi i awatara",
       "sc": 48000,
-      "tc": 799
+      "tc": 799,
+      "tcOnly": false
     },
     {
       "key": "frame:PurpleLeaves",
       "name": "Ramka awatara: liście",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Dzedai",
       "name": "Ramka awatara: dzidowa",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Water",
       "name": "Ramka awatara: woda",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Crows",
       "name": "Ramka awatara: kruki",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Bow",
       "name": "Ramka awatara: wstążka",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Metal",
       "name": "Ramka awatara: metalowa",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:RedThinLeaves",
       "name": "Ramka awatara: kwiatki",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Skull",
       "name": "Ramka awatara: czaszka",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Fire",
       "name": "Ramka awatara: ogień",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Promium",
       "name": "Ramka awatara: promium",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Ice",
       "name": "Ramka awatara: lód",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Gold",
       "name": "Ramka awatara: złota",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Red",
       "name": "Ramka awatara: czerwona",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Rainbow",
       "name": "Ramka awatara: tęcza",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Pink",
       "name": "Ramka awatara: różowa",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:Simple",
       "name": "Ramka awatara: prosta",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "frame:TurqLeaves",
       "name": "Ramka awatara: turkusowe liście",
       "description": "ramka z bota, na zawsze",
       "sc": 36000,
-      "tc": 599
+      "tc": 599,
+      "tcOnly": false
     },
     {
       "key": "customFrame",
       "name": "Własna ramka awatara",
       "description": "własny obrazek wokół awatara, zmiany za darmo",
       "sc": 72000,
-      "tc": 1199
+      "tc": 1199,
+      "tcOnly": false
     },
     {
       "key": "ultra",
       "name": "Ultra nakładka",
       "description": "obrazek na całym profilu, zmiany za darmo",
       "sc": 240000,
-      "tc": 3999
+      "tc": 3999,
+      "tcOnly": false
+    },
+    {
+      "key": "hd",
+      "name": "Profil w podwójnej rozdzielczości",
+      "description": "1500 × 1000 zamiast 750 × 500, tylko za TC",
+      "sc": 0,
+      "tc": 5000,
+      "tcOnly": true
     }
   ],
   "presets": [
@@ -281,6 +327,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -332,6 +379,8 @@
           {
             "t": "cards",
             "hide": [],
+            "panel": true,
+            "size": "full",
             "id": 3,
             "x": 368,
             "y": 182,
@@ -356,6 +405,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -407,6 +457,8 @@
           {
             "t": "cards",
             "hide": [],
+            "panel": true,
+            "size": "full",
             "id": 3,
             "x": 16,
             "y": 182,
@@ -431,6 +483,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -469,6 +522,8 @@
           {
             "t": "cards",
             "hide": [],
+            "panel": true,
+            "size": "full",
             "id": 2,
             "x": 368,
             "y": 182,
@@ -493,6 +548,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -531,6 +587,8 @@
           {
             "t": "cards",
             "hide": [],
+            "panel": true,
+            "size": "full",
             "id": 2,
             "x": 16,
             "y": 182,
@@ -555,6 +613,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -583,6 +642,7 @@
         "layers": [
           {
             "t": "bigGallery",
+            "count": 12,
             "panel": true,
             "id": 1,
             "x": 16,
@@ -608,6 +668,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -675,6 +736,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -715,6 +777,8 @@
           {
             "t": "cards",
             "hide": [],
+            "panel": true,
+            "size": "full",
             "id": 2,
             "x": 368,
             "y": 182,
@@ -739,6 +803,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -806,6 +871,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -835,6 +901,8 @@
           {
             "t": "cards",
             "hide": [],
+            "panel": true,
+            "size": "full",
             "id": 1,
             "x": 190,
             "y": 182,
@@ -859,6 +927,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -904,6 +973,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -949,6 +1019,7 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
+        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
