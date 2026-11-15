@@ -611,8 +611,7 @@ a.version-row:hover .version-name {
     text-align: right;
 }
 
-.version-from,
-.version-until {
+.version-from {
     white-space: nowrap;
 }
 

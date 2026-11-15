@@ -193,22 +193,14 @@
         return ogSave($img, $file);
     }
 
-    // The versions of state/versions/, newest first, each with 'ran' (how long it
-    // ran until the next one started, the newest up to now; null without a
-    // start) and 'current' (the one the bot reports now)
+    // The versions of state/versions/, highest first, each with 'current'
+    // (the one the bot reports now)
     function versionRuns()
     {
         $entries = versionEntries();
-        $current = botHealth()['version'] ?? ($entries[0]['version'] ?? null);
-        $newerSince = null;
-        foreach ($entries as &$entry) {
-            $entry['ran'] = null;
-            if ($entry['since']) {
-                $entry['ran'] = max(0, ($newerSince ?? time()) - $entry['since']);
-                $newerSince = $entry['since'];
-            }
+        $current = botHealth()['version'] ?? versionStartedLast($entries);
+        foreach ($entries as &$entry)
             $entry['current'] = $current !== null && strcasecmp($entry['version'], $current) === 0;
-        }
         unset($entry);
 
         return $entries;
@@ -224,7 +216,7 @@
         $section = verdiffChanges($wanted);
 
         return $section === null ? null : ['version' => $section['version'], 'since' => null, 'date' => $section['date'],
-            'commit' => $section['commit'], 'changes' => true, 'ran' => null, 'current' => false];
+            'commit' => $section['commit'], 'changes' => true, 'current' => false];
     }
 
     // up to two facts in the free top right corner, as on the status picture:
@@ -318,7 +310,7 @@
         ogStats($img, [
             'wersje' => count($entries),
             'nowe (30 dni)' => $recent,
-            'obecna działa' => $current !== null && $current['ran'] !== null ? duration($current['ran']) : '–'
+            'obecna od' => $current !== null && $current['since'] ? date('j.m H:i', $current['since']) : '–'
         ]);
 
         $mark = 0;
@@ -380,10 +372,7 @@
                     versionBranch($img, $entries, $i, 440);
         }
 
-        $note = '';
-        if ($entry['ran'] !== null)
-            $note = ($entry['current'] ? 'działa ' : 'działała ') . duration($entry['ran']);
-        ogFoot($img, 'sanakan.pl/state/versions', $note);
+        ogFoot($img, 'sanakan.pl/state/versions', '');
 
         return ogSave($img, $file);
     }

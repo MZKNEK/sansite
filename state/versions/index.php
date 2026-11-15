@@ -14,7 +14,7 @@
 
     $user = siteUser();
     $entries = versionEntries();
-    $current = botHealth()['version'] ?? ($entries[0]['version'] ?? null);
+    $current = botHealth()['version'] ?? versionStartedLast($entries);
     $wanted = isset($_GET['v']) && is_string($_GET['v']) ? trim($_GET['v']) : '';
 
     $shown = null;
@@ -31,24 +31,11 @@
     $section = $shown !== null && $shown['changes'] ? verdiffChanges($shown['version']) : null;
     $changes = $section !== null ? markdownToHtml($section['changes'], mentionUsers()) : '';
 
-    // the line under the title: when the version was introduced and how long
-    // it ran (until the next, newer version started; the newest runs on), its commit
+    // the line under the title: when the version was first started, its commit
     $introParts = [];
     if ($shown !== null) {
-        $until = null;
-        foreach ($entries as $i => $entry) {
-            if (strcasecmp($entry['version'], $shown['version']) !== 0)
-                continue;
-            for ($j = $i - 1; $j >= 0 && $until === null; $j--)
-                if (!empty($entries[$j]['since']))
-                    $until = $entries[$j]['since'];
-            break;
-        }
         if ($shown['since'])
-            $introParts[] = 'wprowadzona ' . e(date('j.m.Y H:i', $shown['since']))
-                . ($until !== null
-                    ? ' &middot; działała ' . e(duration($until - $shown['since'])) . ', do ' . e(date('j.m.Y H:i', $until))
-                    : ' &middot; działa ' . e(duration(time() - $shown['since'])));
+            $introParts[] = 'wprowadzona ' . e(date('j.m.Y H:i', $shown['since']));
         else if ($shown['date'])
             $introParts[] = 'data w changelogu: ' . e($shown['date']);
         if (!empty($shown['skipped']))
@@ -62,26 +49,16 @@
     $around = $shown !== null ? versionNeighbours($entries, $shown['version']) : ['older' => null, 'newer' => null];
 
     // The list: each version's first change as its summary and every change as
-    // the text the search box looks in, when it ended and how long it ran (until
-    // the next, newer version started; the newest runs on and keeps counting
-    // up), then in runs of a series
+    // the text the search box looks in, then in runs of a series
     $groups = [];
     if ($shown === null) {
         $sections = verdiffSections();
-        $newerSince = null;
         foreach ($entries as &$entry) {
             $items = isset($sections[verdiffKey($entry['version'])]) ? verdiffItems($sections[verdiffKey($entry['version'])]['changes']) : [];
             $plain = array_values(array_filter($items, function ($item) { return !$item[1]; })) ?: $items;
             $entry['summary'] = $plain ? $plain[0][0] : '';
             $entry['more'] = max(0, count($items) - 1);
             $entry['text'] = lower($entry['version'] . ' ' . implode(' ', array_column($items, 0)));
-            $entry['ran'] = null;
-            $entry['until'] = null;
-            if ($entry['since']) {
-                $entry['ran'] = max(0, ($newerSince ?? time()) - $entry['since']);
-                $entry['until'] = $newerSince;
-                $newerSince = $entry['since'];
-            }
         }
         unset($entry);
         $groups = versionGroups($entries);
@@ -109,7 +86,7 @@
   <link href="../../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
   <link href="../../css/explorer.css?v=855c6b6aac" type="text/css" rel="stylesheet" />
-  <link href="../../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
+  <link href="../../css/status.css?v=c2da6fb979" type="text/css" rel="stylesheet" />
 <?php if ($around['older']): ?>
   <link rel="prev" href="?v=<?=e(rawurlencode($around['older']['version']))?>" />
 <?php endif; ?>
@@ -208,7 +185,7 @@
 <?php endif; ?>
               <span class="version-name"><?=e($entry['version'])?><?php if ($isCurrent): ?> <em class="version-now">teraz</em><?php endif; ?></span>
               <span class="version-summary"><?php if ($entry['summary'] !== ''): ?><?=e($entry['summary'])?><?php if ($entry['more']): ?> <small>+<?=$entry['more']?></small><?php endif; ?><?php elseif ($entry['changes']): ?><span class="version-none">bez listy zmian</span><?php else: ?><span class="version-none">brak opisu</span><?php endif; ?></span>
-              <span class="version-when"><span class="version-from"><?=$date !== null ? e($date) : '—'?></span><?php if ($entry['since']): ?> <span class="version-until">&ndash; <?=$entry['until'] !== null ? e(versionUntil($entry['since'], $entry['until'])) : 'teraz'?></span><?php endif; ?><?php if ($entry['ran'] !== null): ?><small><?=$entry['until'] === null ? 'działa' : 'działała'?> <?=e(duration($entry['ran']))?></small><?php elseif (!empty($entry['skipped'])): ?><small>pominięta przy aktualizacji</small><?php endif; ?></span>
+              <span class="version-when"><span class="version-from"><?=$date !== null ? e($date) : '—'?></span><?php if (!empty($entry['skipped'])): ?><small>pominięta przy aktualizacji</small><?php endif; ?></span>
 <?=$entry['changes'] ? "            </a>
 " : "            </div>
 "?>

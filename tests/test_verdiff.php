@@ -252,16 +252,16 @@ Data: 2026-11-14
         assertNull(verdiffChanges('9.9.9'));
 
         $entries = versionEntries();
-        assertSame('1.4.10.14', $entries[0]['version'], 'newest first');
-        assertTrue($entries[0]['changes']);
-        assertSame('aaaa111', $entries[0]['commit']);
-        assertSame('1.4.10.15', $entries[1]['version'], 'recorded without a section');
-        assertFalse($entries[1]['changes']);
-        assertSame('1.4.10.12', $entries[2]['version']);
-        assertSame('2026-10-01', $entries[2]['date'], 'the changelog section wins over the built-in one');
+        $by = array_column($entries, null, 'version');
+        assertSame(['1.4.10.15', '1.4.10.14'], array_slice(array_column($entries, 'version'), 0, 2), 'the highest version first, whenever it started');
+        assertFalse($by['1.4.10.15']['changes'], 'recorded without a section');
+        assertTrue($by['1.4.10.14']['changes']);
+        assertSame('aaaa111', $by['1.4.10.14']['commit']);
+        assertSame('1.4.10.14', versionStartedLast($entries));
+        assertSame('2026-10-01', $by['1.4.10.12']['date'], 'the changelog section wins over the built-in one');
     });
 
-    test('versionEntries lists a version the bot went back to once, at its newest start', function () {
+    test('versionEntries lists a version the bot went back to once, at its first start', function () {
         $now = time();
         file_put_contents(botFile('verdiff.json'), json_encode([
             'fetched' => $now, 'tried' => $now, 'hash' => 'x',
@@ -274,10 +274,11 @@ Data: 2026-11-14
         ]));
 
         $entries = versionEntries();
-        assertSame(['1.5.0.5', '1.5.0.6'], array_slice(array_column($entries, 'version'), 0, 2));
-        assertSame($now - 60, $entries[0]['since']);
-        assertSame($now - 600, $entries[1]['since']);
+        assertSame(['1.5.0.6', '1.5.0.5'], array_slice(array_column($entries, 'version'), 0, 2), 'in the order of versions');
+        assertSame($now - 600, $entries[0]['since']);
+        assertSame([$now - 900, $now - 60], [$entries[1]['since'], $entries[1]['last']], 'shown at its first start');
         assertSame(1, count(array_keys(array_column($entries, 'version'), '1.5.0.5')));
+        assertSame('1.5.0.5', versionStartedLast($entries), 'running now, below the higher one');
     });
 
     test('versionEntries lists the built-in versions the bot never reported', function () {
@@ -292,15 +293,14 @@ Data: 2026-11-14
         $versions = array_column($entries, 'version');
         assertSame(count($versions), count(array_unique($versions)), 'a reported built-in version is listed once');
         assertSame(2 + count(verdiffBuiltin()) - 1, count($entries));
-        assertSame(['1.4.10.14', '1.4.10.12', '1.4.10.13', '1.4.10.11'], array_slice($versions, 0, 4), 'reported first, then the rest newest first');
-        assertNull($entries[2]['since']);
-        assertSame('2026-10-08', $entries[2]['date']);
-        assertSame('333405b', $entries[2]['commit']);
-        assertTrue($entries[2]['changes']);
-        $older = array_slice($versions, 2);
-        $sorted = $older;
+        assertSame(['1.4.10.14', '1.4.10.13', '1.4.10.12', '1.4.10.11'], array_slice($versions, 0, 4), 'reported and built-in in the order of versions');
+        assertNull($entries[1]['since']);
+        assertSame('2026-10-08', $entries[1]['date']);
+        assertSame('333405b', $entries[1]['commit']);
+        assertTrue($entries[1]['changes']);
+        $sorted = $versions;
         usort($sorted, function ($a, $b) { return version_compare($b, $a); });
-        assertSame($sorted, $older, 'the built-in ones newest first, the oldest last');
+        assertSame($sorted, $versions, 'the highest first, the oldest last');
     });
 
     test('versionEntries lists a version the bot skipped between its neighbours', function () {
@@ -367,13 +367,6 @@ Data: 2026-11-14
         assertSame('4.09.2026', versionDate(['since' => null, 'date' => '2026-09-04']));
         assertSame('jesień 2018', versionDate(['since' => null, 'date' => 'jesień 2018']));
         assertNull(versionDate(['since' => null, 'date' => null]));
-    });
-
-    test('versionUntil leaves out what the start already says', function () {
-        $since = mktime(19, 7, 0, 10, 9, 2026);
-        assertSame('19:39', versionUntil($since, mktime(19, 39, 0, 10, 9, 2026)));
-        assertSame('10.10 08:05', versionUntil($since, mktime(8, 5, 0, 10, 10, 2026)));
-        assertSame('2.01.2027 10:00', versionUntil($since, mktime(10, 0, 0, 1, 2, 2027)));
     });
 
     test('markdownToHtml renders the changelog and escapes', function () {

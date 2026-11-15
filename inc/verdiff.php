@@ -410,18 +410,18 @@
         return $users;
     }
 
-    // The version log of state/versions/: every version the bot reported, newest
-    // first, each with the changelog section that matches it when there is one.
-    // Each entry is ['version', 'since' => time or null, 'date' => text or null,
-    // 'commit' => hash or null, 'changes' => whether a section exists]. A version
+    // The version log of state/versions/: every version the bot reported, the
+    // highest version first, each with the changelog section that matches it
+    // when there is one. Each entry is ['version', 'since' => its first start
+    // or null, 'last' => its latest start or null, 'date' => text or null,
+    // 'commit' => hash or null, 'changes' => whether a section exists]. A
+    // version reported again (the bot went back to it) is listed once. A version
     // that is only in verdiff.md and the bot has not reported yet is not listed,
     // so the page never shows a version ahead of the bot. One the bot skipped
     // (an update from 1.4.11.8 straight to 1.4.11.10) is listed without a start
-    // ('skipped' => true), before the first version older than it. The versions
-    // of inc/verdiff-builtin.md came before the site logged any, so those the
-    // bot never reported are listed after the reported ones, without a start.
-    // A version reported again (the bot went back to it) is listed once, at its
-    // newest start.
+    // ('skipped' => true) between its neighbours. The versions of
+    // inc/verdiff-builtin.md came before the site logged any, so those the bot
+    // never reported are listed without a start.
     function versionEntries()
     {
         $sections = verdiffSections();
@@ -430,17 +430,26 @@
         $newest = null;
         foreach (botVersions() as $reported) {
             $key = verdiffKey($reported['version']);
-            if (isset($listed[$key]))
+            $since = $reported['since'] ?? null;
+            if (isset($listed[$key])) {
+                $entry = &$entries[$listed[$key]];
+                if ($since && (!$entry['since'] || $since < $entry['since']))
+                    $entry['since'] = $since;
+                if ($since && (!$entry['last'] || $since > $entry['last']))
+                    $entry['last'] = $since;
+                unset($entry);
                 continue;
+            }
             $section = $sections[$key] ?? null;
             $entries[] = [
                 'version' => $reported['version'],
-                'since' => $reported['since'] ?? null,
+                'since' => $since,
+                'last' => $since,
                 'date' => $section['date'] ?? null,
                 'commit' => $section['commit'] ?? null,
                 'changes' => $section !== null,
             ];
-            $listed[$key] = true;
+            $listed[$key] = count($entries) - 1;
             if ($newest === null || version_compare($key, $newest, '>'))
                 $newest = $key;
         }
@@ -450,15 +459,14 @@
             $entries[] = [
                 'version' => $section['version'],
                 'since' => null,
+                'last' => null,
                 'date' => $section['date'],
                 'commit' => $section['commit'],
                 'changes' => true,
             ];
         }
-        // newest start first; the ones without a start after them, newest version first
         usort($entries, function ($a, $b) {
-            return (($b['since'] ?? 0) <=> ($a['since'] ?? 0))
-                ?: version_compare(verdiffKey($b['version']), verdiffKey($a['version']));
+            return version_compare(verdiffKey($b['version']), verdiffKey($a['version']));
         });
 
         // the versions the bot skipped: in the changelog, never reported, older
@@ -476,6 +484,7 @@
             array_splice($entries, $at, 0, [[
                 'version' => $section['version'],
                 'since' => null,
+                'last' => null,
                 'date' => $section['date'],
                 'commit' => $section['commit'],
                 'changes' => true,
@@ -484,6 +493,17 @@
         }
 
         return $entries;
+    }
+
+    // the version of versionEntries() the bot started last, or null
+    function versionStartedLast($entries)
+    {
+        $last = null;
+        foreach ($entries as $entry)
+            if ($entry['last'] && ($last === null || $entry['last'] > $last['last']))
+                $last = $entry;
+
+        return $last['version'] ?? null;
     }
 
     // The series a version belongs to on state/versions/: its first three parts
@@ -496,8 +516,7 @@
     }
 
     // The entries of versionEntries() in runs of one series, in their order:
-    // [['series', 'entries']]. A series the order splits (a version brought
-    // back) is listed twice rather than moved.
+    // [['series', 'entries']].
     function versionGroups($entries)
     {
         $groups = [];
@@ -570,15 +589,4 @@
             return (int)$match[3] . '.' . $match[2] . '.' . $match[1];
 
         return $date !== '' ? $date : null;
-    }
-
-    // The end of a version's run as the list writes it after its start: only
-    // the time on the same day ("19:39"), the day without the year in the same
-    // year ("9.10 19:07"), else all of it
-    function versionUntil($since, $until)
-    {
-        if (date('Y-m-d', $since) === date('Y-m-d', $until))
-            return date('H:i', $until);
-
-        return date(date('Y', $since) === date('Y', $until) ? 'j.m H:i' : 'j.m.Y H:i', $until);
     }
