@@ -512,6 +512,25 @@
     return images;
   }
 
+  // an overlay's switch goes to the code off while its place has no picture:
+  // the bot keeps the last one it got and would still show it
+  var OVERLAY_SLOT = {};
+  OVERLAY_SLOT[P.FLAG.ShowOverlay] = 'overlay';
+  OVERLAY_SLOT[P.FLAG.ShowOverlayPro] = 'premium';
+
+  function withoutPicture(flag) {
+    return !!OVERLAY_SLOT[flag] && !slots[OVERLAY_SLOT[flag]];
+  }
+
+  function codeFlags() {
+    var flags = state.flags;
+    Object.keys(OVERLAY_SLOT).forEach(function (flag) {
+      if (withoutPicture(Number(flag)))
+        flags &= ~Number(flag);
+    });
+    return flags;
+  }
+
   function sending() {
     return withImages && P.IMAGES.some(function (name) { return slots[name] && slots[name].uploading; });
   }
@@ -618,7 +637,8 @@
 
   function update() {
     var images = codeImages();
-    var code = P.encode({ style: state.style, border: state.border, flags: state.flags, shadows: state.shadows, images: images });
+    var flags = codeFlags();
+    var code = P.encode({ style: state.style, border: state.border, flags: flags, shadows: state.shadows, images: images });
     styleSelect.value = state.style;
     special.hidden = state.border !== 'TurqLeaves';
     borderSelect.value = state.border;
@@ -628,8 +648,10 @@
 
     switches.forEach(function (input) {
       var flag = flagName(input);
-      setSwitch(input, (state.flags & flag) === flag);
-      input.parentNode.classList.toggle('idle', !P.settingWorks(flag, state.style));
+      var noPicture = withoutPicture(flag);
+      setSwitch(input, (flags & flag) === flag);
+      input.disabled = noPicture;
+      input.parentNode.classList.toggle('idle', noPicture || !P.settingWorks(flag, state.style));
     });
 
     var needsImage = P.styleNeedsImage(state.style);
@@ -1287,6 +1309,7 @@
   // what the command changes in the present profile, as the bot reads it
   function describeChanges() {
     var was = present.state;
+    var flagsNow = codeFlags();
     var list = [];
     function option(select, value) {
       var o = select.querySelector('option[value="' + value + '"]');
@@ -1298,10 +1321,10 @@
       list.push('ramka ' + option(borderSelect, was.border) + ' → ' + option(borderSelect, state.border));
     var flags = switches.filter(function (input) {
       var flag = flagName(input);
-      return (state.flags & flag) !== (was.flags & flag);
+      return (flagsNow & flag) !== (was.flags & flag);
     }).map(function (input) {
       var flag = flagName(input);
-      return input.parentNode.querySelector('.switch-label').firstChild.textContent + ((state.flags & flag) === flag ? ' wł.' : ' wył.');
+      return input.parentNode.querySelector('.switch-label').firstChild.textContent + ((flagsNow & flag) === flag ? ' wł.' : ' wył.');
     });
     if (flags.length)
       list.push(flags.join(', '));

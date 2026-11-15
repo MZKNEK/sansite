@@ -67,8 +67,8 @@
         'ShowGallery' => ['Mini galeria', 'Panel mini galerii.'],
         'HalfGallery' => ['2 karty w mini galerii', 'Dwie duże karty w mini galerii zamiast sześciu.'],
         'Flip' => ['Zamiana paneli', 'Prawy i lewy panel zamienione miejscami.'],
-        'ShowOverlay' => ['Nakładka', 'Widoczność nakładki.'],
-        'ShowOverlayPro' => ['Ultra nakładka', 'Widoczność ultra nakładki.']
+        'ShowOverlay' => ['Nakładka', 'Widoczność nakładki, bez jej obrazka wyłączona.'],
+        'ShowOverlayPro' => ['Ultra nakładka', 'Widoczność ultra nakładki, bez jej obrazka wyłączona.']
     ];
     const PROFILE_IMAGES = [
         'combined' => ['Tło i styl razem', '750 × 500'],
@@ -283,7 +283,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="profile.js?v=35641fbe40"></script>
-  <script src="profilator.js?v=21ab9c1052"></script>
+  <script src="profilator.js?v=4e67981bdb"></script>
 </body>
 
 </html>
