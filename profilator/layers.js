@@ -592,27 +592,46 @@ window.Layers = (function () {
     c.stroke();
     c.restore();
 
+    var top = '#' + (data.top > 9999 ? '>10K' : group(data.top));
+    var progress = Math.max(0, Math.min(1, data.levelProgress || 0));
+    var percent = Math.floor(progress * 100) + '%';
+    var widths = currencies.map(function (it) { return (it[0] === 'msgs' ? 18 : 24) + 5 + width(short(it[1]), 15, true); });
+    var sum = widths.reduce(function (a, b2) { return a + b2; }, 0);
+
+    // large numbers: the currencies close up first, then the experience bar gets shorter
+    var left = 24 + 12
+      + (on('top') ? 18 + width(top, 15, true) + 14 : 0)
+      + (on('level') ? width('Poz.', 12, false) + 5 + width(short(data.level), 15, true) + 8 : 0)
+      + (on('exp') ? 6 + width(percent, 12, false) : 0);
+    var gap = 14, track = on('exp') ? 90 : 0, gaps = Math.max(0, currencies.length - 1);
+    var overflow = left + track + sum + gap * gaps - 726;
+    if (overflow > 0 && gaps > 0) {
+      var less = Math.min(overflow, (gap - 8) * gaps);
+      gap -= less / gaps;
+      overflow -= less;
+    }
+    if (overflow > 0 && track > 0)
+      track = Math.max(36, track - overflow);
+
     var x = 24;
     if (on('top')) {
       crown(c, x + 7, cy);
       x += 18;
-      x += text(c, '#' + (data.top > 9999 ? '>10K' : group(data.top)), 15, true, C.text, x, cy) + 14;
+      x += text(c, top, 15, true, C.text, x, cy) + 14;
     }
     if (on('level')) {
       x += text(c, 'Poz.', 12, false, C.dim, x, cy) + 5;
       x += text(c, short(data.level), 15, true, C.text, x, cy) + 8;
     }
     if (on('exp')) {
-      var progress = Math.max(0, Math.min(1, data.levelProgress || 0));
       c.save();
-      rr(c, x, cy - 4, 90, 8, 4); c.fillStyle = C.track; c.fill();
-      rr(c, x, cy - 4, Math.max(8, 90 * progress), 8, 4); c.fillStyle = accent; c.fill();
+      rr(c, x, cy - 4, track, 8, 4); c.fillStyle = C.track; c.fill();
+      rr(c, x, cy - 4, Math.max(8, track * progress), 8, 4); c.fillStyle = accent; c.fill();
       c.restore();
-      x += 96;
-      text(c, Math.floor(progress * 100) + '%', 12, false, C.dim, x, cy);
+      x += track + 6;
+      text(c, percent, 12, false, C.dim, x, cy);
     }
-    var widths = currencies.map(function (it) { return (it[0] === 'msgs' ? 18 : 24) + 5 + width(short(it[1]), 15, true); });
-    var ix = 726 - widths.reduce(function (a, b2) { return a + b2; }, 0) - 14 * Math.max(0, currencies.length - 1);
+    var ix = 726 - sum - gap * gaps;
     currencies.forEach(function (it, i) {
       if (it[0] === 'msgs') {
         envelope(c, ix, cy);
@@ -625,7 +644,7 @@ window.Layers = (function () {
         text(c, it[0].toUpperCase(), 10, true, '#131217', ix + 12, cy + 0.5, 'center');
       }
       text(c, short(it[1]), 15, true, C.text, ix + (it[0] === 'msgs' ? 18 : 24) + 5, cy);
-      ix += widths[i] + 14;
+      ix += widths[i] + gap;
     });
   }
 
@@ -685,6 +704,17 @@ window.Layers = (function () {
     c.restore();
   }
 
+  // as the old profile's template: 75% black from 98 px down, fading out to the right, a darker last row
+  function band(c) {
+    [[98, 61, 0.75], [159, 1, 1]].forEach(function (r) {
+      var g = c.createLinearGradient(510, 0, 726, 0);
+      g.addColorStop(0, 'rgba(0,0,0,' + r[2] + ')');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.fillRect(0, r[0], 750, r[1]);
+    });
+  }
+
   function fade(c) {
     var g = c.createLinearGradient(0, 56, 0, 160);
     g.addColorStop(0, 'rgba(19,18,23,0)');
@@ -708,8 +738,11 @@ window.Layers = (function () {
     } else if (!layout.header.hidden) {
       slot(c, layout.header, HEADER, assets);
     }
-    if (!layout.header || layout.header.fade)
+    var shade = layout.shade || 'fade';
+    if (shade === 'fade')
       fade(c);
+    else if (shade === 'band')
+      band(c);
 
     if (layout.style && !layout.style.hidden) {
       slot(c, layout.style, STYLE, assets);

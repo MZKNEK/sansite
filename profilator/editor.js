@@ -336,6 +336,7 @@
     n.w = n.w || 445;
     n.align = n.align || 'left';
     layout.panels = layout.panels || 'solid';
+    layout.shade = layout.shade || 'fade';
     if (layout.shadow == null) layout.shadow = 70;
     return layout;
   }
@@ -851,7 +852,7 @@
   function coverAt(key, picture) {
     var f = slotField(key);
     var s = Math.max(f.w / picture.width, f.h / picture.height);
-    return { image: picture.id, scale: s, x: Math.round(f.x + (f.w - picture.width * s) / 2), y: Math.round(f.y + (f.h - picture.height * s) / 2), fade: key === 'header' };
+    return { image: picture.id, scale: s, x: Math.round(f.x + (f.w - picture.width * s) / 2), y: Math.round(f.y + (f.h - picture.height * s) / 2), };
   }
 
   $('add-btn').addEventListener('click', function () {
@@ -1144,7 +1145,7 @@
       host.appendChild(note('Obrazek zawsze wypełnia swoje pole. Przeciągnij go na podglądzie, żeby wybrać kadr.'));
       host.appendChild(pictureSelect(o.image, function (v) {
         var p = pictures.filter(function (x) { return x.id === v; })[0];
-        if (p) M[key] = Object.assign(coverAt(key, p), { fade: o.fade });
+        if (p) M[key] = coverAt(key, p);
       }));
       host.appendChild(range('p-scale', 'Powiększenie', Math.ceil(cover * 100), Math.ceil(cover * 400), 1, Math.round((o.scale || cover) * 100), function (v) { return v + '%'; }, function (v) {
         var f = slotField(key), cx = f.x + f.w / 2, cy = f.y + f.h / 2, k = (v / 100) / (o.scale || cover);
@@ -1153,8 +1154,6 @@
         o.scale = v / 100;
         clampSlot(key);
       }));
-      if (key === 'header')
-        host.appendChild(toggle('p-fade', 'Cieniowanie dołu pod nickiem', o.fade, function (v) { o.fade = v; }));
     } else if (sel === 'ultra' || o.t === 'overlay') {
       host.appendChild(pictureSelect(o.image, function (v) { o.image = v; }));
       host.appendChild(range('p-scale', 'Skala', 10, 300, 1, Math.round((o.scale || 1) * 100), function (v) { return v + '%'; }, function (v) { o.scale = v / 100; clamp(sel); }));
@@ -1265,6 +1264,7 @@
       pick.value = M.accent.toLowerCase();
 
     fill($('look-panels'), segment([['solid', 'Pełne'], ['glass', 'Szkło'], ['shadow', 'Cień']], M.panels, function (v) { M.panels = v; }));
+    fill($('look-shade'), segment([['band', 'Pasek'], ['fade', 'Cieniowanie'], ['none', 'Brak']], M.shade, function (v) { M.shade = v; }));
     fill($('look-bar'), segment([['bottom', 'Na dole'], ['top', 'Na górze'], ['hidden', 'Ukryty']], M.bar.at, function (v) { M.bar.at = v; }));
     fill($('look-bar-items'), hiding(BAR_ITEMS, M.bar.hide, function (item, off) {
       M.bar.hide = off ? M.bar.hide.concat([item]) : M.bar.hide.filter(function (x) { return x !== item; });
@@ -1344,6 +1344,7 @@
     next.accent = M.accent;
     next.panels = M.panels;
     next.shadow = M.shadow;
+    next.shade = M.shade;
     next.bar = M.bar;
     next.avatar.frame = M.avatar.frame;
     next.avatar.levelFrame = M.avatar.levelFrame;
