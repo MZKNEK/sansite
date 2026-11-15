@@ -49,7 +49,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=6d7932ef76" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=320c6f66e1" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -136,6 +136,7 @@
             <input class="player-range" id="look-shadow" type="range" min="0" max="100" step="1" />
           </label>
           <div class="profilator-group"><span class="hud-field-label">Pasek</span><div id="look-bar"></div></div>
+          <div class="profilator-group"><span class="hud-field-label">Wygląd paska (szkło jak przy panelach)</span><div id="look-bar-look"></div></div>
           <label class="hud-field profilator-range">
             <span class="hud-field-label">Krycie paska <span class="muted" id="look-bar-opacity-value"></span></span>
             <input class="player-range" id="look-bar-opacity" type="range" min="20" max="100" step="1" />
@@ -155,11 +156,12 @@
           <p class="hint">Obrazki trafiają do bota i są tylko twoje. Po odblokowaniu miejsca zmiany obrazków są darmowe; nieużywane znikają godzinę po zapisie profilu.</p>
           <ul class="profilator-pictures" id="pictures"></ul>
 <?php if ($user !== null): ?>
+          <div class="profilator-drop hud-corners" id="picture-drop" role="button" tabindex="0" aria-label="Przeciągnij obraz albo kliknij, by wybrać plik">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></svg>
+            <span class="drop-text"><b>Przeciągnij obraz</b><small id="picture-name">albo kliknij, by wybrać plik: png, jpg, gif, webp, do 10 MB</small></span>
+            <input id="picture-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden />
+          </div>
           <div class="hud-fields">
-            <label class="hud-field">
-              <span class="hud-field-label">Plik (png, jpg, gif, webp, do 10 MB)</span>
-              <input class="field hud-corners" id="picture-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" />
-            </label>
             <label class="hud-field">
               <span class="hud-field-label">Na</span>
               <span class="hud-select">
@@ -203,7 +205,7 @@
           <p class="hint">Każda opcja jest płatna raz. Bot pobiera opłatę tylko za to, czego jeszcze nie masz odblokowane; podgląd i gotowe układy są za darmo.</p>
           <ul class="profilator-cost" id="cost-list"></ul>
           <ul class="profilator-errors" id="cost-errors"></ul>
-          <p class="hint" id="cost-total"></p>
+          <div class="profilator-total" id="cost-total"></div>
           <div class="profilator-save">
             <label class="hud-field" id="currency-field" hidden>
               <span class="hud-field-label">Płacę w</span>
@@ -224,8 +226,8 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="layers.js?v=d623a2bd7d"></script>
-  <script src="editor.js?v=2cb2c5c623"></script>
+  <script src="layers.js?v=ae77c5cef0"></script>
+  <script src="editor.js?v=974c7b5b18"></script>
 </body>
 
 </html>

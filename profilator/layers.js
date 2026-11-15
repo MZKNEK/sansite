@@ -72,10 +72,12 @@ window.Layers = (function () {
 
   function group(n) { return String(Math.max(0, Math.round(n || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 
+  // rounded to a tenth as the bot does it; a thousand K is shown as 1M
   function short(n) {
     n = n || 0;
-    if (n >= 1e6) return (Math.floor(n / 1e5) / 10).toString().replace('.', ',') + 'M';
-    if (n >= 1e4) return (Math.floor(n / 100) / 10).toString().replace('.', ',') + 'K';
+    var thousands = Math.round(n / 100) / 10;
+    if (n >= 1e6 || thousands >= 1000) return (Math.round(n / 1e5) / 10).toString().replace('.', ',') + 'M';
+    if (n >= 1e4) return thousands.toString().replace('.', ',') + 'K';
     return group(n);
   }
 
@@ -132,6 +134,50 @@ window.Layers = (function () {
   }
 
   // ---- parts ----
+
+  // the blur of what lies under a rounded box of the current transform (tilted too), tinted, with a thin edge
+  function glass(c, x, y, w, h, r, tint) {
+    var under = document.createElement('canvas');
+    under.width = Math.max(1, Math.ceil(w));
+    under.height = Math.max(1, Math.ceil(h));
+    var u = under.getContext('2d');
+    if (blurSupported)
+      u.filter = 'blur(10px)';
+    u.setTransform(c.getTransform().translate(x, y).inverse());
+    u.drawImage(c.canvas, 0, 0);
+    if (!blurSupported) {
+      var small = document.createElement('canvas');
+      small.width = Math.max(1, Math.round(under.width / 10));
+      small.height = Math.max(1, Math.round(under.height / 10));
+      small.getContext('2d').drawImage(under, 0, 0, small.width, small.height);
+      u.setTransform(1, 0, 0, 1, 0, 0);
+      u.clearRect(0, 0, under.width, under.height);
+      u.imageSmoothingQuality = 'high';
+      u.drawImage(small, 0, 0, under.width, under.height);
+    }
+    c.save();
+    rr(c, x, y, w, h, r);
+    c.clip();
+    c.drawImage(under, x, y);
+    c.fillStyle = 'rgba(32,30,40,' + tint + ')';
+    c.fillRect(x, y, w, h);
+    c.restore();
+    c.save();
+    rr(c, x + 0.5, y + 0.5, w - 1, h - 1, r);
+    c.strokeStyle = 'rgba(255,255,255,0.16)';
+    c.lineWidth = 1;
+    c.stroke();
+    c.restore();
+  }
+
+  // what lies under a card-sticker: "panel", "glass", "shadow" or "none"; "bg": false of older layouts is the shadow
+  function groundOf(layer) { return layer.ground || (layer.bg === false ? 'shadow' : 'panel'); }
+
+  function groundAlpha(layer) {
+    var kind = groundOf(layer);
+    var value = layer.groundOpacity != null ? layer.groundOpacity : kind === 'glass' ? 55 : kind === 'shadow' ? 50 : 45;
+    return Math.max(0, Math.min(100, value)) / 100;
+  }
 
   function ground(c, layout, x, y, w, h) {
     c.save();
@@ -532,14 +578,28 @@ window.Layers = (function () {
     c.translate(layer.x + w / 2, layer.y + h / 2);
     c.rotate((layer.tilt || 0) * Math.PI / 180);
     c.translate(-w / 2, -h / 2);
-    if (layer.bg !== false) {
-      rr(c, -4, -4, w + 8, h + 8, 10);
-      c.fillStyle = 'rgba(19,18,23,0.45)'; c.fill();
+    var kind = groundOf(layer), a = groundAlpha(layer);
+    var pad = Math.max(0, Math.min(40, layer.pad == null ? 4 : layer.pad));
+    if (kind === 'panel') {
+      rr(c, -pad, -pad, w + 2 * pad, h + 2 * pad, 10);
+      c.fillStyle = 'rgba(19,18,23,' + a + ')'; c.fill();
       c.strokeStyle = 'rgba(255,255,255,0.16)'; c.lineWidth = 1; c.stroke();
-    } else {
-      c.shadowColor = 'rgba(0,0,0,0.5)';
-      c.shadowBlur = 12;
-      c.shadowOffsetY = 3;
+    } else if (kind === 'glass') {
+      glass(c, -pad, -pad, w + 2 * pad, h + 2 * pad, 10, a);
+    } else if (kind === 'shadow') {
+      // a soft shadow of the card's rectangle, as the bot draws it, made on a canvas of its own (a shadow's offset
+      // ignores the tilt): only the shadow of a box drawn far away lands there
+      var m = 20, sc = document.createElement('canvas');
+      sc.width = w + 2 * m;
+      sc.height = h + 2 * m;
+      var s2 = sc.getContext('2d');
+      s2.shadowColor = 'rgba(0,0,0,' + a + ')';
+      s2.shadowBlur = 12;
+      s2.shadowOffsetY = 3 + 10000;
+      rr(s2, m, m - 10000, w, h, 8);
+      s2.fillStyle = '#000';
+      s2.fill();
+      c.drawImage(sc, -m, -m);
     }
     c.drawImage(img, 0, 0, w, h);
     c.restore();
@@ -583,14 +643,19 @@ window.Layers = (function () {
       return;
 
     var y0 = b.at === 'top' ? 4 : 468, cy = y0 + 13;
-    c.save();
-    rr(c, 12, y0, 726, 26, 13);
-    c.fillStyle = 'rgba(19,18,23,' + Math.max(20, Math.min(100, b.opacity == null ? 85 : b.opacity)) / 100 + ')';
-    c.fill();
-    c.strokeStyle = 'rgba(255,255,255,0.08)';
-    c.lineWidth = 1;
-    c.stroke();
-    c.restore();
+    var barAlpha = Math.max(20, Math.min(100, b.opacity == null ? 85 : b.opacity)) / 100;
+    if (b.look === 'glass') {
+      glass(c, 12, y0, 726, 26, 13, barAlpha);
+    } else {
+      c.save();
+      rr(c, 12, y0, 726, 26, 13);
+      c.fillStyle = 'rgba(19,18,23,' + barAlpha + ')';
+      c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.08)';
+      c.lineWidth = 1;
+      c.stroke();
+      c.restore();
+    }
 
     var top = '#' + (data.top > 9999 ? '>10K' : group(data.top));
     var progress = Math.max(0, Math.min(1, data.levelProgress || 0));
@@ -785,6 +850,8 @@ window.Layers = (function () {
     AVATAR_SIZES: [84, 112, 140],
     FRAME_AT: FRAME_AT,
     stickerWidth: stickerWidth,
+    groundOf: groundOf,
+    groundAlpha: groundAlpha,
     box: box,
     render: render,
     width: width

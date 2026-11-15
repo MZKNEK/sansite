@@ -317,7 +317,14 @@
     layout = clone(layout || {});
     layout.v = layout.v || 1;
     layout.layers = (layout.layers || []).filter(function (x) { return x && x.t; });
+    layout.layers.forEach(function (x) {
+      if (x.t !== 'sticker') return;
+      x.ground = L.groundOf(x);
+      delete x.bg;
+      if (x.pad == null) x.pad = 4;
+    });
     layout.bar = layout.bar || {};
+    layout.bar.look = layout.bar.look || 'solid';
     layout.bar.at = layout.bar.at || 'bottom';
     layout.bar.hide = layout.bar.hide || [];
     if (layout.bar.opacity == null) layout.bar.opacity = 85;
@@ -863,7 +870,7 @@
     var picture = needsPicture ? pictureFor(t === 'header' ? 'header' : t === 'style' ? 'style' : t) : null;
     if (needsPicture && !picture) {
       say('Najpierw wyślij obrazek w sekcji „Obrazki”.', true);
-      $('picture-file').focus();
+      ($('picture-drop') || $('picture-file')).focus();
       return;
     }
     snapshot();
@@ -890,7 +897,8 @@
         layer.card = cardChoices[count('sticker') % cardChoices.length].id;
         layer.h = 140;
         layer.tilt = 0;
-        layer.bg = true;
+        layer.ground = 'panel';
+        layer.pad = 4;
       }
       if (t === 'gallery') layer.count = 6;
       if (t === 'anime' || t === 'manga') { layer.size = 'small'; layer.legend = 'main'; layer.recent = 0; layer.hide = []; }
@@ -1197,7 +1205,16 @@
       host.appendChild(field('Karta', wrap));
       host.appendChild(range('p-h', 'Rozmiar', 60, 300, 2, o.h, function (v) { return v + ' px'; }, function (v) { o.h = v; clamp(sel); }));
       host.appendChild(range('p-tilt', 'Pochylenie', -15, 15, 1, o.tilt || 0, function (v) { return v + '°'; }, function (v) { o.tilt = v; }));
-      host.appendChild(toggle('p-bg', 'Tło pod kartą', o.bg !== false, function (v) { o.bg = v; }));
+      host.appendChild(labelled('Tło pod kartą', segment([['panel', 'Pełne'], ['glass', 'Szkło'], ['shadow', 'Cień'], ['none', 'Brak']], L.groundOf(o), function (v) {
+        o.ground = v;
+        delete o.groundOpacity;
+      })));
+      if (o.ground !== 'none')
+        host.appendChild(range('p-gopacity', o.ground === 'shadow' ? 'Siła cienia' : 'Krycie tła', 0, 100, 1, Math.round(L.groundAlpha(o) * 100), function (v) { return v + '%'; }, function (v) { o.groundOpacity = v; }));
+      if (o.ground === 'panel' || o.ground === 'glass')
+        host.appendChild(range('p-pad', 'Odstęp tła od karty', 0, 40, 1, o.pad == null ? 4 : o.pad, function (v) { return v + ' px'; }, function (v) { o.pad = v; }));
+      if (o.ground === 'glass')
+        host.appendChild(note('Szkło jest częścią odblokowania „Wygląd paneli”.'));
     } else if (o.t === 'anime' || o.t === 'manga') {
       o.hide = o.hide || [];
       host.appendChild(labelled('Rozmiar', segment([['small', 'Mały'], ['large', 'Duży']], o.size || 'small', function (v) { o.size = v; clamp(sel); })));
@@ -1266,6 +1283,7 @@
     fill($('look-panels'), segment([['solid', 'Pełne'], ['glass', 'Szkło'], ['shadow', 'Cień']], M.panels, function (v) { M.panels = v; }));
     fill($('look-shade'), segment([['band', 'Pasek'], ['fade', 'Cieniowanie'], ['none', 'Brak']], M.shade, function (v) { M.shade = v; }));
     fill($('look-bar'), segment([['bottom', 'Na dole'], ['top', 'Na górze'], ['hidden', 'Ukryty']], M.bar.at, function (v) { M.bar.at = v; }));
+    fill($('look-bar-look'), segment([['solid', 'Pełny'], ['glass', 'Szkło']], M.bar.look, function (v) { M.bar.look = v; }));
     fill($('look-bar-items'), hiding(BAR_ITEMS, M.bar.hide, function (item, off) {
       M.bar.hide = off ? M.bar.hide.concat([item]) : M.bar.hide.filter(function (x) { return x !== item; });
     }));
@@ -1499,14 +1517,31 @@
       li.textContent = 'Wszystko, czego używa ten układ, masz już odblokowane.';
       list.appendChild(li);
     }
-    total.textContent = quote.sc ? 'Do zapłaty raz: ' + money(quote.sc, quote.tc) + '. Masz ' + group(quote.walletSc) + ' SC i ' + group(quote.walletTc) + ' TC.' : 'Zapis bez opłat.';
     var currency = $('currency').value;
     var afford = !quote.sc || (currency === 'tc' ? quote.walletTc >= quote.tc : quote.walletSc >= quote.sc);
+    total.textContent = '';
+    function row(label, value, cls) {
+      var r = document.createElement('div');
+      r.className = 'profilator-total-row ' + cls;
+      var l = document.createElement('span');
+      l.textContent = label;
+      var v = document.createElement('b');
+      v.textContent = value;
+      r.appendChild(l);
+      r.appendChild(v);
+      total.appendChild(r);
+    }
+    if (quote.sc) {
+      row('Do zapłaty raz', money(quote.sc, quote.tc), 'due');
+      row('Masz', group(quote.walletSc) + ' SC i ' + group(quote.walletTc) + ' TC', 'wallet');
+      if (!afford)
+        row('Brakuje', currency === 'tc' ? group(quote.tc - quote.walletTc) + ' TC' : group(quote.sc - quote.walletSc) + ' SC', 'short');
+    } else {
+      row('Zapis', 'bez opłat', 'free');
+    }
     $('currency-field').hidden = !quote.sc;
     $('save').disabled = !!(quote.errors && quote.errors.length) || !afford;
     $('save').textContent = quote.sc ? 'Zapłać i zapisz' : 'Zapisz';
-    if (!afford)
-      total.textContent += ' Za mało ' + currency.toUpperCase() + '.';
   }
 
   $('currency').addEventListener('change', function () { renderCost(); });
@@ -1632,6 +1667,44 @@
       li.appendChild(img);
       li.appendChild(text);
       host.appendChild(li);
+    });
+  }
+
+  // the place for the picture file, as the croppers have it: a click or a dropped file
+  var drop = $('picture-drop');
+  if (drop) {
+    var fileInput = $('picture-file');
+    var depth = 0;
+    var showName = function () {
+      var f = fileInput.files && fileInput.files[0];
+      $('picture-name').textContent = f ? f.name : 'albo kliknij, by wybrać plik: png, jpg, gif, webp, do 10 MB';
+      $('picture-name').classList.toggle('file', !!f);
+    };
+    drop.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('click', function (e) { e.stopPropagation(); });
+    fileInput.addEventListener('change', showName);
+    drop.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      fileInput.click();
+    });
+    drop.addEventListener('dragenter', function (e) { e.preventDefault(); depth++; drop.classList.add('over'); });
+    drop.addEventListener('dragover', function (e) { e.preventDefault(); });
+    drop.addEventListener('dragleave', function () { if (--depth <= 0) { depth = 0; drop.classList.remove('over'); } });
+    drop.addEventListener('drop', function (e) {
+      e.preventDefault();
+      depth = 0;
+      drop.classList.remove('over');
+      var f = e.dataTransfer.files[0];
+      if (!f) return;
+      if (!/^image\//.test(f.type)) {
+        say('To nie jest obrazek.', true);
+        return;
+      }
+      var dt = new DataTransfer();
+      dt.items.add(f);
+      fileInput.files = dt.files;
+      showName();
     });
   }
 

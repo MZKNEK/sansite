@@ -352,6 +352,98 @@
     margin-top: 12px;
 }
 
+/* the place for a picture file, as the croppers have it: click or drop it here */
+.profilator-drop {
+    --arm: 14px;
+    --fill: rgba(var(--accent-rgb), 0.04);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+    padding: 14px 18px;
+    outline: 1px dashed rgba(var(--accent-rgb), 0.35);
+    outline-offset: -6px;
+    cursor: pointer;
+}
+
+.profilator-drop:hover,
+.profilator-drop:focus-visible,
+.profilator-drop.over {
+    --arm: 26px;
+    --fill: rgba(var(--accent-rgb), 0.14);
+    outline-color: rgba(var(--accent-light-rgb), 0.8);
+}
+
+.profilator-drop svg {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: var(--accent-light);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.profilator-drop .drop-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.profilator-drop b {
+    font: 13px "Sanakan Mono", monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--heading);
+}
+
+.profilator-drop small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.profilator-drop small.file {
+    font: 12px "JetBrains Mono", Consolas, monospace;
+    color: var(--link);
+}
+
+/* what is to pay, set apart from the list */
+.profilator-total {
+    display: grid;
+    gap: 4px;
+    margin: 10px 0 4px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.25);
+    font-size: 14px;
+}
+
+.profilator-total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-dim);
+}
+
+.profilator-total-row b {
+    color: var(--text-strong);
+    font-weight: 600;
+    text-align: right;
+}
+
+.profilator-total-row.due b {
+    color: var(--accent-light);
+    font-size: 15px;
+}
+
+.profilator-total-row.short,
+.profilator-total-row.short b {
+    color: var(--danger);
+}
+
 /* the unlocks the layout needs and their prices */
 .profilator-cost,
 .profilator-errors {

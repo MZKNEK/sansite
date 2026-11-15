@@ -94,7 +94,9 @@
         $needs = [];
         if (is_array($layout)) {
             if (!empty($layout['accent'])) $needs[] = 'accent';
-            if (($layout['panels'] ?? 'solid') !== 'solid') $needs[] = 'panels';
+            $glass = ($layout['bar']['look'] ?? 'solid') === 'glass'
+                || in_array('glass', array_column(array_filter($layout['layers'] ?? [], function ($l) { return ($l['t'] ?? '') === 'sticker'; }), 'ground'), true);
+            if (($layout['panels'] ?? 'solid') !== 'solid' || $glass) $needs[] = 'panels';
             if (!empty($layout['header'])) $needs[] = 'headerImg';
             if (!empty($layout['style'])) $needs[] = 'styleImg';
             if (!empty($layout['ultra'])) $needs[] = 'ultra';
