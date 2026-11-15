@@ -1,7 +1,7 @@
 // The bot's profile of layers drawn in the browser, part by part as the bot draws it
 // (ImageProcessing.LayeredProfile.cs): the header and style pictures in their fields,
-// the free layers bottom to top, the nick, the ultra overlay, the bar, the avatar and its
-// frame on top. A sketch for editing: the bot's own picture is a button away (preview).
+// the nick, the free layers bottom to top (overlays cut to their field), the ultra overlay,
+// the bar, the avatar and its frame on top. A sketch for editing: the bot's own picture is a button away (preview).
 // The layout is the bot's JSON (Services/Profiles/ProfileLayout.cs), the data the
 // answer of api/Profile/discord/<id> (data). Shared by editor.js and nothing else.
 window.Layers = (function () {
@@ -28,6 +28,7 @@ window.Layers = (function () {
 
   var HEADER = { x: 0, y: 0, w: 750, h: 160 };
   var STYLE = { x: 0, y: 160, w: 750, h: 340 };
+  var OVERLAY = { x: 0, y: 98, w: 750, h: 402 };
   var SIZE = { list: 331, small: 130, large: 276, cards: 370, panel: 276, big: [718, 304], rank: 22, nick: 34 };
   var CARD_RATIO = 475 / 667;
   var MIN_INSIDE = 16;
@@ -504,12 +505,18 @@ window.Layers = (function () {
     });
   }
 
-  function picture(c, layer, assets) {
+  // an overlay is cut to its field, the ultra overlay is not
+  function picture(c, layer, assets, field) {
     var img = still(assets.picture(layer.image));
     if (!img)
       return;
     var s = size(img), scale = layer.scale || 1;
     c.save();
+    if (field) {
+      c.beginPath();
+      c.rect(field.x, field.y, field.w, field.h);
+      c.clip();
+    }
     c.globalAlpha = layer.opacity == null ? 1 : Math.max(0, Math.min(1, layer.opacity));
     c.imageSmoothingQuality = 'high';
     c.drawImage(img, layer.x, layer.y, Math.max(1, Math.round(s[0] * scale)), Math.max(1, Math.round(s[1] * scale)));
@@ -711,6 +718,9 @@ window.Layers = (function () {
       c.fillRect(0, 159, 750, 1);
     }
 
+    if (!layout.nick.hidden)
+      nick(c, layout.nick, data.nick);
+
     (layout.layers || []).forEach(function (layer) {
       if (layer.hidden)
         return;
@@ -720,14 +730,12 @@ window.Layers = (function () {
         case 'cards': cardsPanel(c, layout, layer, data, accent, assets); break;
         case 'gallery': gallery(c, layout, layer, data, assets); break;
         case 'bigGallery': bigGallery(c, layout, layer, data, assets); break;
-        case 'overlay': picture(c, layer, assets); break;
+        case 'overlay': picture(c, layer, assets, OVERLAY); break;
         case 'sticker': sticker(c, layer, assets); break;
         case 'rank': rank(c, layer, data.rank, accent); break;
       }
     });
 
-    if (!layout.nick.hidden)
-      nick(c, layout.nick, data.nick);
     if (layout.ultra && !layout.ultra.hidden)
       picture(c, layout.ultra, assets);
     bar(c, layout, data, accent);
@@ -739,6 +747,7 @@ window.Layers = (function () {
     H: H,
     HEADER: HEADER,
     STYLE: STYLE,
+    OVERLAY: OVERLAY,
     MIN_INSIDE: MIN_INSIDE,
     AVATAR_SIZES: [84, 112, 140],
     FRAME_AT: FRAME_AT,

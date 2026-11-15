@@ -349,8 +349,8 @@
     var list = [];
     if (M.header && !M.header.hidden) list.push(['header', M.header, 'header']);
     if (M.style && !M.style.hidden) list.push(['style', M.style, 'style']);
-    M.layers.forEach(function (layer) { if (!layer.hidden) list.push([layer.id, layer, 'layer']); });
     if (!M.nick.hidden) list.push(['nick', M.nick, 'nick']);
+    M.layers.forEach(function (layer) { if (!layer.hidden) list.push([layer.id, layer, 'layer']); });
     if (M.ultra && !M.ultra.hidden) list.push(['ultra', M.ultra, 'ultra']);
     list.push(['avatar', M.avatar, 'avatar']);
     return list;
@@ -588,9 +588,10 @@
     var o = objectOf(key), b = boxOf(key);
     if (!o || !b) return;
     var m = L.MIN_INSIDE;
+    var f = o.t === 'overlay' ? L.OVERLAY : { x: 0, y: 0, w: L.W, h: L.H };
     var dx = o.x - b.x;
-    o.x = Math.round(Math.min(Math.max(b.x, m - b.w), L.W - m) + dx);
-    o.y = Math.round(Math.min(Math.max(o.y, m - b.h), L.H - m));
+    o.x = Math.round(Math.min(Math.max(b.x, f.x + m - b.w), f.x + f.w - m) + dx);
+    o.y = Math.round(Math.min(Math.max(o.y, f.y + m - b.h), f.y + f.h - m));
   }
 
   function moveTo(key, x, y) {
@@ -648,7 +649,7 @@
     drag = { key: key, dx: p.x - o.x, dy: p.y - o.y, moved: false };
     canvas.setPointerCapture(e.pointerId);
     canvas.classList.add('dragging');
-    say(nameOf(key) + ': ' + (isSlot(key) ? 'przeciągnij, żeby wybrać kadr w polu.' : key === 'avatar' ? 'zawsze na wierzchu.' : key === 'nick' ? 'nad nickiem może leżeć tylko ultra nakładka.' : 'przeciągnij, żeby przesunąć.'));
+    say(nameOf(key) + ': ' + (isSlot(key) ? 'przeciągnij, żeby wybrać kadr w polu.' : key === 'avatar' ? 'zawsze na wierzchu.' : key === 'nick' ? 'leży pod warstwami, nakładka może go zakryć.' : 'przeciągnij, żeby przesunąć.'));
     if (!again) changed(true); else redraw();
     e.preventDefault();
   });
@@ -728,8 +729,8 @@
 
   function moveLayer(layer, dir) {
     var i = M.layers.indexOf(layer), j = i + dir;
-    if (j >= M.layers.length) { say('Wyżej są już tylko nick, ultra nakładka, pasek i awatar.', true); return; }
-    if (j < 0) { say('Niżej są tylko obrazek stylu i tło nagłówka.', true); return; }
+    if (j >= M.layers.length) { say('Wyżej są już tylko ultra nakładka, pasek i awatar.', true); return; }
+    if (j < 0) { say('Niżej są tylko nick, obrazek stylu i tło nagłówka.', true); return; }
     snapshot();
     M.layers.splice(i, 1);
     M.layers.splice(j, 0, layer);
@@ -802,10 +803,10 @@
     var frameName = M.avatar.frame === 'custom' ? 'własna' : M.avatar.frame === 'None' ? 'bez ramki' : frameLabel(M.avatar.frame);
     layerRow(list, 'avatar', { name: 'Awatar', tag: frameName, fixed: 'zawsze na wierzchu' });
     layerRow(list, null, { name: 'Pasek', tag: M.bar.at === 'hidden' ? 'ukryty' : M.bar.at === 'top' ? 'na górze' : 'na dole', fixed: 'stałe miejsce' });
-    if (M.ultra) layerRow(list, 'ultra', { name: 'Ultra nakładka', tag: 'nad nickiem', hideable: true });
-    layerRow(list, 'nick', { name: 'Nick', hideable: true });
+    if (M.ultra) layerRow(list, 'ultra', { name: 'Ultra nakładka', tag: 'cały profil', hideable: true });
     for (var i = M.layers.length - 1; i >= 0; i--)
       layerRow(list, M.layers[i].id, { name: nameOf(M.layers[i].id), hideable: true, movable: true });
+    layerRow(list, 'nick', { name: 'Nick', hideable: true });
     if (M.style) layerRow(list, 'style', { name: 'Obrazek stylu', tag: '750 × 340', hideable: true });
     if (M.header) layerRow(list, 'header', { name: 'Tło nagłówka', tag: '750 × 160', hideable: true });
     renderAdd();
@@ -1158,7 +1159,7 @@
       host.appendChild(pictureSelect(o.image, function (v) { o.image = v; }));
       host.appendChild(range('p-scale', 'Skala', 10, 300, 1, Math.round((o.scale || 1) * 100), function (v) { return v + '%'; }, function (v) { o.scale = v / 100; clamp(sel); }));
       host.appendChild(range('p-opacity', 'Krycie', 10, 100, 1, Math.round((o.opacity == null ? 1 : o.opacity) * 100), function (v) { return v + '%'; }, function (v) { o.opacity = v / 100; }));
-      host.appendChild(note(sel === 'ultra' ? 'Jedyna warstwa nad nickiem, np. z własnym, narysowanym nickiem. Pod paskiem i awatarem.' : 'Leży gdziekolwiek i w dowolnej kolejności wśród warstw, zawsze pod nickiem.'));
+      host.appendChild(note(sel === 'ultra' ? 'Może leżeć na całym profilu, także na górze nagłówka, nad wszystkimi warstwami. Pod paskiem i awatarem.' : 'Widać ją tylko pod górą nagłówka (od 98 px w dół), w dowolnej kolejności wśród warstw. Leży nad nickiem, więc można na niej narysować własny.'));
     } else if (sel === 'avatar') {
       host.appendChild(labelled('Ramka', frameGrid(o)));
       if (o.frame === 'custom') {
@@ -1176,7 +1177,7 @@
       host.appendChild(range('p-w', 'Szerokość', 200, 600, 2, o.w, function (v) { return v + ' px'; }, function (v) { o.w = v; clamp('nick'); }));
       host.appendChild(labelled('Wyrównanie', segment([['left', 'Do lewej'], ['center', 'Do środka']], o.align, function (v) { o.align = v; })));
       host.appendChild(toggle('p-hidden', 'Ukryj wbudowany nick', o.hidden, function (v) { o.hidden = v; }));
-      host.appendChild(note('Nad nickiem może leżeć tylko ultra nakładka. Za długi nick sam się zmniejsza.'));
+      host.appendChild(note('Leży pod warstwami: nakładka czy naklejka może go zakryć. Za długi nick sam się zmniejsza.'));
     } else if (o.t === 'sticker') {
       var s = document.createElement('select');
       cardChoices.forEach(function (c) {

@@ -29,7 +29,7 @@
     {
       "key": "nickHide",
       "name": "Ukrycie nicka",
-      "description": "np. dla własnego nicka na ultra nakładce",
+      "description": "np. dla własnego nicka na nakładce",
       "sc": 6000,
       "tc": 99
     },
@@ -113,21 +113,21 @@
     {
       "key": "overlay:1",
       "name": "Miejsce na nakładkę 1",
-      "description": "obrazek w dowolnym miejscu pod nickiem, zmiany za darmo",
+      "description": "obrazek od wysokości nicka w dół, zmiany za darmo",
       "sc": 30000,
       "tc": 499
     },
     {
       "key": "overlay:2",
       "name": "Miejsce na nakładkę 2",
-      "description": "obrazek w dowolnym miejscu pod nickiem, zmiany za darmo",
+      "description": "obrazek od wysokości nicka w dół, zmiany za darmo",
       "sc": 45000,
       "tc": 749
     },
     {
       "key": "overlay:3",
       "name": "Miejsce na nakładkę 3",
-      "description": "obrazek w dowolnym miejscu pod nickiem, zmiany za darmo",
+      "description": "obrazek od wysokości nicka w dół, zmiany za darmo",
       "sc": 60000,
       "tc": 999
     },
@@ -267,7 +267,7 @@
     {
       "key": "ultra",
       "name": "Ultra nakładka",
-      "description": "jedyna warstwa nad nickiem, zmiany za darmo",
+      "description": "obrazek na całym profilu, zmiany za darmo",
       "sc": 240000,
       "tc": 3999
     }
