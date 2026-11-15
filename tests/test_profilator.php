@@ -1,47 +1,84 @@
 <?php
-    // inc/profilator.php: the profile of the logged-in account for Profilator.
+    // inc/profilator.php: Profilator's way to the bot's api/Profile.
     require_once __DIR__ . '/../inc/profilator.php';
 
-    test('profilatorData keeps the answer of the bot a while', function () {
-        writeData('profilator', [
-            '123456789012345678' => ['time' => 1000, 'data' => ['code' => 'AQADJxke']],
-            '123456789012345679' => ['time' => 1000, 'data' => false]
-        ]);
-
-        assertSame(['code' => 'AQADJxke'], profilatorData('123456789012345678', 1000 + PROFILATOR_TTL - 1));
-        assertSame(false, profilatorData('123456789012345679', 1000 + PROFILATOR_TTL - 1), 'no profile is kept too');
-        assertNull(profilatorData('123456789012345678', 1000 + PROFILATOR_TTL), 'too old, and without the site\'s key the bot is not asked');
+    test('profilatorPath takes only ids of Discord accounts', function () {
+        assertSame('discord/123456789012345678', profilatorPath('123456789012345678'));
+        assertSame('discord/123456789012345678/images/7', profilatorPath('123456789012345678', 'images/7'));
+        assertNull(profilatorPath('../catalog'));
+        assertNull(profilatorPath('12345'));
+        assertNull(profilatorPath('123456789012345678/../9'));
     });
 
-    test('profilatorView keeps only what the page draws, and links it may load', function () {
-        $view = profilatorView([
-            'code' => 'AQADJxke', 'nick' => 'Gracz', 'rank' => 'Użytkownik', 'color' => '#E86262',
-            'avatar' => 'https://cdn.discordapp.com/avatars/1/a.png',
-            'waifu' => 'https://evil.example/w.webp',
-            'gallery' => ['https://cdn2.shinden.eu/profile/5.webp', 'javascript:alert(1)', 'https://cdn2.shinden.eu.evil/x.webp'],
-            'level' => 23, 'sc' => '42000', 'karma' => 'x',
-            'rarities' => ['SS' => 2, 'Q' => 9],
-            'anime' => ['completed' => 210, 'rating' => 8.1, 'secret' => 'no'],
-            'manga' => null,
-            'extra' => 'dropped'
-        ]);
-
-        assertSame('https://cdn.discordapp.com/avatars/1/a.png', $view['avatar']);
-        assertNull($view['waifu'], 'a picture from elsewhere');
-        assertSame(['https://cdn2.shinden.eu/profile/5.webp', null, null], $view['gallery'], 'the places stay, the bad links go');
-        assertSame('#E86262', $view['color']);
-        assertSame(23, $view['level']);
-        assertSame(42000, $view['sc']);
-        assertSame(0, $view['karma']);
-        assertSame(['SSS' => 0, 'SS' => 2, 'S' => 0, 'A' => 0, 'B' => 0, 'C' => 0, 'D' => 0, 'E' => 0], $view['rarities']);
-        assertSame(210, $view['anime']['completed']);
-        assertSame(8.1, $view['anime']['rating']);
-        assertFalse(isset($view['anime']['secret']));
-        assertNull($view['manga']);
-        assertFalse(isset($view['extra']));
+    test('profilatorImageType knows the four picture types by their bytes', function () {
+        assertSame('image/png', profilatorImageType("\x89PNG\r\n\x1a\nrest"));
+        assertSame('image/jpeg', profilatorImageType("\xff\xd8\xff\xe0rest"));
+        assertSame('image/gif', profilatorImageType('GIF89a....'));
+        assertSame('image/webp', profilatorImageType('RIFF....WEBPVP8 '));
+        assertNull(profilatorImageType('<svg xmlns="http://www.w3.org/2000/svg"/>'));
+        assertNull(profilatorImageType(''));
     });
 
-    test('profilatorView gives a grey without a colour of a role', function () {
-        assertSame('#546e7a', profilatorView(['color' => 'red'])['color']);
-        assertSame([], profilatorView([])['gallery']);
+    test('profilatorMultipart makes one form with the file and a safe name', function () {
+        [$body, $type] = profilatorMultipart(['use' => 'overlay'], 'file', '../evil name".png', 'BYTES', 'image/png');
+        assertTrue(preg_match('~^multipart/form-data; boundary=(\S+)$~', $type, $match) === 1);
+        assertContains('name="use"' . "\r\n\r\noverlay\r\n", $body);
+        assertContains('filename=".._evil_name_.png"', $body);
+        assertContains("Content-Type: image/png\r\n\r\nBYTES\r\n--" . $match[1] . "--\r\n", $body);
+    });
+
+    test('profilatorLayoutJson takes only an object, and not a too big one', function () {
+        assertSame('{"v":1,"layers":[]}', profilatorLayoutJson(['v' => 1, 'layers' => []]));
+        assertSame('{}', profilatorLayoutJson([]));
+        assertNull(profilatorLayoutJson([1, 2]));
+        assertNull(profilatorLayoutJson('{"v":1}'));
+        assertNull(profilatorLayoutJson(['big' => str_repeat('x', PROFILATOR_MAX_LAYOUT)]));
+    });
+
+    test('profilatorKey takes a key of printable ASCII', function () {
+        assertSame('0123456789abcdef', profilatorKey('0123456789abcdef'));
+        assertNull(profilatorKey('short'));
+        assertNull(profilatorKey(str_repeat('a', 65)));
+        assertNull(profilatorKey("with space here"));
+    });
+
+    test('profilatorBot asks api/Profile with the site\'s key', function () {
+        $sent = [];
+        $GLOBALS['SANAKAN_HTTP'] = function ($url, $options) use (&$sent) {
+            $sent[] = [$url, $options];
+            return ['{"version":2}', 200];
+        };
+        [$body, $status] = profilatorBot('PUT', profilatorPath('123456789012345678'), '{"layout":{}}', ['Idempotency-Key' => 'abcdefgh12']);
+        withoutHttp();
+
+        assertSame(200, $status);
+        assertSame('{"version":2}', $body);
+        assertSame(botApiBase() . '/api/Profile/discord/123456789012345678', $sent[0][0]);
+        assertSame('PUT', $sent[0][1]['method']);
+        assertContains('x-app-key: ' . botAppKey(), $sent[0][1]['header']);
+        assertContains('Idempotency-Key: abcdefgh12', $sent[0][1]['header']);
+        assertSame('{"layout":{}}', $sent[0][1]['content']);
+    });
+
+    test('profilatorCatalog keeps the catalog a while and the old one when the bot is away', function () {
+        $asked = 0;
+        $GLOBALS['SANAKAN_HTTP'] = function ($url) use (&$asked) {
+            $asked++;
+            return [json_encode(['enabled' => false, 'features' => [['key' => 'accent']]]), 200];
+        };
+        $first = profilatorCatalog(1000);
+        $again = profilatorCatalog(1000 + PROFILATOR_CATALOG_TTL - 1);
+        assertSame(1, $asked, 'asked once while fresh');
+        assertSame($first, $again);
+
+        $GLOBALS['SANAKAN_HTTP'] = function () { return [false, 0]; };
+        assertSame($first, profilatorCatalog(1000 + PROFILATOR_CATALOG_TTL), 'the old one while the bot does not answer');
+        withoutHttp();
+        assertSame('accent', $first['features'][0]['key']);
+    });
+
+    test('profilatorCatalog without a catalog and without the bot is null', function () {
+        $GLOBALS['SANAKAN_HTTP'] = function () { return ['oops', 500]; };
+        assertNull(profilatorCatalog(5000));
+        withoutHttp();
     });

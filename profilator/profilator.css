@@ -1,5 +1,5 @@
-/* Profilator: only its layout, the fields, buttons, selects and cards are the
-   site's (style.css, explorer.css, status.css, admin.css) */
+/* Profilator: only its layout and the editor's own small parts; the fields, buttons,
+   selects, switches and cards are the site's (style.css, explorer.css, status.css, admin.css) */
 
 .profilator-grid {
     display: grid;
@@ -27,220 +27,361 @@
     min-width: 0;
 }
 
-/* the names of the styles are long, one field under the other keeps them whole */
-.profilator-settings .hud-fields {
-    grid-template-columns: minmax(0, 1fr);
+/* closed while the profile comes */
+.profilator-settings[inert] {
+    opacity: 0.5;
 }
 
 .profilator-canvas {
+    margin-top: 12px;
     border: 1px solid rgba(var(--accent-rgb), 0.22);
     background: rgba(var(--accent-rgb), 0.05);
     line-height: 0;
 }
 
+/* parts are dragged on the preview, no page scroll under the finger */
 .profilator-canvas canvas {
     width: 100%;
     height: auto;
-}
-
-/* a picture being framed: dragged on the preview, no page scroll under the finger */
-.profilator-canvas.framing canvas {
-    cursor: grab;
     touch-action: none;
 }
 
-.profilator-canvas.framing canvas:active {
+.profilator-canvas canvas.dragging {
     cursor: grabbing;
 }
 
-.profilator-free {
-    margin-top: 12px;
-}
-
-/* only for the overlays; the site's switch is a flex box, which hidden alone would not hide */
-.profilator-free[hidden] {
-    display: none;
-}
-
-.profilator-free .switch-label small {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
-    color: var(--text-dim);
-}
-
-.profilator-frame-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 10px;
-    margin-top: 12px;
-}
-
-.profilator-frame-controls .hud-field {
-    flex: 1 1 200px;
-}
-
-.profilator-frame-controls .player-range {
-    width: 100%;
-}
-
-/* the picture drawn bigger than its own pixels, as the outline on the preview */
-.profilator-frame-controls .profilator-upscaled {
-    color: var(--danger);
+.profilator-canvas canvas:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .profilator-preview .hint {
     margin: 12px 0 0;
 }
 
-.profilator-command {
+.profilator-tools,
+.profilator-seg {
     display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    margin-top: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
 }
 
-.profilator-command .hud-field {
+.profilator-gap {
     flex: 1;
 }
 
-.profilator-command .field {
-    width: 100%;
+/* a pressed choice of a group, a hidden part of a panel or of the bar */
+.profilator-page .admin-btn[aria-pressed="true"] {
+    border-color: var(--accent);
     color: var(--text-strong);
+    background: rgba(var(--accent-rgb), 0.18);
 }
 
-.profilator-note:empty,
-.profilator-after:empty {
-    display: none;
+.profilator-page .admin-btn.off {
+    opacity: 0.55;
+    text-decoration: line-through;
 }
 
-.profilator-after {
-    margin: 12px 0 0;
-}
-
-.card .hud-field + .hint {
-    margin-top: 12px;
-}
-
-/* the switches as a list, each with what it does under its name */
-.profilator-switches .switch {
-    padding: 10px 0;
-    border-top: 1px solid rgba(var(--accent-rgb), 0.15);
-}
-
-.profilator-switches .switch:first-child {
-    padding-top: 0;
-    border-top: 0;
-}
-
-.profilator-switches .switch-label small {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
+.profilator-sub {
+    margin: 18px 0 8px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--text-dim);
 }
 
-/* a switch that changes nothing on the style picked, still in the code */
-.profilator-switches .switch.idle {
-    opacity: 0.45;
+.profilator-bot-picture {
+    margin-top: 12px;
+}
+
+.profilator-bot-picture img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-bottom: 8px;
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
+}
+
+/* the layers, the top one first */
+.profilator-layers {
+    display: grid;
+    gap: 2px;
+    max-height: 360px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.profilator-layer {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.profilator-layer:hover {
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+.profilator-layer.selected {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.14);
+}
+
+.profilator-layer-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+}
+
+.profilator-layer-name small {
+    color: var(--text-dim);
+}
+
+.profilator-layer-ops {
+    display: flex;
+    gap: 4px;
+}
+
+.profilator-eye,
+.profilator-fixed {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 24px;
+}
+
+.profilator-eye {
+    padding: 0;
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.profilator-eye[aria-pressed="false"] {
+    opacity: 0.4;
+}
+
+.profilator-fixed {
+    color: var(--text-dim);
+}
+
+.profilator-add {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.profilator-add .hud-select {
+    flex: 1;
+    min-width: 0;
+}
+
+.profilator-props {
+    display: grid;
+    gap: 12px;
+}
+
+.profilator-props .hint {
+    margin: 0;
+}
+
+.profilator-props .hud-field .field {
+    width: 100%;
+}
+
+.profilator-xy {
+    grid-template-columns: 1fr 1fr;
+}
+
+.profilator-group {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.profilator-props .profilator-group:first-child {
+    margin-top: 0;
 }
 
 .profilator-range {
-    margin-top: 18px;
+    margin-top: 12px;
 }
 
 .profilator-range .player-range {
     width: 100%;
 }
 
-.profilator-images-head {
+/* the avatar's frames, with a dot for the ones still to unlock */
+.profilator-frames {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 6px;
+}
+
+.profilator-frame {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    padding: 3px;
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
+    background: rgba(var(--accent-rgb), 0.05);
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.profilator-frame img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.profilator-frame[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.18);
+}
+
+.profilator-frame i {
+    position: absolute;
+    top: 1px;
+    right: 3px;
+    font-style: normal;
+    font-size: 9px;
+    color: #f5c445;
+}
+
+.profilator-swatches {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 14px;
-    margin-bottom: 14px;
+    gap: 8px;
 }
 
-.profilator-images-head .switch {
-    flex: 1 1 100%;
+.profilator-swatches #accents {
+    display: flex;
+    gap: 8px;
 }
 
-.profilator-images-head .hint {
-    margin: 0;
-}
-
-.profilator-images {
-    margin: 0;
+.profilator-swatch {
+    width: 28px;
+    height: 28px;
     padding: 0;
-    list-style: none;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
 }
 
-.profilator-images li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
-    grid-template-areas: "name pick cut edit clear" "file pick cut edit clear";
+.profilator-swatch[aria-pressed="true"],
+.profilator-pick.on input {
+    border-color: var(--text-strong);
+    box-shadow: 0 0 0 2px var(--bg, #000) inset;
+}
+
+.profilator-pick {
+    display: inline-flex;
     align-items: center;
-    gap: 2px 10px;
-    padding: 10px 0;
-    border-top: 1px solid rgba(var(--accent-rgb), 0.15);
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
 }
 
-.profilator-images li:first-child {
-    border-top: 0;
-    padding-top: 0;
+.profilator-pick input {
+    width: 40px;
+    height: 30px;
+    padding: 0 2px;
+    border: 2px solid rgba(var(--accent-rgb), 0.3);
+    background: none;
+    cursor: pointer;
 }
 
-.profilator-image-name {
-    grid-area: name;
-    font-size: 14px;
+/* the player's pictures */
+.profilator-pictures {
+    display: grid;
+    gap: 6px;
+    max-height: 260px;
+    margin: 0 0 14px;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    font-size: 13px;
     color: var(--text);
 }
 
-.profilator-image-file {
-    grid-area: file;
-    overflow: hidden;
+.profilator-pictures li {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.profilator-pictures li.profilator-empty {
+    display: block;
+}
+
+.profilator-pictures img {
+    width: 56px;
+    height: 38px;
+    object-fit: contain;
+    background: rgba(var(--accent-rgb), 0.06);
+}
+
+.profilator-cut {
+    margin: 14px 0;
+}
+
+.profilator-cut .switch-label small {
+    display: block;
+    margin-top: 2px;
     font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--text-dim);
 }
 
-.profilator-images .hud-button {
-    grid-area: pick;
+#picture-send {
+    margin-top: 12px;
 }
 
-/* the background or the style apart while both are in one picture */
-.profilator-images li.covered {
-    opacity: 0.45;
+/* the unlocks the layout needs and their prices */
+.profilator-cost,
+.profilator-errors {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
 }
 
-.profilator-images li.covered .hud-button {
-    pointer-events: none;
+.profilator-cost li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.profilator-images [data-image-cut] {
-    grid-area: cut;
+.profilator-errors li {
+    color: var(--danger);
 }
 
-.profilator-images [data-image-edit] {
-    grid-area: edit;
-}
-
-.profilator-images [data-image-clear] {
-    grid-area: clear;
-}
-
-/* under the preview: the present profile shown instead of the new one, the
-   animated card stopped */
-.profilator-tools {
+.profilator-save {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-end;
     gap: 10px;
     margin-top: 12px;
 }
 
-/* the account's profile coming from the bot: a bar going to and fro while
-   the bot answers, then the share of its cards and pictures loaded */
+/* the profile coming from the bot: a bar going to and fro */
 .profilator-loading {
     margin-top: 12px;
     font-size: 13px;
@@ -267,19 +408,4 @@
         opacity: 0.5;
         animation: none;
     }
-}
-
-/* the settings and the command closed while the profile comes */
-.profilator-settings[inert],
-.profilator-command[inert] {
-    opacity: 0.5;
-}
-
-/* the model of the overlays' background removal, under the pictures */
-.profilator-cut {
-    margin-top: 14px;
-}
-
-.profilator-cut .hint {
-    margin: 8px 0 0;
 }

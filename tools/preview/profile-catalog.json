@@ -1,0 +1,1082 @@
+{
+  "layoutVersion": 1,
+  "maxStickers": 4,
+  "maxOverlays": 3,
+  "maxLayoutJson": 16384,
+  "maxPictureBytes": 10485760,
+  "features": [
+    {
+      "key": "barHide",
+      "name": "Ukrywanie pozycji paska",
+      "description": "dowolne pozycje paska",
+      "sc": 6000,
+      "tc": 99
+    },
+    {
+      "key": "barPos",
+      "name": "Położenie paska",
+      "description": "pasek na górze albo ukryty",
+      "sc": 6000,
+      "tc": 99
+    },
+    {
+      "key": "panelHide",
+      "name": "Ukrywanie pozycji paneli",
+      "description": "karcianka, anime i manga",
+      "sc": 6000,
+      "tc": 99
+    },
+    {
+      "key": "nickHide",
+      "name": "Ukrycie nicka",
+      "description": "np. dla własnego nicka na ultra nakładce",
+      "sc": 6000,
+      "tc": 99
+    },
+    {
+      "key": "panels",
+      "name": "Wygląd paneli",
+      "description": "szkło i cień zamiast pełnych paneli",
+      "sc": 12000,
+      "tc": 199
+    },
+    {
+      "key": "avatar",
+      "name": "Awatar: rozmiar i kształt",
+      "description": "większy awatar, zaokrąglony i kwadrat",
+      "sc": 12000,
+      "tc": 199
+    },
+    {
+      "key": "recent",
+      "name": "Ostatnio oglądane i czytane",
+      "description": "ostatnie tytuły w panelach anime i mangi",
+      "sc": 12000,
+      "tc": 199
+    },
+    {
+      "key": "accent",
+      "name": "Kolor akcentu",
+      "description": "dowolny kolor zamiast koloru roli",
+      "sc": 18000,
+      "tc": 299
+    },
+    {
+      "key": "listLarge",
+      "name": "Duże panele anime i mangi",
+      "description": "cztery liczby, wszystkie statusy, więcej tytułów",
+      "sc": 18000,
+      "tc": 299
+    },
+    {
+      "key": "styleImg",
+      "name": "Własny obrazek stylu",
+      "description": "obrazek w polu 750 × 340, zmiany za darmo",
+      "sc": 24000,
+      "tc": 399
+    },
+    {
+      "key": "headerImg",
+      "name": "Własne tło nagłówka",
+      "description": "obrazek w polu 750 × 160, zmiany za darmo",
+      "sc": 30000,
+      "tc": 499
+    },
+    {
+      "key": "sticker:1",
+      "name": "Miejsce na kartę-naklejkę 1",
+      "description": "karta postawiona w dowolnym miejscu",
+      "sc": 9000,
+      "tc": 149
+    },
+    {
+      "key": "sticker:2",
+      "name": "Miejsce na kartę-naklejkę 2",
+      "description": "karta postawiona w dowolnym miejscu",
+      "sc": 15000,
+      "tc": 249
+    },
+    {
+      "key": "sticker:3",
+      "name": "Miejsce na kartę-naklejkę 3",
+      "description": "karta postawiona w dowolnym miejscu",
+      "sc": 24000,
+      "tc": 399
+    },
+    {
+      "key": "sticker:4",
+      "name": "Miejsce na kartę-naklejkę 4",
+      "description": "karta postawiona w dowolnym miejscu",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "overlay:1",
+      "name": "Miejsce na nakładkę 1",
+      "description": "obrazek w dowolnym miejscu pod nickiem, zmiany za darmo",
+      "sc": 30000,
+      "tc": 499
+    },
+    {
+      "key": "overlay:2",
+      "name": "Miejsce na nakładkę 2",
+      "description": "obrazek w dowolnym miejscu pod nickiem, zmiany za darmo",
+      "sc": 45000,
+      "tc": 749
+    },
+    {
+      "key": "overlay:3",
+      "name": "Miejsce na nakładkę 3",
+      "description": "obrazek w dowolnym miejscu pod nickiem, zmiany za darmo",
+      "sc": 60000,
+      "tc": 999
+    },
+    {
+      "key": "layout",
+      "name": "Własny układ",
+      "description": "przesuwanie paneli, nicka, rangi i awatara",
+      "sc": 48000,
+      "tc": 799
+    },
+    {
+      "key": "frame:PurpleLeaves",
+      "name": "Ramka awatara: liście",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Dzedai",
+      "name": "Ramka awatara: dzidowa",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Water",
+      "name": "Ramka awatara: woda",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Crows",
+      "name": "Ramka awatara: kruki",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Bow",
+      "name": "Ramka awatara: wstążka",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Metal",
+      "name": "Ramka awatara: metalowa",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:RedThinLeaves",
+      "name": "Ramka awatara: kwiatki",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Skull",
+      "name": "Ramka awatara: czaszka",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Fire",
+      "name": "Ramka awatara: ogień",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Promium",
+      "name": "Ramka awatara: promium",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Ice",
+      "name": "Ramka awatara: lód",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Gold",
+      "name": "Ramka awatara: złota",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Red",
+      "name": "Ramka awatara: czerwona",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Rainbow",
+      "name": "Ramka awatara: tęcza",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Pink",
+      "name": "Ramka awatara: różowa",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:Simple",
+      "name": "Ramka awatara: prosta",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "frame:TurqLeaves",
+      "name": "Ramka awatara: turkusowe liście",
+      "description": "ramka z bota, na zawsze",
+      "sc": 36000,
+      "tc": 599
+    },
+    {
+      "key": "customFrame",
+      "name": "Własna ramka awatara",
+      "description": "własny obrazek wokół awatara, zmiany za darmo",
+      "sc": 72000,
+      "tc": 1199
+    },
+    {
+      "key": "ultra",
+      "name": "Ultra nakładka",
+      "description": "jedyna warstwa nad nickiem, zmiany za darmo",
+      "sc": 240000,
+      "tc": 3999
+    }
+  ],
+  "presets": [
+    {
+      "key": "stats",
+      "name": "Statystyki",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "anime",
+            "size": "small",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 1,
+            "x": 16,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "manga",
+            "size": "small",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 2,
+            "x": 16,
+            "y": 328,
+            "hidden": false
+          },
+          {
+            "t": "cards",
+            "hide": [],
+            "id": 3,
+            "x": 368,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 4,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "statsFlip",
+      "name": "Statystyki, panele zamienione",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "anime",
+            "size": "small",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 1,
+            "x": 403,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "manga",
+            "size": "small",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 2,
+            "x": 403,
+            "y": 328,
+            "hidden": false
+          },
+          {
+            "t": "cards",
+            "hide": [],
+            "id": 3,
+            "x": 16,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 4,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "gallery",
+      "name": "Galeria z karcianką",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "gallery",
+            "count": 6,
+            "panel": true,
+            "id": 1,
+            "x": 16,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "cards",
+            "hide": [],
+            "id": 2,
+            "x": 368,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 3,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "galleryFlip",
+      "name": "Galeria z karcianką, panele zamienione",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "gallery",
+            "count": 6,
+            "panel": true,
+            "id": 1,
+            "x": 403,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "cards",
+            "hide": [],
+            "id": 2,
+            "x": 16,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 3,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "bigGallery",
+      "name": "Duża galeria",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "bigGallery",
+            "panel": true,
+            "id": 1,
+            "x": 16,
+            "y": 164,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 2,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "lists",
+      "name": "Duże listy",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "anime",
+            "size": "large",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 1,
+            "x": 16,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "manga",
+            "size": "large",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 2,
+            "x": 403,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 3,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "animeCards",
+      "name": "Anime i karcianka",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "anime",
+            "size": "large",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 1,
+            "x": 16,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "cards",
+            "hide": [],
+            "id": 2,
+            "x": 368,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 3,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "duo",
+      "name": "Anime i manga",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "anime",
+            "size": "small",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 1,
+            "x": 16,
+            "y": 190,
+            "hidden": false
+          },
+          {
+            "t": "manga",
+            "size": "small",
+            "legend": "main",
+            "recent": 0,
+            "hide": [],
+            "id": 2,
+            "x": 403,
+            "y": 190,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 3,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "cardsCenter",
+      "name": "Karcianka w centrum",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "cards",
+            "hide": [],
+            "id": 1,
+            "x": 190,
+            "y": 182,
+            "hidden": false
+          },
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 2,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "card",
+      "name": "Wizytówka",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 305,
+          "y": 84,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 125,
+          "y": 236,
+          "w": 500,
+          "align": "center",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "rank",
+            "align": "center",
+            "id": 1,
+            "x": 375,
+            "y": 286,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "minimal",
+      "name": "Minimalny",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 40,
+          "y": 50,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 170,
+          "y": 92,
+          "w": 540,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 1,
+            "x": 170,
+            "y": 130,
+            "hidden": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "image",
+      "name": "Sam obrazek",
+      "layout": {
+        "v": 1,
+        "panels": "solid",
+        "shadow": 70,
+        "bar": {
+          "at": "bottom",
+          "opacity": 85,
+          "hide": []
+        },
+        "avatar": {
+          "x": 52,
+          "y": 68,
+          "size": 84,
+          "shape": "circle",
+          "frame": "Base",
+          "levelFrame": true,
+          "customImage": 0,
+          "customScale": 1.0,
+          "customX": 0,
+          "customY": 0
+        },
+        "nick": {
+          "x": 163,
+          "y": 99,
+          "w": 445,
+          "align": "left",
+          "hidden": false
+        },
+        "layers": [
+          {
+            "t": "rank",
+            "align": "left",
+            "id": 1,
+            "x": 163,
+            "y": 135,
+            "hidden": false
+          }
+        ]
+      }
+    }
+  ],
+  "frames": [
+    {
+      "key": "None",
+      "name": "brak",
+      "free": true,
+      "selectable": true
+    },
+    {
+      "key": "PurpleLeaves",
+      "name": "liście",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Dzedai",
+      "name": "dzidowa",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Base",
+      "name": "domyślna",
+      "free": true,
+      "selectable": true
+    },
+    {
+      "key": "Water",
+      "name": "woda",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Crows",
+      "name": "kruki",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Bow",
+      "name": "wstążka",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Metal",
+      "name": "metalowa",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "RedThinLeaves",
+      "name": "kwiatki",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Skull",
+      "name": "czaszka",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Fire",
+      "name": "ogień",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Promium",
+      "name": "promium",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Ice",
+      "name": "lód",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Gold",
+      "name": "złota",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Red",
+      "name": "czerwona",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Rainbow",
+      "name": "tęcza",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Pink",
+      "name": "różowa",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "Simple",
+      "name": "prosta",
+      "free": false,
+      "selectable": true
+    },
+    {
+      "key": "TurqLeaves",
+      "name": "turkusowe liście",
+      "free": false,
+      "selectable": false
+    }
+  ]
+}
