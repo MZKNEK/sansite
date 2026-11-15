@@ -176,6 +176,23 @@
     color: var(--text-dim);
 }
 
+.profilator-lock {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    background: transparent;
+    font-size: 12px;
+    line-height: 24px;
+    cursor: pointer;
+    opacity: 0.45;
+}
+
+.profilator-lock[aria-pressed="true"] {
+    border-color: rgba(var(--accent-light-rgb), 0.8);
+    opacity: 1;
+}
+
 .profilator-add {
     display: flex;
     gap: 8px;

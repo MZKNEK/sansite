@@ -32,6 +32,15 @@
   var version = 0;
   var unlocks = [];
   var pictures = [];       // the player's pictures from the bot
+  // parts locked in the editor only: clicks on the preview go through them, the arrows leave them be;
+  // kept in this browser, never in the layout
+  var locked = {};
+  try { (JSON.parse(localStorage.getItem('profilator-locks') || '[]') || []).forEach(function (k) { locked[k] = true; }); } catch (e) { locked = {}; }
+  function isLocked(key) { return key !== null && locked[String(key)] === true; }
+  function setLocked(key, on) {
+    if (on) locked[String(key)] = true; else delete locked[String(key)];
+    try { localStorage.setItem('profilator-locks', JSON.stringify(Object.keys(locked))); } catch (e) { }
+  }
   var cardChoices = [];
   var data = null;
   var sel = null;          // 'avatar', 'nick', 'header', 'style', 'ultra' or a layer id
@@ -562,7 +571,7 @@
   function hitTest(p) {
     var list = parts();
     for (var i = list.length - 1; i >= 0; i--)
-      if (hitsPart(p, list[i][0]))
+      if (!isLocked(list[i][0]) && hitsPart(p, list[i][0]))
         return list[i][0];
     return null;
   }
@@ -693,7 +702,10 @@
     if (!M || sel === null)
       return;
     var d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
-    if (d) {
+    if (d && isLocked(sel)) {
+      say(nameOf(sel) + ': zablokowana, odblokuj ją na liście warstw.', true);
+      e.preventDefault();
+    } else if (d) {
       var step = e.shiftKey ? 10 : 1, o = objectOf(sel);
       snapshot();
       o.x += d[0] * step;
@@ -724,6 +736,7 @@
 
   function remove(key) {
     snapshot();
+    setLocked(key, false);
     if (key === 'header') M.header = null;
     else if (key === 'style') M.style = null;
     else if (key === 'ultra') M.ultra = null;
@@ -791,6 +804,17 @@
     li.appendChild(name);
     var ops = document.createElement('span');
     ops.className = 'profilator-layer-ops';
+    if (key !== null) {
+      var on = isLocked(key);
+      var lock = button(on ? '🔒' : '🔓', 'profilator-lock', (on ? 'Odblokuj: ' : 'Zablokuj: ') + options.name, function (e) {
+        e.stopPropagation();
+        setLocked(key, !isLocked(key));
+        say(options.name + (isLocked(key) ? ': zablokowana, na podglądzie kliknięcie trafia w to, co leży pod nią.' : ': odblokowana.'));
+        changed(true);
+      });
+      lock.setAttribute('aria-pressed', String(on));
+      ops.appendChild(lock);
+    }
     if (options.movable) {
       ops.appendChild(button('↑', 'admin-btn small', 'Wyżej', function () { moveLayer(o, 1); }));
       ops.appendChild(button('↓', 'admin-btn small', 'Niżej', function () { moveLayer(o, -1); }));
