@@ -137,6 +137,132 @@
     return 'image/webp';
   }
 
+  // ---- an animation made to fit the bot ----
+  // The bot takes width × height × frames up to catalog.maxPicturePixels and plays catalog.maxPictureFrames at most.
+  // A bigger animation loses the frames past that, then is made smaller; the browser decodes it (ImageDecoder),
+  // writes every frame as a still WebP (canvas) and the frames are put together into one animated WebP here.
+
+  function riffChunks(bytes) {
+    var view = new DataView(bytes), chunks = [];
+    for (var at = 12; at + 8 <= bytes.byteLength;) {
+      var size = view.getUint32(at + 4, true), end = at + 8 + size + (size & 1);
+      chunks.push({ id: String.fromCharCode.apply(null, new Uint8Array(bytes, at, 4)), bytes: new Uint8Array(bytes, at, Math.min(end, bytes.byteLength) - at) });
+      at = end;
+    }
+    return chunks;
+  }
+
+  function uint24(out, at, v) {
+    out[at] = v & 255;
+    out[at + 1] = (v >> 8) & 255;
+    out[at + 2] = (v >> 16) & 255;
+  }
+
+  function chunk(id, payload) {
+    var out = new Uint8Array(8 + payload.length + (payload.length & 1));
+    for (var i = 0; i < 4; i++) out[i] = id.charCodeAt(i);
+    new DataView(out.buffer).setUint32(4, payload.length, true);
+    out.set(payload, 8);
+    return out;
+  }
+
+  function concat(parts) {
+    var length = parts.reduce(function (n, p) { return n + p.length; }, 0), out = new Uint8Array(length), at = 0;
+    parts.forEach(function (p) { out.set(p, at); at += p.length; });
+    return out;
+  }
+
+  // frames: { data: the ALPH and VP8/VP8L chunks of a still WebP, ms }, every one of the whole w × h, not blended
+  function animatedWebp(frames, w, h) {
+    var vp8x = new Uint8Array(10);
+    vp8x[0] = 0x02 | 0x10;
+    uint24(vp8x, 4, w - 1);
+    uint24(vp8x, 7, h - 1);
+    var parts = [chunk('VP8X', vp8x), chunk('ANIM', new Uint8Array(6))];
+    frames.forEach(function (f) {
+      var head = new Uint8Array(16);
+      uint24(head, 6, w - 1);
+      uint24(head, 9, h - 1);
+      uint24(head, 12, Math.min(0xffffff, Math.max(1, Math.round(f.ms))));
+      head[15] = 0x02;
+      parts.push(chunk('ANMF', concat([head].concat(f.data))));
+    });
+    var body = concat(parts), riff = new Uint8Array(12);
+    riff.set([0x52, 0x49, 0x46, 0x46], 0);
+    new DataView(riff.buffer).setUint32(4, body.length + 4, true);
+    riff.set([0x57, 0x45, 0x42, 0x50], 8);
+    return concat([riff, body]);
+  }
+
+  function stillWebp(canvas, quality) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (blob) {
+        if (!blob || blob.type !== 'image/webp')
+          reject(new Error('ta przeglądarka nie zapisuje WebP, zmniejsz animację sam'));
+        else
+          blob.arrayBuffer().then(resolve, reject);
+      }, 'image/webp', quality);
+    });
+  }
+
+  // the file as it is when it fits, else a smaller animated WebP; progress(done, all) while the frames are written
+  function fitAnimation(file, progress) {
+    var max = catalog && catalog.maxPicturePixels, most = (catalog && catalog.maxPictureFrames) || 150;
+    if (!max)
+      return Promise.resolve(file);
+    return file.arrayBuffer().then(function (bytes) {
+      var type = typeOf(bytes);
+      if ((type !== 'image/gif' && type !== 'image/webp') || typeof ImageDecoder === 'undefined')
+        return file;
+      var decoder = new ImageDecoder({ data: bytes, type: type });
+      var close = function (result) { decoder.close(); return result; };
+      return Promise.all([decoder.tracks.ready, decoder.completed]).then(function () {
+        var count = decoder.tracks.selectedTrack.frameCount;
+        if (count < 2)
+          return file;
+        return decoder.decode({ frameIndex: 0 }).then(function (first) {
+          var w = first.image.displayWidth, h = first.image.displayHeight;
+          first.image.close();
+          if (w * h * count <= max)
+            return file;
+
+          var keep = Math.min(count, most), k = Math.min(1, Math.sqrt(max / (w * h * keep)));
+          var nw = Math.max(1, Math.floor(w * k)), nh = Math.max(1, Math.floor(h * k));
+          var canvas = document.createElement('canvas');
+          canvas.width = nw;
+          canvas.height = nh;
+          var c = canvas.getContext('2d');
+          var write = function (quality) {
+            var frames = [], i = 0;
+            var next = function () {
+              if (i >= keep)
+                return Promise.resolve(animatedWebp(frames, nw, nh));
+              return decoder.decode({ frameIndex: i }).then(function (r) {
+                c.clearRect(0, 0, nw, nh);
+                c.drawImage(r.image, 0, 0, nw, nh);
+                var ms = frameDelay(r.image.duration);
+                r.image.close();
+                return stillWebp(canvas, quality).then(function (still) {
+                  frames.push({ ms: ms, data: riffChunks(still).filter(function (x) { return /^(ALPH|VP8 |VP8L)$/.test(x.id); }).map(function (x) { return x.bytes; }) });
+                  progress(++i, keep);
+                  return next();
+                });
+              });
+            };
+            return next();
+          };
+          return write(0.9).then(function (out) {
+            return out.length > catalog.maxPictureBytes ? write(0.7) : out;
+          }).then(function (out) {
+            if (out.length > catalog.maxPictureBytes)
+              throw new Error('nawet po zmniejszeniu animacja ma ponad ' + Math.round(catalog.maxPictureBytes / 1048576) + ' MB');
+            return new File([out], file.name.replace(/\.[^.]*$/, '') + '-' + nw + 'x' + nh + '.webp', { type: 'image/webp' });
+          });
+        });
+      }).then(close, function (e) { decoder.close(); throw e; });
+    });
+  }
+
   function fetchPicture(id) {
     if (images[id] !== undefined)
       return Promise.resolve(images[id]);
@@ -1242,7 +1368,7 @@
       }));
     } else if (sel === 'ultra' || o.t === 'overlay') {
       host.appendChild(pictureSelect(o.image, function (v) {
-        // another picture keeps the size the layer has on the profile, e.g. one twice as large for the profile of twice the size
+        // another picture keeps the size the layer has on the profile, e.g. the same one sent twice as large
         var was = pictures.filter(function (p) { return p.id === o.image; })[0];
         var now = pictures.filter(function (p) { return p.id === v; })[0];
         if (was && now && now.width > 0)
@@ -1380,7 +1506,6 @@
       pick.value = M.accent.toLowerCase();
 
     fill($('look-panels'), segment([['solid', 'Pełne'], ['glass', 'Szkło'], ['shadow', 'Cień']], M.panels, function (v) { M.panels = v; }));
-    fill($('look-hd'), segment([[false, '750 × 500'], [true, '1500 × 1000']], !!M.hd, function (v) { if (v) M.hd = true; else delete M.hd; }));
     fill($('look-shade'), segment([['band', 'Pasek'], ['fade', 'Cieniowanie'], ['none', 'Brak']], M.shade, function (v) { M.shade = v; }));
     fill($('look-bar'), segment([['bottom', 'Na dole'], ['top', 'Na górze'], ['hidden', 'Ukryty']], M.bar.at, function (v) { M.bar.at = v; }));
     fill($('look-bar-look'), segment([['solid', 'Pełny'], ['glass', 'Szkło']], M.bar.look, function (v) { M.bar.look = v; }));
@@ -1690,7 +1815,11 @@
   function fetchImage(url, options) {
     return fetch(url, Object.assign({ credentials: 'same-origin' }, options || {})).then(function (res) {
       if (!res.ok)
-        return res.json().then(function (b) { throw new Error(Array.isArray(b) ? b.join('; ') : (b && b.error) || res.status); }, function () { throw new Error(res.status); });
+        return res.json().then(function (b) {
+          throw new Error(Array.isArray(b) ? b.join('; ')
+            : b && b.message === 'Profile too big to draw' ? 'profil potrzebuje za dużo pamięci, zmniejsz jego animowany obrazek'
+            : (b && b.error) || res.status);
+        }, function () { throw new Error(res.status); });
       return res.blob();
     }).then(function (blob) { return load(URL.createObjectURL(blob)); });
   }
@@ -1869,7 +1998,7 @@
       ? cutout.removeBackground(URL.createObjectURL(file), $('cut-model').value, function (stage, fraction) {
         say(stage === 'fetch' ? 'Pobieranie modelu' + (fraction != null ? ' ' + Math.round(fraction * 100) + '%' : '…') : 'Usuwanie tła…');
       }).then(function (blob) { return new File([blob], file.name.replace(/\.[^.]*$/, '') + '-bez-tla.png', { type: 'image/png' }); })
-      : Promise.resolve(file);
+      : fitAnimation(file, function (done, all) { say('Zmniejszanie animacji dla bota: klatka ' + done + ' z ' + all + '…'); });
     ready.then(function (sent) {
       say('Wysyłanie obrazka…');
       var form = new FormData();
@@ -1881,7 +2010,10 @@
     }).then(function (answer) {
       btn.disabled = false;
       if (answer.status !== 200) {
-        say({ 429: 'Masz za dużo nieużywanych obrazków: zapisz profil, nieużywane znikną po godzinie.', 413: 'Plik jest za duży.' }[answer.status]
+        var tooLong = answer.body && answer.body.message === 'Animation too big';
+        say(tooLong ? 'Animacja ma za dużo klatek na swoją wielkość (szerokość × wysokość × klatki najwyżej '
+            + Math.round(catalog.maxPicturePixels / 1e6) + ' mln). Zmniejsz ją albo skróć.'
+          : { 429: 'Masz za dużo nieużywanych obrazków: zapisz profil, nieużywane znikną po godzinie.', 413: 'Plik jest za duży.' }[answer.status]
           || 'Bot nie przyjął obrazka (' + answer.status + ').', true);
         return;
       }

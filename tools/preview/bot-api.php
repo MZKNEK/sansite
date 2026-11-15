@@ -115,7 +115,6 @@
             if (!empty($layout['header'])) $needs[] = 'headerImg';
             if (!empty($layout['style'])) $needs[] = 'styleImg';
             if (!empty($layout['ultra'])) $needs[] = 'ultra';
-            if (!empty($layout['hd'])) $needs[] = 'hd';
             $kinds = array_count_values(array_column($layout['layers'] ?? [], 't'));
             for ($i = 1; $i <= ($kinds['overlay'] ?? 0); $i++) $needs[] = 'overlay:' . $i;
             for ($i = 1; $i <= ($kinds['sticker'] ?? 0); $i++) $needs[] = 'sticker:' . $i;

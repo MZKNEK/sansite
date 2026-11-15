@@ -129,7 +129,6 @@
             <span class="hud-field-label">Kolor akcentu</span>
             <div class="profilator-swatches"><span id="accents"></span><label class="profilator-pick"><input type="color" id="accent-pick" value="#ff7a45" aria-label="Dowolny kolor akcentu" /> dowolny</label></div>
           </div>
-          <div class="profilator-group"><span class="hud-field-label">Rozdzielczość profilu (podwójna tylko za TC)</span><div id="look-hd"></div></div>
           <div class="profilator-group"><span class="hud-field-label">Przyciemnienie nagłówka pod nickiem</span><div id="look-shade"></div></div>
           <div class="profilator-group"><span class="hud-field-label">Panele</span><div id="look-panels"></div></div>
           <label class="hud-field profilator-range">
@@ -229,7 +228,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="layers.js?v=4f9c98979d"></script>
-  <script src="editor.js?v=ef5a742329"></script>
+  <script src="editor.js?v=63ba4b987e"></script>
 </body>
 
 </html>

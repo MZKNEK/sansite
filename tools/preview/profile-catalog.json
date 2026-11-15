@@ -4,6 +4,8 @@
   "maxOverlays": 3,
   "maxLayoutJson": 16384,
   "maxPictureBytes": 10485760,
+  "maxPicturePixels": 64000000,
+  "maxPictureFrames": 150,
   "features": [
     {
       "key": "barHide",
@@ -308,14 +310,6 @@
       "sc": 240000,
       "tc": 3999,
       "tcOnly": false
-    },
-    {
-      "key": "hd",
-      "name": "Profil w podwójnej rozdzielczości",
-      "description": "1500 × 1000 zamiast 750 × 500, tylko za TC",
-      "sc": 0,
-      "tc": 5000,
-      "tcOnly": true
     }
   ],
   "presets": [
@@ -327,7 +321,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -407,7 +400,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -487,7 +479,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -554,7 +545,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -621,7 +611,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -678,7 +667,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -748,7 +736,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -817,7 +804,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -887,7 +873,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -945,7 +930,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -993,7 +977,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
@@ -1041,7 +1024,6 @@
         "panels": "solid",
         "shadow": 70,
         "shade": "fade",
-        "hd": false,
         "bar": {
           "at": "bottom",
           "opacity": 85,
