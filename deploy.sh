@@ -230,11 +230,24 @@ fi
 # (pictures.bin) are made again by hues/respack.php before anything goes, so
 # a picture or song added, changed or removed never goes without them; it
 # writes only what changed, and a failure (a PNG cwebp could not make WebP)
-# stops the deploy. --dry-run only says whether it would run.
+# stops the deploy. --dry-run only says whether it would run. php runs here,
+# not on the server: a PHP for Windows sits on the Windows PATH, which MSYS2's
+# shells leave out unless MSYS2_PATH_TYPE=inherit, so with no php on the PATH
+# the Windows one (the user's and the system's) is added to it, which also
+# lets respack.php find cwebp there; PHP=/path/to/php picks one by hand.
 if [ -d hues/.pack ]; then
+    php=${PHP:-php}
+    if ! command -v "$php" > /dev/null && command -v powershell.exe > /dev/null && command -v cygpath > /dev/null; then
+        winpath=$(powershell.exe -NoProfile -NonInteractive -Command "[Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [Environment]::GetEnvironmentVariable('Path', 'Machine')" 2> /dev/null | tr -d '\r') || winpath=
+        [ -z "$winpath" ] || PATH="$PATH:$(cygpath -u -p "$winpath")"
+    fi
+    if ! command -v "$php" > /dev/null; then
+        echo "Nie ma php ani w PATH, ani w PATH Windowsa (albo wskaż go w PHP=...); potrzebny do hues/respack.php." >&2
+        exit 1
+    fi
     if [ "$dry_run" -eq 0 ]; then
-        php hues/respack.php
-    elif php hues/respack.php --check; then
+        "$php" hues/respack.php
+    elif "$php" hues/respack.php --check; then
         echo "[dry-run] Lista 0x40 (respack.json, pictures.bin) jest aktualna."
     else
         echo "[dry-run] Uruchomiłbym php hues/respack.php: obrazy lub utwory 0x40 się zmieniły."
