@@ -49,7 +49,7 @@
   <link href="../css/status.css?v=df34270dd6" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=452dc479f3" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=500591a280" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -169,6 +169,7 @@
                   <option value="overlay">nakładkę</option>
                   <option value="header">tło nagłówka</option>
                   <option value="style">obrazek stylu</option>
+                  <option value="whole">tło nagłówka i obrazek stylu (cały profil)</option>
                   <option value="ultra">ultra nakładkę</option>
                   <option value="frame">własną ramkę awatara</option>
                 </select>
@@ -227,7 +228,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="layers.js?v=3b3f06307f"></script>
-  <script src="editor.js?v=8febcb7caa"></script>
+  <script src="editor.js?v=5e0644b46d"></script>
 </body>
 
 </html>

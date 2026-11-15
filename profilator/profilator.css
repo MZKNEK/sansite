@@ -176,6 +176,28 @@
     color: var(--text-dim);
 }
 
+.profilator-nudge-wrap {
+    display: grid;
+    gap: 6px;
+    margin: 4px 0 10px;
+}
+
+.profilator-nudge {
+    display: grid;
+    grid-template-columns: repeat(3, 32px);
+    grid-template-rows: repeat(3, 28px);
+    gap: 3px;
+}
+
+.profilator-nudge button {
+    padding: 0;
+}
+
+.profilator-nudge [data-dir="↑"] { grid-area: 1 / 2; }
+.profilator-nudge [data-dir="←"] { grid-area: 2 / 1; }
+.profilator-nudge [data-dir="→"] { grid-area: 2 / 3; }
+.profilator-nudge [data-dir="↓"] { grid-area: 3 / 2; }
+
 .profilator-lock {
     width: 26px;
     height: 26px;

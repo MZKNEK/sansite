@@ -482,6 +482,7 @@
       c.drawImage(present, 0, 0, L.W, L.H);
       return;
     }
+    slotsLinked = linkedSlots();
     L.render(canvas, M, data, assets);
     var x = canvas.getContext('2d');
     x.save();
@@ -536,6 +537,7 @@
 
   // after any change of the layout: the drawing, the lists and the price
   function changed(rebuild) {
+    slotsLinked = linkedSlots();
     redraw();
     renderLayers();
     if (rebuild) renderProps(); else refreshProps();
@@ -578,7 +580,21 @@
 
   function isSlot(key) { return key === 'header' || key === 'style'; }
 
-  function slotField(key) { return key === 'header' ? L.HEADER : L.STYLE; }
+  // the header and the style showing one picture in one frame make one picture of the whole profile:
+  // as long as they do, they move and zoom together within the whole profile
+  var slotsLinked = false;
+  function linkedSlots() {
+    var h = M && M.header, s = M && M.style;
+    return !!(h && s && h.image === s.image && h.x === s.x && h.y === s.y && h.scale === s.scale);
+  }
+
+  function slotField(key) { return slotsLinked ? { x: 0, y: 0, w: L.W, h: L.H } : key === 'header' ? L.HEADER : L.STYLE; }
+
+  // one picture over the whole profile, in both the header and the style
+  function wholeAt(picture) {
+    var s = Math.max(L.W / picture.width, L.H / picture.height);
+    return { image: picture.id, scale: s, x: Math.round((L.W - picture.width * s) / 2), y: Math.round((L.H - picture.height * s) / 2) };
+  }
 
   function coverScale(key) {
     var img = images[objectOf(key).image];
@@ -595,6 +611,12 @@
     var w = img.naturalWidth * o.scale, h = img.naturalHeight * o.scale;
     o.x = Math.round(Math.min(f.x, Math.max(f.x + f.w - w, o.x)));
     o.y = Math.round(Math.min(f.y, Math.max(f.y + f.h - h, o.y)));
+    if (slotsLinked) {
+      var other = M[key === 'header' ? 'style' : 'header'];
+      other.x = o.x;
+      other.y = o.y;
+      other.scale = o.scale;
+    }
   }
 
   function clamp(key) {
@@ -758,6 +780,34 @@
     changed(false);
   }
 
+  // arrows for small corrections of the selected part: a pixel a click, ten with Shift
+  function nudgePad() {
+    var pad = document.createElement('div');
+    pad.className = 'profilator-nudge';
+    [['↑', 0, -1, 'w górę'], ['←', -1, 0, 'w lewo'], ['→', 1, 0, 'w prawo'], ['↓', 0, 1, 'w dół']].forEach(function (a) {
+      var b = button(a[0], 'admin-btn small', 'Przesuń ' + a[3] + ' o 1 px (z Shift o 10 px)', function (e) {
+        var o = sel !== null ? objectOf(sel) : null;
+        if (!o) return;
+        var step = e.shiftKey ? 10 : 1;
+        snapshot();
+        o.x += a[1] * step;
+        o.y += a[2] * step;
+        clamp(sel);
+        changed(false);
+      });
+      b.dataset.dir = a[0];
+      pad.appendChild(b);
+    });
+    var label = document.createElement('span');
+    label.className = 'hud-field-label';
+    label.textContent = 'Korekta (Shift: 10 px)';
+    var wrap = document.createElement('div');
+    wrap.className = 'profilator-nudge-wrap';
+    wrap.appendChild(label);
+    wrap.appendChild(pad);
+    return wrap;
+  }
+
   function button(text, cls, label, click) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -822,7 +872,8 @@
     li.appendChild(ops);
     if (key !== null)
       li.addEventListener('click', function () {
-        sel = key;
+        // a second click on the selected part lets it go
+        sel = sel === key ? null : key;
         changed(true);
       });
     list.appendChild(li);
@@ -1171,10 +1222,13 @@
       two.appendChild(field('Y', number('p-y', o.y, function (v) { o.y = v; clamp(sel); })));
       host.appendChild(two);
     }
+    host.appendChild(nudgePad());
 
     if (isSlot(sel)) {
       var key = sel, cover = coverScale(key);
-      host.appendChild(note('Obrazek zawsze wypełnia swoje pole. Przeciągnij go na podglądzie, żeby wybrać kadr.'));
+      host.appendChild(note(slotsLinked
+        ? 'Tło nagłówka i obrazek stylu to jeden obrazek na cały profil: przesuwają się i powiększają razem.'
+        : 'Obrazek zawsze wypełnia swoje pole. Przeciągnij go na podglądzie, żeby wybrać kadr.'));
       host.appendChild(pictureSelect(o.image, function (v) {
         var p = pictures.filter(function (x) { return x.id === v; })[0];
         if (p) M[key] = coverAt(key, p);
@@ -1792,7 +1846,7 @@
       say('Wysyłanie obrazka…');
       var form = new FormData();
       form.append('file', sent);
-      form.append('use', use);
+      form.append('use', use === 'whole' ? 'header' : use);
       return fetch(api + '?a=upload', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF': csrf }, body: form }).then(function (res) {
         return res.json().then(function (b) { return { status: res.status, body: b }; });
       });
@@ -1808,8 +1862,16 @@
         pictures.push(p);
       input.value = '';
       fetchPicture(p.id).then(function () {
-        say('Obrazek wysłany. Dodaj go jako ' + { header: 'tło nagłówka', style: 'obrazek stylu', overlay: 'nakładkę', ultra: 'ultra nakładkę', frame: 'własną ramkę awatara' }[use] + '.');
-        $('add-kind').value = use === 'frame' ? $('add-kind').value : use;
+        if (use === 'whole') {
+          snapshot();
+          M.header = wholeAt(p);
+          M.style = wholeAt(p);
+          sel = 'header';
+          say('Obrazek ustawiony na całym profilu: górą w tle nagłówka, resztą w obrazku stylu.');
+        } else {
+          say('Obrazek wysłany. Dodaj go jako ' + { header: 'tło nagłówka', style: 'obrazek stylu', overlay: 'nakładkę', ultra: 'ultra nakładkę', frame: 'własną ramkę awatara' }[use] + '.');
+          $('add-kind').value = use === 'frame' ? $('add-kind').value : use;
+        }
         renderPictures();
         changed(true);
       });
