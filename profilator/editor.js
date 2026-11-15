@@ -1241,7 +1241,14 @@
         clampSlot(key);
       }));
     } else if (sel === 'ultra' || o.t === 'overlay') {
-      host.appendChild(pictureSelect(o.image, function (v) { o.image = v; }));
+      host.appendChild(pictureSelect(o.image, function (v) {
+        // another picture keeps the size the layer has on the profile, e.g. one twice as large for the profile of twice the size
+        var was = pictures.filter(function (p) { return p.id === o.image; })[0];
+        var now = pictures.filter(function (p) { return p.id === v; })[0];
+        if (was && now && now.width > 0)
+          o.scale = (o.scale || 1) * was.width / now.width;
+        o.image = v;
+      }));
       host.appendChild(range('p-scale', 'Skala', 10, 300, 1, Math.round((o.scale || 1) * 100), function (v) { return v + '%'; }, function (v) { o.scale = v / 100; clamp(sel); }));
       host.appendChild(range('p-opacity', 'Krycie', 10, 100, 1, Math.round((o.opacity == null ? 1 : o.opacity) * 100), function (v) { return v + '%'; }, function (v) { o.opacity = v / 100; }));
       host.appendChild(note(sel === 'ultra' ? 'Może leżeć na całym profilu, także na górze nagłówka, nad wszystkimi warstwami. Pod paskiem i awatarem.' : 'Widać ją tylko pod górą nagłówka (od 98 px w dół), w dowolnej kolejności wśród warstw. Leży nad nickiem, więc można na niej narysować własny.'));

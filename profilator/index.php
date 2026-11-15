@@ -229,7 +229,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="layers.js?v=4f9c98979d"></script>
-  <script src="editor.js?v=30b58a637a"></script>
+  <script src="editor.js?v=ef5a742329"></script>
 </body>
 
 </html>
