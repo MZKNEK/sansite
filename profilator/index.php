@@ -226,7 +226,7 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="layers.js?v=ae77c5cef0"></script>
+  <script src="layers.js?v=9bc73c2099"></script>
   <script src="editor.js?v=974c7b5b18"></script>
 </body>
 

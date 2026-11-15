@@ -49,9 +49,16 @@ window.Layers = (function () {
     c.font = font(size, bold);
     c.fillStyle = color;
     c.textAlign = align || 'left';
-    c.textBaseline = 'middle';
-    c.fillText(value, x, y);
-    return c.measureText(value).width;
+    // y is the middle of the font's line box, as the bot centres its texts; the canvas's own "middle" sits higher
+    var m = c.measureText(value);
+    if (m.fontBoundingBoxAscent != null) {
+      c.textBaseline = 'alphabetic';
+      c.fillText(value, x, y + (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2);
+    } else {
+      c.textBaseline = 'middle';
+      c.fillText(value, x, y);
+    }
+    return m.width;
   }
 
   function fit(value, size, bold, max) {
