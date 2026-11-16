@@ -2,8 +2,11 @@
     // inc/profilator.php: Profilator's way to the bot's api/Profile.
     require_once __DIR__ . '/../inc/profilator.php';
 
-    test('profilatorPath takes only ids of Discord accounts', function () {
+    test('profilatorPath takes only ids of Discord accounts and the bot\'s own', function () {
         assertSame('discord/123456789012345678', profilatorPath('123456789012345678'));
+        assertSame('discord/1/images', profilatorPath(PROFILATOR_BOT, 'images'));
+        assertNull(profilatorPath('01'));
+        assertNull(profilatorPath('2'));
         assertSame('discord/123456789012345678/images/7', profilatorPath('123456789012345678', 'images/7'));
         assertNull(profilatorPath('../catalog'));
         assertNull(profilatorPath('12345'));
@@ -117,15 +120,27 @@
         assertFalse(profilatorFree(null));
     });
 
-    test('profilatorOwner lets only a site admin work on another\'s profile, and not on its slots or pictures', function () {
+    test('profilatorOwner lets only a site admin work on another\'s profile or the bot\'s, and not on its slots', function () {
         if (!defined('PANEL_ADMINS')) define('PANEL_ADMINS', ['999']);
         $admin = PANEL_ADMINS[0];
         $player = '123456789012345678';
         assertSame([$player, null], profilatorOwner($player, null, 'save'));
         assertSame([null, 'admin'], profilatorOwner($player, '223456789012345678', 'me'));
         assertSame(['223456789012345678', null], profilatorOwner($admin, '223456789012345678', 'save'));
-        assertSame([null, 'as'], profilatorOwner($admin, '223456789012345678', 'upload'));
+        assertSame(['223456789012345678', null], profilatorOwner($admin, '223456789012345678', 'upload'));
+        assertSame([PROFILATOR_BOT, null], profilatorOwner($admin, PROFILATOR_BOT, 'delete'));
+        assertSame([null, 'admin'], profilatorOwner($player, PROFILATOR_BOT, 'save'));
         assertSame([null, 'as'], profilatorOwner($admin, '223456789012345678', 'slot'));
         assertSame([null, 'as'], profilatorOwner($admin, '../catalog', 'me'));
         assertSame([null, 'as'], profilatorOwner($admin, ['223456789012345678'], 'me'));
+    });
+
+    test('profilatorGrant gives for free the bot\'s profile always, a player\'s only when asked, never one\'s own', function () {
+        $admin = '999';
+        $player = '123456789012345678';
+        assertTrue(profilatorGrant($admin, PROFILATOR_BOT, false));
+        assertTrue(profilatorGrant($admin, $player, true));
+        assertFalse(profilatorGrant($admin, $player, false));
+        assertFalse(profilatorGrant($admin, $player, 'true'));
+        assertFalse(profilatorGrant($player, $player, true));
     });

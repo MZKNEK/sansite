@@ -13,7 +13,9 @@
     const PROFILATOR_SLOTS = 3;
     const PROFILATOR_SLOT_NAME = 40;
     // what a site admin may ask for another player's profile (api.php ?as=)
-    const PROFILATOR_AS_ACTIONS = ['me', 'picture', 'current', 'quote', 'preview', 'save'];
+    const PROFILATOR_AS_ACTIONS = ['me', 'picture', 'current', 'quote', 'preview', 'save', 'upload', 'delete'];
+    // the bot's own profile, kept in its database under the id 1 rather than its Discord id
+    const PROFILATOR_BOT = '1';
 
     // one request to api/Profile/<path>; [body, status], [false, 0] without an answer
     function profilatorBot($method, $path, $body = null, array $headers = [], $timeout = 20)
@@ -28,11 +30,11 @@
         return httpRaw(botApiBase() . '/api/Profile/' . $path, $options);
     }
 
-    // the path of the account's profile; only ids of Discord accounts
+    // the path of the account's profile; only ids of Discord accounts and the bot's own
     function profilatorPath($id, $rest = '')
     {
         $id = (string)$id;
-        if (!preg_match('/^\d{17,20}$/', $id))
+        if (!preg_match('/^\d{17,20}$/', $id) && $id !== PROFILATOR_BOT)
             return null;
 
         return 'discord/' . $id . ($rest !== '' ? '/' . $rest : '');
@@ -114,6 +116,16 @@
     function profilatorFree($quote)
     {
         return is_array($quote) && empty($quote['missing']) && (int)($quote['sc'] ?? 0) === 0 && (int)($quote['tc'] ?? 0) === 0;
+    }
+
+    // an admin's save of another's profile gives what it needs for free: always for the
+    // bot's own, for a player when asked; never for the account's own profile
+    function profilatorGrant($id, $owner, $asked)
+    {
+        if ((string)$owner === (string)$id)
+            return false;
+
+        return (string)$owner === PROFILATOR_BOT || $asked === true;
     }
 
     // the account's saved layouts, PROFILATOR_SLOTS places, each null or

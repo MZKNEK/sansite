@@ -7,6 +7,7 @@
     installDataErrorHandler();
     require __DIR__ . '/../inc/meta.php';
     require __DIR__ . '/../inc/pw.php';
+    require __DIR__ . '/../inc/profilator.php';
     $user = siteUser();
     $accountMenu = $user !== null ? accountMenuHtml($user, siteRoles(), $_SERVER['REQUEST_URI'] ?? '') : '';
     $csrf = $user !== null ? siteCsrf() : '';
@@ -28,9 +29,9 @@
     // USkalpelator's background removal, built as a module of its own (apps/uskalpel/vite.config.js)
     $cutout = glob(__DIR__ . '/../uskalpel/assets/cutout-*.js')[0] ?? null;
     $avatar = $user !== null && $user['avatar'] !== '' ? preg_replace('~\?size=\d+$~', '?size=128', $user['avatar']) : '';
-    // a site admin may open another player's profile by its Discord id (?as=), to put it right
+    // a site admin may open another player's profile by its Discord id (?as=), or the bot's own (?as=1), to put it right
     $admin = $user !== null && isPanelAdminId($user['id']);
-    $as = $admin && is_string($_GET['as'] ?? null) && preg_match('/^\d{17,20}$/', $_GET['as']) && $_GET['as'] !== (string)$user['id'] ? $_GET['as'] : '';
+    $as = $admin && is_string($_GET['as'] ?? null) && (preg_match('/^\d{17,20}$/', $_GET['as']) || $_GET['as'] === PROFILATOR_BOT) && $_GET['as'] !== (string)$user['id'] ? $_GET['as'] : '';
     if ($as !== '')
         $avatar = '';
 ?>
@@ -54,7 +55,7 @@
   <link href="../css/status.css?v=c2da6fb979" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=012d71a013" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=6a986a6d96" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -84,10 +85,13 @@
 <?php if ($admin): ?>
         <form class="profilator-as" method="get" action="./">
           <label class="hud-field">
-            <span class="hud-field-label">Profil gracza <span class="muted">admin: id konta Discord</span></span>
-            <input class="field hud-corners" type="text" name="as" inputmode="numeric" pattern="\d{17,20}" maxlength="20" placeholder="np. 123456789012345678" value="<?=e($as)?>" required />
+            <span class="hud-field-label">Profil gracza <span class="muted">admin: id konta Discord, 1 to profil bota</span></span>
+            <input class="field hud-corners" type="text" name="as" inputmode="numeric" pattern="\d{17,20}|1" maxlength="20" placeholder="np. 123456789012345678" value="<?=e($as)?>" required />
           </label>
           <button type="submit" class="admin-btn small">Wczytaj</button>
+<?php if ($as !== PROFILATOR_BOT): ?>
+          <a class="admin-btn small" href="./?as=<?=PROFILATOR_BOT?>">Profil bota</a>
+<?php endif; ?>
 <?php if ($as !== ''): ?>
           <a class="admin-btn small" href="./">Mój profil</a>
 <?php endif; ?>
@@ -174,7 +178,7 @@
           <h2><i>05</i>Obrazki</h2>
           <p class="hint">Obrazki trafiają do bota i są tylko twoje. Po odblokowaniu miejsca zmiany obrazków są darmowe; nieużywane znikają godzinę po zapisie profilu.</p>
           <ul class="profilator-pictures" id="pictures"></ul>
-<?php if ($user !== null && $as === ''): ?>
+<?php if ($user !== null): ?>
           <div class="profilator-drop hud-corners" id="picture-drop" role="button" tabindex="0" aria-label="Przeciągnij obraz albo kliknij, by wybrać plik">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></svg>
             <span class="drop-text"><b>Przeciągnij obraz</b><small id="picture-name">albo kliknij, by wybrać plik: png, jpg, gif, webp, do 10 MB</small></span>
@@ -234,6 +238,14 @@
                 <svg class="hud-chevron" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" /></svg>
               </span>
             </label>
+<?php if ($as !== '' && $as !== PROFILATOR_BOT): ?>
+            <label class="switch" id="grant-field">
+              <span class="switch-label">Nadaj za darmo<small>Brakujące odblokowania gracz dostaje bez opłaty, zapisane jako nadane przez admina i w historii.</small></span>
+              <input type="checkbox" id="grant" />
+              <span class="switch-state" aria-hidden="true">WYŁ</span>
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+<?php endif; ?>
             <button type="button" class="admin-btn primary" id="save" disabled>Zapisz</button>
           </div>
         </section>
@@ -247,7 +259,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="layers.js?v=4f9c98979d"></script>
-  <script src="editor.js?v=83ee27f51a"></script>
+  <script src="editor.js?v=f1b5e0fa0c"></script>
 </body>
 
 </html>

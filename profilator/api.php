@@ -5,9 +5,11 @@
     // (JSON; a=save also with X-Idempotency-Key). The bot's statuses and answers go back as
     // they are, its pictures with their type. a=slots and, with X-CSRF, a=slot (JSON: slot,
     // layout or null, name) are the account's own layouts, kept by the site alone.
-    // A site admin (PANEL_ADMINS) may add as=<Discord id> to a=me, picture, current, quote,
-    // preview and save to work on another player's profile: a save then goes through only
-    // when it costs that player nothing, and is noted in the history.
+    // A site admin (PANEL_ADMINS) may add as=<Discord id>, or as=1 for the bot's own profile,
+    // to a=me, picture, current, upload, delete, quote, preview and save to work on another
+    // player's profile: a save then goes through only when it costs that player nothing, or
+    // with "grant": true (always for the bot) gives what it needs for free; it is noted in
+    // the history.
     require __DIR__ . '/../inc/profilator.php';
     installDataErrorHandler();
 
@@ -91,7 +93,7 @@
             $picture = (string)($_GET['id'] ?? '');
             if (!preg_match('/^\d{1,20}$/', $picture))
                 profilatorJson(400, ['error' => 'picture']);
-            profilatorPass(profilatorBot('DELETE', profilatorPath($id, 'images/' . $picture)));
+            profilatorPass(profilatorBot('DELETE', profilatorPath($owner, 'images/' . $picture)));
 
         case 'current':
             profilatorPass(profilatorBot('GET', profilatorPath($owner, 'image'), null, [], 60), true);
@@ -110,7 +112,7 @@
             if ($type === null)
                 profilatorJson(400, ['error' => 'type']);
             [$form, $contentType] = profilatorMultipart(['use' => $use], 'file', $file['name'] ?? 'obrazek', $bytes, $type);
-            profilatorPass(profilatorBot('POST', profilatorPath($id, 'images'), $form, ['Content-Type' => $contentType], 60));
+            profilatorPass(profilatorBot('POST', profilatorPath($owner, 'images'), $form, ['Content-Type' => $contentType], 60));
 
         case 'slots':
             profilatorJson(200, ['slots' => profilatorSlotsOut(profilatorSlots($id))]);
@@ -139,7 +141,8 @@
                 $currency = in_array($sent['currency'] ?? 'sc', ['sc', 'tc'], true) ? $sent['currency'] ?? 'sc' : null;
                 if ($layout === null || $key === null || $currency === null)
                     profilatorJson(400, ['error' => 'request']);
-                if ($owner !== $id) {
+                $grant = profilatorGrant($id, $owner, $sent['grant'] ?? false);
+                if ($owner !== $id && !$grant) {
                     // another's profile: only when the bot would charge nothing for it
                     [$quote, $quoted] = profilatorBot('POST', profilatorPath($owner, 'quote'), $layout, ['Content-Type' => 'application/json'], 60);
                     if ($quote === false || $quoted === 0)
@@ -147,10 +150,13 @@
                     if ($quoted !== 200 || !profilatorFree(json_decode((string)$quote, true)))
                         profilatorJson(402, ['error' => 'paid']);
                 }
-                $body = '{"layout":' . $layout . ',"currency":"' . $currency . '","version":' . (int)($sent['version'] ?? 0) . '}';
+                $body = '{"layout":' . $layout . ',"currency":"' . $currency . '","version":' . (int)($sent['version'] ?? 0) . ',"grant":' . ($grant ? 'true' : 'false') . '}';
                 $answer = profilatorBot('PUT', profilatorPath($owner), $body, ['Content-Type' => 'application/json', 'Idempotency-Key' => $key], 60);
-                if ($owner !== $id && $answer[1] === 200)
-                    addHistory('profilator', 'Zapisano w Profilatorze profil gracza ' . $owner . '.', $user);
+                if ($owner !== $id && $answer[1] === 200) {
+                    $given = $grant ? (json_decode((string)$answer[0], true)['unlocked'] ?? []) : [];
+                    addHistory('profilator', 'Zapisano w Profilatorze ' . ($owner === PROFILATOR_BOT ? 'profil bota' : 'profil gracza ' . $owner)
+                        . ($given ? ', nadano za darmo: ' . implode(', ', array_map('strval', (array)$given)) : '') . '.', $user);
+                }
                 profilatorPass($answer);
             }
             $layout = profilatorLayoutJson($sent);

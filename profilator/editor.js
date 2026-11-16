@@ -22,9 +22,13 @@
   var logged = root.getAttribute('data-logged') === '1';
   var pw = root.getAttribute('data-pw') || '';
   var botCards = root.getAttribute('data-bot-cards') || '';
-  // a site admin working on another player's profile (?as=<id>): their pictures only to pick,
-  // a save only when it costs them nothing (api.php checks it too)
+  // a site admin working on another player's profile (?as=<id>, ?as=1 for the bot's own): a save
+  // only when it costs them nothing, or with what it needs given for free, always so for the bot
+  // (api.php checks it too)
   var as = root.getAttribute('data-as') || '';
+  var bot = as === '1';
+  var whose = bot ? 'bota' : 'gracza ' + as;
+  function granting() { return bot || (!!as && !!$('grant') && $('grant').checked); }
   var userId = as ? 'as-' + as : root.getAttribute('data-user') || '';
   function owner(url) { return as ? url + '&as=' + encodeURIComponent(as) : url; }
   var levels = {};
@@ -1941,7 +1945,8 @@
       $('currency').value = 'tc';
     var currency = $('currency').value;
     var due = quote.sc || quote.tc;
-    var afford = !due || (currency === 'tc' ? quote.walletTc >= quote.tc : quote.walletSc >= quote.sc);
+    var free = !!due && granting();
+    var afford = !due || free || (currency === 'tc' ? quote.walletTc >= quote.tc : quote.walletSc >= quote.sc);
     total.textContent = '';
     function row(label, value, cls) {
       var r = document.createElement('div');
@@ -1954,7 +1959,9 @@
       r.appendChild(v);
       total.appendChild(r);
     }
-    if (due) {
+    if (free) {
+      row('Nadane za darmo', money(quote.sc, quote.tc), 'free');
+    } else if (due) {
       row('Do zapłaty raz', quote.tcOnly ? group(quote.tc) + ' TC (część opcji jest tylko za TC)' : money(quote.sc, quote.tc), 'due');
       row('Masz', group(quote.walletSc) + ' SC i ' + group(quote.walletTc) + ' TC', 'wallet');
       if (!afford)
@@ -1962,14 +1969,19 @@
     } else {
       row('Zapis', 'bez opłat', 'free');
     }
-    if (as && due)
-      row('Profil gracza', 'admin zapisuje tylko bez opłat', 'short');
+    if (as && due && !free)
+      row('Profil gracza', 'admin zapisuje bez opłat albo nadaje za darmo', 'short');
     $('currency-field').hidden = !due || !!as;
-    $('save').disabled = !!(quote.errors && quote.errors.length) || !afford || !!(as && due);
-    $('save').textContent = as ? 'Zapisz u gracza' : due ? 'Zapłać i zapisz' : 'Zapisz';
+    $('save').disabled = !!(quote.errors && quote.errors.length) || !afford || !!(as && due && !free);
+    $('save').textContent = bot ? 'Zapisz u bota' : as ? (free ? 'Nadaj i zapisz u gracza' : 'Zapisz u gracza') : due ? 'Zapłać i zapisz' : 'Zapisz';
   }
 
   $('currency').addEventListener('change', function () { renderCost(); });
+  if ($('grant'))
+    $('grant').addEventListener('change', function () {
+      this.parentNode.querySelector('.switch-state').textContent = this.checked ? 'WŁ' : 'WYŁ';
+      renderCost();
+    });
 
   function key() {
     var b = new Uint8Array(16);
@@ -1983,11 +1995,13 @@
     var btn = this;
     btn.disabled = true;
     say('Zapisywanie…');
-    post('save', { layout: M, currency: $('currency').value, version: version }, { 'X-Idempotency-Key': key() }).then(function (answer) {
+    var grant = granting();
+    post('save', { layout: M, currency: $('currency').value, version: version, grant: grant }, { 'X-Idempotency-Key': key() }).then(function (answer) {
       if (answer.status === 200 && answer.body) {
         version = answer.body.version;
         unlocks = unlocks.concat(answer.body.unlocked || []);
-        say(answer.body.paid ? 'Zapisano. Pobrano ' + group(answer.body.paid) + ' ' + answer.body.currency.toUpperCase() + ' za odblokowania.' : 'Zapisano.');
+        var given = grant ? (answer.body.unlocked || []).length : 0;
+        say(given ? 'Zapisano. Nadano za darmo odblokowań: ' + given + '.' : answer.body.paid ? 'Zapisano. Pobrano ' + group(answer.body.paid) + ' ' + answer.body.currency.toUpperCase() + ' za odblokowania.' : 'Zapisano.');
         present = null;
         writeDraft();
         askQuote();
@@ -1996,7 +2010,7 @@
       }
       var why = {
         409: 'Profil zmienił się w innym oknie albo karcie. Odśwież stronę, żeby zobaczyć obecny.',
-        402: answer.body && answer.body.error === 'paid' ? 'Ten układ wymaga odblokowań, a profil gracza admin zapisuje tylko bez opłat.' : 'Za mało waluty na odblokowania.',
+        402: answer.body && answer.body.error === 'paid' ? 'Ten układ wymaga odblokowań: zaznacz „Nadaj za darmo”, bo bez tego profil gracza admin zapisuje tylko bez opłat.' : 'Za mało waluty na odblokowania.',
         400: 'Bot nie przyjął układu: ' + (Array.isArray(answer.body) ? answer.body.join('; ') : (answer.body && answer.body.error) || 'błędne dane') + '.',
         503: 'Bot nie odpowiada, spróbuj za chwilę.'
       }[answer.status] || 'Nie udało się zapisać (' + answer.status + ').';
@@ -2081,7 +2095,7 @@
     if (!pictures.length) {
       var li = document.createElement('li');
       li.className = 'muted profilator-empty';
-      li.textContent = as ? 'Gracz nie ma obrazków.' : logged ? 'Nie masz jeszcze obrazków. Wyślij pierwszy poniżej.' : 'Po zalogowaniu wyślesz tu swoje obrazki.';
+      li.textContent = as ? (bot ? 'Bot' : 'Gracz') + ' nie ma obrazków. Wyślij pierwszy poniżej.' : logged ? 'Nie masz jeszcze obrazków. Wyślij pierwszy poniżej.' : 'Po zalogowaniu wyślesz tu swoje obrazki.';
       host.appendChild(li);
       return;
     }
@@ -2096,7 +2110,7 @@
       text.textContent = 'Obrazek ' + p.id + ' · ' + (USES[p.use] || p.use) + ' · ' + p.width + ' × ' + p.height + (p.animated ? ' · ruchomy' : '');
       li.appendChild(img);
       li.appendChild(text);
-      if (logged && !as)
+      if (logged)
         li.appendChild(button('Usuń', 'admin-btn small', 'Usuń obrazek ' + p.id, function () { removePicture(p); }));
       host.appendChild(li);
     });
@@ -2115,15 +2129,13 @@
 
   // the bot refuses a picture its saved profile still shows
   function removePicture(p) {
-    if (as)
-      return;
     if (picturesInLayout().indexOf(p.id) >= 0) {
       say('Obrazek ' + p.id + ' jest w układzie. Najpierw usuń go z układu.', true);
       return;
     }
     if (!window.confirm('Usunąć obrazek ' + p.id + '? Tego nie da się cofnąć.'))
       return;
-    fetch(api + '?a=delete&id=' + encodeURIComponent(p.id), { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF': csrf } }).then(function (res) {
+    fetch(owner(api + '?a=delete&id=' + encodeURIComponent(p.id)), { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF': csrf } }).then(function (res) {
       if (res.status === 200 || res.status === 404) {
         pictures = pictures.filter(function (x) { return x.id !== p.id; });
         delete images[p.id];
@@ -2201,7 +2213,7 @@
       var form = new FormData();
       form.append('file', sent);
       form.append('use', use === 'whole' ? 'header' : use);
-      return fetch(api + '?a=upload', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF': csrf }, body: form }).then(function (res) {
+      return fetch(owner(api + '?a=upload'), { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF': csrf }, body: form }).then(function (res) {
         return res.json().then(function (b) { return { status: res.status, body: b }; });
       });
     }).then(function (answer) {
@@ -2324,7 +2336,7 @@
       cardChoices = [];
       sampleCards();
       $('profile-source').textContent = as
-        ? (answer && answer.body && answer.body.error === 'none' ? 'Gracz ' + as + ' nie ma profilu w bocie' : 'Bot nie podał profilu gracza ' + as + (answer && answer.status ? ' (' + answer.status + ')' : '')) + ', więc dane są przykładowe i zapis jest wyłączony.'
+        ? (answer && answer.body && answer.body.error === 'none' ? 'Profil ' + whose + ' nie istnieje w bocie' : 'Bot nie podał profilu ' + whose + (answer && answer.status ? ' (' + answer.status + ')' : '')) + ', więc dane są przykładowe i zapis jest wyłączony.'
         : logged
         ? (answer && answer.body && answer.body.error === 'none' ? 'Nie masz jeszcze profilu w bocie, ' : 'Bot nie podał teraz twojego profilu, ') + 'więc dane są przykładowe i zapis jest wyłączony.'
         : 'Dane są przykładowe. Zaloguj się kontem Discord, żeby edytować i zapisać swój profil.';
@@ -2337,7 +2349,9 @@
       pictures = mine.pictures || [];
       cardChoices = mine.cards || [];
       $('profile-source').textContent = as
-        ? 'Profil gracza ' + as + ' z bota (jako admin): jego liczby, karty i obrazki. Zapis u gracza tylko wtedy, gdy nic nie trzeba odblokować; własne układy zostają twoje.'
+        ? bot
+          ? 'Profil bota (konto 1, jako admin): jego liczby, karty i obrazki. Zapis nadaje za darmo wszystko, czego układ potrzebuje; własne układy zostają twoje.'
+          : 'Profil gracza ' + as + ' z bota (jako admin): jego liczby, karty i obrazki. Zapis u gracza bez opłat albo z „Nadaj za darmo”; własne układy zostają twoje.'
         : 'To twój profil z bota: twoje liczby, karty, statystyki z Shindena i obrazki.';
       if (data.waifu) loadCard(data.waifu);
       (data.gallery || []).forEach(loadCard);

@@ -542,6 +542,10 @@
     margin-top: 12px;
 }
 
+.profilator-save .switch {
+    flex: 1 1 100%;
+}
+
 /* the profile coming from the bot: a bar going to and fro */
 .profilator-loading {
     margin-top: 12px;
