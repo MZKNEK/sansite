@@ -1,6 +1,6 @@
 // The bot's profile of layers drawn in the browser, part by part as the bot draws it
 // (ImageProcessing.LayeredProfile.cs): the header and style pictures in their fields,
-// the nick, the free layers bottom to top (overlays cut to their field), the ultra overlay,
+// the free layers bottom to top with the nick among them (overlays cut to their field), the two ultra overlays,
 // the bar, the avatar and its frame on top. A sketch for editing: the bot's own picture is a button away (preview).
 // The layout is the bot's JSON (Services/Profiles/ProfileLayout.cs), the data the
 // answer of api/Profile/discord/<id> (data). Shared by editor.js and nothing else.
@@ -136,6 +136,7 @@ window.Layers = (function () {
       case 'bigGallery': w = layer.count === 3 ? 360 : SIZE.big[0]; h = layer.count === 3 || layer.count === 6 ? 164 : SIZE.big[1]; break;
       case 'sticker': w = stickerWidth(layer.h); h = layer.h; break;
       case 'rank': w = rankWidth(data && data.rank, layer) || 120; h = rankMetrics(layer)[1]; break;
+      case 'tile': w = layer.w || 0; h = layer.h || 0; break;
       case 'overlay': case 'ultra': {
         var p = assets && assets.picture(layer.image);
         if (p) { var s = size(p); w = Math.round(s[0] * (layer.scale || 1)); h = Math.round(s[1] * (layer.scale || 1)); }
@@ -737,16 +738,90 @@ window.Layers = (function () {
     }
   }
 
-  function nick(c, layer, value) {
+  // the nick's font from the bot's catalog (api.nickFonts): its family loaded by editor.js, Lato for the letters it lacks
+  function nickFont(layer, size) {
+    var key = layer.font || 'lato';
+    var family = key === 'lato' ? 'Lato' : '"nick-' + key + '", Lato';
+    return '700 ' + size + 'px ' + family + ', sans-serif';
+  }
+
+  function nickStart(layer) {
+    var key = layer.font || 'lato';
+    var f = (api.nickFonts || []).filter(function (x) { return x.key === key; })[0];
+    return f ? f.size : 28;
+  }
+
+  // white, one colour, the accent, two colours left to right or one colour with a dark outline, as the bot draws them
+  function nick(c, layer, value, accent) {
     if (!value)
       return;
-    var sizePx = fit(value, 28, true, layer.w);
+    var size = nickStart(layer);
+    measurer.font = nickFont(layer, size);
+    while (size > 1 && measurer.measureText(value).width > layer.w) {
+      size--;
+      measurer.font = nickFont(layer, size);
+    }
     var center = layer.align === 'center';
+    var x = center ? layer.x + layer.w / 2 : layer.x, cy = layer.y + SIZE.nick / 2;
     c.save();
+    c.font = nickFont(layer, size);
+    c.textAlign = center ? 'center' : 'left';
+    var m = c.measureText(value), y = cy;
+    if (m.fontBoundingBoxAscent != null) {
+      c.textBaseline = 'alphabetic';
+      y = cy + (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2;
+    } else {
+      c.textBaseline = 'middle';
+    }
+    var paint = layer.paint || 'white', fill = C.text;
+    if (paint === 'solid' || paint === 'outline') fill = layer.c1 || C.text;
+    else if (paint === 'accent') fill = accent;
+    else if (paint === 'gradient') {
+      var left = center ? x - m.width / 2 : x;
+      fill = c.createLinearGradient(left, 0, left + Math.max(1, m.width), 0);
+      fill.addColorStop(0, layer.c1 || C.text);
+      fill.addColorStop(1, layer.c2 || C.text);
+    }
     c.shadowColor = 'rgba(0,0,0,0.75)';
     c.shadowBlur = 6;
     c.shadowOffsetY = 1;
-    text(c, value, sizePx, true, C.text, center ? layer.x + layer.w / 2 : layer.x, layer.y + SIZE.nick / 2, center ? 'center' : 'left');
+    if (paint === 'outline') {
+      // under the letters, so only its outer half shows
+      c.strokeStyle = C.bg;
+      c.lineWidth = 4;
+      c.lineJoin = 'round';
+      c.strokeText(value, x, y);
+      c.shadowColor = 'transparent';
+    }
+    c.fillStyle = fill;
+    c.fillText(value, x, y);
+    c.restore();
+  }
+
+  function tileAlpha(layer) {
+    var value = layer.opacity != null ? layer.opacity : layer.look === 'glass' ? 55 : layer.look === 'shadow' ? 70 : 100;
+    return Math.max(0, Math.min(100, value)) / 100;
+  }
+
+  // a ground of any size: a panel, glass or a shadow, as the bot draws it
+  function tile(c, layer) {
+    var a = tileAlpha(layer), x = layer.x, y = layer.y, w = layer.w, h = layer.h;
+    if (layer.look === 'glass') {
+      glass(c, x, y, w, h, 12, a);
+      return;
+    }
+    c.save();
+    rr(c, x, y, w, h, 12);
+    if (layer.look === 'shadow') {
+      c.fillStyle = 'rgba(0,0,0,' + a + ')';
+      c.fill();
+    } else {
+      c.fillStyle = alpha(C.panel, a);
+      c.fill();
+      c.strokeStyle = alpha(C.line, a);
+      c.lineWidth = 1.5;
+      c.stroke();
+    }
     c.restore();
   }
 
@@ -934,31 +1009,40 @@ window.Layers = (function () {
       c.fillRect(0, 159, 750, 1);
     }
 
-    if (!layout.nick.hidden)
-      nick(c, layout.nick, data.nick);
-
-    (layout.layers || []).forEach(function (layer) {
-      if (layer.hidden)
-        return;
-      switch (layer.t) {
-        case 'anime': if (data.anime) listPanel(c, layout, layer, data.anime, accent, assets); break;
-        case 'manga': if (data.manga) listPanel(c, layout, layer, data.manga, accent, assets); break;
-        case 'cards': cardsPanel(c, layout, layer, data, accent, assets); break;
-        case 'gallery': gallery(c, layout, layer, data, assets); break;
-        case 'bigGallery': bigGallery(c, layout, layer, data, assets); break;
-        case 'overlay': picture(c, layer, assets, OVERLAY); break;
-        case 'sticker': sticker(c, layer, assets); break;
-        case 'rank': rank(c, layer, data.rank, accent); break;
-      }
-    });
+    var layers = layout.layers || [];
+    var nickAt = Math.max(0, Math.min(layers.length, layout.nick.at || 0));
+    for (var i = 0; i <= layers.length; i++) {
+      if (i === nickAt && !layout.nick.hidden)
+        nick(c, layout.nick, data.nick, accent);
+      if (i < layers.length && !layers[i].hidden)
+        freeLayer(c, layout, layers[i], data, accent, assets);
+    }
 
     if (layout.ultra && !layout.ultra.hidden)
       picture(c, layout.ultra, assets);
+    if (layout.ultra2 && !layout.ultra2.hidden)
+      picture(c, layout.ultra2, assets);
     bar(c, layout, data, accent);
     avatar(c, layout.avatar, data, accent, assets);
   }
 
-  return {
+  function freeLayer(c, layout, layer, data, accent, assets) {
+    switch (layer.t) {
+      case 'anime': if (data.anime) listPanel(c, layout, layer, data.anime, accent, assets); break;
+      case 'manga': if (data.manga) listPanel(c, layout, layer, data.manga, accent, assets); break;
+      case 'cards': cardsPanel(c, layout, layer, data, accent, assets); break;
+      case 'gallery': gallery(c, layout, layer, data, assets); break;
+      case 'bigGallery': bigGallery(c, layout, layer, data, assets); break;
+      case 'overlay': picture(c, layer, assets, OVERLAY); break;
+      case 'sticker': sticker(c, layer, assets); break;
+      case 'rank': rank(c, layer, data.rank, accent); break;
+      case 'tile': tile(c, layer); break;
+    }
+  }
+
+  var api = {
+    nickFonts: [],
+    tileAlpha: tileAlpha,
     W: W,
     H: H,
     HEADER: HEADER,
@@ -974,4 +1058,5 @@ window.Layers = (function () {
     render: render,
     width: width
   };
+  return api;
 })();

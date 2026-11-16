@@ -75,7 +75,8 @@
         if ($what === 'images' && $method === 'DELETE') {
             $picture = (int)($m[3] ?? 0);
             $used = in_array($picture, array_map('intval', array_merge(array_column($state['layout']['layers'] ?? [], 'image'),
-                [$state['layout']['header']['image'] ?? 0, $state['layout']['style']['image'] ?? 0, $state['layout']['ultra']['image'] ?? 0])), true);
+                [$state['layout']['header']['image'] ?? 0, $state['layout']['style']['image'] ?? 0, $state['layout']['ultra']['image'] ?? 0,
+                    $state['layout']['ultra2']['image'] ?? 0])), true);
             if ($used) {
                 http_response_code(409);
                 echo json_encode('Picture is in the saved profile');
@@ -114,7 +115,11 @@
             if (($layout['panels'] ?? 'solid') !== 'solid' || $glass) $needs[] = 'panels';
             if (!empty($layout['header'])) $needs[] = 'headerImg';
             if (!empty($layout['style'])) $needs[] = 'styleImg';
-            if (!empty($layout['ultra'])) $needs[] = 'ultra';
+            $ultras = (!empty($layout['ultra']) ? 1 : 0) + (!empty($layout['ultra2']) ? 1 : 0);
+            if ($ultras >= 1) $needs[] = 'ultra';
+            if ($ultras >= 2) $needs[] = 'ultra2';
+            if (($layout['nick']['paint'] ?? 'white') !== 'white') $needs[] = 'nickColor';
+            if (($layout['nick']['at'] ?? 0) > 0) $needs[] = 'layout';
             $kinds = array_count_values(array_column($layout['layers'] ?? [], 't'));
             for ($i = 1; $i <= ($kinds['overlay'] ?? 0); $i++) $needs[] = 'overlay:' . $i;
             for ($i = 1; $i <= ($kinds['sticker'] ?? 0); $i++) $needs[] = 'sticker:' . $i;

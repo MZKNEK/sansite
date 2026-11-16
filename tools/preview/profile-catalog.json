@@ -2,6 +2,124 @@
   "layoutVersion": 1,
   "maxStickers": 4,
   "maxOverlays": 3,
+  "maxTiles": 3,
+  "maxTilt": 90,
+  "nickFonts": [
+    {
+      "key": "lato",
+      "name": "Lato",
+      "file": "Lato-Bold.ttf",
+      "size": 28
+    },
+    {
+      "key": "montserrat",
+      "name": "Montserrat",
+      "file": "Montserrat-ExtraBold.ttf",
+      "size": 28
+    },
+    {
+      "key": "bebas",
+      "name": "Bebas Neue",
+      "file": "BebasNeue-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "oswald",
+      "name": "Oswald",
+      "file": "Oswald-SemiBold.ttf",
+      "size": 28
+    },
+    {
+      "key": "righteous",
+      "name": "Righteous",
+      "file": "Righteous-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "russo",
+      "name": "Russo One",
+      "file": "RussoOne-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "exo",
+      "name": "Exo 2",
+      "file": "Exo2-ExtraBold.ttf",
+      "size": 28
+    },
+    {
+      "key": "pacifico",
+      "name": "Pacifico",
+      "file": "Pacifico-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "lobster",
+      "name": "Lobster",
+      "file": "Lobster-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "cinzel",
+      "name": "Cinzel",
+      "file": "Cinzel-Bold.ttf",
+      "size": 28
+    },
+    {
+      "key": "bangers",
+      "name": "Bangers",
+      "file": "Bangers-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "pixel",
+      "name": "Press Start 2P",
+      "file": "PressStart2P-Regular.ttf",
+      "size": 17
+    },
+    {
+      "key": "audiowide",
+      "name": "Audiowide",
+      "file": "Audiowide-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "orbitron",
+      "name": "Orbitron",
+      "file": "Orbitron-Bold.ttf",
+      "size": 28
+    },
+    {
+      "key": "blackOps",
+      "name": "Black Ops One",
+      "file": "BlackOpsOne-Regular.ttf",
+      "size": 28
+    },
+    {
+      "key": "digital",
+      "name": "Digital",
+      "file": "Digital.ttf",
+      "size": 28
+    },
+    {
+      "key": "caveat",
+      "name": "Caveat",
+      "file": "Caveat-Bold.ttf",
+      "size": 32
+    },
+    {
+      "key": "kalam",
+      "name": "Kalam",
+      "file": "Kalam-Bold.ttf",
+      "size": 28
+    },
+    {
+      "key": "marker",
+      "name": "Permanent Marker",
+      "file": "PermanentMarker-Regular.ttf",
+      "size": 28
+    }
+  ],
   "maxLayoutJson": 16384,
   "maxPictureBytes": 10485760,
   "maxPicturePixels": 64000000,
@@ -37,6 +155,14 @@
       "description": "np. dla własnego nicka na nakładce",
       "sc": 6000,
       "tc": 99,
+      "tcOnly": false
+    },
+    {
+      "key": "nickColor",
+      "name": "Kolor nicka",
+      "description": "dowolny kolor, kolor akcentu, przejście dwóch kolorów, obwódka",
+      "sc": 12000,
+      "tc": 199,
       "tcOnly": false
     },
     {
@@ -310,6 +436,14 @@
       "sc": 240000,
       "tc": 3999,
       "tcOnly": false
+    },
+    {
+      "key": "ultra2",
+      "name": "Druga ultra nakładka",
+      "description": "drugi obrazek na całym profilu, nad pierwszym, zmiany za darmo",
+      "sc": 360000,
+      "tc": 5999,
+      "tcOnly": false
     }
   ],
   "presets": [
@@ -344,7 +478,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -423,7 +559,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -502,7 +640,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -568,7 +708,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -634,7 +776,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -690,7 +834,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -759,7 +905,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -827,7 +975,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -896,7 +1046,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -953,7 +1105,9 @@
           "y": 236,
           "w": 500,
           "align": "center",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -1000,7 +1154,9 @@
           "y": 92,
           "w": 540,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {
@@ -1047,7 +1203,9 @@
           "y": 99,
           "w": 445,
           "align": "left",
-          "hidden": false
+          "hidden": false,
+          "at": 0,
+          "paint": "white"
         },
         "layers": [
           {

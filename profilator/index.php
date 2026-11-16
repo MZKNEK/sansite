@@ -55,7 +55,7 @@
   <link href="../css/status.css?v=c2da6fb979" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=6a986a6d96" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=717c490128" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -130,7 +130,7 @@
       <div class="profilator-settings" id="editor" inert>
         <section class="card">
           <h2><i>02</i>Warstwy</h2>
-          <p class="hint">Na górze listy to, co leży na wierzchu. Awatar, pasek i nick mają stałe miejsca w kolejności, resztę układasz strzałkami.</p>
+          <p class="hint">Na górze listy to, co leży na wierzchu. Awatar, pasek i ultra nakładki mają stałe miejsca, resztę (także nick) układasz strzałkami.</p>
           <ul class="profilator-layers" id="layers"></ul>
           <div class="profilator-add">
             <span class="hud-select">
@@ -165,7 +165,7 @@
             <input class="player-range" id="look-bar-opacity" type="range" min="20" max="100" step="1" />
           </label>
           <div class="profilator-group"><span class="hud-field-label">Pozycje paska (kliknij, by ukryć)</span><div id="look-bar-items"></div></div>
-          <label class="hud-field">
+          <label class="hud-field profilator-spaced">
             <span class="hud-field-label">Co się rusza (jedna rzecz)</span>
             <span class="hud-select">
               <select id="look-animate"></select>
@@ -258,8 +258,8 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
-  <script src="layers.js?v=4f9c98979d"></script>
-  <script src="editor.js?v=f1b5e0fa0c"></script>
+  <script src="layers.js?v=76d7f6bf5c"></script>
+  <script src="editor.js?v=e7ab6e3ef0"></script>
 </body>
 
 </html>

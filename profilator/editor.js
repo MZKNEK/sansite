@@ -382,6 +382,7 @@
     if (a === 'header') return M.header && images[M.header.image];
     if (a === 'style') return M.style && images[M.style.image];
     if (a === 'ultra') return M.ultra && images[M.ultra.image];
+    if (a === 'ultra2') return M.ultra2 && images[M.ultra2.image];
     if (a === 'frame') return M.avatar.frame === 'custom' && images[M.avatar.customImage];
     if (a === 'avatar') return avatarImage;
     var layer = findLayer(+a.slice(6));
@@ -464,6 +465,11 @@
     layout.v = layout.v || 1;
     layout.layers = (layout.layers || []).filter(function (x) { return x && x.t; });
     layout.layers.forEach(function (x) {
+      if (x.t === 'tile') {
+        x.look = x.look || 'panel';
+        x.w = x.w || 200;
+        x.h = x.h || 120;
+      }
       if (x.t !== 'sticker') return;
       x.ground = L.groundOf(x);
       delete x.bg;
@@ -488,6 +494,8 @@
     if (n.y == null) n.y = 99;
     n.w = n.w || 445;
     n.align = n.align || 'left';
+    n.at = Math.max(0, Math.min(layout.layers.length, n.at || 0));
+    n.paint = n.paint || 'white';
     layout.panels = layout.panels || 'solid';
     layout.shade = layout.shade || 'fade';
     if (layout.shadow == null) layout.shadow = 70;
@@ -498,14 +506,45 @@
     return M.layers.reduce(function (m, x) { return Math.max(m, x.id || 0); }, 0) + 1;
   }
 
+  // the free layers with the nick among them, bottom to top: layer ids and 'nick'
+  function stack() {
+    var keys = M.layers.map(function (x) { return x.id; });
+    keys.splice(Math.max(0, Math.min(keys.length, M.nick.at || 0)), 0, 'nick');
+    return keys;
+  }
+
+  // the layers in the order of keys, the nick where 'nick' stands
+  function setStack(keys) {
+    var byId = {};
+    M.layers.forEach(function (x) { byId[x.id] = x; });
+    M.layers = keys.filter(function (k) { return k !== 'nick'; }).map(function (k) { return byId[k]; }).filter(Boolean);
+    M.nick.at = Math.max(0, keys.filter(function (k) { return k === 'nick' || byId[k]; }).indexOf('nick'));
+  }
+
+  // keeps only the layers that pass, the nick staying above the same ones
+  function keepLayers(layout, pass) {
+    var at = layout.nick.at || 0, below = 0;
+    layout.layers = layout.layers.filter(function (x, i) {
+      var ok = pass(x);
+      if (ok && i < at) below++;
+      return ok;
+    });
+    layout.nick.at = below;
+  }
+
+  function isUltra(key) { return key === 'ultra' || key === 'ultra2'; }
+
   // the parts as they are drawn, bottom to top: [key, object, kind]
   function parts() {
     var list = [];
     if (M.header && !M.header.hidden) list.push(['header', M.header, 'header']);
     if (M.style && !M.style.hidden) list.push(['style', M.style, 'style']);
-    if (!M.nick.hidden) list.push(['nick', M.nick, 'nick']);
-    M.layers.forEach(function (layer) { if (!layer.hidden) list.push([layer.id, layer, 'layer']); });
+    stack().forEach(function (key) {
+      var o = key === 'nick' ? M.nick : findLayer(key);
+      if (o && !o.hidden) list.push([key, o, key === 'nick' ? 'nick' : 'layer']);
+    });
     if (M.ultra && !M.ultra.hidden) list.push(['ultra', M.ultra, 'ultra']);
+    if (M.ultra2 && !M.ultra2.hidden) list.push(['ultra2', M.ultra2, 'ultra']);
     list.push(['avatar', M.avatar, 'avatar']);
     return list;
   }
@@ -515,7 +554,7 @@
     if (key === 'nick') return L.box(M.nick, 'nick');
     if (key === 'header') return L.HEADER;
     if (key === 'style') return L.STYLE;
-    if (key === 'ultra') return L.box({ t: 'ultra', image: M.ultra.image, scale: M.ultra.scale, x: M.ultra.x, y: M.ultra.y }, null, assets, data);
+    if (isUltra(key)) return L.box({ t: 'ultra', image: M[key].image, scale: M[key].scale, x: M[key].x, y: M[key].y }, null, assets, data);
     var layer = findLayer(key);
     return layer ? L.box(layer, null, assets, data) : null;
   }
@@ -525,13 +564,24 @@
     if (key === 'nick') return M.nick;
     if (key === 'header') return M.header;
     if (key === 'style') return M.style;
-    if (key === 'ultra') return M.ultra;
+    if (isUltra(key)) return M[key];
     return findLayer(key);
+  }
+
+  var TILE_LOOK = { panel: 'Pełny', glass: 'Szkło', shadow: 'Cień' };
+
+  // a card to choose: its rarity as the bot shows it (an ultimate card's quality) and where it comes from
+  function cardLabel(c) {
+    var marks = [c.ultimate ? 'ultimate ' + (c.grade || '') : c.grade || c.rarity];
+    if (data && data.waifu && data.waifu.id === c.id) marks.push('waifu');
+    else if (data && (data.gallery || []).some(function (g) { return g && g.id === c.id; })) marks.push('galeria');
+    if (c.animated) marks.push('ruchoma');
+    return c.name + ' (' + marks.join(', ') + ')';
   }
 
   var KIND = {
     anime: 'Panel anime', manga: 'Panel mangi', cards: 'Karcianka', gallery: 'Galeria', bigGallery: 'Duża galeria',
-    overlay: 'Nakładka', sticker: 'Karta-naklejka', rank: 'Ranga'
+    overlay: 'Nakładka', sticker: 'Karta-naklejka', rank: 'Ranga', tile: 'Kafelek tła'
   };
 
   function nameOf(key) {
@@ -540,6 +590,7 @@
     if (key === 'header') return 'Tło nagłówka';
     if (key === 'style') return 'Obrazek stylu';
     if (key === 'ultra') return 'Ultra nakładka';
+    if (key === 'ultra2') return 'Druga ultra nakładka';
     var layer = findLayer(key);
     if (!layer) return '';
     if (layer.t === 'gallery') return 'Galeria ' + (layer.count === 2 ? '2 karty' : '6 kart');
@@ -547,6 +598,7 @@
       var card = cardChoices.filter(function (c) { return c.id === layer.card; })[0];
       return 'Karta: ' + (card ? card.name : '#' + layer.card);
     }
+    if (layer.t === 'tile') return 'Kafelek tła: ' + (TILE_LOOK[layer.look] || TILE_LOOK.panel).toLowerCase();
     return KIND[layer.t] || layer.t;
   }
 
@@ -648,6 +700,8 @@
       x.setLineDash([]);
       var label = nameOf(sel);
       x.font = '700 11px Lato, sans-serif';
+      // the profile's last text may have left another alignment on the canvas
+      x.textAlign = 'left';
       var tw = x.measureText(label).width + 10;
       var ly = b.y - 17 < 0 ? b.y + 3 : b.y - 17;
       var lx = Math.max(0, Math.min(b.x, L.W - tw));
@@ -699,7 +753,7 @@
     if (!b || p.x < b.x || p.y < b.y || p.x >= b.x + b.w || p.y >= b.y + b.h)
       return false;
     var o = objectOf(key);
-    var picture = key === 'ultra' ? o.image : o && o.t === 'overlay' ? o.image : 0;
+    var picture = isUltra(key) ? o.image : o && o.t === 'overlay' ? o.image : 0;
     if (picture && hits[picture]) {
       var d = hits[picture], s = o.scale || 1;
       var lx = Math.floor((p.x - o.x) / s), ly = Math.floor((p.y - o.y) / s);
@@ -826,7 +880,7 @@
     drag = { key: key, dx: p.x - o.x, dy: p.y - o.y, moved: false };
     canvas.setPointerCapture(e.pointerId);
     canvas.classList.add('dragging');
-    say(nameOf(key) + ': ' + (isSlot(key) ? 'przeciągnij, żeby wybrać kadr w polu.' : key === 'avatar' ? 'zawsze na wierzchu.' : key === 'nick' ? 'leży pod warstwami, nakładka może go zakryć.' : 'przeciągnij, żeby przesunąć.'));
+    say(nameOf(key) + ': ' + (isSlot(key) ? 'przeciągnij, żeby wybrać kadr w polu.' : key === 'avatar' ? 'zawsze na wierzchu.' : key === 'nick' ? 'jego miejsce wśród warstw zmieniasz strzałkami na liście.' : 'przeciągnij, żeby przesunąć.'));
     if (!again) changed(true); else redraw();
     e.preventDefault();
   });
@@ -899,8 +953,8 @@
     setLocked(key, false);
     if (key === 'header') M.header = null;
     else if (key === 'style') M.style = null;
-    else if (key === 'ultra') M.ultra = null;
-    else M.layers = M.layers.filter(function (x) { return x.id !== key; });
+    else if (isUltra(key)) M[key] = null;
+    else keepLayers(M, function (x) { return x.id !== key; });
     if (M.animate && (M.animate === key || M.animate === 'layer:' + key))
       M.animate = null;
     if (sel === key) sel = null;
@@ -908,13 +962,15 @@
     changed(true);
   }
 
-  function moveLayer(layer, dir) {
-    var i = M.layers.indexOf(layer), j = i + dir;
-    if (j >= M.layers.length) { say('Wyżej są już tylko ultra nakładka, pasek i awatar.', true); return; }
-    if (j < 0) { say('Niżej są tylko nick, obrazek stylu i tło nagłówka.', true); return; }
+  // a layer or the nick one place up or down among the free layers
+  function moveLayer(key, dir) {
+    var keys = stack(), i = keys.indexOf(key), j = i + dir;
+    if (j >= keys.length) { say('Wyżej są już tylko ultra nakładki, pasek i awatar.', true); return; }
+    if (j < 0) { say('Niżej są tylko obrazek stylu i tło nagłówka.', true); return; }
     snapshot();
-    M.layers.splice(i, 1);
-    M.layers.splice(j, 0, layer);
+    keys.splice(i, 1);
+    keys.splice(j, 0, key);
+    setStack(keys);
     changed(false);
   }
 
@@ -993,8 +1049,8 @@
     var ops = document.createElement('span');
     ops.className = 'profilator-layer-ops';
     if (options.movable) {
-      ops.appendChild(button('↑', 'admin-btn small', 'Wyżej', function () { moveLayer(o, 1); }));
-      ops.appendChild(button('↓', 'admin-btn small', 'Niżej', function () { moveLayer(o, -1); }));
+      ops.appendChild(button('↑', 'admin-btn small', 'Wyżej', function () { moveLayer(key, 1); }));
+      ops.appendChild(button('↓', 'admin-btn small', 'Niżej', function () { moveLayer(key, -1); }));
     }
     if (key !== null) {
       var on = isLocked(key);
@@ -1024,22 +1080,26 @@
     var frameName = M.avatar.frame === 'custom' ? 'własna' : M.avatar.frame === 'None' ? 'bez ramki' : frameLabel(M.avatar.frame);
     layerRow(list, 'avatar', { name: 'Awatar', tag: frameName, fixed: 'zawsze na wierzchu' });
     layerRow(list, null, { name: 'Pasek', tag: M.bar.at === 'hidden' ? 'ukryty' : M.bar.at === 'top' ? 'na górze' : 'na dole', fixed: 'stałe miejsce' });
+    if (M.ultra2) layerRow(list, 'ultra2', { name: 'Druga ultra nakładka', tag: 'cały profil', hideable: true });
     if (M.ultra) layerRow(list, 'ultra', { name: 'Ultra nakładka', tag: 'cały profil', hideable: true });
-    for (var i = M.layers.length - 1; i >= 0; i--)
-      layerRow(list, M.layers[i].id, { name: nameOf(M.layers[i].id), hideable: true, movable: true });
-    layerRow(list, 'nick', { name: 'Nick', hideable: true });
+    var keys = stack();
+    for (var i = keys.length - 1; i >= 0; i--)
+      layerRow(list, keys[i], { name: nameOf(keys[i]), tag: keys[i] === 'nick' && M.nick.at ? 'nad ' + M.nick.at + (M.nick.at === 1 ? ' warstwą' : ' warstwami') : '', hideable: true, movable: true });
     if (M.style) layerRow(list, 'style', { name: 'Obrazek stylu', tag: '750 × 340', hideable: true });
     if (M.header) layerRow(list, 'header', { name: 'Tło nagłówka', tag: '750 × 160', hideable: true });
     renderAdd();
   }
 
-  var ADDABLE = [['sticker', 'Karta-naklejka'], ['overlay', 'Nakładka'], ['ultra', 'Ultra nakładka'], ['header', 'Tło nagłówka'], ['style', 'Obrazek stylu'],
+  var ADDABLE = [['sticker', 'Karta-naklejka'], ['overlay', 'Nakładka'], ['tile', 'Kafelek tła'], ['ultra', 'Ultra nakładka'], ['ultra2', 'Druga ultra nakładka'],
+    ['header', 'Tło nagłówka'], ['style', 'Obrazek stylu'],
     ['anime', 'Panel anime'], ['manga', 'Panel mangi'], ['cards', 'Karcianka'], ['gallery', 'Galeria'], ['bigGallery', 'Duża galeria'], ['rank', 'Ranga']];
 
   function count(t) { return M.layers.filter(function (x) { return x.t === t; }).length; }
 
   function canAdd(t) {
     if (t === 'ultra') return !M.ultra;
+    if (t === 'ultra2') return !!M.ultra && !M.ultra2;
+    if (t === 'tile') return count(t) < (catalog && catalog.maxTiles || 3);
     if (t === 'header') return !M.header;
     if (t === 'style') return !M.style;
     if (t === 'sticker') return count(t) < (catalog ? catalog.maxStickers : 4);
@@ -1054,7 +1114,7 @@
       var o = document.createElement('option');
       var ok = canAdd(a[0]);
       o.value = a[0];
-      o.textContent = a[1] + (ok ? '' : ' (już jest)');
+      o.textContent = a[1] + (ok ? '' : a[0] === 'ultra2' && !M.ultra ? ' (najpierw pierwsza)' : count(a[0]) > 1 || a[0] === 'tile' ? ' (już są wszystkie)' : ' (już jest)');
       o.disabled = !ok;
       s.appendChild(o);
     });
@@ -1079,8 +1139,8 @@
     var t = $('add-kind').value;
     if (!t || !canAdd(t))
       return;
-    var needsPicture = t === 'overlay' || t === 'ultra' || t === 'header' || t === 'style';
-    var picture = needsPicture ? pictureFor(t === 'header' ? 'header' : t === 'style' ? 'style' : t) : null;
+    var needsPicture = t === 'overlay' || isUltra(t) || t === 'header' || t === 'style';
+    var picture = needsPicture ? pictureFor(isUltra(t) ? 'ultra' : t) : null;
     if (needsPicture && !picture) {
       say('Najpierw wyślij obrazek w sekcji „Obrazki”.', true);
       ($('picture-drop') || $('picture-file')).focus();
@@ -1091,9 +1151,9 @@
     if (t === 'header' || t === 'style') {
       M[t] = coverAt(t, picture);
       key = t;
-    } else if (t === 'ultra') {
-      M.ultra = { t: 'ultra', image: picture.id, x: 0, y: 0, scale: Math.min(1, L.W / picture.width), opacity: 1 };
-      key = 'ultra';
+    } else if (isUltra(t)) {
+      M[t] = { t: 'ultra', image: picture.id, x: 0, y: 0, scale: Math.min(1, L.W / picture.width), opacity: 1 };
+      key = t;
     } else {
       var layer = { t: t, id: nextId(), x: 0, y: 0 };
       if (t === 'overlay') {
@@ -1116,6 +1176,7 @@
       if (t === 'gallery') layer.count = 6;
       if (t === 'anime' || t === 'manga') { layer.size = 'small'; layer.legend = 'main'; layer.recent = 0; layer.hide = []; }
       if (t === 'cards') layer.hide = [];
+      if (t === 'tile') { layer.w = 200; layer.h = 120; layer.look = 'panel'; }
       var b = L.box(layer, null, assets, data);
       layer.x = Math.round(375 - b.w / 2);
       layer.y = Math.round(250 - b.h / 2);
@@ -1284,10 +1345,53 @@
       change(+s.value);
       changed(true);
     });
+    return field('Obrazek', selectBox(s));
+  }
+
+  // a select in the site's frame with its arrow
+  function selectBox(s) {
     var wrap = document.createElement('span');
     wrap.className = 'hud-select';
     wrap.appendChild(s);
-    return field('Obrazek', wrap);
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'hud-chevron');
+    svg.setAttribute('viewBox', '0 0 10 6');
+    svg.setAttribute('aria-hidden', 'true');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M1 1l4 4 4-4');
+    svg.appendChild(path);
+    wrap.appendChild(svg);
+    return wrap;
+  }
+
+  function colorInput(id, value, change) {
+    var i = document.createElement('input');
+    i.type = 'color';
+    i.id = id;
+    i.value = (value || '#ffffff').toLowerCase();
+    i.addEventListener('input', function () {
+      beginEdit();
+      change(i.value.toUpperCase());
+      redraw();
+    });
+    i.addEventListener('change', function () {
+      endEdit();
+      changed(false);
+    });
+    return i;
+  }
+
+  // the fonts of the nick from the bot's catalog, loaded when first used
+  var nickFaces = {};
+  function useNickFont(key) {
+    var f = catalog && (catalog.nickFonts || []).filter(function (x) { return x.key === key; })[0];
+    if (!f || key === 'lato' || nickFaces[key] || typeof FontFace === 'undefined')
+      return;
+    nickFaces[key] = new FontFace('nick-' + key, 'url("../fonts/nick/' + f.file + '")', { weight: '700' });
+    nickFaces[key].load().then(function (face) {
+      document.fonts.add(face);
+      redraw();
+    }, function () {});
   }
 
   function frameLabel(key) {
@@ -1378,7 +1482,7 @@
         o.scale = v / 100;
         clampSlot(key);
       }));
-    } else if (sel === 'ultra' || o.t === 'overlay') {
+    } else if (isUltra(sel) || o.t === 'overlay') {
       host.appendChild(pictureSelect(o.image, function (v) {
         // another picture keeps the size the layer has on the profile, e.g. the same one sent twice as large
         var was = pictures.filter(function (p) { return p.id === o.image; })[0];
@@ -1389,7 +1493,8 @@
       }));
       host.appendChild(range('p-scale', 'Skala', 10, 300, 1, Math.round((o.scale || 1) * 100), function (v) { return v + '%'; }, function (v) { o.scale = v / 100; clamp(sel); }));
       host.appendChild(range('p-opacity', 'Krycie', 10, 100, 1, Math.round((o.opacity == null ? 1 : o.opacity) * 100), function (v) { return v + '%'; }, function (v) { o.opacity = v / 100; }));
-      host.appendChild(note(sel === 'ultra' ? 'Może leżeć na całym profilu, także na górze nagłówka, nad wszystkimi warstwami. Pod paskiem i awatarem.' : 'Widać ją tylko pod górą nagłówka (od 98 px w dół), w dowolnej kolejności wśród warstw. Leży nad nickiem, więc można na niej narysować własny.'));
+      host.appendChild(note(sel === 'ultra2' ? 'Leży nad pierwszą ultra nakładką, na całym profilu. Pod paskiem i awatarem.'
+        : sel === 'ultra' ? 'Może leżeć na całym profilu, także na górze nagłówka, nad wszystkimi warstwami. Pod paskiem i awatarem.' : 'Widać ją tylko pod górą nagłówka (od 98 px w dół), w dowolnej kolejności wśród warstw. Leży nad nickiem, więc można na niej narysować własny.'));
     } else if (sel === 'avatar') {
       host.appendChild(labelled('Ramka', frameGrid(o)));
       if (o.frame === 'custom') {
@@ -1406,14 +1511,57 @@
     } else if (sel === 'nick') {
       host.appendChild(range('p-w', 'Szerokość', 200, 600, 2, o.w, function (v) { return v + ' px'; }, function (v) { o.w = v; clamp('nick'); }));
       host.appendChild(labelled('Wyrównanie', segment([['left', 'Do lewej'], ['center', 'Do środka']], o.align, function (v) { o.align = v; })));
+      var fonts = document.createElement('select');
+      fonts.id = 'p-font';
+      (catalog && catalog.nickFonts || [{ key: 'lato', name: 'Lato' }]).forEach(function (f) {
+        var opt = document.createElement('option');
+        opt.value = f.key;
+        opt.textContent = f.name;
+        fonts.appendChild(opt);
+      });
+      fonts.value = o.font || 'lato';
+      fonts.addEventListener('change', function () {
+        snapshot();
+        if (fonts.value === 'lato') delete o.font; else o.font = fonts.value;
+        useNickFont(fonts.value);
+        changed(false);
+      });
+      host.appendChild(field('Czcionka (za darmo)', selectBox(fonts)));
+      host.appendChild(labelled('Kolor', segment([['white', 'Biały'], ['solid', 'Jeden kolor'], ['accent', 'Akcent'], ['gradient', 'Przejście'], ['outline', 'Z obwódką']],
+        o.paint || 'white', function (v) {
+          o.paint = v;
+          if (v === 'white' || v === 'accent') { delete o.c1; delete o.c2; return; }
+          o.c1 = o.c1 || '#F5C445';
+          if (v === 'gradient') o.c2 = o.c2 || '#F0525C'; else delete o.c2;
+        })));
+      if (o.paint === 'solid' || o.paint === 'gradient' || o.paint === 'outline') {
+        var colors = document.createElement('div');
+        colors.className = 'profilator-swatches';
+        colors.appendChild(field(o.paint === 'gradient' ? 'Od lewej' : 'Kolor', colorInput('p-c1', o.c1, function (v) { o.c1 = v; })));
+        if (o.paint === 'gradient')
+          colors.appendChild(field('Do prawej', colorInput('p-c2', o.c2, function (v) { o.c2 = v; })));
+        host.appendChild(colors);
+      }
+      if (o.paint && o.paint !== 'white')
+        host.appendChild(note('Kolor nicka jest do odblokowania' + (owns('nickColor') ? ' i już go masz.' : '.') + (o.paint === 'accent' ? ' Akcent to kolor roli albo kupiony kolor akcentu.' : '')));
       host.appendChild(toggle('p-hidden', 'Ukryj wbudowany nick', o.hidden, function (v) { o.hidden = v; }));
-      host.appendChild(note('Leży pod warstwami: nakładka czy naklejka może go zakryć. Za długi nick sam się zmniejsza.'));
+      host.appendChild(note('Strzałkami na liście warstw kładziesz go nad wybranymi warstwami albo pod nimi; inne miejsce niż na samym dole to własny układ. Za długi nick sam się zmniejsza, litery, których czcionka nie ma, są w Lato.'));
+    } else if (o.t === 'tile') {
+      host.appendChild(labelled('Wygląd', segment([['panel', TILE_LOOK.panel], ['glass', TILE_LOOK.glass], ['shadow', TILE_LOOK.shadow]], o.look || 'panel', function (v) {
+        o.look = v;
+        delete o.opacity;
+      })));
+      host.appendChild(range('p-w', 'Szerokość', 16, L.W, 1, o.w, function (v) { return v + ' px'; }, function (v) { o.w = v; clamp(sel); }));
+      host.appendChild(range('p-h', 'Wysokość', 16, L.H, 1, o.h, function (v) { return v + ' px'; }, function (v) { o.h = v; clamp(sel); }));
+      host.appendChild(range('p-opacity', o.look === 'shadow' ? 'Siła cienia' : o.look === 'glass' ? 'Przyciemnienie szkła' : 'Krycie', 0, 100, 1, Math.round(L.tileAlpha(o) * 100),
+        function (v) { return v + '%'; }, function (v) { o.opacity = v; }));
+      host.appendChild(note('Kafelek to samo tło o dowolnym rozmiarze, np. pod naklejki czy nakładki. Najwyżej ' + (catalog && catalog.maxTiles || 3) + ', za darmo.'));
     } else if (o.t === 'sticker') {
       var s = document.createElement('select');
       cardChoices.forEach(function (c) {
         var opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = c.name + ' (' + c.rarity + (c.animated ? ', ruchoma' : '') + ')';
+        opt.textContent = cardLabel(c);
         s.appendChild(opt);
       });
       s.value = o.card;
@@ -1422,12 +1570,10 @@
         o.card = +s.value;
         changed(true);
       });
-      var wrap = document.createElement('span');
-      wrap.className = 'hud-select';
-      wrap.appendChild(s);
-      host.appendChild(field('Karta', wrap));
+      host.appendChild(field('Karta', selectBox(s)));
+      var tilt = catalog && catalog.maxTilt || 90;
       host.appendChild(range('p-h', 'Rozmiar', 60, 300, 2, o.h, function (v) { return v + ' px'; }, function (v) { o.h = v; clamp(sel); }));
-      host.appendChild(range('p-tilt', 'Pochylenie', -15, 15, 1, o.tilt || 0, function (v) { return v + '°'; }, function (v) { o.tilt = v; }));
+      host.appendChild(range('p-tilt', 'Pochylenie', -tilt, tilt, 1, o.tilt || 0, function (v) { return v + '°'; }, function (v) { o.tilt = v; }));
       host.appendChild(labelled('Tło pod kartą', segment([['panel', 'Pełne'], ['glass', 'Szkło'], ['shadow', 'Cień'], ['none', 'Brak']], L.groundOf(o), function (v) {
         o.ground = v;
         delete o.groundOpacity;
@@ -1539,6 +1685,7 @@
     if (M.header) options.push(['header', 'tło nagłówka']);
     if (M.style) options.push(['style', 'obrazek stylu']);
     if (M.ultra) options.push(['ultra', 'ultra nakładka']);
+    if (M.ultra2) options.push(['ultra2', 'druga ultra nakładka']);
     if (M.avatar.frame === 'custom') options.push(['frame', 'własna ramka']);
     M.layers.forEach(function (layer) {
       if (['sticker', 'overlay', 'cards', 'gallery', 'bigGallery'].indexOf(layer.t) >= 0)
@@ -1596,6 +1743,7 @@
     next.header = M.header;
     next.style = M.style;
     next.ultra = M.ultra;
+    next.ultra2 = M.ultra2;
     next.accent = M.accent;
     next.panels = M.panels;
     next.shadow = M.shadow;
@@ -1610,6 +1758,7 @@
     next.avatar.size = M.avatar.size;
     next.avatar.shape = M.avatar.shape;
     next.nick.hidden = M.nick.hidden;
+    ['font', 'paint', 'c1', 'c2'].forEach(function (k) { if (M.nick[k] != null) next.nick[k] = M.nick[k]; });
     var id = next.layers.reduce(function (m, x) { return Math.max(m, x.id); }, 0);
     M.layers.forEach(function (layer) {
       if (layer.t === 'sticker' || layer.t === 'overlay') {
@@ -1641,9 +1790,10 @@
     s.header = null;
     s.style = null;
     s.ultra = null;
+    s.ultra2 = null;
     if (s.avatar.frame === 'custom') s.avatar.frame = 'Base';
     delete s.avatar.customImage;
-    s.layers = s.layers.filter(function (x) { return x.t !== 'overlay' && x.t !== 'sticker'; });
+    keepLayers(s, function (x) { return x.t !== 'overlay' && x.t !== 'sticker'; });
     s.animate = null;
     return s;
   }
@@ -1694,7 +1844,7 @@
     var has = {}, cards = {}, dropped = 0;
     pictures.forEach(function (p) { has[p.id] = true; });
     cardChoices.forEach(function (c) { cards[c.id] = true; });
-    ['header', 'style', 'ultra'].forEach(function (k) {
+    ['header', 'style', 'ultra', 'ultra2'].forEach(function (k) {
       if (layout[k] && !has[layout[k].image]) { layout[k] = null; dropped++; }
     });
     if (layout.avatar.frame === 'custom' && !has[layout.avatar.customImage]) {
@@ -1702,14 +1852,14 @@
       delete layout.avatar.customImage;
       dropped++;
     }
-    layout.layers = layout.layers.filter(function (x) {
+    keepLayers(layout, function (x) {
       var ok = x.t === 'overlay' ? has[x.image] : x.t === 'sticker' ? cards[x.card] : true;
       if (!ok) dropped++;
       return !!ok;
     });
     var a = layout.animate;
     if (a && (a.indexOf('layer:') === 0 ? !layout.layers.some(function (x) { return 'layer:' + x.id === a; })
-      : a === 'frame' ? layout.avatar.frame !== 'custom' : (a === 'header' || a === 'style' || a === 'ultra') && !layout[a]))
+      : a === 'frame' ? layout.avatar.frame !== 'custom' : (a === 'header' || a === 'style' || a === 'ultra' || a === 'ultra2') && !layout[a]))
       layout.animate = null;
     return dropped;
   }
@@ -2122,6 +2272,7 @@
     if (M.header) used.push(M.header.image);
     if (M.style) used.push(M.style.image);
     if (M.ultra) used.push(M.ultra.image);
+    if (M.ultra2) used.push(M.ultra2.image);
     if (M.avatar.frame === 'custom') used.push(M.avatar.customImage);
     M.layers.forEach(function (layer) { if (layer.t === 'overlay') used.push(layer.image); });
     return used;
@@ -2289,6 +2440,8 @@
     if (M.header) wanted.push(M.header.image);
     if (M.style) wanted.push(M.style.image);
     if (M.ultra) wanted.push(M.ultra.image);
+    if (M.ultra2) wanted.push(M.ultra2.image);
+    if (M.nick.font) useNickFont(M.nick.font);
     if (M.avatar.frame === 'custom' && M.avatar.customImage) wanted.push(M.avatar.customImage);
     M.layers.forEach(function (layer) { if (layer.t === 'overlay') wanted.push(layer.image); });
     wanted.forEach(function (id) { if (id && !data.sample) fetchPicture(id); });
@@ -2365,6 +2518,7 @@
       M.header = keep.header;
       M.style = keep.style;
       M.ultra = keep.ultra;
+      M.ultra2 = keep.ultra2;
       sharing = true;
       say('Wczytano układ z linku. Twoje obrazki i karty dodasz sam; zapis pokaże, co trzeba odblokować.');
     } else {
@@ -2402,6 +2556,7 @@
       $('profile-loading').hidden = true;
       return;
     }
+    L.nickFonts = catalog.nickFonts || [];
     useData(got[1]);
   });
 })();
