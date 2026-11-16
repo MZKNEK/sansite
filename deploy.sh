@@ -588,7 +588,7 @@ fi
 purge=""
 if [ -n "$previous" ] && git cat-file -e "$previous^{commit}" 2>/dev/null; then
     purge=$(git -c core.quotepath=false diff --name-only --no-renames --diff-filter=ACMRD "$previous" HEAD \
-        | grep -E '\.(png|jpe?g|gif|webp|avif|svg|ico|woff2|webmanifest|txt)$' \
+        | grep -E '\.(png|jpe?g|gif|webp|avif|svg|ico|woff2|ttf|webmanifest|txt)$' \
         | grep -vE '^(server|tools|apps|tests|\.github)/' \
         | sed "s#^#$site_url/#" || true)
 fi
