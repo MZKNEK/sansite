@@ -134,6 +134,8 @@
         ['/profilator/api.php?a=me', [401]],
         ['/profilator/api.php?a=nothing', [401]],
         ['/profilator/api.php?a=delete&id=1', [401]],
+        ['/profilator/api.php?a=slots', [401]],
+        ['/profilator/api.php?a=me&as=123456789012345678', [401]],
         ['/og.php?p=cmd', [200, 302]],
         ['/og.php?p=versions', [200, 302]],
         ['/og.php?p=wersje', [200, 302]],

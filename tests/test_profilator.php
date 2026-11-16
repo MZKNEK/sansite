@@ -82,3 +82,50 @@
         assertNull(profilatorCatalog(5000));
         withoutHttp();
     });
+
+    test('profilatorSlotName keeps one short line and names an empty one by its place', function () {
+        assertSame('Mój układ', profilatorSlotName("  Mój\n\tukład ", 0));
+        assertSame('Układ 2', profilatorSlotName('   ', 1));
+        assertSame('Układ 3', profilatorSlotName(['not text'], 2));
+        assertSame(str_repeat('ż', PROFILATOR_SLOT_NAME), profilatorSlotName(str_repeat('ż', 100), 0));
+    });
+
+    test('profilatorSetSlot keeps three layouts per account, each account its own', function () {
+        $me = '123456789012345678';
+        $other = '223456789012345678';
+        assertSame([null, null, null], profilatorSlots($me));
+
+        $slots = profilatorSetSlot($me, 1, '{"v":1,"avatar":{}}', 'Zimowy', 1700000000);
+        assertNull($slots[0]);
+        assertSame(['name' => 'Zimowy', 'time' => 1700000000, 'layout' => '{"v":1,"avatar":{}}'], $slots[1]);
+        assertSame([null, null, null], profilatorSlots($other), 'another account sees none of it');
+
+        // the page gets the layout as an object again, an empty object still an object
+        $out = profilatorSlotsOut(profilatorSlots($me));
+        assertSame('{"v":1,"avatar":{}}', json_encode($out[1]['layout']));
+
+        profilatorSetSlot($me, 1, null, '', 1700000001);
+        assertSame([null, null, null], profilatorSlots($me));
+        assertFalse(array_key_exists($me, readData('profilator-slots')), 'an account with no layouts leaves nothing behind');
+    });
+
+    test('profilatorFree is true only for a quote with nothing to pay', function () {
+        assertTrue(profilatorFree(['missing' => [], 'sc' => 0, 'tc' => 0]));
+        assertFalse(profilatorFree(['missing' => [['key' => 'accent']], 'sc' => 0, 'tc' => 0]));
+        assertFalse(profilatorFree(['missing' => [], 'sc' => 500, 'tc' => 0]));
+        assertFalse(profilatorFree(['missing' => [], 'sc' => 0, 'tc' => 5]));
+        assertFalse(profilatorFree(null));
+    });
+
+    test('profilatorOwner lets only a site admin work on another\'s profile, and not on its slots or pictures', function () {
+        if (!defined('PANEL_ADMINS')) define('PANEL_ADMINS', ['999']);
+        $admin = PANEL_ADMINS[0];
+        $player = '123456789012345678';
+        assertSame([$player, null], profilatorOwner($player, null, 'save'));
+        assertSame([null, 'admin'], profilatorOwner($player, '223456789012345678', 'me'));
+        assertSame(['223456789012345678', null], profilatorOwner($admin, '223456789012345678', 'save'));
+        assertSame([null, 'as'], profilatorOwner($admin, '223456789012345678', 'upload'));
+        assertSame([null, 'as'], profilatorOwner($admin, '223456789012345678', 'slot'));
+        assertSame([null, 'as'], profilatorOwner($admin, '../catalog', 'me'));
+        assertSame([null, 'as'], profilatorOwner($admin, ['223456789012345678'], 'me'));
+    });

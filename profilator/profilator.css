@@ -91,6 +91,41 @@
     color: var(--text-dim);
 }
 
+.profilator-as {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 6px 8px;
+    margin: 0 0 12px;
+}
+
+.profilator-as .hud-field {
+    flex: 1 1 220px;
+    margin: 0;
+}
+
+.profilator-slots {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+
+.profilator-slots li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+.profilator-slots .profilator-slot-name {
+    flex: 1 1 160px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .profilator-bot-picture {
     margin-top: 12px;
 }

@@ -28,6 +28,11 @@
     // USkalpelator's background removal, built as a module of its own (apps/uskalpel/vite.config.js)
     $cutout = glob(__DIR__ . '/../uskalpel/assets/cutout-*.js')[0] ?? null;
     $avatar = $user !== null && $user['avatar'] !== '' ? preg_replace('~\?size=\d+$~', '?size=128', $user['avatar']) : '';
+    // a site admin may open another player's profile by its Discord id (?as=), to put it right
+    $admin = $user !== null && isPanelAdminId($user['id']);
+    $as = $admin && is_string($_GET['as'] ?? null) && preg_match('/^\d{17,20}$/', $_GET['as']) && $_GET['as'] !== (string)$user['id'] ? $_GET['as'] : '';
+    if ($as !== '')
+        $avatar = '';
 ?>
 <!DOCTYPE html>
 <html lang="pl"<?=hudHtmlAttributes($user)?>>
@@ -49,14 +54,14 @@
   <link href="../css/status.css?v=c2da6fb979" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
-  <link href="profilator.css?v=26c907c624" type="text/css" rel="stylesheet" />
+  <link href="profilator.css?v=012d71a013" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
 </head>
 
 <body class="state-page">
-  <main class="content profilator-page" id="profilator" data-api="api.php" data-pw="../pw/np/" data-logged="<?=$user !== null ? '1' : '0'?>"
+  <main class="content profilator-page" id="profilator" data-api="api.php" data-pw="../pw/np/" data-logged="<?=$user !== null ? '1' : '0'?>" data-user="<?=$user !== null ? e((string)$user['id']) : ''?>" data-as="<?=e($as)?>"
     data-levels="<?=e(json_encode((object)$levels))?>" data-csrf="<?=e($csrf)?>" data-avatar="<?=e($avatar)?>"
     data-art="../img/logo.webp" data-board="<?=$board !== null ? '../skalpel/assets/' . e(basename($board)) : ''?>" data-cards="../pw/" data-bot-cards="cards/"
     data-cutout="<?=$cutout !== null ? '../uskalpel/assets/' . e(basename($cutout)) : ''?>">
@@ -76,6 +81,18 @@
     <div class="profilator-grid">
       <section class="card profilator-preview">
         <h2><i>01</i>Podgląd</h2>
+<?php if ($admin): ?>
+        <form class="profilator-as" method="get" action="./">
+          <label class="hud-field">
+            <span class="hud-field-label">Profil gracza <span class="muted">admin: id konta Discord</span></span>
+            <input class="field hud-corners" type="text" name="as" inputmode="numeric" pattern="\d{17,20}" maxlength="20" placeholder="np. 123456789012345678" value="<?=e($as)?>" required />
+          </label>
+          <button type="submit" class="admin-btn small">Wczytaj</button>
+<?php if ($as !== ''): ?>
+          <a class="admin-btn small" href="./">Mój profil</a>
+<?php endif; ?>
+        </form>
+<?php endif; ?>
         <div class="profilator-tools">
           <button type="button" class="admin-btn small" id="undo" title="Ctrl+Z" disabled>Cofnij</button>
           <button type="button" class="admin-btn small" id="redo" title="Ctrl+Y" disabled>Ponów</button>
@@ -101,6 +118,8 @@
         </div>
         <h3 class="profilator-sub">Gotowe układy <span class="muted">darmowe</span></h3>
         <div class="profilator-seg" id="presets"></div>
+        <h3 class="profilator-sub">Moje układy <span class="muted"><?=$user !== null ? 'trzy miejsca na koncie' : 'po zalogowaniu'?></span></h3>
+        <ul class="profilator-slots" id="slots"></ul>
         <p class="hint" id="profile-source">Wczytywanie&hellip;</p>
       </section>
 
@@ -155,7 +174,7 @@
           <h2><i>05</i>Obrazki</h2>
           <p class="hint">Obrazki trafiają do bota i są tylko twoje. Po odblokowaniu miejsca zmiany obrazków są darmowe; nieużywane znikają godzinę po zapisie profilu.</p>
           <ul class="profilator-pictures" id="pictures"></ul>
-<?php if ($user !== null): ?>
+<?php if ($user !== null && $as === ''): ?>
           <div class="profilator-drop hud-corners" id="picture-drop" role="button" tabindex="0" aria-label="Przeciągnij obraz albo kliknij, by wybrać plik">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></svg>
             <span class="drop-text"><b>Przeciągnij obraz</b><small id="picture-name">albo kliknij, by wybrać plik: png, jpg, gif, webp, do 10 MB</small></span>
@@ -228,7 +247,7 @@
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
   <script src="layers.js?v=4f9c98979d"></script>
-  <script src="editor.js?v=63ba4b987e"></script>
+  <script src="editor.js?v=83ee27f51a"></script>
 </body>
 
 </html>

@@ -3,7 +3,9 @@
 // preview is drawn here by layers.js, and a save goes back to the bot, which charges
 // the missing one-time unlocks. Without a login the page shows made-up data and the
 // ready layouts, and saves nothing. A layout can be shared by a link (#l=...), without
-// the player's pictures and cards.
+// the player's pictures and cards. The work is kept in this browser as it goes (a draft,
+// put back on the next visit), and a logged-in player has three layouts of their own
+// kept by the site (api.php a=slots, a=slot).
 (function () {
   'use strict';
 
@@ -20,6 +22,11 @@
   var logged = root.getAttribute('data-logged') === '1';
   var pw = root.getAttribute('data-pw') || '';
   var botCards = root.getAttribute('data-bot-cards') || '';
+  // a site admin working on another player's profile (?as=<id>): their pictures only to pick,
+  // a save only when it costs them nothing (api.php checks it too)
+  var as = root.getAttribute('data-as') || '';
+  var userId = as ? 'as-' + as : root.getAttribute('data-user') || '';
+  function owner(url) { return as ? url + '&as=' + encodeURIComponent(as) : url; }
   var levels = {};
   try {
     levels = JSON.parse(root.getAttribute('data-levels') || '{}');
@@ -267,7 +274,7 @@
     if (images[id] !== undefined)
       return Promise.resolve(images[id]);
     images[id] = null;
-    return fetch(api + '?a=picture&id=' + encodeURIComponent(id), { credentials: 'same-origin' }).then(function (res) {
+    return fetch(owner(api + '?a=picture&id=' + encodeURIComponent(id)), { credentials: 'same-origin' }).then(function (res) {
       if (!res.ok)
         throw new Error('picture');
       return res.arrayBuffer();
@@ -673,6 +680,7 @@
     loadNeeded();
     askQuote();
     keepHash();
+    writeDraft();
   }
 
   // ---- moving on the preview ----
@@ -1302,7 +1310,7 @@
       } else {
         var img = document.createElement('img');
         img.alt = '';
-        img.src = f.key === 'custom' ? api + '?a=picture&id=' + a.customImage : pw + 'ab/' + f.key + '.png';
+        img.src = f.key === 'custom' ? owner(api + '?a=picture&id=' + a.customImage) : pw + 'ab/' + f.key + '.png';
         b.appendChild(img);
       }
       if (!f.free) {
@@ -1674,6 +1682,189 @@
       say('Link do układu jest w pasku adresu.');
   });
 
+  // ---- the work kept: the draft in this browser, the slots on the site ----
+
+  // a layout kept a while may name pictures and cards the player has no more (the bot
+  // drops unused pictures an hour after a save): those parts go, the rest stays; how many went
+  function fitToPlayer(layout) {
+    var has = {}, cards = {}, dropped = 0;
+    pictures.forEach(function (p) { has[p.id] = true; });
+    cardChoices.forEach(function (c) { cards[c.id] = true; });
+    ['header', 'style', 'ultra'].forEach(function (k) {
+      if (layout[k] && !has[layout[k].image]) { layout[k] = null; dropped++; }
+    });
+    if (layout.avatar.frame === 'custom' && !has[layout.avatar.customImage]) {
+      layout.avatar.frame = 'Base';
+      delete layout.avatar.customImage;
+      dropped++;
+    }
+    layout.layers = layout.layers.filter(function (x) {
+      var ok = x.t === 'overlay' ? has[x.image] : x.t === 'sticker' ? cards[x.card] : true;
+      if (!ok) dropped++;
+      return !!ok;
+    });
+    var a = layout.animate;
+    if (a && (a.indexOf('layer:') === 0 ? !layout.layers.some(function (x) { return 'layer:' + x.id === a; })
+      : a === 'frame' ? layout.avatar.frame !== 'custom' : (a === 'header' || a === 'style' || a === 'ultra') && !layout[a]))
+      layout.animate = null;
+    return dropped;
+  }
+
+  function lostNote(n) {
+    if (!n)
+      return '';
+    var few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+    return '; pominięto ' + n + (n === 1 ? ' element' : few ? ' elementy' : ' elementów') + ' z obrazkiem lub kartą, których już nie masz';
+  }
+
+  function when(ms) {
+    return new Date(ms).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // the draft: the layout as it was left, of the player's own profile or of the made-up one
+  var started = false;
+  function draftKey() { return 'profilator-draft:' + (data && !data.sample && userId ? userId : 'sample'); }
+
+  function writeDraft() {
+    if (!started || !M)
+      return;
+    try {
+      localStorage.setItem(draftKey(), JSON.stringify({ layout: M, version: version, time: Date.now() }));
+    } catch (e) {
+      // no storage: the work is not kept
+    }
+  }
+
+  function readDraft() {
+    try {
+      var d = JSON.parse(localStorage.getItem(draftKey()) || 'null');
+      return d && d.layout && typeof d.layout === 'object' ? d : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // the draft over the layout just loaded, when it differs; undo goes back to the loaded one
+  function restoreDraft() {
+    var draft = readDraft();
+    if (!draft)
+      return;
+    var was = JSON.stringify(M);
+    var next = normalise(draft.layout);
+    var lost = fitToPlayer(next);
+    if (JSON.stringify(next) === was)
+      return;
+    past.push(was);
+    M = next;
+    say('Przywrócono niezapisaną pracę z ' + when(draft.time)
+      + (!data.sample && draft.version !== version ? ', sprzed późniejszego zapisu profilu' : '') + lostNote(lost)
+      + '. „Cofnij” wraca do ' + (data.sample ? 'układu startowego' : 'zapisanego profilu') + '.');
+  }
+
+  // the slots: null while loading, false when they could not be had
+  var slots = null;
+  var slotBusy = false;
+
+  function loadSlots() {
+    if (!logged) {
+      renderSlots();
+      return;
+    }
+    fetch(api + '?a=slots', { credentials: 'same-origin' }).then(function (res) {
+      return res.ok ? res.json() : null;
+    }).catch(function () { return null; }).then(function (b) {
+      slots = b && Array.isArray(b.slots) ? b.slots : false;
+      renderSlots();
+    });
+  }
+
+  function renderSlots() {
+    var host = $('slots');
+    host.textContent = '';
+    var line = function (text) {
+      var li = document.createElement('li');
+      li.className = 'muted';
+      li.textContent = text;
+      host.appendChild(li);
+    };
+    if (!logged)
+      return line('Zaloguj się, żeby zapisać do trzech własnych układów na koncie.');
+    if (slots === null)
+      return line('Wczytywanie zapisanych układów…');
+    if (slots === false)
+      return line('Nie udało się wczytać zapisanych układów. Odśwież stronę za chwilę.');
+    slots.forEach(function (slot, i) {
+      var li = document.createElement('li');
+      var name = document.createElement('span');
+      name.className = 'profilator-slot-name';
+      name.textContent = (i + 1) + '. ';
+      var title = document.createElement(slot ? 'b' : 'span');
+      title.textContent = slot ? slot.name : 'puste miejsce';
+      if (!slot) title.className = 'muted';
+      name.appendChild(title);
+      if (slot) {
+        var time = document.createElement('small');
+        time.className = 'muted';
+        time.textContent = ' · ' + when(slot.time * 1000);
+        name.appendChild(time);
+      }
+      li.appendChild(name);
+      var add = function (b) { b.disabled = slotBusy; li.appendChild(b); };
+      if (slot)
+        add(button('Wczytaj', 'admin-btn small', 'Wczytaj układ „' + slot.name + '”', function () { loadSlot(i); }));
+      add(button('Zapisz tu', 'admin-btn small', 'Zapisz obecny układ w miejscu ' + (i + 1), function () { saveSlot(i); }));
+      if (slot)
+        add(button('Usuń', 'admin-btn small', 'Usuń układ „' + slot.name + '”', function () { deleteSlot(i); }));
+      host.appendChild(li);
+    });
+  }
+
+  function sendSlot(body, done) {
+    slotBusy = true;
+    renderSlots();
+    post('slot', body).then(function (answer) {
+      slotBusy = false;
+      if (answer.status === 200 && answer.body && Array.isArray(answer.body.slots)) {
+        slots = answer.body.slots;
+        say(done);
+      } else {
+        say(answer.status === 400 && answer.body && answer.body.error === 'layout' ? 'Układ jest za duży, żeby go zapisać.'
+          : answer.status === 0 ? 'Strona nie odpowiada, spróbuj za chwilę.' : 'Nie udało się zapisać miejsca (' + answer.status + ').', true);
+      }
+      renderSlots();
+    });
+  }
+
+  function saveSlot(i) {
+    if (!M || slotBusy)
+      return;
+    var slot = slots[i];
+    var name = window.prompt(slot ? 'Nazwa układu. Zastąpi „' + slot.name + '” w miejscu ' + (i + 1) + '.' : 'Nazwa układu w miejscu ' + (i + 1) + '.', slot ? slot.name : 'Układ ' + (i + 1));
+    if (name === null)
+      return;
+    sendSlot({ slot: i, layout: M, name: name }, 'Układ zapisany w miejscu ' + (i + 1) + '. Profil w bocie zmieni się dopiero po „Zapisz”.');
+  }
+
+  function deleteSlot(i) {
+    var slot = slots[i];
+    if (!slot || slotBusy || !window.confirm('Usunąć układ „' + slot.name + '” z miejsca ' + (i + 1) + '?'))
+      return;
+    sendSlot({ slot: i, layout: null }, 'Miejsce ' + (i + 1) + ' jest puste.');
+  }
+
+  function loadSlot(i) {
+    var slot = slots[i];
+    if (!slot || !M || !slot.layout || typeof slot.layout !== 'object')
+      return;
+    snapshot();
+    var next = normalise(slot.layout);
+    var lost = fitToPlayer(next);
+    M = next;
+    sel = null;
+    say('Wczytano układ „' + slot.name + '”' + lostNote(lost) + '. Zapis pokaże, co trzeba odblokować.');
+    changed(true);
+  }
+
   // ---- the price and the save ----
 
   function owns(key) { return unlocks.indexOf(key) >= 0; }
@@ -1698,7 +1889,8 @@
   function post(action, body, headers) {
     var h = { 'Content-Type': 'application/json', 'X-CSRF': csrf };
     Object.keys(headers || {}).forEach(function (k) { h[k] = headers[k]; });
-    return fetch(api + '?a=' + action, { method: 'POST', credentials: 'same-origin', headers: h, body: JSON.stringify(body) }).then(function (res) {
+    var url = api + '?a=' + action;
+    return fetch(action === 'slot' ? url : owner(url), { method: 'POST', credentials: 'same-origin', headers: h, body: JSON.stringify(body) }).then(function (res) {
       return res.json().then(function (b) { return { status: res.status, body: b }; }, function () { return { status: res.status, body: null }; });
     }, function () {
       return { status: 0, body: null };
@@ -1770,9 +1962,11 @@
     } else {
       row('Zapis', 'bez opłat', 'free');
     }
-    $('currency-field').hidden = !due;
-    $('save').disabled = !!(quote.errors && quote.errors.length) || !afford;
-    $('save').textContent = due ? 'Zapłać i zapisz' : 'Zapisz';
+    if (as && due)
+      row('Profil gracza', 'admin zapisuje tylko bez opłat', 'short');
+    $('currency-field').hidden = !due || !!as;
+    $('save').disabled = !!(quote.errors && quote.errors.length) || !afford || !!(as && due);
+    $('save').textContent = as ? 'Zapisz u gracza' : due ? 'Zapłać i zapisz' : 'Zapisz';
   }
 
   $('currency').addEventListener('change', function () { renderCost(); });
@@ -1795,13 +1989,14 @@
         unlocks = unlocks.concat(answer.body.unlocked || []);
         say(answer.body.paid ? 'Zapisano. Pobrano ' + group(answer.body.paid) + ' ' + answer.body.currency.toUpperCase() + ' za odblokowania.' : 'Zapisano.');
         present = null;
+        writeDraft();
         askQuote();
         renderProps();
         return;
       }
       var why = {
         409: 'Profil zmienił się w innym oknie albo karcie. Odśwież stronę, żeby zobaczyć obecny.',
-        402: 'Za mało waluty na odblokowania.',
+        402: answer.body && answer.body.error === 'paid' ? 'Ten układ wymaga odblokowań, a profil gracza admin zapisuje tylko bez opłat.' : 'Za mało waluty na odblokowania.',
         400: 'Bot nie przyjął układu: ' + (Array.isArray(answer.body) ? answer.body.join('; ') : (answer.body && answer.body.error) || 'błędne dane') + '.',
         503: 'Bot nie odpowiada, spróbuj za chwilę.'
       }[answer.status] || 'Nie udało się zapisać (' + answer.status + ').';
@@ -1846,7 +2041,7 @@
     }
     btn.disabled = true;
     say('Bot rysuje obecny profil…');
-    fetchImage(api + '?a=current').then(function (img) {
+    fetchImage(owner(api + '?a=current')).then(function (img) {
       present = img;
       btn.disabled = false;
       show();
@@ -1860,7 +2055,7 @@
     var btn = this;
     btn.disabled = true;
     say('Bot rysuje ten układ…');
-    fetchImage(api + '?a=preview', {
+    fetchImage(owner(api + '?a=preview'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF': csrf }, body: JSON.stringify(M)
     }).then(function (img) {
       btn.disabled = false;
@@ -1886,7 +2081,7 @@
     if (!pictures.length) {
       var li = document.createElement('li');
       li.className = 'muted profilator-empty';
-      li.textContent = logged ? 'Nie masz jeszcze obrazków. Wyślij pierwszy poniżej.' : 'Po zalogowaniu wyślesz tu swoje obrazki.';
+      li.textContent = as ? 'Gracz nie ma obrazków.' : logged ? 'Nie masz jeszcze obrazków. Wyślij pierwszy poniżej.' : 'Po zalogowaniu wyślesz tu swoje obrazki.';
       host.appendChild(li);
       return;
     }
@@ -1896,12 +2091,12 @@
       var img = document.createElement('img');
       img.alt = '';
       img.loading = 'lazy';
-      img.src = api + '?a=picture&id=' + p.id;
+      img.src = owner(api + '?a=picture&id=' + p.id);
       var text = document.createElement('span');
       text.textContent = 'Obrazek ' + p.id + ' · ' + (USES[p.use] || p.use) + ' · ' + p.width + ' × ' + p.height + (p.animated ? ' · ruchomy' : '');
       li.appendChild(img);
       li.appendChild(text);
-      if (logged)
+      if (logged && !as)
         li.appendChild(button('Usuń', 'admin-btn small', 'Usuń obrazek ' + p.id, function () { removePicture(p); }));
       host.appendChild(li);
     });
@@ -1920,6 +2115,8 @@
 
   // the bot refuses a picture its saved profile still shows
   function removePicture(p) {
+    if (as)
+      return;
     if (picturesInLayout().indexOf(p.id) >= 0) {
       say('Obrazek ' + p.id + ' jest w układzie. Najpierw usuń go z układu.', true);
       return;
@@ -2126,7 +2323,9 @@
       M = normalise(catalog ? catalog.presets[0].layout : {});
       cardChoices = [];
       sampleCards();
-      $('profile-source').textContent = logged
+      $('profile-source').textContent = as
+        ? (answer && answer.body && answer.body.error === 'none' ? 'Gracz ' + as + ' nie ma profilu w bocie' : 'Bot nie podał profilu gracza ' + as + (answer && answer.status ? ' (' + answer.status + ')' : '')) + ', więc dane są przykładowe i zapis jest wyłączony.'
+        : logged
         ? (answer && answer.body && answer.body.error === 'none' ? 'Nie masz jeszcze profilu w bocie, ' : 'Bot nie podał teraz twojego profilu, ') + 'więc dane są przykładowe i zapis jest wyłączony.'
         : 'Dane są przykładowe. Zaloguj się kontem Discord, żeby edytować i zapisać swój profil.';
       $('save').disabled = true;
@@ -2137,7 +2336,9 @@
       unlocks = mine.unlocks || [];
       pictures = mine.pictures || [];
       cardChoices = mine.cards || [];
-      $('profile-source').textContent = 'To twój profil z bota: twoje liczby, karty, statystyki z Shindena i obrazki.';
+      $('profile-source').textContent = as
+        ? 'Profil gracza ' + as + ' z bota (jako admin): jego liczby, karty i obrazki. Zapis u gracza tylko wtedy, gdy nic nie trzeba odblokować; własne układy zostają twoje.'
+        : 'To twój profil z bota: twoje liczby, karty, statystyki z Shindena i obrazki.';
       if (data.waifu) loadCard(data.waifu);
       (data.gallery || []).forEach(loadCard);
     }
@@ -2152,13 +2353,18 @@
       M.ultra = keep.ultra;
       sharing = true;
       say('Wczytano układ z linku. Twoje obrazki i karty dodasz sam; zapis pokaże, co trzeba odblokować.');
+    } else {
+      restoreDraft();
     }
     renderPictures();
     renderPresets();
+    loadSlots();
     showMotion();
     $('editor').inert = false;
     $('profile-loading').hidden = true;
     changed(true);
+    // from now on each change is kept; a layout from a link takes the draft's place only once changed
+    started = true;
   }
 
   load(pw + 'pbg.png').then(function (img) { defaultHeader = img; redraw(); });
@@ -2170,7 +2376,7 @@
 
   var catalogLoad = fetch(api + '?a=catalog', { credentials: 'same-origin' }).then(function (res) { return res.ok ? res.json() : null; }).catch(function () { return null; });
   var meLoad = logged
-    ? fetch(api + '?a=me', { credentials: 'same-origin' }).then(function (res) {
+    ? fetch(owner(api + '?a=me'), { credentials: 'same-origin' }).then(function (res) {
       return res.json().then(function (b) { return { status: res.status, body: b }; }, function () { return { status: res.status, body: null }; });
     }, function () { return { status: 0, body: null }; })
     : Promise.resolve(null);
