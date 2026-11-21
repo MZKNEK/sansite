@@ -8,11 +8,16 @@
     require __DIR__ . '/../inc/gallery.php';
     require __DIR__ . '/../inc/status-card.php';
     require __DIR__ . '/../inc/meta.php';
+    require __DIR__ . '/../inc/push.php';
 
     $card = statusCard();
     $services = servicesCard();
     $notice = botNotice();
     $user = siteUser();
+    // "Powiadom mnie, gdy wróci" (inc/push.php, js/bot-return.js): offered
+    // while the bot is down, and kept for cancelling while someone waits
+    $pushOpen = pushOpen(time());
+    $pushKeys = $pushOpen || pushWaiting() ? pushKeys() : null;
 ?>
 <!DOCTYPE html>
 <html lang="pl"<?=hudHtmlAttributes($user)?>>
@@ -33,7 +38,7 @@
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=855c6b6aac" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=c2da6fb979" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=08dbbf0982" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>
   <link href="../css/seasonal-background.css?v=47cc796474" type="text/css" rel="stylesheet" />
@@ -55,6 +60,15 @@
 <?php if ($notice): ?>
     <p class="notice-bar<?=empty($notice['maintenance']) ? '' : ' maintenance'?>" role="status"><?=e(noticeText($notice))?></p>
 <?php endif; ?>
+<?php if ($pushKeys): ?>
+    <div class="return-push" data-return-push data-key="<?=e(base64UrlEncode($pushKeys['public']))?>" data-open="<?=$pushOpen ? '1' : '0'?>" hidden>
+      <p data-return-text></p>
+      <div class="return-push-actions">
+        <button type="button" class="hud-button hud-corners" data-return-subscribe hidden>Powiadom mnie, gdy wróci</button>
+        <button type="button" class="hud-button hud-corners" data-return-cancel hidden>Nie powiadamiaj</button>
+      </div>
+    </div>
+<?php endif; ?>
     <section class="card state-card">
 <?=$card?>
     </section>
@@ -71,6 +85,9 @@
   <script src="../js/safeguard.js?v=7d172e8a71"></script>
   <script src="../js/seasonal-background.js?v=4ba6c522d2"></script>
   <script src="../js/palette.js?v=10c535e8a5"></script>
+<?php if ($pushKeys): ?>
+  <script src="../js/bot-return.js?v=4df3813a11"></script>
+<?php endif; ?>
 </body>
 
 </html>

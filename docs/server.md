@@ -156,7 +156,7 @@ A bot check every minute, so the availability history on `/state/` has no gaps:
 echo '* * * * * www-data php /var/www/html/inc/check-bot.php > /dev/null 2>&1' > /etc/cron.d/sanakan-status
 ```
 
-The panel shows a warning when this check has not run for 5 minutes.
+The panel shows a warning when this check has not run for 5 minutes. The same run sends the notifications that the bot is back (`inc/push.php`), so the server has to reach the browsers' push services over HTTPS (`fcm.googleapis.com`, `*.push.services.mozilla.com`, `*.push.apple.com`, `*.notify.windows.com`), and its PHP needs `openssl` with EC keys.
 
 The availability checks of the site, a run a minute doing a round every 10 seconds:
 

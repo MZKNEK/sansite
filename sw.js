@@ -1,7 +1,8 @@
 // The site's service worker, registered by js/safeguard.js on every page. When
 // a page cannot be reached because the browser has no network, it answers with
 // offline.html instead of the browser's own error. Nothing else is kept or
-// served from a cache: with a network every request goes on as before.
+// served from a cache: with a network every request goes on as before. It also
+// shows the one notification someone asked for on state/ (at the end).
 //
 // The ?v= below is the hash of each file (tools/asset-versions.php), so a
 // change to the offline page changes this file too; the browser then installs
@@ -70,4 +71,34 @@ self.addEventListener('fetch', function (event) {
   var url = new URL(request.url);
   if (url.origin === self.location.origin && FILES.indexOf(url.pathname + url.search) >= 0)
     event.respondWith(caches.match(request).then(function (hit) { return hit || fetch(request); }));
+});
+
+// "Sanakan wrócił" (inc/push.php), asked for on state/ (js/bot-return.js): the
+// notification, then the subscription ends here too, as the server has
+// already dropped it; it was for this one message only.
+self.addEventListener('push', function (event) {
+  var data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(self.registration.showNotification(data.title || 'Sanakan wrócił', {
+    body: data.body || 'Bot znów odpowiada.',
+    icon: '/apple-touch-icon.png',
+    tag: 'sanakan-back',
+    lang: 'pl',
+    data: { url: typeof data.url === 'string' && data.url.charAt(0) === '/' && data.url.charAt(1) !== '/' ? data.url : '/state/' }
+  }).then(function () {
+    return self.registration.pushManager.getSubscription();
+  }).then(function (subscription) {
+    return subscription && subscription.unsubscribe();
+  }).catch(function () {}));
+});
+
+// a click opens the status page, in a tab already showing it when there is one
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var url = new URL((event.notification.data && event.notification.data.url) || '/state/', self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windows) {
+    for (var i = 0; i < windows.length; i++)
+      if (windows[i].url === url && 'focus' in windows[i]) return windows[i].focus();
+    return self.clients.openWindow(url);
+  }));
 });

@@ -118,6 +118,8 @@
         // the old address, followed to the new one
         ['/state/wersje/?v=1.0', [200], 'Location: ../versions/?v=1.0'],
         ['/state/og.php', [200, 302]],
+        // the button of state/ only takes a POST
+        ['/state/push.php', [405]],
         ['/hunters/', [200]],
         ['/cmd/', [200]],
         ['/cmd/changes/', [200]],

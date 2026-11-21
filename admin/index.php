@@ -135,7 +135,7 @@
   <link href="../css/account.css?v=66047e5fc2" type="text/css" rel="stylesheet" />
   <link href="../css/skins.css?v=50e6f40617" type="text/css" rel="stylesheet" />
   <link href="../css/explorer.css?v=855c6b6aac" type="text/css" rel="stylesheet" />
-  <link href="../css/status.css?v=c2da6fb979" type="text/css" rel="stylesheet" />
+  <link href="../css/status.css?v=08dbbf0982" type="text/css" rel="stylesheet" />
   <link href="../css/admin.css?v=41f5842dd2" type="text/css" rel="stylesheet" />
   <script src="../js/appearance.js?v=2e6e831727"></script>
   <script src="../js/discovery-storage.js?v=5cd5704e81"></script>

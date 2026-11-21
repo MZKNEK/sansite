@@ -2,7 +2,9 @@
     // Checks the bot once, without the one-minute cache, every 5 minutes the
     // other Sanakan sites (inc/services.php) and once a day removes the thumbnails
     // nobody looks at any more (inc/gallery.php); it also changes the pictures and
-    // films uploaded since the last run to WebP or WebM in the background. Run by
+    // films uploaded since the last run to WebP or WebM in the background. Once
+    // the bot is back after an outage it notifies those who asked on state/
+    // (inc/push.php). Run by
     // cron every minute, as the web server's user, so the history has no gaps also
     // when nobody visits:
     //   * * * * * www-data php /var/www/html/inc/check-bot.php > /dev/null 2>&1
@@ -18,8 +20,12 @@
     require __DIR__ . '/gallery.php';
     require __DIR__ . '/panel-stats.php';
     require __DIR__ . '/pw.php';
+    require __DIR__ . '/push.php';
 
     $state = botState(true);
+    // "Sanakan wrócił" to those who asked on state/, once the bot has answered
+    // the last 10 checks
+    pushDeliver(time());
     // the bot's changelog from its repository, asked for again every
     // VERDIFF_TTL (sooner while a new version has no section in it yet), so
     // state/versions/ opens without waiting on the network; the sections the file
