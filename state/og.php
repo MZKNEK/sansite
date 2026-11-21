@@ -53,14 +53,18 @@
         // Shinden, the Alter site and the bot API, a small dot each. This site
         // works when its picture comes and the wiki is on the same server, so
         // they are left out; Waifu and the Skalpelators are in the panel only.
+        // Only the bot tells how Shinden is, noted with each of its checks, so a
+        // last report older than the bot's last check (the bot does not answer,
+        // or its report has no Shinden) is unknown, grey, not its old state.
         $shinden = botDependencyHistory('shinden');
+        $shinden = $shinden && end($shinden)[0] >= $state['checked'] - 60 ? end($shinden)[1] : null;
         $api = botApiLast();
         $alter = null;
         foreach (servicesState(1) as $service)
             if ($service['key'] === 'alter')
                 $alter = $service['up'];
         $sites = [
-            'Shinden' => $shinden ? end($shinden)[1] : null,
+            'Shinden' => $shinden,
             'Alter' => $alter,
             'API bota' => $api ? $api[1] : null
         ];
